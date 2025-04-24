@@ -28,7 +28,7 @@ source ~/bin/binsetup.sh
 
 | Script | Actualización | Descripción |
 |:-------|:-------------:|:------------|
-| | | |
+| `email_cleaner` | 2025-04-24 | 📧 Gestor de correos para categorización y limpieza automática.<br>• Categoriza emails por tema, remitente y fecha<br>• Genera reportes CSV de correos por categoría<br>• Función para eliminar correos automáticamente |
 
 ### 📦 Binarios Ejecutables
 
@@ -55,6 +55,7 @@ Para información detallada sobre cada herramienta, consulte los documentos en l
 - [Documentación de binsetup.sh](/home/mrosero/bin/docs/binsetup.md)
 - [Documentación de hexroute](/home/mrosero/bin/docs/hexroute.md)
 - [Documentación de videoset.sh](/home/mrosero/bin/docs/videoset.md)
+- [Documentación de email_cleaner] (pendiente)
 
 ## 👥 Créditos
 
@@ -63,6 +64,7 @@ Para información detallada sobre cada herramienta, consulte los documentos en l
 | `binsetup.sh` | Mauro Rosero P. | |
 | `hexroute` | Karl McMurdo (2005-2015) | Mauro Rosero P. (adaptación) |
 | `videoset.sh` | Mauro Rosero P. | |
+| `email_cleaner` | Mauro Rosero P. | |
 
 ## 📝 Notas
 
