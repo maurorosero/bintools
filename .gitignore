@@ -1,0 +1,61 @@
+# Gitignore para scripts en ~/bin
+# Creado el 24 de abril de 2025
+
+### Bash ###
+# Temporales y backups
+*.swp
+*.bak
+*~
+
+# Logs y archivos de sesión
+*.log
+nohup.out
+
+# Archivos de configuración local
+.env
+.env.local
+.env.*.local
+config.local.sh
+
+### Python ###
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribución / empaquetado
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Entornos virtuales
+venv/
+ENV/
+env/
+.venv/
+.env/
+.virtualenv/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Archivos de datos y salidas
+*.csv
+*.json
+*.xlsx
+*.db
+*.sqlite
+output/
