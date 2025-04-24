@@ -9,49 +9,64 @@
 ## Características
 
 - Conexión a servidores IMAP con soporte SSL
+- Ambiente virtual Python automático
 - Categorización automática de correos por:
   - Antigüedad (correos anteriores a 2015)
   - Tipo de remitente (newsletters, notificaciones)
   - Asunto (facturas, confirmaciones)
+  - Categorías personalizables mediante archivo de configuración
+- Detección de spam mediante DNSBLs y reglas tipo SpamAssassin
 - Generación de reportes en formato CSV
+- Interfaz de usuario con colores para mejor legibilidad
+- Soporte especial para cuentas Gmail con instrucciones para contraseñas de aplicación
 - Capacidad para eliminar correos por categoría (con modo "prueba" para evitar eliminaciones accidentales)
 - Registro detallado de actividades (logging)
 - Guardado de progreso para reanudar análisis interrumpidos
 - Manejo automático de interrupciones (Ctrl+C)
 - Instalación automática de dependencias
-- Configuración mediante argumentos de línea de comandos o archivo de configuración
-- Almacenamiento centralizado de datos en ~/Documents/emails/
+- Configuración mediante argumentos de línea de comandos o archivo JSON
+- Almacenamiento centralizado de datos en ~/emails/
 
 ## Requisitos
 
 - Python 3.6 o superior
-- Paquetes: `imaplib`, `email`, `pandas`, `python-dateutil`, `pkg_resources`
+- Paquetes principales: `imaplib`, `email` (incluidos en la biblioteca estándar)
+- Paquetes opcionales: `dnspython`, `beautifulsoup4`, `html2text`, `requests` (para detección de spam)
+- Entorno virtual Python (creado automáticamente si no existe)
 - Acceso a servidor IMAP (Gmail, Outlook, etc.)
 
 ## Instalación
 
-El script puede instalar automáticamente sus dependencias:
+El script puede instalar automáticamente sus dependencias y crear un entorno virtual:
 
 ```bash
 # Instalar dependencias necesarias
 python email_cleaner.py --install
 ```
 
-Alternativamente, puedes instalarlas manualmente:
+El script verificará si el entorno virtual existe, lo creará si es necesario, e instalará todas las dependencias requeridas. Si ya estás ejecutando el script dentro de un entorno virtual, utilizará ese entorno para instalar los paquetes.
 
-```bash
-pip install -r requirements.txt
-```
-
-La mayoría de los paquetes utilizados son parte de la biblioteca estándar de Python.
+El ambiente virtual se crea dentro del directorio `.venv` en la misma ubicación que el script.
 
 ## Configuración
 
-Existen dos métodos para configurar tus credenciales de correo electrónico:
+La configuración se realiza de manera interactiva con un asistente:
 
-### Método 1: Archivo de Configuración
+```bash
+python email_cleaner.py --config
+```
 
-Crea un archivo `config.json` en el directorio `~/Documents/emails/`:
+Este comando te guiará por la configuración de tu cuenta de correo, creando automáticamente el archivo de configuración en `~/emails/config.json`.
+
+También puedes especificar credenciales directamente mediante argumentos:
+
+```bash
+python email_cleaner.py --email "tu_correo@dominio.com" --password "tu_contraseña" --server "imap.tu_servidor.com"
+```
+
+### Archivo de Configuración
+
+El archivo generado por el asistente tendrá esta estructura:
 
 ```json
 {
@@ -61,19 +76,18 @@ Crea un archivo `config.json` en el directorio `~/Documents/emails/`:
 }
 ```
 
-### Método 2: Argumentos de Línea de Comandos
-
-```bash
-python email_cleaner.py --email "tu_correo@dominio.com" --password "tu_contraseña" --server "imap.tu_servidor.com"
-```
+El script establece automáticamente permisos restrictivos (600) para proteger tu contraseña.
 
 ### Servidores IMAP Comunes
 
 - Gmail: `imap.gmail.com`
 - Outlook: `outlook.office365.com`
 - Yahoo: `imap.mail.yahoo.com`
+- Hotmail: `outlook.office365.com`
+- AOL: `imap.aol.com`
+- iCloud: `imap.mail.me.com`
 
-**Nota de Seguridad**: Se recomienda usar contraseñas de aplicación específicas en lugar de la contraseña principal de tu cuenta.
+**Nota de Seguridad para Gmail**: El script detecta automáticamente cuentas de Gmail y muestra instrucciones específicas para usar contraseñas de aplicación, que son obligatorias si tienes la verificación en dos pasos activada.
 
 ## Sintaxis de Uso
 
@@ -192,23 +206,31 @@ El script actualmente reconoce las siguientes categorías:
 
 ### Agregar Nuevas Categorías
 
-Para añadir nuevas categorías, modifica la función `get_email_categories` en la clase `EmailManager`:
+Las categorías ahora son personalizables mediante un archivo de configuración llamado `categories.dat` ubicado en `~/emails/`:
 
-```python
-# Ejemplo: Agregar categoría para correos de redes sociales
-if 'facebook' in from_addr or 'twitter' in from_addr or 'instagram' in from_addr:
-    categories.append("redes_sociales")
 ```
+# Formato: categoria|palabras_clave|dominios|emails
+# Ejemplo: redes_sociales|facebook,twitter,instagram|facebook.com,twitter.com|noreply@facebook.com,info@twitter.com
+# Las palabras clave, dominios y emails son opcionales, separados por comas
+trabajo|compañía,proyecto,tareas|miempresa.com|boss@miempresa.com,rrhh@miempresa.com
+```
+
+Cada línea define una categoría con el siguiente formato:
+1. Nombre de la categoría
+2. Palabras clave (separadas por comas) que se buscarán en el asunto
+3. Dominios de correo (separados por comas) que identifican esta categoría
+4. Direcciones de correo específicas (separadas por comas)
 
 ### Ubicación de Archivos
 
-El script almacena todos los archivos en el directorio `~/Documents/emails/`:
+El script almacena todos los archivos en el directorio `~/emails/`:
 
 - `config.json`: Configuración del usuario
 - `progress.json`: Progreso del análisis para continuar sesiones interrumpidas
-- `email_categories.json`: Categorías de correos identificadas
+- `categories.dat`: Configuración de categorías personalizadas
+- `spam_rules.json`: Reglas para la detección de spam
 - `email_report.csv`: Informe generado de las categorías
-- `email_manager.log`: Registros de actividad del script
+- `email_cleaner.log`: Registros de actividad del script
 
 ### Modificar Comportamiento de Logging
 
