@@ -55,7 +55,7 @@ Para información detallada sobre cada herramienta, consulte los documentos en l
 - [Documentación de binsetup.sh](/home/mrosero/bin/docs/binsetup.md)
 - [Documentación de hexroute](/home/mrosero/bin/docs/hexroute.md)
 - [Documentación de videoset.sh](/home/mrosero/bin/docs/videoset.md)
-- [Documentación de email_cleaner] (pendiente)
+- [Documentación de email_cleaner](/home/mrosero/bin/docs/email_cleaner.md)
 
 ## 👥 Créditos
 
