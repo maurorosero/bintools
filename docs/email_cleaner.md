@@ -1,10 +1,10 @@
-# 📚 Documentación: email_cleaner
+# 📚 Email Cleaner
 
 [⬅️ Volver al Índice Principal](/home/mrosero/bin/README.md)
 
 ## Descripción
 
-`email_cleaner` es una herramienta de gestión de correos electrónicos que permite analizar, categorizar y organizar el contenido de tu bandeja de entrada mediante conexión IMAP. La herramienta clasifica automáticamente los correos en categorías basadas en el remitente, asunto y fecha, generando reportes e incluso permitiendo la eliminación selectiva de correos.
+**Email Cleaner** `email_cleaner` es una herramienta avanzada de gestión de correos electrónicos que permite analizar, categorizar y organizar el contenido de tu bandeja de entrada mediante conexión IMAP. La herramienta clasifica automáticamente los correos en categorías basadas en el remitente, asunto y fecha, generando reportes e incluso permitiendo la eliminación selectiva de correos.
 
 ## Características
 
@@ -16,89 +16,165 @@
 - Generación de reportes en formato CSV
 - Capacidad para eliminar correos por categoría (con modo "prueba" para evitar eliminaciones accidentales)
 - Registro detallado de actividades (logging)
+- Guardado de progreso para reanudar análisis interrumpidos
+- Manejo automático de interrupciones (Ctrl+C)
+- Instalación automática de dependencias
+- Configuración mediante argumentos de línea de comandos o archivo de configuración
+- Almacenamiento centralizado de datos en ~/Documents/emails/
 
 ## Requisitos
 
 - Python 3.6 o superior
-- Paquetes: `imaplib`, `email`, `pandas`, `json`, `logging`
+- Paquetes: `imaplib`, `email`, `pandas`, `python-dateutil`, `pkg_resources`
 - Acceso a servidor IMAP (Gmail, Outlook, etc.)
 
 ## Instalación
 
-1. Asegúrate de tener instalado Python 3.6+
-2. Instala las dependencias requeridas:
+El script puede instalar automáticamente sus dependencias:
 
 ```bash
-pip install pandas
+# Instalar dependencias necesarias
+python email_cleaner.py --install
 ```
 
-Los demás paquetes son parte de la biblioteca estándar de Python.
+Alternativamente, puedes instalarlas manualmente:
+
+```bash
+pip install -r requirements.txt
+```
+
+La mayoría de los paquetes utilizados son parte de la biblioteca estándar de Python.
 
 ## Configuración
 
-Antes de ejecutar el script, debes configurar tus credenciales de correo electrónico:
+Existen dos métodos para configurar tus credenciales de correo electrónico:
 
-1. Abre el archivo `email_cleaner.py`
-2. Localiza la sección de configuración (alrededor de la línea 179)
-3. Reemplaza los siguientes valores:
-   - `EMAIL_ADDRESS`: Tu dirección de correo electrónico
-   - `PASSWORD`: Tu contraseña (o contraseña de aplicación si usas 2FA)
-   - `IMAP_SERVER`: El servidor IMAP de tu proveedor de correo
-     - Gmail: `imap.gmail.com`
-     - Outlook: `outlook.office365.com`
-     - Yahoo: `imap.mail.yahoo.com`
+### Método 1: Archivo de Configuración
+
+Crea un archivo `config.json` en el directorio `~/Documents/emails/`:
+
+```json
+{
+  "email": "tu_correo@dominio.com",
+  "password": "tu_contraseña",
+  "server": "imap.tu_servidor.com"
+}
+```
+
+### Método 2: Argumentos de Línea de Comandos
+
+```bash
+python email_cleaner.py --email "tu_correo@dominio.com" --password "tu_contraseña" --server "imap.tu_servidor.com"
+```
+
+### Servidores IMAP Comunes
+
+- Gmail: `imap.gmail.com`
+- Outlook: `outlook.office365.com`
+- Yahoo: `imap.mail.yahoo.com`
 
 **Nota de Seguridad**: Se recomienda usar contraseñas de aplicación específicas en lugar de la contraseña principal de tu cuenta.
 
 ## Sintaxis de Uso
 
 ```bash
-# Uso básico
-python email_cleaner.py
+# Instalar dependencias
+python email_cleaner.py --install
+
+# Uso básico (usando archivo de configuración)
+python email_cleaner.py --analyze --report
+
+# Especificar credenciales directamente
+python email_cleaner.py --email "tu_correo@dominio.com" --password "tu_contraseña" --server "imap.tu_servidor.com" --analyze
+
+# Analizar todos los correos (sin límite)
+python email_cleaner.py --analyze --limit all
+
+# Analizar los últimos N correos 
+python email_cleaner.py --analyze --limit 500
+
+# Generar reporte de categorías
+python email_cleaner.py --report
+
+# Listar categorías disponibles
+python email_cleaner.py --list
+
+# Eliminar correos de una categoría (modo prueba)
+python email_cleaner.py --delete "newsletter"
+
+# Eliminar correos de una categoría (eliminación real)
+python email_cleaner.py --delete "newsletter" --force
+
+# Iniciar análisis desde cero (ignorar progreso guardado)
+python email_cleaner.py --init --analyze
 
 # Para ejecutar con permisos
 chmod +x email_cleaner.py
-./email_cleaner.py
+./email_cleaner.py --analyze
 ```
 
-## Ejemplos de Uso
+## Flujo de Trabajo Típico
 
-### Análisis Básico de Correos
+A continuación se describe un flujo de trabajo típico para usar esta herramienta:
 
-El script, por defecto, analizará los últimos 1000 correos de tu bandeja de entrada:
+### 1. Instalación de Dependencias
 
-```python
-manager.analyze_emails(limit=1000)
+Primero, asegúrate de tener todas las dependencias necesarias:
+
+```bash
+python email_cleaner.py --install
 ```
 
-Puedes modificar este límite o eliminarlo para analizar todos los correos.
+### 2. Configuración
 
-### Generación de Reportes
+Crea un archivo de configuración en `~/Documents/emails/config.json` con tus credenciales de correo.
 
-Después del análisis, se genera automáticamente un reporte en formato CSV:
+### 3. Análisis de Correos
 
-```python
-manager.generate_report()
+Analiza los correos de tu bandeja de entrada:
+
+```bash
+python email_cleaner.py --analyze --limit 1000
 ```
 
-Este reporte incluirá:
+Esto categorizará los últimos 1000 correos. El progreso se guarda automáticamente, por lo que puedes interrumpir el proceso con Ctrl+C y reanudarlo más tarde.
+
+### 4. Revisar Categorías
+
+Verifica qué categorías se han identificado:
+
+```bash
+python email_cleaner.py --list
+```
+
+### 5. Generar Reporte
+
+Crea un reporte detallado en formato CSV:
+
+```bash
+python email_cleaner.py --report
+```
+
+El reporte se guardará en `~/Documents/emails/email_report.csv` e incluirá:
 - Nombre de cada categoría
 - Cantidad de correos en cada categoría
 - Ejemplo de remitente para cada categoría
 
-### Eliminación de Correos por Categoría
+### 6. Limpieza de Correos
 
-Para eliminar correos de una categoría específica (por ejemplo, "newsletter"):
+Para eliminar correos de una categoría específica, primero ejecuta en modo prueba:
 
-```python
-# Modo prueba (no elimina realmente)
-manager.delete_emails_by_category("newsletter", dry_run=True)
-
-# Eliminación real
-manager.delete_emails_by_category("newsletter", dry_run=False)
+```bash
+python email_cleaner.py --delete "newsletter"
 ```
 
-**¡Advertencia!**: Solo usa `dry_run=False` cuando estés seguro de querer eliminar permanentemente estos correos.
+Cuando estés seguro de querer eliminar permanentemente los correos:
+
+```bash
+python email_cleaner.py --delete "newsletter" --force
+```
+
+**¡Advertencia!**: La eliminación es permanente. Asegúrate de revisar bien las categorías antes de usar la opción `--force`.
 
 ## Categorías Predefinidas
 
@@ -124,9 +200,19 @@ if 'facebook' in from_addr or 'twitter' in from_addr or 'instagram' in from_addr
     categories.append("redes_sociales")
 ```
 
+### Ubicación de Archivos
+
+El script almacena todos los archivos en el directorio `~/Documents/emails/`:
+
+- `config.json`: Configuración del usuario
+- `progress.json`: Progreso del análisis para continuar sesiones interrumpidas
+- `email_categories.json`: Categorías de correos identificadas
+- `email_report.csv`: Informe generado de las categorías
+- `email_manager.log`: Registros de actividad del script
+
 ### Modificar Comportamiento de Logging
 
-El script genera logs tanto en archivo como en consola. Puedes modificar la configuración en las líneas 14-21.
+El script genera logs tanto en archivo como en consola. La configuración se encuentra en las primeras líneas del script.
 
 ## Solución de Problemas
 
@@ -143,6 +229,21 @@ Si los correos no se categorizan como esperas:
 1. Verifica los patrones de búsqueda en `get_email_categories`
 2. Considera que algunas fechas de correo pueden estar en formatos diferentes
 
+### Problemas con Privilegios de Superusuario
+
+Si el script solicita privilegios de superusuario:
+1. La instalación de dependencias puede requerir privilegios elevados
+2. El script intentará escalar automáticamente con `sudo`
+3. Proporciona tu contraseña cuando se solicite
+
+### Interrupciones y Progreso
+
+Si necesitas interrumpir el análisis:
+1. Usa Ctrl+C para detener el proceso
+2. El progreso se guardará automáticamente
+3. La próxima vez que ejecutes el script continuará desde donde lo dejaste
+4. Para comenzar un nuevo análisis desde cero, usa la opción `--init`
+
 ## Nota de Seguridad
 
 Este script requiere acceso a tu cuenta de correo. Algunas consideraciones:
@@ -150,3 +251,37 @@ Este script requiere acceso a tu cuenta de correo. Algunas consideraciones:
 1. Nunca compartas este script con tus credenciales
 2. Considera usar una contraseña de aplicación específica
 3. Los archivos generados pueden contener información sensible - mantenlos seguros
+4. El archivo de configuración (`config.json`) almacena tu contraseña en texto plano
+5. El directorio `~/Documents/emails/` debe tener permisos restrictivos
+
+## Opciones Adicionales
+
+### Manejo de Dependencias
+
+El script puede administrar automáticamente sus dependencias:
+
+```bash
+# Verificar e instalar dependencias necesarias
+python email_cleaner.py --install
+```
+
+Esto verificará si todas las dependencias están instaladas y, si es necesario, instalará las faltantes usando pip.
+
+### Ejecutar Múltiples Acciones
+
+Puedes combinar diferentes acciones en un solo comando:
+
+```bash
+# Analizar correos y generar reporte
+python email_cleaner.py --analyze --report
+
+# Listar categorías y eliminar una específica
+python email_cleaner.py --list --delete "newsletter"
+```
+
+### Documentación y Ayuda
+
+```bash
+# Ver ayuda y opciones disponibles
+python email_cleaner.py --help
+```
