@@ -267,6 +267,59 @@ detect_os() {
   fi
 }
 
+# Función para verificar si un paquete está instalado según el sistema operativo
+is_package_installed() {
+  local pkg="$1"
+  local is_installed=false
+  
+  case "$OS" in
+    macos)
+      # En macOS (Homebrew)
+      if brew list "$pkg" &>/dev/null; then
+        is_installed=true
+      fi
+      ;;
+    debian|ubuntu)
+      # En Debian/Ubuntu
+      if dpkg -s "$pkg" &>/dev/null; then
+        is_installed=true
+      fi
+      ;;
+    fedora|redhat)
+      # En Fedora/RHEL
+      if rpm -q "$pkg" &>/dev/null; then
+        is_installed=true
+      fi
+      ;;
+    arch)
+      # En Arch Linux
+      if pacman -Q "$pkg" &>/dev/null; then
+        is_installed=true
+      fi
+      ;;
+    suse)
+      # En SUSE
+      if rpm -q "$pkg" &>/dev/null; then
+        is_installed=true
+      fi
+      ;;
+    freebsd)
+      # En FreeBSD
+      if pkg info -e "$pkg" &>/dev/null; then
+        is_installed=true
+      fi
+      ;;
+    *)
+      # Método genérico para otros sistemas
+      if command -v "$pkg" &>/dev/null; then
+        is_installed=true
+      fi
+      ;;
+  esac
+  
+  echo "$is_installed"
+}
+
 # Función para obtener la última versión de SOPS disponible
 get_latest_sops_version() {
   local latest_version="$SOPS_DEFAULT_VERSION"
@@ -526,7 +579,6 @@ install_sops() {
     else
       echo "No se realizará la instalación porque SOPS ya está instalado."
       echo "No se realizará la instalación porque SOPS ya está instalado." >> "$LOG_FILE"
-      return 0
     fi
   elif [[ "$OPERATION_MODE" == "update" ]]; then
     # En modo update, actualizar solo si está instalado y hay una versión más reciente
@@ -542,13 +594,19 @@ install_sops() {
         echo "No se realizará la actualización porque SOPS ya está en la última versión."
         echo "No se realizará la actualización porque SOPS ya está en la última versión." >> "$LOG_FILE"
       fi
-      return 0
     fi
   fi
 
-  # Si no se debe instalar, terminar aquí
+  # Si no se debe instalar, terminar aquí pero sin salir de la función
   if [[ "$should_install" == false ]]; then
-    return 0
+    # Evitar return aquí y permitir que el script continúe
+    # Solo salir si es ONLY_SOPS, de lo contrario continuar con el flujo
+    if [[ "$ONLY_SOPS" == true ]]; then
+      return 0
+    else
+      # Continuar con el resto del script
+      echo "Continuando con el resto del proceso de instalación..." >> "$LOG_FILE" 
+    fi
   fi
 
   # Si no hay internet disponible y se requiere instalación/actualización, advertir y salir
@@ -698,23 +756,26 @@ install_sops() {
   fi
 }
 
-# --- Nuevas funciones --- #
+# Función para instalar paquetes Snap
 install_snap_packages() {
   # Solo ejecutar en Ubuntu genuino (no en Mint ni derivados similares)
   if [[ "$OS" != "debian" || ! -f /etc/lsb-release ]]; then
     echo "La instalación de paquetes Snap no está disponible en este sistema." >> "$LOG_FILE"
+    echo "La instalación de paquetes Snap no está disponible en este sistema."
     return 0
   fi
   
   # Verificar si es Linux Mint u otro derivado que no use Snap por defecto
   if grep -qi "mint" /etc/os-release 2>/dev/null || grep -qi "mint" /etc/lsb-release 2>/dev/null; then
     echo "Se detectó Linux Mint. Snap no se instalará en este sistema." >> "$LOG_FILE"
+    echo "Se detectó Linux Mint. Snap no se instalará en este sistema."
     return 0
   fi
   
   # Verificar si es Elementary OS u otro derivado que no use Snap por defecto
   if grep -qi "elementary" /etc/os-release 2>/dev/null || grep -qi "elementary" /etc/lsb-release 2>/dev/null; then
     echo "Se detectó Elementary OS. Snap no se instalará en este sistema." >> "$LOG_FILE"
+    echo "Se detectó Elementary OS. Snap no se instalará en este sistema."
     return 0
   fi
   
@@ -722,6 +783,7 @@ install_snap_packages() {
   local snap_pkg_file="${CONFIG_DIR}/snap.pkg"
   if [[ ! -f "$snap_pkg_file" ]]; then
     echo "No se encontró el archivo de paquetes Snap: $snap_pkg_file" >> "$LOG_FILE"
+    echo "No se encontró el archivo de paquetes Snap: $snap_pkg_file"
     return 0
   fi
   
@@ -776,6 +838,16 @@ install_snap_packages() {
     fi
     
     echo "Snapd instalado correctamente." >> "$LOG_FILE"
+    
+    # Asegurarse de que snap está disponible en el PATH
+    export PATH=$PATH:/snap/bin
+    
+    # Verificar nuevamente si snap está disponible
+    if ! command -v snap >/dev/null 2>&1; then
+      echo "ERROR: Snap se instaló pero no está disponible en el PATH. Intente reiniciar su sesión." >&2
+      echo "ERROR: Snap se instaló pero no está disponible en el PATH." >> "$LOG_FILE"
+      return 1
+    fi
   fi
   
   # Leer paquetes desde el archivo, excluyendo líneas de comentarios
@@ -791,38 +863,102 @@ install_snap_packages() {
     return 0
   fi
   
+  # Identificar paquetes que ya están instalados
+  already_installed=()
+  to_install=()
+  
+  for pkg in "${SNAP_PACKAGES[@]}"; do
+    # Verificar si el paquete ya está instalado por snap
+    if snap list 2>/dev/null | grep -q "^$pkg"; then
+      already_installed+=("$pkg")
+      continue
+    fi
+    
+    # Verificar si el comando está disponible en el sistema (instalado por otros medios)
+    if command -v "$pkg" >/dev/null 2>&1; then
+      already_installed+=("$pkg")
+      echo "El paquete $pkg está disponible en el sistema pero no fue instalado con snap." >> "$LOG_FILE"
+      continue
+    fi
+    
+    # Si no está instalado de ninguna forma, agregarlo a la lista de pendientes
+    to_install+=("$pkg")
+  done
+  
+  echo "DEBUG: Total paquetes: ${#SNAP_PACKAGES[@]}, Ya instalados: ${#already_installed[@]}, A instalar: ${#to_install[@]}" >> "$LOG_FILE"
+  
+  # Mostrar lista de paquetes a instalar y ya instalados
   if [[ "$USE_GUM" == true ]]; then
     gum style \
       --border double \
       --border-foreground 212 \
       --margin "1" \
       --padding "1 2" \
-      "$(gum style --foreground 213 --bold "Paquetes Snap a instalar:")" \
-      "$(printf "%s\n" "${SNAP_PACKAGES[@]}")"
+      "$(gum style --foreground 213 --bold "Paquetes Snap (${#SNAP_PACKAGES[@]} total)")"
+    
+    if [[ ${#already_installed[@]} -gt 0 ]]; then
+      gum style --foreground 35 "✓ Ya instalados (${#already_installed[@]}):"
+      for pkg in "${already_installed[@]}"; do
+        echo "  - $pkg"
+      done
+    fi
+    
+    if [[ ${#to_install[@]} -gt 0 ]]; then
+      gum style --foreground 39 "→ Paquetes a instalar (${#to_install[@]}):"
+      for pkg in "${to_install[@]}"; do
+        echo "  - $pkg"
+      done
+    else
+      gum style --foreground 35 "✓ ¡Todos los paquetes Snap ya están instalados!"
+      return 0
+    fi
   else
-    echo "Paquetes Snap a instalar:"
-    printf "  - %s\n" "${SNAP_PACKAGES[@]}"
+    echo -e "\n=== Paquetes Snap (${#SNAP_PACKAGES[@]} total) ==="
+    
+    if [[ ${#already_installed[@]} -gt 0 ]]; then
+      echo -e "\n✓ Ya instalados (${#already_installed[@]}):"
+      for pkg in "${already_installed[@]}"; do
+        echo "  - $pkg"
+      done
+    fi
+    
+    if [[ ${#to_install[@]} -gt 0 ]]; then
+      echo -e "\n→ Paquetes a instalar (${#to_install[@]}):"
+      for pkg in "${to_install[@]}"; do
+        echo "  - $pkg"
+      done
+    else
+      echo -e "\n✓ ¡Todos los paquetes Snap ya están instalados!"
+      return 0
+    fi
+    
+    echo "======================================================"
   fi
   
-  echo "Paquetes Snap a instalar: ${SNAP_PACKAGES[*]}" >> "$LOG_FILE"
+  echo "Paquetes Snap a instalar: ${to_install[*]}" >> "$LOG_FILE"
   
   # Instalar cada paquete
   local success_count=0
   local failed_packages=()
-  local total_packages=${#SNAP_PACKAGES[@]}
+  local total_packages=${#to_install[@]}
   
   for ((i=0; i<total_packages; i++)); do
-    pkg="${SNAP_PACKAGES[$i]}"
+    pkg="${to_install[$i]}"
     
     if [[ "$USE_GUM" == true ]]; then
       gum style --foreground 39 "⟢ Instalando $pkg ($(($i+1))/$total_packages) ⟣"
     else
-      echo "Instalando $pkg ($(($i+1))/$total_packages)..."
+      echo -e "\n[$((i+1))/$total_packages] Instalando: $pkg"
     fi
     
     echo "Instalando paquete Snap: $pkg" >> "$LOG_FILE"
     
-    if snap install "$pkg" >> "$LOG_FILE" 2>&1; then
+    # Ejecutar el comando con salida detallada
+    snap_output=$(snap install "$pkg" 2>&1)
+    snap_result=$?
+    echo "Salida del comando snap install $pkg: $snap_output" >> "$LOG_FILE"
+    
+    if [[ $snap_result -eq 0 ]]; then
       ((success_count++))
       if [[ "$USE_GUM" == true ]]; then
         gum style --foreground 35 "✓ $pkg instalado correctamente"
@@ -832,11 +968,11 @@ install_snap_packages() {
     else
       failed_packages+=("$pkg")
       if [[ "$USE_GUM" == true ]]; then
-        gum style --foreground 196 "✗ Error al instalar $pkg"
+        gum style --foreground 196 "✗ Error al instalar $pkg: $snap_output"
       else
-        echo "✗ Error al instalar $pkg"
+        echo "✗ Error al instalar $pkg: $snap_output"
       fi
-      echo "ERROR: Falló la instalación del paquete Snap: $pkg" >> "$LOG_FILE"
+      echo "ERROR: Falló la instalación del paquete Snap: $pkg - $snap_output" >> "$LOG_FILE"
     fi
     
     # Pequeña pausa para visualización
@@ -853,10 +989,14 @@ install_snap_packages() {
       --margin "1" \
       --padding "1 2" \
       "$(gum style --foreground 147 --bold "Resumen de la instalación de Snap:")" \
+      "$(if [[ ${#already_installed[@]} -gt 0 ]]; then gum style --foreground 35 "✓ Paquetes ya instalados: ${#already_installed[@]}"; fi)" \
       "$(gum style --foreground 35 "✓ Paquetes instalados correctamente: $success_count/$total_packages")" \
       "$(if [[ ${#failed_packages[@]} -gt 0 ]]; then gum style --foreground 196 "✗ Paquetes con errores: ${#failed_packages[@]}"; for p in "${failed_packages[@]}"; do echo "  - $p"; done; fi)"
   else
-    echo "Resumen de la instalación de Snap:"
+    echo -e "\n=== Resumen de la instalación de Snap ==="
+    if [[ ${#already_installed[@]} -gt 0 ]]; then
+      echo "✓ Paquetes ya instalados: ${#already_installed[@]}"
+    fi
     echo "✓ Paquetes instalados correctamente: $success_count/$total_packages"
     if [[ ${#failed_packages[@]} -gt 0 ]]; then
       echo "✗ Paquetes con errores: ${#failed_packages[@]}"
@@ -937,6 +1077,40 @@ install_extra_packages() {
   
   echo "Paquetes extras a instalar: ${EXTRAS_TO_INSTALL[*]}" >> "$LOG_FILE"
   
+  # Identificar paquetes que ya están instalados
+  already_installed=()
+  to_install=()
+  
+  for pkg in "${EXTRAS_TO_INSTALL[@]}"; do
+    if [[ "$(is_package_installed "$pkg")" == "true" ]]; then
+      already_installed+=("$pkg")
+    else
+      to_install+=("$pkg")
+    fi
+  done
+  
+  # Mostrar lista de paquetes a instalar y ya instalados
+  echo -e "\n=== Paquetes extras (${#EXTRAS_TO_INSTALL[@]} total) ==="
+  
+  if [[ ${#already_installed[@]} -gt 0 ]]; then
+    echo -e "\n✓ Ya instalados (${#already_installed[@]}):"
+    for pkg in "${already_installed[@]}"; do
+      echo "  - $pkg"
+    done
+  fi
+  
+  if [[ ${#to_install[@]} -gt 0 ]]; then
+    echo -e "\n→ Paquetes a instalar (${#to_install[@]}):"
+    for pkg in "${to_install[@]}"; do
+      echo "  - $pkg"
+    done
+  else
+    echo -e "\n✓ ¡Todos los paquetes extras ya están instalados!"
+    return 0
+  fi
+  
+  echo "======================================================"
+  
   if [[ -n "$UPDATE_CMD" ]]; then
     echo "Actualizando repositorios antes de instalar paquetes extras..."
     if ! eval "$UPDATE_CMD" >> "$LOG_FILE" 2>&1; then
@@ -946,11 +1120,39 @@ install_extra_packages() {
     fi
   fi
   
+  # Instalar paquetes uno por uno para mayor visibilidad
   echo "Instalando paquetes extras..."
-  # shellcheck disable=SC2086
-  if ! eval "$INSTALL_CMD" "${EXTRAS_TO_INSTALL[@]}" >> "$LOG_FILE" 2>&1; then
-    echo "Error: Falló la instalación de algunos paquetes extras. Ver $LOG_FILE para detalles." >&2
-    echo "Posible causa: problemas de conexión a internet, repositorios no disponibles o conflictos de paquetes." >&2
+  local success_count=0
+  local failed_packages=()
+  local total_packages=${#to_install[@]}
+  
+  for ((i=0; i<total_packages; i++)); do
+    pkg="${to_install[$i]}"
+    echo -e "\n[$((i+1))/$total_packages] Instalando: $pkg"
+    
+    echo "Instalando paquete extra: $pkg" >> "$LOG_FILE"
+    if eval "$INSTALL_CMD" "$pkg" >> "$LOG_FILE" 2>&1; then
+      echo "✓ Paquete $pkg instalado correctamente"
+      ((success_count++))
+    else
+      echo "✗ Error al instalar el paquete $pkg"
+      failed_packages+=("$pkg")
+      echo "ERROR: Falló la instalación del paquete: $pkg" >> "$LOG_FILE"
+    fi
+  done
+  
+  # Mostrar resumen de la instalación
+  echo -e "\n=== Resumen de la instalación de paquetes extras ==="
+  if [[ ${#already_installed[@]} -gt 0 ]]; then
+    echo "✓ Paquetes ya instalados: ${#already_installed[@]}"
+  fi
+  echo "✓ Paquetes instalados correctamente: $success_count/$total_packages"
+  if [[ ${#failed_packages[@]} -gt 0 ]]; then
+    echo "✗ Paquetes con errores (${#failed_packages[@]}):"
+    for p in "${failed_packages[@]}"; do
+      echo "  - $p"
+    done
+    echo "Ver $LOG_FILE para más detalles."
     return 1
   fi
   
@@ -964,7 +1166,11 @@ install_extra_packages() {
 install_base_packages() {
   echo "Acción: Instalar paquetes base"
   echo "Acción: Instalar paquetes base" >> "$LOG_FILE"
-
+  
+  if [[ ! -f "$PKG_FILE" ]]; then
+    error_exit "Archivo de paquetes base no encontrado: $PKG_FILE"
+  fi
+  
   # Verificar conectividad a internet
   check_internet_connection
   
@@ -974,11 +1180,7 @@ install_base_packages() {
     return 1
   fi
 
-  if [[ ! -f "$PKG_FILE" ]]; then
-    error_exit "Archivo de paquetes base no encontrado: $PKG_FILE"
-  fi
-
-  mapfile -t PACKAGES_TO_INSTALL < <(grep -vE '^\\s*(#|$)' "$PKG_FILE")
+  mapfile -t PACKAGES_TO_INSTALL < <(grep -vE '^\s*(#|$)' "$PKG_FILE" | awk '{print $1}')
 
   if [[ ${#PACKAGES_TO_INSTALL[@]} -eq 0 ]]; then
     echo "No hay paquetes base para instalar desde $PKG_FILE."
@@ -987,6 +1189,40 @@ install_base_packages() {
   fi
 
   echo "Paquetes base a instalar: ${PACKAGES_TO_INSTALL[*]}" >> "$LOG_FILE"
+  
+  # Identificar paquetes que ya están instalados
+  already_installed=()
+  to_install=()
+  
+  for pkg in "${PACKAGES_TO_INSTALL[@]}"; do
+    if [[ "$(is_package_installed "$pkg")" == "true" ]]; then
+      already_installed+=("$pkg")
+    else
+      to_install+=("$pkg")
+    fi
+  done
+  
+  # Mostrar lista de paquetes a instalar y ya instalados
+  echo -e "\n=== Paquetes base (${#PACKAGES_TO_INSTALL[@]} total) ==="
+  
+  if [[ ${#already_installed[@]} -gt 0 ]]; then
+    echo -e "\n✓ Ya instalados (${#already_installed[@]}):"
+    for pkg in "${already_installed[@]}"; do
+      echo "  - $pkg"
+    done
+  fi
+  
+  if [[ ${#to_install[@]} -gt 0 ]]; then
+    echo -e "\n→ Paquetes a instalar (${#to_install[@]}):"
+    for pkg in "${to_install[@]}"; do
+      echo "  - $pkg"
+    done
+  else
+    echo -e "\n✓ ¡Todos los paquetes base ya están instalados!"
+    return 0
+  fi
+  
+  echo "======================================================"
 
   if [[ -n "$UPDATE_CMD" ]]; then
     echo "Actualizando repositorios..."
@@ -997,11 +1233,39 @@ install_base_packages() {
     fi
   fi
 
+  # Instalar paquetes uno por uno para mayor visibilidad
   echo "Instalando paquetes base..."
-  # shellcheck disable=SC2086
-  if ! eval "$INSTALL_CMD" "${PACKAGES_TO_INSTALL[@]}" >> "$LOG_FILE" 2>&1; then
-    echo "Error: Falló la instalación de paquetes base. Ver $LOG_FILE para detalles." >&2
-    echo "Posible causa: problemas de conexión a internet, repositorios no disponibles o conflictos de paquetes." >&2
+  local success_count=0
+  local failed_packages=()
+  local total_packages=${#to_install[@]}
+  
+  for ((i=0; i<total_packages; i++)); do
+    pkg="${to_install[$i]}"
+    echo -e "\n[$((i+1))/$total_packages] Instalando: $pkg"
+    
+    echo "Instalando paquete base: $pkg" >> "$LOG_FILE"
+    if eval "$INSTALL_CMD" "$pkg" >> "$LOG_FILE" 2>&1; then
+      echo "✓ Paquete $pkg instalado correctamente"
+      ((success_count++))
+    else
+      echo "✗ Error al instalar el paquete $pkg"
+      failed_packages+=("$pkg")
+      echo "ERROR: Falló la instalación del paquete: $pkg" >> "$LOG_FILE"
+    fi
+  done
+  
+  # Mostrar resumen de la instalación
+  echo -e "\n=== Resumen de la instalación de paquetes base ==="
+  if [[ ${#already_installed[@]} -gt 0 ]]; then
+    echo "✓ Paquetes ya instalados: ${#already_installed[@]}"
+  fi
+  echo "✓ Paquetes instalados correctamente: $success_count/$total_packages"
+  if [[ ${#failed_packages[@]} -gt 0 ]]; then
+    echo "✗ Paquetes con errores (${#failed_packages[@]}):"
+    for p in "${failed_packages[@]}"; do
+      echo "  - $p"
+    done
+    echo "Ver $LOG_FILE para más detalles."
     return 1
   fi
 
@@ -1116,26 +1380,51 @@ case "$ACTION" in
       
       # Instalar paquetes extras definidos por el usuario
       install_extra_packages
-      
-      # Verificar/instalar SOPS después si está habilitado
-      if [[ "$INSTALL_SOPS" == true ]]; then
-        install_sops
-      fi
+            
+      # Verificar si se debe instalar Snap
+      echo "Verificando si se deben instalar paquetes Snap..." >> "$LOG_FILE"
+      echo "Verificando si se deben instalar paquetes Snap..."
       
       # Instalar paquetes snap si no se ha desactivado y es un sistema compatible
       if [[ "$NO_SNAP" == false ]]; then
+        echo "Verificando instalación de paquetes Snap..." >> "$LOG_FILE"
+        echo "Verificando instalación de paquetes Snap..."
+        echo "DEBUG: NO_SNAP=$NO_SNAP, OS=$OS, lsb-release=$(test -f /etc/lsb-release && echo 'existe' || echo 'no existe'), snap.pkg=$(test -f ${CONFIG_DIR}/snap.pkg && echo 'existe' || echo 'no existe')" >> "$LOG_FILE"
         # Verifica si el sistema es Ubuntu genuino (no Mint ni otro derivado incompatible) 
         # y si existe snap.pkg antes de intentar instalar
         if [[ "$OS" == "debian" && -f /etc/lsb-release && -f "${CONFIG_DIR}/snap.pkg" ]]; then
           # Verificar si es un derivado que no usa Snap por defecto
           if ! grep -qi "mint\|elementary" /etc/os-release 2>/dev/null && \
              ! grep -qi "mint\|elementary" /etc/lsb-release 2>/dev/null; then
+            echo "Sistema compatible con Snap detectado. Procediendo con la instalación de paquetes Snap." >> "$LOG_FILE"
+            echo "Sistema compatible con Snap detectado. Procediendo con la instalación de paquetes Snap."
             install_snap_packages
           else
             echo "Sistema derivado de Ubuntu detectado. Omitiendo instalación de Snap." >> "$LOG_FILE"
+            echo "Sistema derivado de Ubuntu detectado. Omitiendo instalación de Snap."
+          fi
+        else
+          if [[ "$OS" != "debian" ]]; then
+            echo "No es un sistema Debian/Ubuntu. Omitiendo instalación de Snap." >> "$LOG_FILE"
+            echo "No es un sistema Debian/Ubuntu. Omitiendo instalación de Snap."
+          elif [[ ! -f /etc/lsb-release ]]; then
+            echo "No es un sistema basado en Ubuntu. Omitiendo instalación de Snap." >> "$LOG_FILE"
+            echo "No es un sistema basado en Ubuntu. Omitiendo instalación de Snap."
+          elif [[ ! -f "${CONFIG_DIR}/snap.pkg" ]]; then
+            echo "No se encontró el archivo ${CONFIG_DIR}/snap.pkg. Omitiendo instalación de Snap." >> "$LOG_FILE"
+            echo "No se encontró el archivo ${CONFIG_DIR}/snap.pkg. Omitiendo instalación de Snap."
           fi
         fi
+      else
+        echo "Instalación de Snap desactivada con --nosnap." >> "$LOG_FILE"
+        echo "Instalación de Snap desactivada con --nosnap."
       fi
+
+            # Verificar/instalar SOPS después si está habilitado
+      if [[ "$INSTALL_SOPS" == true ]]; then
+        install_sops
+      fi
+      
     fi
     ;;
   update)

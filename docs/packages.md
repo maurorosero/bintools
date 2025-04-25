@@ -112,7 +112,6 @@ En sistemas Ubuntu compatibles, el script:
 3. Detecta paquetes que ya están instalados
 4. Instala solo los paquetes necesarios desde `config/snap.pkg`
 5. Muestra un resumen detallado con interfaz mejorada si gum está disponible
-6. Proporciona modo de prueba con `--test-snap` para diagnóstico
 
 ## 💡 Verificación de paquetes
 
