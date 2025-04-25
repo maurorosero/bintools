@@ -85,6 +85,7 @@ UPGRADE_CMD=""
 PKG_FILE=""
 INSTALL_SOPS=true
 ONLY_SOPS=false
+NO_SNAP=false
 # Versión predeterminada de SOPS para usar en caso de fallo
 SOPS_DEFAULT_VERSION="3.10.2"
 # Forzar uso de versión predeterminada (útil cuando GitHub API falla)
@@ -695,6 +696,184 @@ install_sops() {
   fi
 }
 
+# --- Nuevas funciones --- #
+install_snap_packages() {
+  # Solo ejecutar en Ubuntu genuino (no en Mint ni derivados similares)
+  if [[ "$OS" != "debian" || ! -f /etc/lsb-release ]]; then
+    echo "La instalación de paquetes Snap no está disponible en este sistema." >> "$LOG_FILE"
+    return 0
+  fi
+  
+  # Verificar si es Linux Mint u otro derivado que no use Snap por defecto
+  if grep -qi "mint" /etc/os-release 2>/dev/null || grep -qi "mint" /etc/lsb-release 2>/dev/null; then
+    echo "Se detectó Linux Mint. Snap no se instalará en este sistema." >> "$LOG_FILE"
+    return 0
+  fi
+  
+  # Verificar si es Elementary OS u otro derivado que no use Snap por defecto
+  if grep -qi "elementary" /etc/os-release 2>/dev/null || grep -qi "elementary" /etc/lsb-release 2>/dev/null; then
+    echo "Se detectó Elementary OS. Snap no se instalará en este sistema." >> "$LOG_FILE"
+    return 0
+  fi
+  
+  # Verificar si existe el archivo snap.pkg
+  local snap_pkg_file="${CONFIG_DIR}/snap.pkg"
+  if [[ ! -f "$snap_pkg_file" ]]; then
+    echo "No se encontró el archivo de paquetes Snap: $snap_pkg_file" >> "$LOG_FILE"
+    return 0
+  fi
+  
+  echo "Acción: Instalar paquetes Snap"
+  echo "Acción: Instalar paquetes Snap desde $snap_pkg_file" >> "$LOG_FILE"
+  
+  # Verificar conectividad a internet
+  check_internet_connection
+  if [[ "$INTERNET_AVAILABLE" == false ]]; then
+    echo "ADVERTENCIA: Sin conexión a internet. No se pueden instalar paquetes Snap." >&2
+    echo "ADVERTENCIA: Sin conexión a internet. No se pueden instalar paquetes Snap." >> "$LOG_FILE"
+    return 1
+  fi
+  
+  # Verificar si gum está instalado
+  local USE_GUM=false
+  if command -v gum >/dev/null 2>&1; then
+    USE_GUM=true
+    echo "Usando gum para visualización mejorada" >> "$LOG_FILE"
+  else
+    echo "gum no está disponible. Usando visualización estándar." >> "$LOG_FILE"
+  fi
+  
+  # Verificar si snapd está instalado
+  if ! command -v snap >/dev/null 2>&1; then
+    if [[ "$USE_GUM" == true ]]; then
+      gum style --border normal --margin "1" --padding "1 2" --border-foreground 212 "Snapd no está instalado. Instalando..."
+    else
+      echo "Snapd no está instalado. Instalando..."
+    fi
+    
+    echo "Instalando snapd..." >> "$LOG_FILE"
+    
+    if ! apt-get update >> "$LOG_FILE" 2>&1; then
+      echo "ERROR: No se pudo actualizar los repositorios de APT." >&2
+      echo "ERROR: No se pudo actualizar los repositorios de APT." >> "$LOG_FILE"
+      return 1
+    fi
+    
+    if ! apt-get install -y snapd >> "$LOG_FILE" 2>&1; then
+      echo "ERROR: No se pudo instalar snapd." >&2
+      echo "ERROR: No se pudo instalar snapd." >> "$LOG_FILE"
+      return 1
+    fi
+    
+    # Esperar a que el servicio de snap se inicie
+    if [[ "$USE_GUM" == true ]]; then
+      gum spin --spinner dot --title "Esperando a que el servicio snapd se inicie..." -- sleep 5
+    else
+      echo "Esperando a que el servicio snapd se inicie..."
+      sleep 5
+    fi
+    
+    echo "Snapd instalado correctamente." >> "$LOG_FILE"
+  fi
+  
+  # Leer paquetes desde el archivo, excluyendo líneas de comentarios
+  mapfile -t SNAP_PACKAGES < <(grep -vE '^\s*(#|$)' "$snap_pkg_file" | awk '{print $1}')
+  
+  if [[ ${#SNAP_PACKAGES[@]} -eq 0 ]]; then
+    if [[ "$USE_GUM" == true ]]; then
+      gum style --foreground 208 "No hay paquetes Snap para instalar."
+    else
+      echo "No hay paquetes Snap para instalar."
+    fi
+    echo "No hay paquetes Snap para instalar desde $snap_pkg_file." >> "$LOG_FILE"
+    return 0
+  fi
+  
+  if [[ "$USE_GUM" == true ]]; then
+    gum style \
+      --border double \
+      --border-foreground 212 \
+      --margin "1" \
+      --padding "1 2" \
+      "$(gum style --foreground 213 --bold "Paquetes Snap a instalar:")" \
+      "$(printf "%s\n" "${SNAP_PACKAGES[@]}")"
+  else
+    echo "Paquetes Snap a instalar:"
+    printf "  - %s\n" "${SNAP_PACKAGES[@]}"
+  fi
+  
+  echo "Paquetes Snap a instalar: ${SNAP_PACKAGES[*]}" >> "$LOG_FILE"
+  
+  # Instalar cada paquete
+  local success_count=0
+  local failed_packages=()
+  local total_packages=${#SNAP_PACKAGES[@]}
+  
+  for ((i=0; i<total_packages; i++)); do
+    pkg="${SNAP_PACKAGES[$i]}"
+    
+    if [[ "$USE_GUM" == true ]]; then
+      gum style --foreground 39 "⟢ Instalando $pkg ($(($i+1))/$total_packages) ⟣"
+    else
+      echo "Instalando $pkg ($(($i+1))/$total_packages)..."
+    fi
+    
+    echo "Instalando paquete Snap: $pkg" >> "$LOG_FILE"
+    
+    if snap install "$pkg" >> "$LOG_FILE" 2>&1; then
+      ((success_count++))
+      if [[ "$USE_GUM" == true ]]; then
+        gum style --foreground 35 "✓ $pkg instalado correctamente"
+      else
+        echo "✓ $pkg instalado correctamente"
+      fi
+    else
+      failed_packages+=("$pkg")
+      if [[ "$USE_GUM" == true ]]; then
+        gum style --foreground 196 "✗ Error al instalar $pkg"
+      else
+        echo "✗ Error al instalar $pkg"
+      fi
+      echo "ERROR: Falló la instalación del paquete Snap: $pkg" >> "$LOG_FILE"
+    fi
+    
+    # Pequeña pausa para visualización
+    if [[ "$USE_GUM" == true ]]; then
+      sleep 0.5
+    fi
+  done
+  
+  # Resumen final
+  if [[ "$USE_GUM" == true ]]; then
+    gum style \
+      --border normal \
+      --border-foreground 39 \
+      --margin "1" \
+      --padding "1 2" \
+      "$(gum style --foreground 147 --bold "Resumen de la instalación de Snap:")" \
+      "$(gum style --foreground 35 "✓ Paquetes instalados correctamente: $success_count/$total_packages")" \
+      "$(if [[ ${#failed_packages[@]} -gt 0 ]]; then gum style --foreground 196 "✗ Paquetes con errores: ${#failed_packages[@]}"; for p in "${failed_packages[@]}"; do echo "  - $p"; done; fi)"
+  else
+    echo "Resumen de la instalación de Snap:"
+    echo "✓ Paquetes instalados correctamente: $success_count/$total_packages"
+    if [[ ${#failed_packages[@]} -gt 0 ]]; then
+      echo "✗ Paquetes con errores: ${#failed_packages[@]}"
+      for p in "${failed_packages[@]}"; do
+        echo "  - $p"
+      done
+    fi
+  fi
+  
+  echo "Instalación de paquetes Snap completada. Éxito: $success_count/$total_packages. Fallidos: ${#failed_packages[@]}" >> "$LOG_FILE"
+  
+  if [[ ${#failed_packages[@]} -gt 0 ]]; then
+    echo "ADVERTENCIA: Algunos paquetes Snap no pudieron ser instalados. Ver $LOG_FILE para detalles." >&2
+    return 1
+  fi
+  
+  return 0
+}
+
 # --- Funciones de Acción --- #
 
 install_base_packages() {
@@ -806,6 +985,10 @@ while [[ $# -gt 0 ]]; do
       INSTALL_SOPS=true
       shift # consume el argumento
       ;;
+    --nosnap)
+      NO_SNAP=true
+      shift # consume el argumento
+      ;;
     -h|--help)
       ACTION="help" # Asegurarse de que la acción sea help
       shift # opcionalmente consumir --help/-h si lo hubiera
@@ -823,6 +1006,8 @@ if [[ "$ONLY_SOPS" == true && "$ACTION" == "help" ]]; then
   error_exit "El parámetro --sops debe usarse solo en combinación con --install o --update."
 elif [[ "$ONLY_SOPS" == true && "$INSTALL_SOPS" == false ]]; then
   error_exit "No se pueden usar --sops y --nosops juntos."
+elif [[ "$NO_SNAP" == true && "$ACTION" != "install" ]]; then
+  error_exit "El parámetro --nosnap solo puede usarse con --install, ya que snap tiene su propio mecanismo de actualización."
 fi
 
 # ---- Ejecución de la acción ----
@@ -847,6 +1032,20 @@ case "$ACTION" in
       if [[ "$INSTALL_SOPS" == true ]]; then
         install_sops
       fi
+      # Instalar paquetes snap si no se ha desactivado y es un sistema compatible
+      if [[ "$NO_SNAP" == false ]]; then
+        # Verifica si el sistema es Ubuntu genuino (no Mint ni otro derivado incompatible) 
+        # y si existe snap.pkg antes de intentar instalar
+        if [[ "$OS" == "debian" && -f /etc/lsb-release && -f "${CONFIG_DIR}/snap.pkg" ]]; then
+          # Verificar si es un derivado que no usa Snap por defecto
+          if ! grep -qi "mint\|elementary" /etc/os-release 2>/dev/null && \
+             ! grep -qi "mint\|elementary" /etc/lsb-release 2>/dev/null; then
+            install_snap_packages
+          else
+            echo "Sistema derivado de Ubuntu detectado. Omitiendo instalación de Snap." >> "$LOG_FILE"
+          fi
+        fi
+      fi
     fi
     ;;
   update)
@@ -860,6 +1059,7 @@ case "$ACTION" in
       if [[ "$INSTALL_SOPS" == true ]]; then
         install_sops
       fi
+      # No actualizamos paquetes snap porque tienen su propio mecanismo de actualización automática
     fi
     ;;
   help)
@@ -882,6 +1082,8 @@ case "$ACTION" in
     echo "  --sops     : Instala o actualiza únicamente SOPS (Mozilla Secrets OPerationS)."
     echo "               Debe usarse en combinación con --install o --update."
     echo "  --nosops   : Evita la instalación/actualización de SOPS al usar --install o --update."
+    echo "  --nosnap   : Evita la instalación automática de paquetes Snap al usar --install."
+    echo "               Solo aplica con --install, ya que Snap tiene su propio mecanismo de actualización."
     echo
     echo " Acción por defecto si no se especifican parámetros: --help"
     echo

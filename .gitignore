@@ -16,6 +16,9 @@ nohup.out
 .env.local
 .env.*.local
 config.local.sh
+config/snap.pkg
+config/snap.def
+config/*-extras.pkg
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
