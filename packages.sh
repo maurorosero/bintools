@@ -64,8 +64,10 @@ fi
 
 # Determinar ruta de logs según si se ejecuta como root o usuario normal
 if [[ "$(id -u)" -eq 0 ]]; then
+  # Si se ejecuta con privilegios escalados (root/sudo), siempre usar /var/log
   LOG_DIR="/var/log"
 else
+  # Solo para procesos sin escalar, usar directorio en home
   LOG_DIR="$USER_HOME/bin/logs"
 fi
 mkdir -p "$LOG_DIR"
@@ -874,6 +876,89 @@ install_snap_packages() {
   return 0
 }
 
+# Función para instalar paquetes extras definidos por el usuario
+install_extra_packages() {
+  echo "Acción: Instalar paquetes extras"
+  echo "Acción: Instalar paquetes extras" >> "$LOG_FILE"
+  
+  # Determinar el archivo de paquetes extras según el SO
+  local extras_pkg_file=""
+  case "$OS" in
+    macos)
+      extras_pkg_file="${CONFIG_DIR}/macos-extras.pkg"
+      ;;
+    debian)
+      extras_pkg_file="${CONFIG_DIR}/debian-extras.pkg"
+      ;;
+    fedora)
+      extras_pkg_file="${CONFIG_DIR}/fedora-extras.pkg"
+      ;;
+    redhat)
+      extras_pkg_file="${CONFIG_DIR}/redhat-extras.pkg"
+      ;;
+    arch)
+      extras_pkg_file="${CONFIG_DIR}/arch-extras.pkg"
+      ;;
+    suse)
+      extras_pkg_file="${CONFIG_DIR}/suse-extras.pkg"
+      ;;
+    freebsd)
+      extras_pkg_file="${CONFIG_DIR}/freebsd-extras.pkg"
+      ;;
+    *)
+      echo "Sistema operativo no soportado para paquetes extras: $OS" >> "$LOG_FILE"
+      return 0
+      ;;
+  esac
+  
+  # Verificar si existe el archivo de paquetes extras
+  if [[ ! -f "$extras_pkg_file" ]]; then
+    echo "No se encontró el archivo de paquetes extras: $extras_pkg_file" >> "$LOG_FILE"
+    echo "Omitiendo la instalación de paquetes extras."
+    return 0
+  fi
+  
+  # Verificar conectividad a internet
+  check_internet_connection
+  if [[ "$INTERNET_AVAILABLE" == false ]]; then
+    echo "ADVERTENCIA: Sin conexión a internet. No se pueden instalar paquetes extras." >&2
+    echo "ADVERTENCIA: Sin conexión a internet. No se pueden instalar paquetes extras." >> "$LOG_FILE"
+    return 1
+  fi
+  
+  # Leer paquetes desde el archivo, excluyendo líneas de comentarios
+  mapfile -t EXTRAS_TO_INSTALL < <(grep -vE '^\s*(#|$)' "$extras_pkg_file" | awk '{print $1}')
+  
+  if [[ ${#EXTRAS_TO_INSTALL[@]} -eq 0 ]]; then
+    echo "No hay paquetes extras para instalar desde $extras_pkg_file."
+    echo "No hay paquetes extras para instalar desde $extras_pkg_file." >> "$LOG_FILE"
+    return 0
+  fi
+  
+  echo "Paquetes extras a instalar: ${EXTRAS_TO_INSTALL[*]}" >> "$LOG_FILE"
+  
+  if [[ -n "$UPDATE_CMD" ]]; then
+    echo "Actualizando repositorios antes de instalar paquetes extras..."
+    if ! eval "$UPDATE_CMD" >> "$LOG_FILE" 2>&1; then
+      echo "Error: Falló la actualización de repositorios. Ver $LOG_FILE para detalles." >&2
+      echo "Posible causa: problemas de conexión a internet o repositorios no disponibles." >&2
+      return 1
+    fi
+  fi
+  
+  echo "Instalando paquetes extras..."
+  # shellcheck disable=SC2086
+  if ! eval "$INSTALL_CMD" "${EXTRAS_TO_INSTALL[@]}" >> "$LOG_FILE" 2>&1; then
+    echo "Error: Falló la instalación de algunos paquetes extras. Ver $LOG_FILE para detalles." >&2
+    echo "Posible causa: problemas de conexión a internet, repositorios no disponibles o conflictos de paquetes." >&2
+    return 1
+  fi
+  
+  echo "Instalación de paquetes extras completada."
+  echo "Instalación de paquetes extras completada." >> "$LOG_FILE"
+  return 0
+}
+
 # --- Funciones de Acción --- #
 
 install_base_packages() {
@@ -1028,10 +1113,15 @@ case "$ACTION" in
     else
       # Instalar paquetes base
       install_base_packages
+      
+      # Instalar paquetes extras definidos por el usuario
+      install_extra_packages
+      
       # Verificar/instalar SOPS después si está habilitado
       if [[ "$INSTALL_SOPS" == true ]]; then
         install_sops
       fi
+      
       # Instalar paquetes snap si no se ha desactivado y es un sistema compatible
       if [[ "$NO_SNAP" == false ]]; then
         # Verifica si el sistema es Ubuntu genuino (no Mint ni otro derivado incompatible) 
@@ -1065,14 +1155,16 @@ case "$ACTION" in
   help)
     # Mostrar banner antes de la ayuda
     show_banner
-    echo "Uso: $0 [--install | --update] [--sops | --nosops] | [--help]"
+    echo "Uso: $0 [--install | --update] [--sops | --nosops] [--nosnap] | [--help]"
     echo
     echo "Descripción:"
     echo "  Herramienta para gestionar paquetes base en diferentes sistemas operativos."
     echo "  Instala paquetes esenciales o actualiza el sistema según el SO detectado."
+    echo "  También puede instalar paquetes extras y herramientas adicionales como SOPS."
     echo
     echo "Parámetros principales:"
     echo "  --install  : Instala los paquetes base definidos en config/[os]-base.pkg."
+    echo "               También instala paquetes extras desde config/[os]-extras.pkg si existe."
     echo "               Si se usa con --sops, instala SOPS solo si no está instalado."
     echo "  --update   : Actualiza todos los paquetes instalados en el sistema."
     echo "               Si se usa con --sops, actualiza SOPS solo si hay versión nueva."

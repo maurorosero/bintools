@@ -17,7 +17,6 @@ nohup.out
 .env.*.local
 config.local.sh
 config/snap.pkg
-config/snap.def
 config/*-extras.pkg
 
 ### Python ###
