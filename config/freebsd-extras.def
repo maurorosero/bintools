@@ -1,0 +1,36 @@
+# Archivo de paquetes extras para FreeBSD
+# Cada línea debe contener el nombre de un paquete para instalar
+# Las líneas que comienzan con # son comentarios y serán ignoradas
+
+# Herramientas de desarrollo
+gcc               # Compilador GNU C
+gmake             # Versión GNU de make
+cmake             # Sistema de construcción multiplataforma
+
+# Utilidades del sistema
+htop              # Monitor de procesos interactivo
+neofetch          # Herramienta de información del sistema
+lsof              # Lista archivos abiertos
+ncdu              # Analizador de uso de disco
+bsdstats          # Estadísticas de hardware para FreeBSD
+portmaster        # Herramienta para gestionar ports
+beadm             # Gestor de entornos de arranque
+
+# Editores
+vim               # Editor de texto avanzado
+# nano            # Editor de texto simple
+
+# Herramientas de red y seguridad
+nmap                # Escáner de puertos
+# pf                # Packet Filter (firewall)
+# fail2ban          # Protección contra ataques de fuerza bruta
+# tcpdump           # Analizador de paquetes de red
+ca_root_nss         # Certificados SSL de raíz
+
+# Otras utilidades
+unzip             # Descompresor de archivos ZIP
+tree              # Muestra directorios en forma de árbol
+rsync             # Herramienta de sincronización remota
+tmux              # Multiplexor de terminal
+# zsh             # Shell alternativa
+bash              # Bourne Again Shell 

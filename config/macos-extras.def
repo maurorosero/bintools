@@ -1,0 +1,37 @@
+# Archivo de paquetes extras para macOS (Homebrew)
+# Cada línea debe contener el nombre de un paquete para instalar
+# Las líneas que comienzan con # son comentarios y serán ignoradas
+
+# Herramientas de desarrollo
+gcc               # Compilador GNU C
+cmake             # Sistema de construcción multiplataforma
+# python          # Lenguaje de programación Python
+# node            # Node.js
+
+# Utilidades del sistema
+htop              # Monitor de procesos interactivo
+ncdu              # Analizador de uso de disco
+neofetch          # Herramienta de información del sistema
+mas               # Instalador de Mac App Store en línea de comandos
+coreutils         # Herramientas base GNU
+findutils         # Utilidades de búsqueda GNU
+gnu-sed           # Versión GNU de sed
+
+# Editores y herramientas de texto
+# vim             # Editor de texto avanzado
+# nano            # Editor de texto simple
+
+# Contenedores y virtualización
+# docker          # Plataforma de contenedores
+# colima          # Alternativa a Docker Desktop
+
+# Herramientas de red y seguridad
+nmap              # Escáner de puertos
+netcat            # Utilidad de red para leer/escribir datos
+
+# Otras utilidades
+bat               # Alternativa a 'cat' con resaltado de sintaxis
+fd                # Alternativa simple a 'find'
+ripgrep           # Alternativa rápida a grep
+tree              # Muestra directorios en forma de árbol
+tmux              # Multiplexor de terminal 

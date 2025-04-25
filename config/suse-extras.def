@@ -1,0 +1,32 @@
+# Archivo de paquetes extras para SUSE Linux
+# Cada línea debe contener el nombre de un paquete para instalar
+# Las líneas que comienzan con # son comentarios y serán ignoradas
+
+# Herramientas de desarrollo
+gcc               # Compilador GNU C
+gcc-c++           # Compilador GNU C++
+make              # Herramienta de construcción
+cmake             # Sistema de construcción multiplataforma
+
+# Utilidades del sistema
+htop              # Monitor de procesos interactivo
+neofetch          # Herramienta de información del sistema
+ncdu              # Analizador de uso de disco
+lsof              # Lista archivos abiertos
+zypper-aptitude   # Interfaz aptitude-like para zypper
+
+# Editores
+# vim             # Editor de texto avanzado
+# nano            # Editor de texto simple
+
+# Herramientas de red y seguridad
+nmap              # Escáner de puertos
+# fail2ban        # Protección contra ataques de fuerza bruta
+# SuSEfirewall2   # Firewall para SUSE
+# tcpdump         # Analizador de paquetes de red
+
+# Otras utilidades
+unzip             # Descompresor de archivos ZIP
+tree              # Muestra directorios en forma de árbol
+rsync             # Herramienta de sincronización remota
+tmux              # Multiplexor de terminal 
