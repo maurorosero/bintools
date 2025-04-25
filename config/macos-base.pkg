@@ -1,0 +1,10 @@
+# Asegúrate de tener Homebrew instalado
+curl
+git
+wget
+python # Homebrew instala python3 como 'python'
+jq
+yq
+gnupg
+gum
+dialog 

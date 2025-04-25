@@ -22,6 +22,7 @@ source ~/bin/binsetup.sh
 |:-------|:-------------:|:------------|
 | [`binsetup.sh`](/home/mrosero/bin/docs/binsetup.md) | 2025-04-24 | ✨ Maneja `~/bin` en el PATH.<br>• Temporal: `source binsetup.sh`<br>• Desactivar: `source binsetup.sh --disable`<br>• Permanente: `./binsetup.sh --persistent`<br>• Remover: `./binsetup.sh --remove` |
 | [`hexroute`](/home/mrosero/bin/docs/hexroute.md) | 2025-03-19 | 🔄 Convierte IPv4 a formato hexadecimal para tablas de ruteo.<br>• Uso: `hexroute <dirección-ip>` |
+| [`packages.sh`](/home/mrosero/bin/docs/packages.md) | 2025-04-25 | 📦 Gestiona paquetes base en múltiples sistemas operativos.<br>• Instalar: `sudo packages.sh --install`<br>• Actualizar: `sudo packages.sh --update`<br>• Solo SOPS: `sudo packages.sh --install --sops` |
 | [`videoset.sh`](/home/mrosero/bin/docs/videoset.md) | 2025-04-24 | 🖥️ Configura resolución de pantalla 1600x900@60Hz.<br>• Uso básico: `videoset.sh`<br>• Auto-detección: `videoset.sh --auto` |
 
 ### 🐍 Python Scripts
@@ -54,6 +55,7 @@ Para información detallada sobre cada herramienta, consulte los documentos en l
 
 - [Documentación de binsetup.sh](/home/mrosero/bin/docs/binsetup.md)
 - [Documentación de hexroute](/home/mrosero/bin/docs/hexroute.md)
+- [Documentación de packages.sh](/home/mrosero/bin/docs/packages.md)
 - [Documentación de videoset.sh](/home/mrosero/bin/docs/videoset.md)
 - [Documentación de email_cleaner](/home/mrosero/bin/docs/email_cleaner.md)
 
@@ -63,6 +65,7 @@ Para información detallada sobre cada herramienta, consulte los documentos en l
 |:-------|:------|:--------------|
 | `binsetup.sh` | Mauro Rosero P. | |
 | `hexroute` | Karl McMurdo (2005-2015) | Mauro Rosero P. (adaptación) |
+| `packages.sh` | Mauro Rosero P. | |
 | `videoset.sh` | Mauro Rosero P. | |
 | `email_cleaner` | Mauro Rosero P. | |
 

@@ -1,0 +1,9 @@
+curl
+git
+wget
+python3
+python3-pip
+jq
+yq
+gnupg2
+dialog 
