@@ -6,6 +6,7 @@ Herramienta para instalar y mantener actualizados paquetes base en diferentes si
 
 - 🔍 **Detección automática de SO**: Compatible con Debian/Ubuntu, RHEL/CentOS, Fedora, Arch, SUSE, FreeBSD y macOS
 - 📋 **Paquetes personalizables**: Utiliza listas definidas en `config/[os]-base.pkg`
+- 📚 **Paquetes extras**: Soporte para paquetes adicionales mediante archivos `config/[os]-extras.pkg`
 - 🧩 **SOPS integrado**: Instalación y actualización de Mozilla SOPS para gestión segura de secretos
 - 📱 **Soporte para Snap**: Instala paquetes Snap en sistemas Ubuntu compatibles
 - 🔄 **Actualización del sistema**: Función para actualizar todos los paquetes instalados
@@ -59,14 +60,31 @@ packages.sh --help
 
 Los paquetes a instalar se definen en archivos de texto en `~/bin/config/`:
 
-- `debian-base.pkg`: Paquetes para Debian/Ubuntu
-- `redhat-base.pkg`: Paquetes para RHEL/CentOS
-- `fedora-base.pkg`: Paquetes para Fedora
-- `arch-base.pkg`: Paquetes para Arch Linux
-- `suse-base.pkg`: Paquetes para SUSE/openSUSE
-- `freebsd-base.pkg`: Paquetes para FreeBSD
-- `macos-base.pkg`: Paquetes para macOS
+### Archivos de paquetes
+- `[os]-base.pkg`: Paquetes básicos por sistema operativo (debian, redhat, fedora, arch, suse, freebsd, macos)
+- `[os]-extras.pkg`: Paquetes personalizados adicionales para cada SO (definidos por el usuario)
 - `snap.pkg`: Paquetes Snap para Ubuntu
+
+### Archivos de definición
+El repositorio incluye archivos de definición que sirven como plantillas:
+
+- `[os]-extras.def`: Plantillas para paquetes extras recomendados
+- `snap.def`: Plantilla para configuración de Snap
+
+## 📄 Sistema de archivos
+
+| Tipo de archivo | Incluido en el repo | Descripción |
+|:----------------|:-------------------:|:------------|
+| `*.pkg` | ✅ (base) / ❌ (extras/snap) | Archivos de configuración de paquetes activos |
+| `*.def` | ✅ | Archivos de definición/plantilla |
+
+Para crear tu configuración personalizada, puedes copiar un archivo `.def` a su versión `.pkg` correspondiente y editarlo según tus necesidades.
+
+```bash
+# Ejemplo para crear tu lista personalizada de paquetes extras para Debian
+cp ~/bin/config/debian-extras.def ~/bin/config/debian-extras.pkg
+# Editar el archivo para descomentar o agregar paquetes según necesidades
+```
 
 ## 📊 Registros
 
