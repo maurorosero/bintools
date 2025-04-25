@@ -52,6 +52,9 @@ sudo packages.sh --install --nosnap
 # Actualizar sistema sin modificar SOPS
 sudo packages.sh --update --nosops
 
+# Verificar configuración Snap (diagnóstico)
+sudo packages.sh --test-snap
+
 # Mostrar ayuda
 packages.sh --help
 ```
@@ -106,11 +109,23 @@ En sistemas Ubuntu compatibles, el script:
 
 1. Verifica si el sistema es compatible con Snap (exclusiones: Linux Mint, ElementaryOS)
 2. Instala el servicio snapd si no está presente
-3. Instala los paquetes listados en `config/snap.pkg`
-4. Muestra un resumen de instalación con interfaz mejorada si gum está disponible
+3. Detecta paquetes que ya están instalados
+4. Instala solo los paquetes necesarios desde `config/snap.pkg`
+5. Muestra un resumen detallado con interfaz mejorada si gum está disponible
+6. Proporciona modo de prueba con `--test-snap` para diagnóstico
+
+## 💡 Verificación de paquetes
+
+El script ahora incluye detección inteligente de paquetes:
+
+1. Identifica paquetes que ya están instalados en el sistema
+2. Solo instala los paquetes que realmente son necesarios
+3. Proporciona resúmenes detallados de instalación
+4. Ofrece información de diagnóstico para depuración
 
 ## ⚙️ Requisitos
 
 - Bash 4.0 o superior
 - Privilegios root para instalar paquetes
-- Conexión a internet para actualizaciones
+- Conexión a internet para actualizaciones (con manejo de errores)
+- Herramienta `gum` opcional para mejorar la visualización
