@@ -4,7 +4,8 @@
 
 # Herramientas de desarrollo
 build-essential   # Herramientas esenciales para compilar
-
+# gh              # Github Manager CLI
+# glab            # Gitlab Manager CLI
 
 # Utilidades del sistema
 htop              # Monitor de procesos interactivo

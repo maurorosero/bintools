@@ -52,9 +52,6 @@ sudo packages.sh --install --nosnap
 # Actualizar sistema sin modificar SOPS
 sudo packages.sh --update --nosops
 
-# Verificar configuración Snap (diagnóstico)
-sudo packages.sh --test-snap
-
 # Mostrar ayuda
 packages.sh --help
 ```
