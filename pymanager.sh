@@ -442,6 +442,219 @@ install_packages() {
     deactivate
 }
 
+# Función para instalar el entorno por defecto y sus dependencias
+install_default_env() {
+    mostrar_info "========================================="
+    mostrar_info "  Instalando entorno Python por defecto"
+    mostrar_info "========================================="
+    log "INFO" "Iniciando instalación del entorno por defecto en $BIN_VENV_DIR"
+    
+    # Verificar si el directorio ya existe
+    if [ -d "$BIN_VENV_DIR" ]; then
+        read -p "El entorno '$USER' ya existe. ¿Desea reinstalarlo? (s/N/c=cancelar): " confirm
+        # Verificar la respuesta del usuario
+        if [[ "$confirm" =~ ^[Cc]$ ]]; then
+            # Opción 'c' - Cancelar completamente la operación
+            mostrar_info "Operación cancelada por el usuario."
+            log "INFO" "Operación cancelada por el usuario"
+            exit 0
+        elif [[ -z "$confirm" || ! "$confirm" =~ ^[Ss] ]]; then
+            # Opción 'n' (por defecto) - Usar el entorno existente
+            mostrar_info "Usando el entorno existente."
+            # Continuar con la verificación de paquetes sin reinstalar
+            log "INFO" "Se usará el entorno existente en $BIN_VENV_DIR"
+            
+            # Verificar si el archivo de requisitos existe
+            if [ ! -f "$BI_REQUIREMENTS" ]; then
+                mostrar_error "El archivo de requisitos '$BI_REQUIREMENTS' no fue encontrado."
+                exit 1
+            fi
+            
+            # Verificar conexión a internet antes de instalar paquetes
+            if ! verificar_conexion_internet; then
+                mostrar_advertencia "No se instalarán paquetes debido a la falta de conexión a internet."
+                echo "Puede instalar los paquetes más tarde cuando tenga conexión."
+                echo "Ejecute el siguiente comando para activar el entorno:"
+                echo "source $BIN_VENV_DIR/bin/activate"
+                exit 0
+            fi
+            
+            # Mostrar resumen del proceso
+            echo -e "\n${WHITE}Resumen de la instalación:${NC}"
+            echo -e " • Entorno: ${CYAN}$BIN_VENV_DIR${NC} (existente)"
+            echo -e " • Paquetes: ${CYAN}$BI_REQUIREMENTS${NC}"
+            echo -e " • Log: ${CYAN}$LOG_FILE${NC}"
+            echo
+            
+            # Instalar paquetes pendientes
+            mostrar_info "Verificando paquetes en $BI_REQUIREMENTS..."
+            install_packages "$USER" "$BI_REQUIREMENTS"
+            
+            # Crear alias para activar el entorno
+            crear_alias_pybin
+            
+            echo -e "\n${WHITE}Para activar este entorno:${NC}"
+            echo -e "1. Actualice su shell: ${GREEN}source ~/.bashrc${NC}"
+            echo -e "2. Use el alias: ${GREEN}pybin${NC}"
+            log "INFO" "Verificación de paquetes completada con éxito"
+            return
+        else
+            # Opción 's' - Reinstalar el entorno
+            mostrar_info "Eliminando entorno existente..."
+            echo -ne "${YELLOW}▶${NC} Eliminando $BIN_VENV_DIR... "
+            if rm -rf "$BIN_VENV_DIR"; then
+                echo -e "${GREEN}✓${NC}"
+            else
+                echo -e "${RED}✗${NC}"
+                mostrar_error "No se pudo eliminar el entorno existente."
+                exit 1
+            fi
+        fi
+    fi
+    
+    # Verificar si el archivo de requisitos existe
+    if [ ! -f "$BI_REQUIREMENTS" ]; then
+        mostrar_error "El archivo de requisitos '$BI_REQUIREMENTS' no fue encontrado."
+        exit 1
+    fi
+    
+    # Crear el directorio del entorno virtual si no existe
+    echo -ne "${YELLOW}▶${NC} Preparando directorio... "
+    if mkdir -p "$(dirname "$BIN_VENV_DIR")"; then
+        echo -e "${GREEN}✓${NC}"
+    else
+        echo -e "${RED}✗${NC}"
+        mostrar_error "No se pudo crear el directorio para el entorno virtual."
+        exit 1
+    fi
+    
+    # Crear el entorno virtual
+    mostrar_info "Creando entorno virtual en: $BIN_VENV_DIR"
+    echo -ne "${YELLOW}▶${NC} Inicializando entorno virtual... "
+    if python3 -m venv "$BIN_VENV_DIR" >> "$LOG_FILE" 2>&1; then
+        echo -e "${GREEN}✓${NC}"
+        mostrar_exito "Entorno virtual creado exitosamente"
+    else
+        echo -e "${RED}✗${NC}"
+        mostrar_error "Falló la creación del entorno virtual."
+        log "ERROR" "Creación del entorno fallida: $(tail -n 10 "$LOG_FILE" | grep -v ERROR)"
+        exit 1
+    fi
+    
+    # Verificar conexión a internet antes de instalar paquetes
+    if ! verificar_conexion_internet; then
+        mostrar_advertencia "Se ha creado el entorno virtual, pero no se instalarán paquetes debido a la falta de conexión a internet."
+        echo "Puede instalar los paquetes más tarde cuando tenga conexión."
+        echo "Ejecute el siguiente comando para activar el entorno:"
+        echo "source $BIN_VENV_DIR/bin/activate"
+        exit 0
+    fi
+    
+    # Mostrar resumen del proceso
+    echo -e "\n${WHITE}Resumen de la instalación:${NC}"
+    echo -e " • Entorno: ${CYAN}$BIN_VENV_DIR${NC} (nuevo)"
+    echo -e " • Paquetes: ${CYAN}$BI_REQUIREMENTS${NC}"
+    echo -e " • Log: ${CYAN}$LOG_FILE${NC}"
+    echo
+    
+    # Instalar los paquetes
+    mostrar_info "Instalando paquetes desde $BI_REQUIREMENTS..."
+    source "$BIN_VENV_DIR/bin/activate" || {
+        mostrar_error "No se pudo activar el entorno virtual."
+        exit 1
+    }
+    
+    # Actualizar pip dentro del entorno virtual
+    echo -ne "${YELLOW}▶${NC} Actualizando pip... "
+    if pip install --upgrade pip >> "$LOG_FILE" 2>&1; then
+        echo -e "${GREEN}✓${NC}"
+    else
+        echo -e "${RED}✗${NC}"
+        mostrar_advertencia "No se pudo actualizar pip. Continuando con la instalación de paquetes."
+        log "WARN" "Fallo al actualizar pip: $(tail -n 5 "$LOG_FILE" | grep -v WARN)"
+    fi
+    
+    # Mostrar el estado de los paquetes
+    display_packages_status "$BI_REQUIREMENTS" "$BIN_VENV_DIR"
+    
+    # Contar el número total de paquetes a instalar
+    local pending_count=0
+    while IFS= read -r pkg || [ -n "$pkg" ]; do
+        # Saltar líneas vacías y comentarios
+        [[ "$pkg" =~ ^[[:space:]]*$ || "$pkg" =~ ^[[:space:]]*# ]] && continue
+        
+        # Verificar si necesita instalarse
+        local status=$(check_package_status "$pkg" "$BIN_VENV_DIR")
+        if [[ "$status" == "not_installed" || "$status" == "installed_update" ]]; then
+            ((pending_count++))
+        fi
+    done < "$BI_REQUIREMENTS"
+    
+    # Si no hay nada que instalar, terminar
+    if [ "$pending_count" -eq 0 ]; then
+        mostrar_exito "Todos los paquetes ya están instalados y actualizados."
+        deactivate
+        
+        # Crear alias para activar el entorno
+        crear_alias_pybin
+        
+        echo -e "\n${WHITE}Para activar este entorno:${NC}"
+        echo -e "1. Actualice su shell: ${GREEN}source ~/.bashrc${NC}"
+        echo -e "2. Use el alias: ${GREEN}pybin${NC}"
+        log "INFO" "Instalación del entorno por defecto completada con éxito"
+        return
+    fi
+    
+    # Mostrar cabecera para instalación
+    echo -e "\n${WHITE}Instalando $pending_count paquetes pendientes:${NC}"
+    
+    # Contador para paquetes instalados
+    local count=0
+    
+    # Leer línea por línea e instalar
+    while IFS= read -r pkg || [ -n "$pkg" ]; do
+        # Saltar líneas vacías y comentarios
+        [[ "$pkg" =~ ^[[:space:]]*$ || "$pkg" =~ ^[[:space:]]*# ]] && continue
+        
+        # Extraer nombre base del paquete (sin versión ni extras)
+        local pkg_name=$(echo "$pkg" | cut -d'[' -f1 | cut -d'=' -f1 | cut -d'>' -f1 | cut -d'<' -f1 | cut -d'~' -f1 | tr -d ' ')
+        
+        # Verificar si necesita instalarse o actualizarse
+        local status=$(check_package_status "$pkg" "$BIN_VENV_DIR")
+        if [[ "$status" == "not_installed" || "$status" == "installed_update" ]]; then
+            ((count++))
+            
+            # Formato de progreso: [1/10] instalando numpy...
+            echo -ne "${CYAN}[${count}/${pending_count}]${NC} ${pkg_name}... "
+            log "DEBUG" "Instalando paquete: $pkg"
+            
+            if pip install "$pkg" >> "$LOG_FILE" 2>&1; then
+                echo -e "${GREEN}✓${NC}"
+                log "INFO" "Paquete $pkg_name instalado correctamente"
+            else
+                echo -e "${RED}✗${NC}"
+                mostrar_error "Falló la instalación del paquete $pkg_name"
+                log "ERROR" "Fallo en la instalación de $pkg_name: $(tail -n 10 "$LOG_FILE" | grep -v ERROR)"
+                echo -e "\nRevise el archivo de log para más detalles: $LOG_FILE"
+                deactivate
+                exit 1
+            fi
+        fi
+    done < "$BI_REQUIREMENTS"
+    
+    echo
+    mostrar_exito "Instalación completada exitosamente."
+    deactivate
+    
+    # Crear alias para activar el entorno
+    crear_alias_pybin
+    
+    echo -e "\n${WHITE}Para activar este entorno:${NC}"
+    echo -e "1. Actualice su shell: ${GREEN}source ~/.bashrc${NC}"
+    echo -e "2. Use el alias: ${GREEN}pybin${NC}"
+    log "INFO" "Instalación del entorno por defecto completada con éxito"
+}
+
 # Función para crear alias pybin
 crear_alias_pybin() {
     # Definir el alias
@@ -462,27 +675,6 @@ crear_alias_pybin() {
     fi
     
     log "INFO" "Alias pybin configurado para activar $BIN_VENV_DIR"
-}
-
-# Función para crear alias pyunbin para desactivar entorno
-crear_alias_pyunbin() {
-    # Definir el alias
-    local alias_cmd="alias pyunbin='deactivate'"
-    
-    # Crear alias para la sesión actual
-    eval "$alias_cmd"
-    
-    # Verificar si ya existe en .bashrc
-    if ! grep -q "alias pyunbin='deactivate'" "$HOME/.bashrc"; then
-        # Añadir alias al .bashrc para persistencia
-        echo -e "# Alias para desactivar el entorno Python activo" >> "$HOME/.bashrc"
-        echo "$alias_cmd" >> "$HOME/.bashrc"
-        mostrar_info "Alias 'pyunbin' creado y añadido a ~/.bashrc"
-    else
-        mostrar_info "Alias 'pyunbin' ya existía en ~/.bashrc"
-    fi
-    
-    log "INFO" "Alias pyunbin configurado para desactivar entornos virtuales"
 }
 
 # Función para proporcionar instrucciones de activación
@@ -595,7 +787,7 @@ remove_venv() {
     else
         # Eliminar el entorno completo
         log "INFO" "Solicitando eliminación del entorno: $env_name"
-        
+    
         read -p "¿Está seguro de que desea eliminar el entorno '$env_name'? (s/N): " confirm
         if [[ "$confirm" =~ ^[Ss]$ ]]; then
             mostrar_info "Eliminando entorno virtual: $env_name"
@@ -610,165 +802,6 @@ remove_venv() {
             log "INFO" "Eliminación del entorno $env_name cancelada por el usuario"
         fi
     fi
-}
-
-# Función para verificar y actualizar paquetes
-update_packages() {
-    local env_name="$1"
-    local pkg_name="$2"
-    
-    # Si no se proporciona un nombre de entorno, usar el predeterminado
-    if [ -z "$env_name" ]; then
-        env_name="$USER"
-        mostrar_info "Usando entorno predeterminado: $env_name"
-    fi
-    
-    local env_path="$VENV_DIR/$env_name"
-    log "INFO" "Solicitando actualización de paquetes para el entorno: $env_name"
-    
-    # Verificar si existe el entorno
-    if [ ! -d "$env_path" ]; then
-        mostrar_error "El entorno '$env_name' no existe en $env_path"
-        echo "Entornos disponibles:"
-        list_venvs
-        exit 1
-    fi
-    
-    # Verificar conexión a internet
-    if ! verificar_conexion_internet; then
-        mostrar_error "No se puede continuar sin conexión a internet."
-        exit 1
-    fi
-    
-    # Activar el entorno virtual
-    source "$env_path/bin/activate" || {
-        mostrar_error "No se pudo activar el entorno virtual."
-        exit 1
-    }
-    
-    mostrar_info "Verificando paquetes instalados en $env_name..."
-    
-    # Si se especifica un paquete específico
-    if [ -n "$pkg_name" ]; then
-        # Verificar si el paquete existe
-        if ! pip list | grep -i "^$pkg_name " > /dev/null 2>&1; then
-            mostrar_error "El paquete '$pkg_name' no está instalado en este entorno."
-            deactivate
-            exit 1
-        fi
-        
-        # Verificar si necesita actualización
-        mostrar_info "Verificando si $pkg_name necesita actualización..."
-        if pip list --outdated | grep -i "^$pkg_name " > /dev/null 2>&1; then
-            local version_actual=$(pip list | grep -i "^$pkg_name " | awk '{print $2}')
-            local version_nueva=$(pip list --outdated | grep -i "^$pkg_name " | awk '{print $3}')
-            
-            mostrar_info "Paquete $pkg_name encontrado:"
-            echo -e "   Versión actual: ${YELLOW}$version_actual${NC}"
-            echo -e "   Versión disponible: ${GREEN}$version_nueva${NC}"
-            
-            read -p "¿Desea actualizar este paquete? (s/N): " confirm
-            if [[ "$confirm" =~ ^[Ss]$ ]]; then
-                echo -ne "${CYAN}▶${NC} Actualizando $pkg_name... "
-                if pip install --upgrade "$pkg_name" >> "$LOG_FILE" 2>&1; then
-                    echo -e "${GREEN}✓${NC}"
-                    mostrar_exito "Paquete $pkg_name actualizado correctamente a la versión $version_nueva"
-                else
-                    echo -e "${RED}✗${NC}"
-                    mostrar_error "Falló la actualización del paquete $pkg_name"
-                    log "ERROR" "Fallo en la actualización de $pkg_name: $(tail -n 10 "$LOG_FILE" | grep -v ERROR)"
-                fi
-            else
-                mostrar_info "Actualización cancelada por el usuario."
-            fi
-        else
-            mostrar_exito "El paquete $pkg_name ya está en la última versión disponible."
-        fi
-    else
-        # Listar todos los paquetes que necesitan actualización
-        local outdated_packages=($(pip list --outdated | grep -v "^Package" | grep -v "^----" | awk '{print $1}'))
-        local num_outdated=${#outdated_packages[@]}
-        
-        if [ $num_outdated -eq 0 ]; then
-            mostrar_exito "Todos los paquetes están actualizados. No se requieren actualizaciones."
-            deactivate
-            return
-        fi
-        
-        mostrar_info "Paquetes que necesitan actualización ($num_outdated):"
-        echo -e "${WHITE}----------------------------------------------------${NC}"
-        printf "${WHITE}%-25s %-15s %-15s${NC}\n" "Paquete" "Versión actual" "Versión disponible"
-        echo -e "${WHITE}----------------------------------------------------${NC}"
-        
-        for pkg in "${outdated_packages[@]}"; do
-            local version_actual=$(pip list | grep -i "^$pkg " | awk '{print $2}')
-            local version_nueva=$(pip list --outdated | grep -i "^$pkg " | awk '{print $3}')
-            printf "%-25s ${YELLOW}%-15s${NC} ${GREEN}%-15s${NC}\n" "$pkg" "$version_actual" "$version_nueva"
-        done
-        echo -e "${WHITE}----------------------------------------------------${NC}"
-        
-        read -p "¿Desea actualizar todos estos paquetes? (s/N/i=interactivo): " confirm
-        
-        if [[ "$confirm" =~ ^[Ss]$ ]]; then
-            # Actualizar todos
-            mostrar_info "Actualizando todos los paquetes..."
-            local count=0
-            
-            for pkg in "${outdated_packages[@]}"; do
-                ((count++))
-                echo -ne "${CYAN}[${count}/${num_outdated}]${NC} ${pkg}... "
-                log "DEBUG" "Actualizando paquete: $pkg"
-                
-                if pip install --upgrade "$pkg" >> "$LOG_FILE" 2>&1; then
-                    echo -e "${GREEN}✓${NC}"
-                    log "INFO" "Paquete $pkg actualizado correctamente"
-                else
-                    echo -e "${RED}✗${NC}"
-                    mostrar_error "Falló la actualización del paquete $pkg"
-                    log "ERROR" "Fallo en la actualización de $pkg: $(tail -n 10 "$LOG_FILE" | grep -v ERROR)"
-                fi
-            done
-            
-            mostrar_exito "Actualización de paquetes completada."
-        elif [[ "$confirm" =~ ^[Ii]$ ]]; then
-            # Actualización interactiva
-            mostrar_info "Modo interactivo: se le preguntará por cada paquete."
-            local count=0
-            
-            for pkg in "${outdated_packages[@]}"; do
-                ((count++))
-                local version_actual=$(pip list | grep -i "^$pkg " | awk '{print $2}')
-                local version_nueva=$(pip list --outdated | grep -i "^$pkg " | awk '{print $3}')
-                
-                echo -e "\n${CYAN}[${count}/${num_outdated}]${NC} ${WHITE}$pkg${NC}:"
-                echo -e "   Versión actual: ${YELLOW}$version_actual${NC}"
-                echo -e "   Versión disponible: ${GREEN}$version_nueva${NC}"
-                
-                read -p "   ¿Actualizar este paquete? (s/N): " update_confirm
-                if [[ "$update_confirm" =~ ^[Ss]$ ]]; then
-                    echo -ne "   ${CYAN}▶${NC} Actualizando $pkg... "
-                    if pip install --upgrade "$pkg" >> "$LOG_FILE" 2>&1; then
-                        echo -e "${GREEN}✓${NC}"
-                        log "INFO" "Paquete $pkg actualizado correctamente"
-                    else
-                        echo -e "${RED}✗${NC}"
-                        mostrar_error "Falló la actualización del paquete $pkg"
-                        log "ERROR" "Fallo en la actualización de $pkg: $(tail -n 10 "$LOG_FILE" | grep -v ERROR)"
-                    fi
-                else
-                    echo -e "   ${YELLOW}▶${NC} Paquete omitido."
-                    log "INFO" "Paquete $pkg omitido por el usuario"
-                fi
-            done
-            
-            mostrar_exito "Actualización interactiva completada."
-        else
-            mostrar_info "Actualización cancelada por el usuario."
-        fi
-    fi
-    
-    deactivate
-    log "INFO" "Proceso de actualización completado para el entorno $env_name"
 }
 
 # Función para mostrar la ayuda
@@ -786,8 +819,7 @@ mostrar_ayuda() {
       ${CYAN}help${NC}                                          Mostrar esta ayuda
       
     ${WHITE}Aliases creados con --install:${NC}
-      ${CYAN}pybin${NC}                                         Activa el entorno predeterminado
-      ${CYAN}pyunbin${NC}                                       Desactiva el entorno activo"
+      ${CYAN}pybin${NC}                                         Activa el entorno predeterminado"
     log "INFO" "Se mostró la ayuda al usuario"
 }
 
@@ -823,228 +855,6 @@ show_banner() {
   printf '%s\n' "$(printf '+%*s+' "$width" '' | tr ' ' '-')"
 
   echo # Línea en blanco después del banner
-}
-
-# Función para instalar el entorno por defecto y sus dependencias
-install_default_env() {
-    mostrar_info "========================================="
-    mostrar_info "  Instalando entorno Python por defecto"
-    mostrar_info "========================================="
-    log "INFO" "Iniciando instalación del entorno por defecto en $BIN_VENV_DIR"
-    
-    # Verificar si el directorio ya existe
-    if [ -d "$BIN_VENV_DIR" ]; then
-        read -p "El entorno '$USER' ya existe. ¿Desea reinstalarlo? (s/N/c=cancelar): " confirm
-        # Verificar la respuesta del usuario
-        if [[ "$confirm" =~ ^[Cc]$ ]]; then
-            # Opción 'c' - Cancelar completamente la operación
-            mostrar_info "Operación cancelada por el usuario."
-            log "INFO" "Operación cancelada por el usuario"
-            exit 0
-        elif [[ -z "$confirm" || ! "$confirm" =~ ^[Ss] ]]; then
-            # Opción 'n' (por defecto) - Usar el entorno existente
-            mostrar_info "Usando el entorno existente."
-            # Continuar con la verificación de paquetes sin reinstalar
-            log "INFO" "Se usará el entorno existente en $BIN_VENV_DIR"
-            
-            # Verificar si el archivo de requisitos existe
-            if [ ! -f "$BI_REQUIREMENTS" ]; then
-                mostrar_error "El archivo de requisitos '$BI_REQUIREMENTS' no fue encontrado."
-                exit 1
-            fi
-            
-            # Verificar conexión a internet antes de instalar paquetes
-            if ! verificar_conexion_internet; then
-                mostrar_advertencia "No se instalarán paquetes debido a la falta de conexión a internet."
-                echo "Puede instalar los paquetes más tarde cuando tenga conexión."
-                echo "Ejecute el siguiente comando para activar el entorno:"
-                echo "source $BIN_VENV_DIR/bin/activate"
-                exit 0
-            fi
-            
-            # Mostrar resumen del proceso
-            echo -e "\n${WHITE}Resumen de la instalación:${NC}"
-            echo -e " • Entorno: ${CYAN}$BIN_VENV_DIR${NC} (existente)"
-            echo -e " • Paquetes: ${CYAN}$BI_REQUIREMENTS${NC}"
-            echo -e " • Log: ${CYAN}$LOG_FILE${NC}"
-            echo
-            
-            # Instalar paquetes pendientes
-            mostrar_info "Verificando paquetes en $BI_REQUIREMENTS..."
-            install_packages "$USER" "$BI_REQUIREMENTS"
-            
-            # Crear alias para activar y desactivar el entorno
-            crear_alias_pybin
-            crear_alias_pyunbin
-            
-            echo -e "\n${WHITE}Para activar este entorno:${NC}"
-            echo -e "1. Actualice su shell: ${GREEN}source ~/.bashrc${NC}"
-            echo -e "2. Use el alias: ${GREEN}pybin${NC}"
-            echo -e "\n${WHITE}Para desactivar el entorno:${NC}"
-            echo -e "  Use el alias: ${GREEN}pyunbin${NC}"
-            log "INFO" "Verificación de paquetes completada con éxito"
-            return
-        else
-            # Opción 's' - Reinstalar el entorno
-            mostrar_info "Eliminando entorno existente..."
-            echo -ne "${YELLOW}▶${NC} Eliminando $BIN_VENV_DIR... "
-            if rm -rf "$BIN_VENV_DIR"; then
-                echo -e "${GREEN}✓${NC}"
-            else
-                echo -e "${RED}✗${NC}"
-                mostrar_error "No se pudo eliminar el entorno existente."
-                exit 1
-            fi
-        fi
-    fi
-    
-    # Verificar si el archivo de requisitos existe
-    if [ ! -f "$BI_REQUIREMENTS" ]; then
-        mostrar_error "El archivo de requisitos '$BI_REQUIREMENTS' no fue encontrado."
-        exit 1
-    fi
-    
-    # Crear el directorio del entorno virtual si no existe
-    echo -ne "${YELLOW}▶${NC} Preparando directorio... "
-    if mkdir -p "$(dirname "$BIN_VENV_DIR")"; then
-        echo -e "${GREEN}✓${NC}"
-    else
-        echo -e "${RED}✗${NC}"
-        mostrar_error "No se pudo crear el directorio para el entorno virtual."
-        exit 1
-    fi
-    
-    # Crear el entorno virtual
-    mostrar_info "Creando entorno virtual en: $BIN_VENV_DIR"
-    echo -ne "${YELLOW}▶${NC} Inicializando entorno virtual... "
-    if python3 -m venv "$BIN_VENV_DIR" >> "$LOG_FILE" 2>&1; then
-        echo -e "${GREEN}✓${NC}"
-        mostrar_exito "Entorno virtual creado exitosamente"
-    else
-        echo -e "${RED}✗${NC}"
-        mostrar_error "Falló la creación del entorno virtual."
-        log "ERROR" "Creación del entorno fallida: $(tail -n 10 "$LOG_FILE" | grep -v ERROR)"
-        exit 1
-    fi
-    
-    # Verificar conexión a internet antes de instalar paquetes
-    if ! verificar_conexion_internet; then
-        mostrar_advertencia "Se ha creado el entorno virtual, pero no se instalarán paquetes debido a la falta de conexión a internet."
-        echo "Puede instalar los paquetes más tarde cuando tenga conexión."
-        echo "Ejecute el siguiente comando para activar el entorno:"
-        echo "source $BIN_VENV_DIR/bin/activate"
-        exit 0
-    fi
-    
-    # Mostrar resumen del proceso
-    echo -e "\n${WHITE}Resumen de la instalación:${NC}"
-    echo -e " • Entorno: ${CYAN}$BIN_VENV_DIR${NC} (nuevo)"
-    echo -e " • Paquetes: ${CYAN}$BI_REQUIREMENTS${NC}"
-    echo -e " • Log: ${CYAN}$LOG_FILE${NC}"
-    echo
-    
-    # Instalar los paquetes
-    mostrar_info "Instalando paquetes desde $BI_REQUIREMENTS..."
-    source "$BIN_VENV_DIR/bin/activate" || {
-        mostrar_error "No se pudo activar el entorno virtual."
-        exit 1
-    }
-    
-    # Actualizar pip dentro del entorno virtual
-    echo -ne "${YELLOW}▶${NC} Actualizando pip... "
-    if pip install --upgrade pip >> "$LOG_FILE" 2>&1; then
-        echo -e "${GREEN}✓${NC}"
-    else
-        echo -e "${RED}✗${NC}"
-        mostrar_advertencia "No se pudo actualizar pip. Continuando con la instalación de paquetes."
-        log "WARN" "Fallo al actualizar pip: $(tail -n 5 "$LOG_FILE" | grep -v WARN)"
-    fi
-    
-    # Mostrar el estado de los paquetes
-    display_packages_status "$BI_REQUIREMENTS" "$BIN_VENV_DIR"
-    
-    # Contar el número total de paquetes a instalar
-    local pending_count=0
-    while IFS= read -r pkg || [ -n "$pkg" ]; do
-        # Saltar líneas vacías y comentarios
-        [[ "$pkg" =~ ^[[:space:]]*$ || "$pkg" =~ ^[[:space:]]*# ]] && continue
-        
-        # Verificar si necesita instalarse
-        local status=$(check_package_status "$pkg" "$BIN_VENV_DIR")
-        if [[ "$status" == "not_installed" || "$status" == "installed_update" ]]; then
-            ((pending_count++))
-        fi
-    done < "$BI_REQUIREMENTS"
-    
-    # Si no hay nada que instalar, terminar
-    if [ "$pending_count" -eq 0 ]; then
-        mostrar_exito "Todos los paquetes ya están instalados y actualizados."
-        deactivate
-        
-        # Crear alias para activar y desactivar el entorno
-        crear_alias_pybin
-        crear_alias_pyunbin
-        
-        echo -e "\n${WHITE}Para activar este entorno:${NC}"
-        echo -e "1. Actualice su shell: ${GREEN}source ~/.bashrc${NC}"
-        echo -e "2. Use el alias: ${GREEN}pybin${NC}"
-        echo -e "\n${WHITE}Para desactivar el entorno:${NC}"
-        echo -e "  Use el alias: ${GREEN}pyunbin${NC}"
-        log "INFO" "Instalación del entorno por defecto completada con éxito"
-        return
-    fi
-    
-    # Mostrar cabecera para instalación
-    echo -e "\n${WHITE}Instalando $pending_count paquetes pendientes:${NC}"
-    
-    # Contador para paquetes instalados
-    local count=0
-    
-    # Leer línea por línea e instalar
-    while IFS= read -r pkg || [ -n "$pkg" ]; do
-        # Saltar líneas vacías y comentarios
-        [[ "$pkg" =~ ^[[:space:]]*$ || "$pkg" =~ ^[[:space:]]*# ]] && continue
-        
-        # Extraer nombre base del paquete (sin versión ni extras)
-        local pkg_name=$(echo "$pkg" | cut -d'[' -f1 | cut -d'=' -f1 | cut -d'>' -f1 | cut -d'<' -f1 | cut -d'~' -f1 | tr -d ' ')
-        
-        # Verificar si necesita instalarse o actualizarse
-        local status=$(check_package_status "$pkg" "$BIN_VENV_DIR")
-        if [[ "$status" == "not_installed" || "$status" == "installed_update" ]]; then
-            ((count++))
-            
-            # Formato de progreso: [1/10] instalando numpy...
-            echo -ne "${CYAN}[${count}/${pending_count}]${NC} ${pkg_name}... "
-            log "DEBUG" "Instalando paquete: $pkg"
-            
-            if pip install "$pkg" >> "$LOG_FILE" 2>&1; then
-                echo -e "${GREEN}✓${NC}"
-                log "INFO" "Paquete $pkg_name instalado correctamente"
-            else
-                echo -e "${RED}✗${NC}"
-                mostrar_error "Falló la instalación del paquete $pkg_name"
-                log "ERROR" "Fallo en la instalación de $pkg_name: $(tail -n 10 "$LOG_FILE" | grep -v ERROR)"
-                echo -e "\nRevise el archivo de log para más detalles: $LOG_FILE"
-                deactivate
-                exit 1
-            fi
-        fi
-    done < "$BI_REQUIREMENTS"
-    
-    echo
-    mostrar_exito "Instalación completada exitosamente."
-    deactivate
-    
-    # Crear alias para activar y desactivar el entorno
-    crear_alias_pybin
-    crear_alias_pyunbin
-    
-    echo -e "\n${WHITE}Para activar este entorno:${NC}"
-    echo -e "1. Actualice su shell: ${GREEN}source ~/.bashrc${NC}"
-    echo -e "2. Use el alias: ${GREEN}pybin${NC}"
-    echo -e "\n${WHITE}Para desactivar el entorno:${NC}"
-    echo -e "  Use el alias: ${GREEN}pyunbin${NC}"
-    log "INFO" "Instalación del entorno por defecto completada con éxito"
 }
 
 # Función principal
