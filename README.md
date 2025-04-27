@@ -23,6 +23,7 @@ source ~/bin/binsetup.sh
 | `binsetup.sh` | 2025-04-24 | ✨ Maneja `~/bin` en el PATH.<br>• Temporal: `source binsetup.sh`<br>• Desactivar: `source binsetup.sh --disable`<br>• Permanente: `./binsetup.sh --persistent`<br>• Remover: `./binsetup.sh --remove` |
 | `hexroute` | 2025-03-19 | 🔄 Convierte IPv4 a formato hexadecimal para tablas de ruteo.<br>• Uso: `hexroute <dirección-ip>` |
 | `packages.sh` | 2025-04-25 | 📦 Gestiona paquetes base en múltiples sistemas operativos.<br>• Instalar: `sudo packages.sh --install`<br>• Actualizar: `sudo packages.sh --update`<br>• Solo SOPS: `sudo packages.sh --install --sops` |
+| `pymanager.sh` | 2025-05-05 | 🐍 Gestiona entornos virtuales de Python.<br>• Crear: `pymanager.sh create <nombre> [reqfile]`<br>• Instalar: `pymanager.sh --install`<br>• Actualizar: `pymanager.sh --update <nombre> [pkg]` |
 | `videoset.sh` | 2025-04-24 | 🖥️ Configura resolución de pantalla 1600x900@60Hz.<br>• Uso básico: `videoset.sh`<br>• Auto-detección: `videoset.sh --auto` |
 
 ### 🐍 Python Scripts
@@ -70,6 +71,7 @@ Para información detallada sobre cada herramienta, consulte los documentos en l
 | `binsetup.sh` | Mauro Rosero P. | |
 | `hexroute` | Karl McMurdo (2005-2015) | Mauro Rosero P. (adaptación) |
 | `packages.sh` | Mauro Rosero P. | |
+| `pymanager.sh` | Mauro Rosero P. | |
 | `videoset.sh` | Mauro Rosero P. | |
 | `email_cleaner` | Mauro Rosero P. | |
 | `mcp_manager.py` | Mauro Rosero P. | |
