@@ -13,11 +13,14 @@ Herramienta para gestionar entornos virtuales de Python de manera sencilla y efi
 - 🔄 **Alias convenientes**: Crea alias (`pybin`/`pyunbin`) para activar/desactivar entornos
 - 📋 **Funciones por defecto**: Opción para instalar un entorno por defecto con requisitos básicos
 - 📊 **Registro detallado**: Guarda todas las operaciones en `/var/log/pymanager.log` o `~/bin/logs/pymanager.log`
+- 🗑️ **Gestión granular**: Eliminar entornos completos o paquetes individuales
+- 🔄 **Actualización de paquetes**: Actualiza paquetes específicos o todos los del entorno
+- 🧪 **Verificación de requisitos**: Comprueba automáticamente si Python y venv están disponibles
 
 ## 💡 Uso
 
 ```bash
-pymanager.sh {create|activate|list|remove|--install|help}
+pymanager.sh {create|activate|list|remove|--install|--update|help}
 ```
 
 ### Comandos
@@ -27,8 +30,9 @@ pymanager.sh {create|activate|list|remove|--install|help}
 | `create <env_name> [req_file]` | Crea un nuevo entorno virtual e instala paquetes desde un archivo de requisitos |
 | `activate <env_name>` | Muestra instrucciones para activar un entorno existente |
 | `list` | Lista todos los entornos virtuales disponibles |
-| `remove <env_name>` | Elimina un entorno virtual existente |
+| `remove <env_name> [--package <pkg>]` | Elimina un entorno virtual completo o un paquete específico |
 | `--install` | Instala un entorno predeterminado con alias `pybin` |
+| `--update [env_name] [pkg]` | Actualiza todos los paquetes o uno específico en un entorno |
 | `help` | Muestra la ayuda |
 
 ## 📋 Ejemplos
@@ -49,8 +53,17 @@ pymanager.sh {create|activate|list|remove|--install|help}
 # Eliminar un entorno
 ./pymanager.sh remove proyecto1
 
+# Eliminar un paquete específico de un entorno
+./pymanager.sh remove proyecto1 --package numpy
+
 # Instalar entorno predeterminado con alias
 ./pymanager.sh --install
+
+# Actualizar todos los paquetes en un entorno
+./pymanager.sh --update proyecto1
+
+# Actualizar un paquete específico
+./pymanager.sh --update proyecto1 pandas
 ```
 
 ## 🔄 Instalación predeterminada
@@ -91,9 +104,40 @@ Todas las operaciones se registran detalladamente:
 - Si se ejecuta como usuario normal: `~/bin/logs/pymanager.log`
 - Si se ejecuta como superusuario: `/var/log/pymanager.log`
 
+Cada entrada del log incluye:
+- Marca de tiempo exacta
+- Nivel de gravedad (INFO, ERROR, DEBUG, WARN)
+- Mensaje detallado
+- En caso de error, información adicional para diagnóstico
+
 ## ⚙️ Requisitos
 
 - Bash 4.0 o superior
 - Python 3.x
 - Módulo `venv` de Python (generalmente incluido como `python3-venv` en distribuciones Linux)
 - Terminal que soporte colores ANSI
+
+## 🛠️ Conectividad a internet
+
+El script verifica automáticamente la conexión a internet antes de intentar instalar paquetes:
+
+- Realiza una prueba de conectividad mediante `ping` a servidores DNS confiables
+- Implementa un timeout configurable para evitar bloqueos en entornos sin conexión
+- Proporciona mensajes claros al usuario cuando no hay conexión disponible
+- Ofrece rutas de uso alternativas cuando la conectividad es limitada
+
+## 🧩 Funcionalidades avanzadas
+
+### Gestión de dependencias
+
+El script puede leer y procesar archivos de requisitos complejos con:
+- Restricciones de versión (`==`, `>=`, `<=`, etc.)
+- Extras opcionales de paquetes con sintaxis `[extra]`
+- Comentarios y metadata en el formato estándar de `requirements.txt`
+
+### Manejo inteligente de errores
+
+- Captura y registra errores de manera detallada para facilitar el diagnóstico
+- Proporciona mensajes específicos de error con posibles soluciones
+- Implementa rollback automático en caso de fallos críticos durante la instalación
+- Ofrece recomendaciones de pasos a seguir en caso de error
