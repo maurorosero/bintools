@@ -1,0 +1,12 @@
+servers:
+  - name: "GitHub MCP"
+    type: "node"
+    cmd: ["npx", "@mcp/github"]
+
+  - name: "OpenAI MCP"
+    type: "node"
+    cmd: ["npx", "@mcp/openai-assistant"]
+
+  - name: "My Custom Python MCP"
+    type: "python"
+    cmd: ["uvicorn", "servers/mcp-server-github/app.py", "--host", "0.0.0.0", "--reload"] 

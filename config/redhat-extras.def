@@ -1,32 +1,94 @@
-# Archivo de paquetes extras para RHEL/CentOS
+# Archivo de paquetes extras para RedHat/CentOS
 # Cada línea debe contener el nombre de un paquete para instalar
 # Las líneas que comienzan con # son comentarios y serán ignoradas
+# Nota: Los siguientes paquetes se supone que ya están instalados:
+# - curl
+# - git
+# - wget
+# - python3
+# - python3-pip
+# - jq
+# - dialog
 
 # Herramientas de desarrollo
-gcc               # Compilador GNU C
-gcc-c++           # Compilador GNU C++
-make              # Herramienta de construcción
-cmake             # Sistema de construcción multiplataforma
+# gcc                 # Compilador GNU C
+# g++                 # Compilador GNU C++
+# make                # Herramienta de construcción GNU Make
+# cmake               # Sistema de construcción multiplataforma
+# clang               # Compilador LLVM C/C++
+# llvm                # Herramientas y librerías Low Level Virtual Machine
+# autoconf            # Herramienta para generar scripts de configuración
+# automake            # Herramienta para generar Makefiles
+# pkg-config          # Gestor de configuración para compilación
+# gh                  # GitHub CLI
 
 # Utilidades del sistema
-htop              # Monitor de procesos interactivo
-epel-release      # Repositorio Extra Packages for Enterprise Linux
-yum-utils         # Utilidades para YUM/DNF
-ncdu              # Analizador de uso de disco
-lsof              # Lista archivos abiertos
+# htop                # Monitor de procesos interactivo
+# neofetch            # Herramienta de información del sistema
+# lsof                # Lista archivos abiertos
+# ncdu                # Analizador de uso de disco
+# iotop               # Monitor de uso de I/O por procesos
+# btrfs-progs         # Herramientas para el sistema de archivos Btrfs
+# xfsprogs            # Herramientas para el sistema de archivos XFS
+# dosfstools          # Herramientas para el sistema de archivos FAT
+# ntfs-3g             # Soporte para sistemas de archivos NTFS
+# usbutils            # Herramientas para trabajar con dispositivos USB
+# dmidecode           # Herramienta para mostrar información del hardware del sistema
+# inxi                # Herramienta para mostrar información del sistema
+# util-linux          # Colección de utilidades básicas del sistema
+# findutils           # Herramientas de búsqueda GNU
 
 # Editores
-vim-enhanced      # Editor de texto avanzado
-nano              # Editor de texto simple
+# vim                 # Editor de texto avanzado
+# vim-enhanced        # Versión mejorada de vim
+# nano                # Editor de texto simple
+# neovim              # Versión moderna de vim
+# emacs               # Editor de texto extensible
 
 # Herramientas de red y seguridad
-nmap              # Escáner de puertos
-# fail2ban        # Protección contra ataques de fuerza bruta
-# firewalld       # Firewall dinámico
-# tcpdump         # Analizador de paquetes de red
+# nmap                # Escáner de puertos
+# iptables            # Firewall basado en reglas
+# firewalld           # Firewall dinámico con soporte para zonas de red
+# fail2ban            # Protección contra ataques de fuerza bruta
+# tcpdump             # Analizador de paquetes de red
+# wireshark-cli       # Analizador de protocolos de red (CLI)
+# mtr                 # Combinación de traceroute y ping
+# bind-utils          # Herramientas DNS, incluye dig, host, nslookup
+# whois               # Cliente para consultar información WHOIS
+# net-tools           # Herramientas de red tradicionales (ifconfig, netstat, etc.)
+# iproute             # Herramientas modernas de red (ip, ss, etc.)
+# openssh             # Implementación de SSH
+# openssh-server      # Servidor SSH
 
 # Otras utilidades
-unzip             # Descompresor de archivos ZIP
-tree              # Muestra directorios en forma de árbol
-rsync             # Herramienta de sincronización remota
-tmux              # Multiplexor de terminal 
+# unzip               # Descompresor de archivos ZIP
+# p7zip               # Implementación del compresor 7z
+# tree                # Muestra directorios en forma de árbol
+# rsync               # Herramienta de sincronización remota
+# tmux                # Multiplexor de terminal
+# bash-completion     # Autocompletado para Bash
+
+# Herramientas para Markdown
+# pandoc              # Conversor universal de documentos
+
+# Herramientas para desarrollo nodejs
+# nodejs              # Plataforma JavaScript del lado del servidor
+# npm                 # Gestor de paquetes de Node.js
+
+# Herramientas para conexión remota y compartición de archivos
+# samba               # Suite de herramientas SMB/CIFS
+# samba-client        # Cliente para acceder a recursos SMB/CIFS
+# cifs-utils          # Herramientas para montar comparticiones CIFS
+# fuse                # Sistema de archivos en espacio de usuario
+# sshfs               # Montar sistemas de archivos a través de SSH
+
+# Herramientas de visualización y exploración de datos/archivos
+# mc                  # Midnight Commander, gestor de archivos con interfaz de texto
+
+# Python y entorno de desarrollo
+# python3-virtualenv  # Soporte para entornos virtuales en Python
+# python3-setuptools  # Herramientas para instalación de paquetes Python
+
+# Herramientas para DevOps
+# ansible             # Plataforma de automatización IT
+# git-lfs             # Extensión de Git para archivos grandes 

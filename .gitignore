@@ -54,6 +54,43 @@ env/
 # Jupyter Notebook
 .ipynb_checkpoints
 
+### Node.js y npm ###
+# Directorio de dependencias
+node_modules/
+
+# Logs
+logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Archivos de bloqueo de versiones
+package-lock.json
+yarn.lock
+
+# Archivos de entorno específicos de Node.js
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Directorio de configuración de npm
+.npm/
+
+# Historiales y caché
+.node_repl_history
+.eslintcache
+.yarn-integrity
+
+# Archivos de distribución
+.next/
+.cache/
+.nuxt/
+dist/
+
+# Archivos de paquetes
+*.tgz
+
 # Archivos de datos y salidas
 *.csv
 *.json
@@ -61,3 +98,7 @@ env/
 *.db
 *.sqlite
 output/
+
+# Asegurar seguimiento de archivos específicos
+!config/mcp_servers.yaml
+!package.json

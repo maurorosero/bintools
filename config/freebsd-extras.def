@@ -1,36 +1,148 @@
 # Archivo de paquetes extras para FreeBSD
 # Cada línea debe contener el nombre de un paquete para instalar
 # Las líneas que comienzan con # son comentarios y serán ignoradas
+# Nota: Los siguientes paquetes están en freebsd-base.pkg:
+# - curl
+# - git 
+# - wget
+# - python3
+# - py39-pip (pip para Python 3.9)
+# - jq
+# - gnupg
+# - dialog
 
 # Herramientas de desarrollo
-gcc               # Compilador GNU C
-gmake             # Versión GNU de make
-cmake             # Sistema de construcción multiplataforma
+# gcc                 # Compilador GNU C
+# g++                 # Compilador GNU C++
+# gmake               # GNU Make
+# cmake               # Sistema de construcción multiplataforma
+# clang               # Compilador LLVM C/C++
+# gh                  # Github Manager CLI
+# glab                # Gilab Manager CLI
 
 # Utilidades del sistema
-htop              # Monitor de procesos interactivo
-neofetch          # Herramienta de información del sistema
-lsof              # Lista archivos abiertos
-ncdu              # Analizador de uso de disco
-bsdstats          # Estadísticas de hardware para FreeBSD
-portmaster        # Herramienta para gestionar ports
-beadm             # Gestor de entornos de arranque
+# htop                # Monitor de procesos interactivo
+# neofetch            # Herramienta de información del sistema
+# lsof                # Lista archivos abiertos
+# ncdu                # Analizador de uso de disco
 
 # Editores
-vim               # Editor de texto avanzado
-# nano            # Editor de texto simple
+# vim                 # Editor de texto avanzado
+# nano                # Editor de texto simple
 
 # Herramientas de red y seguridad
-nmap                # Escáner de puertos
-# pf                # Packet Filter (firewall)
-# fail2ban          # Protección contra ataques de fuerza bruta
-# tcpdump           # Analizador de paquetes de red
-ca_root_nss         # Certificados SSL de raíz
+# nmap                # Escáner de puertos
+# tcpdump             # Analizador de paquetes de red
+# fail2ban            # Protección contra ataques de fuerza bruta
+# ipfw                # Firewall de FreeBSD
 
 # Otras utilidades
-unzip             # Descompresor de archivos ZIP
-tree              # Muestra directorios en forma de árbol
-rsync             # Herramienta de sincronización remota
-tmux              # Multiplexor de terminal
-# zsh             # Shell alternativa
-bash              # Bourne Again Shell 
+# unzip               # Descompresor de archivos ZIP 
+# tree                # Muestra directorios en forma de árbol
+# tldr                # Páginas de ayuda simplificadas
+# rsync               # Herramienta de sincronización remota
+# tmux                # Multiplexor de terminal 
+
+# Herramientas de mensajería
+# py39-telethon       # Biblioteca Python para interactuar con la API de Telegram
+
+# Herramientas para Markdown
+# py39-markdown       # Biblioteca Python para procesar Markdown
+# py39-nbconvert      # Convierte Jupyter notebooks a otros formatos
+# ruby-kramdown       # Procesador de Markdown en Ruby con extensiones
+# discount            # Implementación de Markdown en C
+
+# Herramientas para desarrollo nodejs
+# node                # Plataforma JavaScript del lado del servidor
+# npm                 # Gestor de paquetes de Node.js
+
+# Herramientas ofimáticas
+# libreoffice         # Suite ofimática completa
+# en-hunspell         # Corrector ortográfico en inglés
+# es-hunspell         # Corrector ortográfico en español
+# pdfgrep             # Buscar texto en archivos PDF
+# poppler-utils       # Utilidades para manipular PDF
+# ghostscript9-base   # Intérprete para PostScript y PDF
+# pandoc              # Conversor universal de documentos
+# texlive-full        # Sistema de composición de textos TeX/LaTeX
+# cups                # Sistema de impresión
+# scribus             # Publicación de escritorio profesional
+# inkscape            # Editor de gráficos vectoriales
+# gimp                # Editor de imágenes rasterizadas
+
+# Herramientas para conexión remota y compartición de archivos
+# filezilla           # Cliente FTP/SFTP con interfaz gráfica
+# lftp                # Cliente FTP avanzado para línea de comandos
+# ncftp               # Cliente FTP mejorado para línea de comandos
+# ftp                 # Cliente FTP tradicional para línea de comandos
+# samba413            # Suite de herramientas SMB/CIFS para FreeBSD
+# fusefs-smbnetfs     # Sistema de archivos basado en FUSE para montar shares SMB/CIFS
+# fusefs-sshfs        # Montar sistemas de archivos a través de SSH
+# fusefs-webdavfs     # Montar sistemas de archivos WebDAV
+# rclone              # Sincronización de archivos con servicios cloud
+
+# Herramientas de visualización y exploración de datos/archivos
+# visidata            # Herramienta TUI para explorar y analizar datos
+# ranger              # Gestor de archivos en modo texto
+# mc                  # Midnight Commander, gestor de archivos con interfaz de texto
+# bat                 # Alternativa a cat con resaltado de sintaxis
+# hexyl               # Visor de archivos hexadecimal moderno y colorido
+# fzf                 # Buscador difuso en línea de comandos
+# glow                # Renderizador de markdown en terminal
+# fd-find             # Alternativa moderna al comando find
+# pv                  # Pipe Viewer - para monitorear progreso de datos en pipes
+# multitail           # Visualizar múltiples archivos de log simultáneamente
+
+# Desarrollo con Arduino
+# arduino             # IDE y core de Arduino para desarrollo
+# avrdude             # Software para programar microcontroladores Atmel AVR
+# avr-gcc             # Compilador GCC para microcontroladores AVR
+# avr-libc            # Biblioteca C estándar para AVR
+# comms/picocom       # Monitor serial minimalista para comunicación
+# screen              # Multiplexor de terminal (útil para monitoreo serial)
+# py39-pyserial       # Módulo Python para comunicación serial
+# stm32flash         # Herramienta para flashear MCUs STM32
+# esptool            # Herramienta para programar chips ESP8266/ESP32
+# openocd            # Depurador on-chip para programación y depuración
+# fritzing           # Diseño de circuitos y PCB para prototipado
+
+# Python y entorno de desarrollo
+# Nota: python39 y py39-pip ya están en paquetes base
+# py39-virtualenv     # Soporte para entornos virtuales en Python3
+# py39-setuptools     # Herramientas para instalación de paquetes Python
+# py39-wheel          # Sistema de empaquetado y distribución para Python
+# py39-mypy           # Verificador de tipos estáticos para Python
+# py39-black          # Formateador de código para Python
+# py39-flake8         # Linter para código Python
+# py39-ipython        # Shell interactiva mejorada para Python
+
+# Herramientas para compilación de Python a ejecutables
+# py39-cython         # Compilador que convierte Python a C
+# gcc                 # Compilador de C (necesario para compilar extensiones)
+# patchelf            # Herramienta para modificar binarios ELF
+# upx                 # Compresor de ejecutables
+
+# Herramientas SSH
+# openssh             # Cliente SSH básico
+# openssh-portable    # Servidor SSH
+# sshpass             # Automatización de contraseñas SSH (usar con precaución)
+# keychain            # Gestor de llaves SSH basado en ssh-agent
+# openssh-askpass     # Herramienta gráfica para solicitar contraseñas SSH
+# autossh             # Mantiene y restaura automáticamente conexiones SSH
+# mosh                # Alternativa a SSH resiliente a conexiones intermitentes
+# pssh                # Ejecución en paralelo de SSH para múltiples servidores
+# sshuttle            # VPN transparente sobre SSH
+# asciinema           # Graba y comparte sesiones de terminal
+# ttyd                # Comparte terminal vía navegador web
+
+# Herramientas para DevOps
+# ansible             # Plataforma de automatización IT
+# py39-yq             # Procesador de YAML en línea de comandos
+# git-lfs             # Extensión de Git para archivos grandes
+# www/py-httpie       # Cliente HTTP amigable para CLI
+# bind-tools          # Herramientas para diagnóstico DNS
+# tcpdump             # Analizador de paquetes de red
+# mtr                 # Combinación de traceroute y ping
+# iotop               # Monitor de uso de I/O por procesos
+# sysstat             # Utilidades para monitoreo de rendimiento
+# netcat              # Utilidad de red versátil 
