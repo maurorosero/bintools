@@ -559,10 +559,169 @@ remove_venv() {
     fi
 }
 
+# Función para verificar y actualizar paquetes
+update_packages() {
+    local env_name="$1"
+    local pkg_name="$2"
+    
+    # Si no se proporciona un nombre de entorno, usar el predeterminado
+    if [ -z "$env_name" ]; then
+        env_name="$USER"
+        mostrar_info "Usando entorno predeterminado: $env_name"
+    fi
+    
+    local env_path="$VENV_DIR/$env_name"
+    log "INFO" "Solicitando actualización de paquetes para el entorno: $env_name"
+    
+    # Verificar si existe el entorno
+    if [ ! -d "$env_path" ]; then
+        mostrar_error "El entorno '$env_name' no existe en $env_path"
+        echo "Entornos disponibles:"
+        list_venvs
+        exit 1
+    fi
+    
+    # Verificar conexión a internet
+    if ! verificar_conexion_internet; then
+        mostrar_error "No se puede continuar sin conexión a internet."
+        exit 1
+    fi
+    
+    # Activar el entorno virtual
+    source "$env_path/bin/activate" || {
+        mostrar_error "No se pudo activar el entorno virtual."
+        exit 1
+    }
+    
+    mostrar_info "Verificando paquetes instalados en $env_name..."
+    
+    # Si se especifica un paquete específico
+    if [ -n "$pkg_name" ]; then
+        # Verificar si el paquete existe
+        if ! pip list | grep -i "^$pkg_name " > /dev/null 2>&1; then
+            mostrar_error "El paquete '$pkg_name' no está instalado en este entorno."
+            deactivate
+            exit 1
+        fi
+        
+        # Verificar si necesita actualización
+        mostrar_info "Verificando si $pkg_name necesita actualización..."
+        if pip list --outdated | grep -i "^$pkg_name " > /dev/null 2>&1; then
+            local version_actual=$(pip list | grep -i "^$pkg_name " | awk '{print $2}')
+            local version_nueva=$(pip list --outdated | grep -i "^$pkg_name " | awk '{print $3}')
+            
+            mostrar_info "Paquete $pkg_name encontrado:"
+            echo -e "   Versión actual: ${YELLOW}$version_actual${NC}"
+            echo -e "   Versión disponible: ${GREEN}$version_nueva${NC}"
+            
+            read -p "¿Desea actualizar este paquete? (s/N): " confirm
+            if [[ "$confirm" =~ ^[Ss]$ ]]; then
+                echo -ne "${CYAN}▶${NC} Actualizando $pkg_name... "
+                if pip install --upgrade "$pkg_name" >> "$LOG_FILE" 2>&1; then
+                    echo -e "${GREEN}✓${NC}"
+                    mostrar_exito "Paquete $pkg_name actualizado correctamente a la versión $version_nueva"
+                else
+                    echo -e "${RED}✗${NC}"
+                    mostrar_error "Falló la actualización del paquete $pkg_name"
+                    log "ERROR" "Fallo en la actualización de $pkg_name: $(tail -n 10 "$LOG_FILE" | grep -v ERROR)"
+                fi
+            else
+                mostrar_info "Actualización cancelada por el usuario."
+            fi
+        else
+            mostrar_exito "El paquete $pkg_name ya está en la última versión disponible."
+        fi
+    else
+        # Listar todos los paquetes que necesitan actualización
+        local outdated_packages=($(pip list --outdated | grep -v "^Package" | grep -v "^----" | awk '{print $1}'))
+        local num_outdated=${#outdated_packages[@]}
+        
+        if [ $num_outdated -eq 0 ]; then
+            mostrar_exito "Todos los paquetes están actualizados. No se requieren actualizaciones."
+            deactivate
+            return
+        fi
+        
+        mostrar_info "Paquetes que necesitan actualización ($num_outdated):"
+        echo -e "${WHITE}----------------------------------------------------${NC}"
+        printf "${WHITE}%-25s %-15s %-15s${NC}\n" "Paquete" "Versión actual" "Versión disponible"
+        echo -e "${WHITE}----------------------------------------------------${NC}"
+        
+        for pkg in "${outdated_packages[@]}"; do
+            local version_actual=$(pip list | grep -i "^$pkg " | awk '{print $2}')
+            local version_nueva=$(pip list --outdated | grep -i "^$pkg " | awk '{print $3}')
+            printf "%-25s ${YELLOW}%-15s${NC} ${GREEN}%-15s${NC}\n" "$pkg" "$version_actual" "$version_nueva"
+        done
+        echo -e "${WHITE}----------------------------------------------------${NC}"
+        
+        read -p "¿Desea actualizar todos estos paquetes? (s/N/i=interactivo): " confirm
+        
+        if [[ "$confirm" =~ ^[Ss]$ ]]; then
+            # Actualizar todos
+            mostrar_info "Actualizando todos los paquetes..."
+            local count=0
+            
+            for pkg in "${outdated_packages[@]}"; do
+                ((count++))
+                echo -ne "${CYAN}[${count}/${num_outdated}]${NC} ${pkg}... "
+                log "DEBUG" "Actualizando paquete: $pkg"
+                
+                if pip install --upgrade "$pkg" >> "$LOG_FILE" 2>&1; then
+                    echo -e "${GREEN}✓${NC}"
+                    log "INFO" "Paquete $pkg actualizado correctamente"
+                else
+                    echo -e "${RED}✗${NC}"
+                    mostrar_error "Falló la actualización del paquete $pkg"
+                    log "ERROR" "Fallo en la actualización de $pkg: $(tail -n 10 "$LOG_FILE" | grep -v ERROR)"
+                fi
+            done
+            
+            mostrar_exito "Actualización de paquetes completada."
+        elif [[ "$confirm" =~ ^[Ii]$ ]]; then
+            # Actualización interactiva
+            mostrar_info "Modo interactivo: se le preguntará por cada paquete."
+            local count=0
+            
+            for pkg in "${outdated_packages[@]}"; do
+                ((count++))
+                local version_actual=$(pip list | grep -i "^$pkg " | awk '{print $2}')
+                local version_nueva=$(pip list --outdated | grep -i "^$pkg " | awk '{print $3}')
+                
+                echo -e "\n${CYAN}[${count}/${num_outdated}]${NC} ${WHITE}$pkg${NC}:"
+                echo -e "   Versión actual: ${YELLOW}$version_actual${NC}"
+                echo -e "   Versión disponible: ${GREEN}$version_nueva${NC}"
+                
+                read -p "   ¿Actualizar este paquete? (s/N): " update_confirm
+                if [[ "$update_confirm" =~ ^[Ss]$ ]]; then
+                    echo -ne "   ${CYAN}▶${NC} Actualizando $pkg... "
+                    if pip install --upgrade "$pkg" >> "$LOG_FILE" 2>&1; then
+                        echo -e "${GREEN}✓${NC}"
+                        log "INFO" "Paquete $pkg actualizado correctamente"
+                    else
+                        echo -e "${RED}✗${NC}"
+                        mostrar_error "Falló la actualización del paquete $pkg"
+                        log "ERROR" "Fallo en la actualización de $pkg: $(tail -n 10 "$LOG_FILE" | grep -v ERROR)"
+                    fi
+                else
+                    echo -e "   ${YELLOW}▶${NC} Paquete omitido."
+                    log "INFO" "Paquete $pkg omitido por el usuario"
+                fi
+            done
+            
+            mostrar_exito "Actualización interactiva completada."
+        else
+            mostrar_info "Actualización cancelada por el usuario."
+        fi
+    fi
+    
+    deactivate
+    log "INFO" "Proceso de actualización completado para el entorno $env_name"
+}
+
 # Función para mostrar la ayuda
 mostrar_ayuda() {
     echo -e "
-    ${WHITE}Uso:${NC} $0 {create|activate|list|remove|--install|help}
+    ${WHITE}Uso:${NC} $0 {create|activate|list|remove|--install|--update|help}
     
     ${WHITE}Comandos:${NC}
       ${CYAN}create${NC} <nombre_entorno> [archivo_requisitos]  Crear un nuevo entorno virtual
@@ -570,6 +729,7 @@ mostrar_ayuda() {
       ${CYAN}list${NC}                                          Listar todos los entornos virtuales disponibles
       ${CYAN}remove${NC} <nombre_entorno>                       Eliminar un entorno virtual existente
       ${CYAN}--install${NC}                                     Instalar entorno predeterminado en $BIN_VENV_DIR
+      ${CYAN}--update${NC} [nombre_entorno] [paquete]           Actualizar paquetes en un entorno virtual
       ${CYAN}help${NC}                                          Mostrar esta ayuda
       
     ${WHITE}Aliases creados con --install:${NC}
@@ -871,6 +1031,9 @@ main() {
             ;;
         --install)
             install_default_env
+            ;;
+        --update)
+            update_packages "$env_name" "$3"
             ;;
         help)
             mostrar_ayuda
