@@ -43,8 +43,11 @@ wheels/
 .installed.cfg
 *.egg
 
-# Entornos virtuales
-venv/
+# Entornos virtuales - modificado para mantener la carpeta pero ignorar su contenido
+# venv/  <- comentado para no ignorar la carpeta
+venv/*  # Ignora todo el contenido de venv/
+!venv/.gitkeep  # Pero no ignores el archivo .gitkeep
+
 ENV/
 env/
 .venv/
@@ -102,3 +105,6 @@ output/
 # Asegurar seguimiento de archivos específicos
 !config/mcp_servers.yaml
 !package.json
+# Asegurar que se realiza seguimiento de archivos requirements.txt en raíz
+!requirements.txt
+!*_requirements.txt
