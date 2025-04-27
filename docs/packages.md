@@ -11,6 +11,9 @@ Herramienta para instalar y mantener actualizados paquetes base en diferentes si
 - 📱 **Soporte para Snap**: Instala paquetes Snap en sistemas Ubuntu compatibles
 - 🔄 **Actualización del sistema**: Función para actualizar todos los paquetes instalados
 - 📊 **Registro detallado**: Guarda todas las operaciones en `/var/log/packages.log` o `~/bin/logs/packages.log`
+- 🎨 **Interfaz a color**: Experiencia visual mejorada con colores y barras de progreso
+- 📊 **Barras de progreso**: Visualización clara del progreso de instalación de paquetes
+- ⏱️ **Tiempos de instalación**: Muestra la duración de cada instalación de paquete
 
 ## 💡 Uso
 
@@ -78,6 +81,12 @@ El repositorio incluye archivos de definición que sirven como plantillas:
 | `*.pkg` | ✅ (base) / ❌ (extras/snap) | Archivos de configuración de paquetes activos |
 | `*.def` | ✅ | Archivos de definición/plantilla |
 
+Los archivos de definición (`.def`) ahora incluyen:
+- 📋 Categorías de paquetes claramente organizadas
+- 💬 Comentarios descriptivos para cada paquete
+- 🔄 Alternativas para paquetes populares
+- 📊 Organización por áreas funcionales
+
 Para crear tu configuración personalizada, puedes copiar un archivo `.def` a su versión `.pkg` correspondiente y editarlo según tus necesidades.
 
 ```bash
@@ -107,21 +116,41 @@ En sistemas Ubuntu compatibles, el script:
 1. Verifica si el sistema es compatible con Snap (exclusiones: Linux Mint, ElementaryOS)
 2. Instala el servicio snapd si no está presente
 3. Detecta paquetes que ya están instalados
-4. Instala solo los paquetes necesarios desde `config/snap.pkg`
-5. Muestra un resumen detallado con interfaz mejorada si gum está disponible
+4. Detecta paquetes instalados por otros métodos (apt, flatpak)
+5. Instala solo los paquetes necesarios desde `config/snap.pkg`
+6. Muestra un resumen detallado con interfaz visual mejorada
 
 ## 💡 Verificación de paquetes
 
 El script ahora incluye detección inteligente de paquetes:
 
 1. Identifica paquetes que ya están instalados en el sistema
-2. Solo instala los paquetes que realmente son necesarios
-3. Proporciona resúmenes detallados de instalación
-4. Ofrece información de diagnóstico para depuración
+2. Realiza verificaciones adicionales para variantes de paquetes
+3. Solo instala los paquetes que realmente son necesarios
+4. Sugiere alternativas cuando un paquete falla en la instalación
+5. Proporciona resúmenes detallados de instalación con formato visual
+6. Ofrece información de diagnóstico para depuración
 
 ## ⚙️ Requisitos
 
 - Bash 4.0 o superior
 - Privilegios root para instalar paquetes
 - Conexión a internet para actualizaciones (con manejo de errores)
-- Herramienta `gum` opcional para mejorar la visualización
+- Terminal que soporte colores ANSI
+- Opcional: terminales con fuentes que soporten caracteres Unicode para barras de progreso
+
+## 🎨 Visualización mejorada
+
+El script ahora incluye características visuales avanzadas:
+
+1. **Colores por tipo de mensaje**:
+   - 🟢 Verde: Éxito, confirmación
+   - 🟡 Amarillo: Advertencias, precauciones
+   - 🔴 Rojo: Errores, problemas
+   - 🔵 Azul: Información, estado
+   - 🟣 Magenta: Títulos de secciones
+
+2. **Barras de progreso animadas**: Visualización en tiempo real del avance
+3. **Presentación en columnas**: Listados organizados para mejor legibilidad
+4. **Iconos Unicode**: Indicadores visuales para estado (✓, ✗, ⚠, etc.)
+5. **Tiempos de ejecución**: Medición y visualización del tiempo de instalación
