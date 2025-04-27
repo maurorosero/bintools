@@ -526,36 +526,89 @@ list_venvs() {
     done
 }
 
-# Función para eliminar un entorno virtual
+# Función para eliminar entornos o paquetes
 remove_venv() {
     local env_name="$1"
+    local option="$2"
+    local pkg_name="$3"
     
     if [ -z "$env_name" ]; then
         mostrar_error "Se requiere un nombre para el entorno."
-        echo "Uso: $0 remove <nombre_entorno>"
+        echo "Uso: $0 remove <nombre_entorno> [--package <paquete>]"
         exit 1
     fi
     
     local env_path="$VENV_DIR/$env_name"
-    log "INFO" "Solicitando eliminación del entorno: $env_name"
     
+    # Verificar si existe el entorno
     if [ ! -d "$env_path" ]; then
         mostrar_error "El entorno '$env_name' no existe en $env_path"
+        echo "Entornos disponibles:"
+        list_venvs
         exit 1
     fi
     
-    read -p "¿Está seguro de que desea eliminar el entorno '$env_name'? (s/N): " confirm
-    if [[ "$confirm" =~ ^[Ss]$ ]]; then
-        mostrar_info "Eliminando entorno virtual: $env_name"
-        rm -rf "$env_path" || {
-            mostrar_error "No se pudo eliminar el entorno virtual."
+    # Si la opción es --package, eliminar un paquete específico
+    if [[ "$option" == "--package" ]]; then
+        if [ -z "$pkg_name" ]; then
+            mostrar_error "Se requiere un nombre de paquete para eliminar."
+            echo "Uso: $0 remove <nombre_entorno> --package <paquete>"
+            exit 1
+        fi
+        
+        log "INFO" "Solicitando eliminación del paquete: $pkg_name del entorno $env_name"
+        
+        # Activar el entorno
+        source "$env_path/bin/activate" || {
+            mostrar_error "No se pudo activar el entorno virtual."
             exit 1
         }
-        mostrar_exito "Entorno virtual eliminado exitosamente."
-        log "INFO" "Entorno virtual $env_name eliminado con éxito"
+        
+        # Verificar si el paquete está instalado
+        if ! pip list | grep -i "^$pkg_name " > /dev/null 2>&1; then
+            mostrar_error "El paquete '$pkg_name' no está instalado en este entorno."
+            deactivate
+            exit 1
+        fi
+        
+        read -p "¿Está seguro de que desea eliminar el paquete '$pkg_name' del entorno '$env_name'? (s/N): " confirm
+        if [[ "$confirm" =~ ^[Ss]$ ]]; then
+            mostrar_info "Eliminando paquete $pkg_name del entorno $env_name..."
+            echo -ne "${YELLOW}▶${NC} Desinstalando $pkg_name... "
+            
+            if pip uninstall -y "$pkg_name" >> "$LOG_FILE" 2>&1; then
+                echo -e "${GREEN}✓${NC}"
+                mostrar_exito "Paquete $pkg_name eliminado exitosamente."
+                log "INFO" "Paquete $pkg_name eliminado del entorno $env_name con éxito"
+            else
+                echo -e "${RED}✗${NC}"
+                mostrar_error "Falló la eliminación del paquete $pkg_name"
+                log "ERROR" "Fallo al eliminar el paquete $pkg_name: $(tail -n 10 "$LOG_FILE" | grep -v ERROR)"
+            fi
+            
+            deactivate
+        else
+            mostrar_info "Operación cancelada."
+            log "INFO" "Eliminación del paquete $pkg_name cancelada por el usuario"
+            deactivate
+        fi
     else
-        mostrar_info "Operación cancelada."
-        log "INFO" "Eliminación del entorno $env_name cancelada por el usuario"
+        # Eliminar el entorno completo
+        log "INFO" "Solicitando eliminación del entorno: $env_name"
+        
+        read -p "¿Está seguro de que desea eliminar el entorno '$env_name'? (s/N): " confirm
+        if [[ "$confirm" =~ ^[Ss]$ ]]; then
+            mostrar_info "Eliminando entorno virtual: $env_name"
+            rm -rf "$env_path" || {
+                mostrar_error "No se pudo eliminar el entorno virtual."
+                exit 1
+            }
+            mostrar_exito "Entorno virtual eliminado exitosamente."
+            log "INFO" "Entorno virtual $env_name eliminado con éxito"
+        else
+            mostrar_info "Operación cancelada."
+            log "INFO" "Eliminación del entorno $env_name cancelada por el usuario"
+        fi
     fi
 }
 
@@ -727,7 +780,7 @@ mostrar_ayuda() {
       ${CYAN}create${NC} <nombre_entorno> [archivo_requisitos]  Crear un nuevo entorno virtual
       ${CYAN}activate${NC} <nombre_entorno>                     Mostrar instrucciones de activación para un entorno
       ${CYAN}list${NC}                                          Listar todos los entornos virtuales disponibles
-      ${CYAN}remove${NC} <nombre_entorno>                       Eliminar un entorno virtual existente
+      ${CYAN}remove${NC} <nombre_entorno> [--package <paquete>] Eliminar un entorno virtual o un paquete específico
       ${CYAN}--install${NC}                                     Instalar entorno predeterminado en $BIN_VENV_DIR
       ${CYAN}--update${NC} [nombre_entorno] [paquete]           Actualizar paquetes en un entorno virtual
       ${CYAN}help${NC}                                          Mostrar esta ayuda
@@ -1007,8 +1060,7 @@ main() {
     ensure_venv_dir
     
     local command="$1"
-    local env_name="$2"
-    local req_file="$3"
+    shift
     
     # Si no se proporciona ningún comando, mostrar la ayuda
     if [ -z "$command" ]; then
@@ -1018,22 +1070,30 @@ main() {
     
     case "$command" in
         create)
+            local env_name="$1"
+            local req_file="$2"
             create_venv "$env_name" "$req_file"
             ;;
         activate)
+            local env_name="$1"
             activate_venv "$env_name"
             ;;
         list)
             list_venvs
             ;;
         remove)
-            remove_venv "$env_name"
+            local env_name="$1"
+            local option="$2"
+            local pkg_name="$3"
+            remove_venv "$env_name" "$option" "$pkg_name"
             ;;
         --install)
             install_default_env
             ;;
         --update)
-            update_packages "$env_name" "$3"
+            local env_name="$1"
+            local pkg_name="$2"
+            update_packages "$env_name" "$pkg_name"
             ;;
         help)
             mostrar_ayuda
