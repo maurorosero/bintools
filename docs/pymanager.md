@@ -16,11 +16,12 @@ Herramienta para gestionar entornos virtuales de Python de manera sencilla y efi
 - 🗑️ **Gestión granular**: Eliminar entornos completos o paquetes individuales
 - 🔄 **Actualización de paquetes**: Actualiza paquetes específicos o todos los del entorno
 - 🧪 **Verificación de requisitos**: Comprueba automáticamente si Python y venv están disponibles
+- 🚀 **Inicio automático**: Opción para activar/desactivar el entorno al iniciar una sesión de terminal
 
 ## 💡 Uso
 
 ```bash
-pymanager.sh {create|activate|list|remove|--install|--update|help}
+pymanager.sh {create|activate|list|remove|--install|--update|--autostart|help}
 ```
 
 ### Comandos
@@ -33,6 +34,7 @@ pymanager.sh {create|activate|list|remove|--install|--update|help}
 | `remove <env_name> [--package <pkg>]` | Elimina un entorno virtual completo o un paquete específico |
 | `--install` | Instala un entorno predeterminado con alias `pybin` |
 | `--update [env_name] [pkg]` | Actualiza todos los paquetes o uno específico en un entorno |
+| `--autostart {on|off}` | Activa o desactiva el inicio automático del entorno al iniciar sesión |
 | `help` | Muestra la ayuda |
 
 ## 📋 Ejemplos
@@ -64,6 +66,12 @@ pymanager.sh {create|activate|list|remove|--install|--update|help}
 
 # Actualizar un paquete específico
 ./pymanager.sh --update proyecto1 pandas
+
+# Activar inicio automático del entorno al iniciar sesión
+./pymanager.sh --autostart on
+
+# Desactivar inicio automático
+./pymanager.sh --autostart off
 ```
 
 ## 🔄 Instalación predeterminada

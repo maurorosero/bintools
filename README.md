@@ -60,6 +60,8 @@ Para información detallada sobre cada herramienta, consulte los documentos en l
 - [Documentación de videoset.sh](docs/videoset.md)
 - [Documentación de email_cleaner](docs/email_cleaner.md)
 - [Documentación de mcp_manager.py](docs/mcp_manager.md)
+- [Documentación de pymanager.sh](docs/pymanager.md)
+- [Documentación de requirements.def](docs/requirements.md)
 
 ## 👥 Créditos
 
