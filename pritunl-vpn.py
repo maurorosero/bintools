@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# pritunl_vpn.py - Instalador/Desinstalador de Pritunl VPN Client en Python
+# pritunl_vpn.py - Instalador/Desinstalador de Pritunl VPN Client
 
 import argparse
 import os
