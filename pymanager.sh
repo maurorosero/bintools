@@ -217,13 +217,23 @@ create_venv() {
 
 # Función para verificar el estado de un paquete
 check_package_status() {
-    local pkg="$1"
+    local pkg_line="$1" # Renombrar para claridad
     local env_path="$2"
     local activate_cmd="source $env_path/bin/activate"
-    
+
+    # Eliminar comentarios y espacios en blanco al final
+    local pkg=${pkg_line%%#*} # Elimina todo desde # hasta el final
+    pkg=$(echo "$pkg" | xargs) # Elimina espacios en blanco iniciales/finales
+
+    # Si la línea está vacía después de quitar comentarios/espacios, no hacer nada
+    if [[ -z "$pkg" ]]; then
+        echo "empty_line" # Devolver un estado especial o simplemente retornar
+        return
+    fi
+
     # Extraer nombre base del paquete
     local pkg_name=$(echo "$pkg" | cut -d'[' -f1 | cut -d'=' -f1 | cut -d'>' -f1 | cut -d'<' -f1 | cut -d'~' -f1 | tr -d ' ')
-    
+
     # Verificar si se ha especificado alguna versión
     local version_constraint=""
     if [[ "$pkg" == *"="* || "$pkg" == *">"* || "$pkg" == *"<"* || "$pkg" == *"~"* ]]; then
@@ -237,9 +247,6 @@ check_package_status() {
         
         # Si hay una restricción de versión, verificar si necesita actualizarse
         if [[ -n "$version_constraint" ]]; then
-            # Simplificamos esto a una aproximación básica:
-            # Si hay una versión específica (=) diferente a la instalada o
-            # si es una versión mínima (>=, >, ~=) y parece haber una actualización disponible
             if ! $activate_cmd && pip list --outdated | grep -i "^$pkg_name " > /dev/null 2>&1; then
                 echo "installed_update" # Instalado pero requiere actualización
                 return
@@ -255,90 +262,65 @@ check_package_status() {
 display_packages_status() {
     local req_file="$1"
     local env_path="$2"
-    local max_pkg_len=25  # Longitud máxima para el nombre del paquete
-    local total_pkgs=$(grep -v '^#' "$req_file" | grep -v '^$' | wc -l)
+    local max_pkg_len=25
+    local total_pkgs=0 # Calcular dinámicamente
     local installed_count=0
     local update_count=0
     local pending_count=0
-    
-    # Crear un array temporal para almacenar los estados de los paquetes
+
     declare -A pkg_status
-    
-    # Verificar el estado de todos los paquetes primero
-    while IFS= read -r pkg || [ -n "$pkg" ]; do
-        # Saltar líneas vacías y comentarios
-        [[ "$pkg" =~ ^[[:space:]]*$ || "$pkg" =~ ^[[:space:]]*# ]] && continue
-        
-        # Obtener el nombre limpio del paquete
+
+    # Primer bucle: Verificar estado y contar total válido
+    while IFS= read -r pkg_line || [ -n "$pkg_line" ]; do
+        local pkg=${pkg_line%%#*} # Eliminar comentarios
+        pkg=$(echo "$pkg" | xargs) # Limpiar espacios
+        [[ -z "$pkg" ]] && continue # Saltar líneas vacías/comentadas
+
+        ((total_pkgs++))
         local pkg_name=$(echo "$pkg" | cut -d'[' -f1 | cut -d'=' -f1 | cut -d'>' -f1 | cut -d'<' -f1 | cut -d'~' -f1 | tr -d ' ')
-        
-        # Verificar estado
-        local status=$(check_package_status "$pkg" "$env_path")
+        local status=$(check_package_status "$pkg_line" "$env_path") # Pasar la línea original
         pkg_status["$pkg_name"]="$status"
-        
-        # Contar según estado
+
         case "$status" in
-            installed) ((installed_count++)) ;;
-            installed_update) ((update_count++)) ;;
-            not_installed) ((pending_count++)) ;;
+            installed) ((installed_count++)) ;; 
+            installed_update) ((update_count++)) ;; 
+            not_installed) ((pending_count++)) ;; 
         esac
     done < "$req_file"
-    
+
     # Mostrar encabezado con resumen
     echo -e "\n${WHITE}Estado de paquetes ($total_pkgs total):${NC}"
     echo -e " • ${GREEN}Ya instalados:${NC} $installed_count"
     echo -e " • ${YELLOW}Requieren actualización:${NC} $update_count"
     echo -e " • ${CYAN}Pendientes de instalar:${NC} $pending_count"
     echo
-    
-    # Mostrar listado en dos columnas
+
+    # Segundo bucle: Mostrar listado
     local count=0
-    local col_width=$((max_pkg_len + 5))  # Ancho de la columna
-    
+    local col_width=$((max_pkg_len + 5))
     echo -e "${WHITE}Listado de paquetes:${NC}"
-    while IFS= read -r pkg || [ -n "$pkg" ]; do
-        # Saltar líneas vacías y comentarios
-        [[ "$pkg" =~ ^[[:space:]]*$ || "$pkg" =~ ^[[:space:]]*# ]] && continue
-        
-        # Obtener el nombre limpio del paquete
+    while IFS= read -r pkg_line || [ -n "$pkg_line" ]; do
+        local pkg=${pkg_line%%#*} # Eliminar comentarios
+        pkg=$(echo "$pkg" | xargs) # Limpiar espacios
+        [[ -z "$pkg" ]] && continue # Saltar líneas vacías/comentadas
+
         local pkg_name=$(echo "$pkg" | cut -d'[' -f1 | cut -d'=' -f1 | cut -d'>' -f1 | cut -d'<' -f1 | cut -d'~' -f1 | tr -d ' ')
-        
-        # Formatear nombre según estado
         local formatted_name
         case "${pkg_status[$pkg_name]}" in
-            installed)
-                formatted_name="${GREEN}✓${NC} $pkg_name"
-                ;;
-            installed_update)
-                formatted_name="${YELLOW}✓${NC} $pkg_name ${YELLOW}(u)${NC}"
-                ;;
-            not_installed)
-                formatted_name="${CYAN}•${NC} $pkg_name"
-                ;;
+            installed) formatted_name="${GREEN}✓${NC} $pkg_name" ;; 
+            installed_update) formatted_name="${YELLOW}✓${NC} $pkg_name ${YELLOW}(u)${NC}" ;; 
+            not_installed) formatted_name="${CYAN}•${NC} $pkg_name" ;; 
         esac
-        
-        # Añadir padding para alinear las columnas
-        local padding=$((col_width - ${#pkg_name} - 3))  # 3 es la longitud aproximada de los caracteres de formato
-        if ((padding < 0)); then
-            padding=1
-        fi
+
+        local padding=$((col_width - ${#pkg_name} - 3)) # Ajustar padding si es necesario
+        [[ $padding -lt 1 ]] && padding=1
         formatted_name="$formatted_name$(printf '%*s' $padding '')"
-        
-        # Imprimir en columnas (2 por línea)
-        if ((count % 2 == 0)); then
-            echo -ne "  $formatted_name"
-        else
-            echo -e "  $formatted_name"
-        fi
-        
+
+        if ((count % 2 == 0)); then echo -ne "  $formatted_name"; else echo -e "  $formatted_name"; fi
         ((count++))
     done < "$req_file"
-    
-    # Si terminamos en una columna impar, añadir un salto de línea
-    if ((count % 2 != 0)); then
-        echo
-    fi
-    
+
+    if ((count % 2 != 0)); then echo; fi
     echo
 }
 
@@ -346,10 +328,9 @@ display_packages_status() {
 install_packages() {
     local env_name="$1"
     local req_file="$2"
-    
     local env_path="$VENV_DIR/$env_name"
     log "INFO" "Instalando paquetes para $env_name desde $req_file"
-    
+
     if [ ! -f "$req_file" ]; then
         mostrar_error "El archivo de requisitos '$req_file' no fue encontrado."
         exit 1
@@ -382,12 +363,12 @@ install_packages() {
     
     # Contar el número total de paquetes a instalar
     local pending_count=0
-    while IFS= read -r pkg || [ -n "$pkg" ]; do
-        # Saltar líneas vacías y comentarios
-        [[ "$pkg" =~ ^[[:space:]]*$ || "$pkg" =~ ^[[:space:]]*# ]] && continue
-        
-        # Verificar si necesita instalarse
-        local status=$(check_package_status "$pkg" "$env_path")
+    while IFS= read -r pkg_line || [ -n "$pkg_line" ]; do
+        local pkg=${pkg_line%%#*} # Eliminar comentarios
+        pkg=$(echo "$pkg" | xargs) # Limpiar espacios
+        [[ -z "$pkg" ]] && continue # Saltar líneas vacías/comentadas
+
+        local status=$(check_package_status "$pkg_line" "$env_path") # Pasar la línea original
         if [[ "$status" == "not_installed" || "$status" == "installed_update" ]]; then
             ((pending_count++))
         fi
@@ -407,15 +388,14 @@ install_packages() {
     local count=0
     
     # Leer línea por línea e instalar los pendientes
-    while IFS= read -r pkg || [ -n "$pkg" ]; do
-        # Saltar líneas vacías y comentarios
-        [[ "$pkg" =~ ^[[:space:]]*$ || "$pkg" =~ ^[[:space:]]*# ]] && continue
-        
-        # Extraer nombre base del paquete (sin versión ni extras)
+    while IFS= read -r pkg_line || [ -n "$pkg_line" ]; do
+        local pkg=${pkg_line%%#*} # Eliminar comentarios
+        pkg=$(echo "$pkg" | xargs) # Limpiar espacios
+        [[ -z "$pkg" ]] && continue # Saltar líneas vacías/comentadas
+
         local pkg_name=$(echo "$pkg" | cut -d'[' -f1 | cut -d'=' -f1 | cut -d'>' -f1 | cut -d'<' -f1 | cut -d'~' -f1 | tr -d ' ')
-        
-        # Verificar si necesita instalarse o actualizarse
-        local status=$(check_package_status "$pkg" "$env_path")
+        local status=$(check_package_status "$pkg_line" "$env_path") # Pasar la línea original
+
         if [[ "$status" == "not_installed" || "$status" == "installed_update" ]]; then
             ((count++))
             
@@ -440,6 +420,102 @@ install_packages() {
     echo
     mostrar_exito "Paquetes instalados exitosamente."
     deactivate
+}
+
+# Función para crear alias pybin
+crear_alias_pybin() {
+    # Definir el alias
+    local alias_cmd="alias pybin='source $BIN_VENV_DIR/bin/activate'"
+    
+    # Crear alias para la sesión actual
+    eval "$alias_cmd"
+    
+    # Verificar si ya existe en .bashrc
+    if ! grep -q "alias pybin='source $BIN_VENV_DIR/bin/activate'" "$HOME/.bashrc"; then
+        # Añadir alias al .bashrc para persistencia
+        echo -e "\n# Alias para activar el entorno Python por defecto" >> "$HOME/.bashrc"
+        echo "$alias_cmd" >> "$HOME/.bashrc"
+        mostrar_info "Alias 'pybin' creado y añadido a ~/.bashrc"
+        mostrar_info "Para activar el alias en esta sesión ejecute: source ~/.bashrc"
+    else
+        mostrar_info "Alias 'pybin' ya existía en ~/.bashrc"
+    fi
+    
+    log "INFO" "Alias pybin configurado para activar $BIN_VENV_DIR"
+}
+
+# Función para crear alias pyunbin para desactivar entorno
+crear_alias_pyunbin() {
+    # Definir el alias
+    local alias_cmd="alias pyunbin='deactivate'"
+    
+    # Crear alias para la sesión actual
+    eval "$alias_cmd"
+    
+    # Verificar si ya existe en .bashrc
+    if ! grep -q "alias pyunbin='deactivate'" "$HOME/.bashrc"; then
+        # Añadir alias al .bashrc para persistencia
+        echo -e "# Alias para desactivar el entorno Python activo" >> "$HOME/.bashrc"
+        echo "$alias_cmd" >> "$HOME/.bashrc"
+        mostrar_info "Alias 'pyunbin' creado y añadido a ~/.bashrc"
+    else
+        mostrar_info "Alias 'pyunbin' ya existía en ~/.bashrc"
+    fi
+    
+    log "INFO" "Alias pyunbin configurado para desactivar entornos virtuales"
+}
+
+# Función para configurar el autostart del entorno virtual
+configurar_autostart() {
+    local action="$1"
+    log "INFO" "Configurando autostart del entorno virtual (acción: $action)"
+    
+    # Definir el código que se añadirá al .bashrc
+    local autostart_code="
+# Inicio automático del entorno virtual Python
+if [ -f \"\$HOME/.venv-auto\" ]; then
+    if [ -f \"$BIN_VENV_DIR/bin/activate\" ]; then
+        source \"$BIN_VENV_DIR/bin/activate\"
+        echo -e \"${GREEN}Entorno virtual Python activado automáticamente${NC}\"
+    fi
+fi"
+    
+    # Verificar si ya existe la configuración
+    if ! grep -q "# Inicio automático del entorno virtual Python" "$HOME/.bashrc"; then
+        # Añadir código al .bashrc
+        echo -e "$autostart_code" >> "$HOME/.bashrc"
+        mostrar_exito "Configuración de inicio automático añadida a ~/.bashrc"
+        mostrar_info "Para aplicar los cambios en esta sesión ejecute: source ~/.bashrc"
+    else
+        mostrar_info "La configuración de inicio automático ya existe en ~/.bashrc"
+    fi
+    
+    # Procesar acción según el parámetro
+    case "$action" in
+        on)
+            # Activar autostart creando el archivo indicador
+            touch "$HOME/.venv-auto"
+            mostrar_exito "Inicio automático del entorno virtual ACTIVADO"
+            mostrar_info "El entorno se activará automáticamente en el próximo inicio de sesión"
+            ;;
+        off)
+            # Desactivar autostart eliminando el archivo indicador
+            if [ -f "$HOME/.venv-auto" ]; then
+                rm -f "$HOME/.venv-auto"
+                mostrar_exito "Inicio automático del entorno virtual DESACTIVADO"
+                mostrar_info "El entorno ya no se activará automáticamente en los inicios de sesión"
+            else
+                mostrar_info "El inicio automático ya estaba desactivado"
+            fi
+            ;;
+        *)
+            mostrar_error "Acción no válida: $action"
+            mostrar_info "Opciones disponibles: 'on' para activar o 'off' para desactivar"
+            exit 1
+            ;;
+    esac
+    
+    log "INFO" "Configuración de autostart completada"
 }
 
 # Función para instalar el entorno por defecto y sus dependencias
@@ -492,10 +568,13 @@ install_default_env() {
             
             # Crear alias para activar el entorno
             crear_alias_pybin
+            crear_alias_pyunbin
             
             echo -e "\n${WHITE}Para activar este entorno:${NC}"
             echo -e "1. Actualice su shell: ${GREEN}source ~/.bashrc${NC}"
             echo -e "2. Use el alias: ${GREEN}pybin${NC}"
+            echo -e "\n${WHITE}Para desactivar el entorno:${NC}"
+            echo -e "  Use el alias: ${GREEN}pyunbin${NC}"
             log "INFO" "Verificación de paquetes completada con éxito"
             return
         else
@@ -579,12 +658,12 @@ install_default_env() {
     
     # Contar el número total de paquetes a instalar
     local pending_count=0
-    while IFS= read -r pkg || [ -n "$pkg" ]; do
-        # Saltar líneas vacías y comentarios
-        [[ "$pkg" =~ ^[[:space:]]*$ || "$pkg" =~ ^[[:space:]]*# ]] && continue
-        
-        # Verificar si necesita instalarse
-        local status=$(check_package_status "$pkg" "$BIN_VENV_DIR")
+    while IFS= read -r pkg_line || [ -n "$pkg_line" ]; do
+        local pkg=${pkg_line%%#*} # Eliminar comentarios
+        pkg=$(echo "$pkg" | xargs) # Limpiar espacios
+        [[ -z "$pkg" ]] && continue # Saltar líneas vacías/comentadas
+
+        local status=$(check_package_status "$pkg_line" "$BIN_VENV_DIR") # Pasar la línea original
         if [[ "$status" == "not_installed" || "$status" == "installed_update" ]]; then
             ((pending_count++))
         fi
@@ -595,12 +674,15 @@ install_default_env() {
         mostrar_exito "Todos los paquetes ya están instalados y actualizados."
         deactivate
         
-        # Crear alias para activar el entorno
+        # Crear alias para activar y desactivar el entorno
         crear_alias_pybin
+        crear_alias_pyunbin
         
         echo -e "\n${WHITE}Para activar este entorno:${NC}"
         echo -e "1. Actualice su shell: ${GREEN}source ~/.bashrc${NC}"
         echo -e "2. Use el alias: ${GREEN}pybin${NC}"
+        echo -e "\n${WHITE}Para desactivar el entorno:${NC}"
+        echo -e "  Use el alias: ${GREEN}pyunbin${NC}"
         log "INFO" "Instalación del entorno por defecto completada con éxito"
         return
     fi
@@ -612,15 +694,14 @@ install_default_env() {
     local count=0
     
     # Leer línea por línea e instalar
-    while IFS= read -r pkg || [ -n "$pkg" ]; do
-        # Saltar líneas vacías y comentarios
-        [[ "$pkg" =~ ^[[:space:]]*$ || "$pkg" =~ ^[[:space:]]*# ]] && continue
-        
-        # Extraer nombre base del paquete (sin versión ni extras)
+    while IFS= read -r pkg_line || [ -n "$pkg_line" ]; do
+        local pkg=${pkg_line%%#*} # Eliminar comentarios
+        pkg=$(echo "$pkg" | xargs) # Limpiar espacios
+        [[ -z "$pkg" ]] && continue # Saltar líneas vacías/comentadas
+
         local pkg_name=$(echo "$pkg" | cut -d'[' -f1 | cut -d'=' -f1 | cut -d'>' -f1 | cut -d'<' -f1 | cut -d'~' -f1 | tr -d ' ')
-        
-        # Verificar si necesita instalarse o actualizarse
-        local status=$(check_package_status "$pkg" "$BIN_VENV_DIR")
+        local status=$(check_package_status "$pkg_line" "$BIN_VENV_DIR") # Pasar la línea original
+
         if [[ "$status" == "not_installed" || "$status" == "installed_update" ]]; then
             ((count++))
             
@@ -646,35 +727,16 @@ install_default_env() {
     mostrar_exito "Instalación completada exitosamente."
     deactivate
     
-    # Crear alias para activar el entorno
+    # Crear alias para activar y desactivar el entorno
     crear_alias_pybin
+    crear_alias_pyunbin
     
     echo -e "\n${WHITE}Para activar este entorno:${NC}"
     echo -e "1. Actualice su shell: ${GREEN}source ~/.bashrc${NC}"
     echo -e "2. Use el alias: ${GREEN}pybin${NC}"
+    echo -e "\n${WHITE}Para desactivar el entorno:${NC}"
+    echo -e "  Use el alias: ${GREEN}pyunbin${NC}"
     log "INFO" "Instalación del entorno por defecto completada con éxito"
-}
-
-# Función para crear alias pybin
-crear_alias_pybin() {
-    # Definir el alias
-    local alias_cmd="alias pybin='source $BIN_VENV_DIR/bin/activate'"
-    
-    # Crear alias para la sesión actual
-    eval "$alias_cmd"
-    
-    # Verificar si ya existe en .bashrc
-    if ! grep -q "alias pybin='source $BIN_VENV_DIR/bin/activate'" "$HOME/.bashrc"; then
-        # Añadir alias al .bashrc para persistencia
-        echo -e "\n# Alias para activar el entorno Python por defecto" >> "$HOME/.bashrc"
-        echo "$alias_cmd" >> "$HOME/.bashrc"
-        mostrar_info "Alias 'pybin' creado y añadido a ~/.bashrc"
-        mostrar_info "Para activar el alias en esta sesión ejecute: source ~/.bashrc"
-    else
-        mostrar_info "Alias 'pybin' ya existía en ~/.bashrc"
-    fi
-    
-    log "INFO" "Alias pybin configurado para activar $BIN_VENV_DIR"
 }
 
 # Función para proporcionar instrucciones de activación
@@ -807,7 +869,7 @@ remove_venv() {
 # Función para mostrar la ayuda
 mostrar_ayuda() {
     echo -e "
-    ${WHITE}Uso:${NC} $0 {create|activate|list|remove|--install|--update|help}
+    ${WHITE}Uso:${NC} $0 {create|activate|list|remove|--install|--update|--autostart|help}
     
     ${WHITE}Comandos:${NC}
       ${CYAN}create${NC} <nombre_entorno> [archivo_requisitos]  Crear un nuevo entorno virtual
@@ -816,10 +878,12 @@ mostrar_ayuda() {
       ${CYAN}remove${NC} <nombre_entorno> [--package <paquete>] Eliminar un entorno virtual o un paquete específico
       ${CYAN}--install${NC}                                     Instalar entorno predeterminado en $BIN_VENV_DIR
       ${CYAN}--update${NC} [nombre_entorno] [paquete]           Actualizar paquetes en un entorno virtual
+      ${CYAN}--autostart${NC} {on|off}                          Activar/desactivar inicio automático del entorno
       ${CYAN}help${NC}                                          Mostrar esta ayuda
       
     ${WHITE}Aliases creados con --install:${NC}
-      ${CYAN}pybin${NC}                                         Activa el entorno predeterminado"
+      ${CYAN}pybin${NC}                                         Activa el entorno predeterminado
+      ${CYAN}pyunbin${NC}                                       Desactiva el entorno activo"
     log "INFO" "Se mostró la ayuda al usuario"
 }
 
@@ -904,6 +968,15 @@ main() {
             local env_name="$1"
             local pkg_name="$2"
             update_packages "$env_name" "$pkg_name"
+            ;;
+        --autostart)
+            local action="$1"
+            if [ -z "$action" ]; then
+                mostrar_error "Se requiere una acción para --autostart: on u off"
+                echo "Uso: $0 --autostart {on|off}"
+                exit 1
+            fi
+            configurar_autostart "$action"
             ;;
         help)
             mostrar_ayuda

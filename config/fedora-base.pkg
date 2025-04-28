@@ -7,3 +7,4 @@ jq
 yq
 gnupg2
 dialog 
+tee

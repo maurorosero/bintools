@@ -7,3 +7,4 @@ jq
 yq
 gpg2
 dialog 
+tee
