@@ -1,90 +1,86 @@
-# 🛠️ Utilitarios Personales de Mauro Rosero P.
+# Mauro Rosero P.'s Personal Utilities 🛠️
 
-Colección de scripts y herramientas para automatizar tareas y mejorar la productividad.
+<!-- PARSEABLE_METADATA_START
+purpose: A collection of scripts and tools designed to automate tasks and enhance productivity.
+technology: Bash, Python
+status: Development
+PARSEABLE_METADATA_END -->
 
-**Versión Actual:** <!-- CURRENT_VERSION_PLACEHOLDER --> ([Ver Releases](https://github.com/tu_usuario/tu_repo/releases)) <!-- Reemplaza tu_usuario/tu_repo con tu URL real -->
+<!-- CURRENT_VERSION_PLACEHOLDER --> ([View Releases](https://github.com/tu_usuario/tu_repo/releases)) <!-- Replace with your actual repo URL -->
 
-## 🚀 Inicio Rápido
+## Descripción
 
-Para comenzar a usar estas utilidades:
+A collection of scripts and tools designed to automate tasks and enhance productivity.
+
+## Tabla de Contenidos (Opcional)
+
+*   [Instalación](#instalación)
+*   [Uso](#uso)
+*   [Herramientas Disponibles](#herramientas-disponibles)
+*   [Documentación](#documentación)
+*   [Contribución](#contribución)
+*   [Licencia](#licencia)
+*   [Créditos](#créditos)
+*   [Contacto](#contacto)
+
+## Instalación
+
+Para empezar a usar estas utilidades:
 
 ```bash
-# Configuración permanente (recomendado)
+# Configuración persistente (recomendado)
 ~/bin/binsetup.sh --persistent
 
 # O solo para la sesión actual
 source ~/bin/binsetup.sh
 ```
 
-## 📋 Índice de Aplicaciones
+Consulta la [documentación de `binsetup.sh`](docs/binsetup.md) para más opciones como `--disable` y `--remove`.
 
-### 💻 Bash Scripts
+## Uso
 
-| Script | Actualización | Descripción |
-|:-------|:-------------:|:------------|
-| `binsetup.sh` | 2025-04-24 | ✨ Maneja `~/bin` en el PATH.<br>• Temporal: `source binsetup.sh`<br>• Desactivar: `source binsetup.sh --disable`<br>• Permanente: `./binsetup.sh --persistent`<br>• Remover: `./binsetup.sh --remove` |
-| `hexroute` | 2025-03-19 | 🔄 Convierte IPv4 a formato hexadecimal para tablas de ruteo.<br>• Uso: `hexroute <dirección-ip>` |
-| `packages.sh` | 2025-04-25 | 📦 Gestiona paquetes base en múltiples sistemas operativos.<br>• Instalar: `sudo packages.sh --install`<br>• Actualizar: `sudo packages.sh --update`<br>• Solo SOPS: `sudo packages.sh --install --sops` |
-| `pymanager.sh` | 2025-05-26 | 🐍 Gestiona entornos virtuales de Python.<br>• Crear: `pymanager.sh create <nombre> [reqfile]`<br>• Instalar: `pymanager.sh --install`<br>• Actualizar: `pymanager.sh --update <nombre> [pkg]` |
-| `videoset.sh` | 2025-04-24 | 🖥️ Configura resolución de pantalla 1600x900@60Hz.<br>• Uso básico: `videoset.sh`<br>• Auto-detección: `videoset.sh --auto` |
+Cada script o herramienta tiene su propio uso. Consulta la sección [Herramientas Disponibles](#herramientas-disponibles) y la [Documentación](#documentación) detallada para cada uno.
 
-### 🐍 Python Scripts
+## Herramientas Disponibles
 
-| Script | Actualización | Descripción |
-|:-------|:-------------:|:------------|
-| `email_cleaner` | 2025-04-24 | 📧 Gestor de correos para categorización y limpieza automática.<br>• Categoriza emails por tema, remitente y fecha<br>• Genera reportes CSV de correos por categoría<br>• Función para eliminar correos automáticamente |
-| `mcp_manager.py`| 2025-05-26 | 🖥️ Gestor de servidores MCP concurrentes.<br>• Configura servidores desde archivo YAML<br>• Asigna puertos automáticamente<br>• Ejecuta servidores node/python en paralelo |
+Aquí tienes una lista de las herramientas disponibles:
 
-### 📦 Binarios Ejecutables
+| Comando / Script   | Tecnología | Versión | Ult. Actualización | Breve descripción                                                              |
+| :----------------- | :--------- | :------ | :----------------- | :----------------------------------------------------------------------------- |
+| `binsetup.sh`      | Bash       | N/A     | 2025-04-24         | Gestiona `~/bin` en tu PATH (persistente o temporal).                           |
+| `hexroute`         | Bash       | N/A     | 2025-03-19         | Convierte direcciones IPv4 a formato hexadecimal para tablas de rutas.         |
+| `packages.sh`      | Bash       | N/A     | 2025-04-25         | Gestiona paquetes base en múltiples SO (instalación/actualización).            |
+| `pymanager.sh`     | Bash       | N/A     | 2025-05-26         | Gestiona entornos virtuales de Python (creación, instalación, actualización). |
+| `videoset.sh`      | Bash       | N/A     | 2025-04-24         | Configura la resolución de pantalla a 1600x900@60Hz o auto-detecta.           |
+| `email_cleaner.py` | Python     | N/A     | 2025-04-24         | Gestor de correo para categorización y limpieza automática.                    |
+| `mcp_manager.py`   | Python     | N/A     | 2025-05-26         | Gestor concurrente para servidores MCP (Node/Python) vía YAML.                 |
+| `gh-newrepos.py`   | Python     | N/A     | *Needs Update*     | Crea nuevos repositorios en GitHub.                                            |
+| `pritunl-vpn.py`   | Python     | 0.2.0   | *Needs Update*     | Instalador/Desinstalador del cliente Pritunl VPN.                              |
+| `context-sync.py`  | Python     | 1.2.5   | *Needs Update*     | Sincroniza archivos de contexto para READMEs.                                  |
 
-| Binario | Actualización | Descripción |
-|:--------|:-------------:|:------------|
-| | | |
 
-### 📚 Librerías
+## Documentación
 
-| Librería | Actualización | Descripción |
-|:---------|:-------------:|:------------|
-| | | |
+La documentación detallada para cada herramienta se encuentra en el directorio [`docs/`](docs/).
 
-### 🧰 Otros Recursos
+## Contribución
 
-| Recurso | Actualización | Descripción |
-|:--------|:-------------:|:------------|
-| | | |
+Las contribuciones son bienvenidas. Por favor, consulta la [Guía de Contribución](CONTRIBUTING.md) para detalles sobre cómo reportar bugs, sugerir mejoras y enviar Pull Requests, incluyendo el formato de commit requerido.
 
-## 📖 Documentación
+## Licencia
 
-Para información detallada sobre cada herramienta, consulte los documentos en la carpeta [`docs/`](docs/):
+Distribuido bajo la GNU General Public License v3 (GPLv3). Ver `LICENSE` para más información.
 
-- [Documentación de binsetup.sh](docs/binsetup.md)
-- [Documentación de hexroute](docs/hexroute.md)
-- [Documentación de packages.sh](docs/packages.md)
-- [Documentación de videoset.sh](docs/videoset.md)
-- [Documentación de email_cleaner](docs/email_cleaner.md)
-- [Documentación de mcp_manager.py](docs/mcp_manager.md)
-- [Documentación de pymanager.sh](docs/pymanager.md)
-- [Documentación de requirements.def](docs/requirements.md)
+Para uso y licencias comerciales, por favor contactar al autor.
 
-## 🤝 Contribuyendo
+## Créditos
 
-¡Las contribuciones son bienvenidas! Por favor, consulta la [Guía de Contribución](CONTRIBUTING.md) para detalles sobre cómo reportar bugs, sugerir mejoras y enviar Pull Requests, incluyendo el formato de commit requerido.
+| Item/Script   | Author                | Role/Notes                 |
+| :------------ | :-------------------- | :------------------------- |
+| Project Lead  | Mauro Rosero P. <mauro@rosero.one> | (From Git Config)          |
+| Documentation | AI Assistant (Cursor) | (Generated README structure) |
+| `binsetup.sh` | Mauro Rosero P.       | (Detected in code)         |
 
-## 👥 Créditos
+## Contacto
 
-| Script | Autor | Colaboradores |
-|:-------|:------|:--------------|
-| `binsetup.sh` | Mauro Rosero P. | |
-| `hexroute` | Karl McMurdo (2005-2015) | Mauro Rosero P. (adaptación) |
-| `packages.sh` | Mauro Rosero P. | |
-| `pymanager.sh` | Mauro Rosero P. | |
-| `videoset.sh` | Mauro Rosero P. | |
-| `email_cleaner` | Mauro Rosero P. | |
-| `mcp_manager.py` | Mauro Rosero P. | |
-
-## 📝 Notas
-
-- ✅ Herramientas diseñadas para uso personal
-- 🔄 Actualizaciones periódicas según necesidades
-- 💡 Para sugerencias o problemas, contactar a Mauro Rosero P. <mauro.rosero@gmail.com>
-
+Para sugerencias o problemas, contacta a Mauro Rosero P. en <mauro.rosero.one>.

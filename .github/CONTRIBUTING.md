@@ -6,6 +6,12 @@
 
 Se espera que todos los participantes sigan nuestro [Código de Conducta](CODE_OF_CONDUCT.md). (Nota: necesitarías crear este archivo si aún no existe).
 
+## Licencia
+
+Al contribuir a este proyecto, aceptas que tus contribuciones se licenciarán bajo la **GNU General Public License v3 (GPLv3)**, tal como se detalla en el archivo `LICENSE` en la raíz del repositorio.
+
+Este proyecto sigue un modelo de **licenciamiento dual**: está disponible bajo GPLv3 para uso comunitario y no comercial. **Cualquier uso comercial requiere una licencia separada** que debe ser acordada con el autor del proyecto.
+
 ## ¿Cómo Puedo Contribuir?
 
 *   **Reportando Bugs:** Si encuentras un error, por favor, abre un [Issue en GitHub](https://github.com/tu_usuario/tu_repo/issues) (reemplaza con tu URL) describiendo el problema, cómo reproducirlo y tu entorno.

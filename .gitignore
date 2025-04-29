@@ -108,3 +108,16 @@ output/
 # Asegurar que se realiza seguimiento de archivos requirements.txt en raíz
 !requirements.txt
 !*_requirements.txt
+
+# --- Directorio Temporal ---
+# Ignorar todo el contenido del directorio tmp
+tmp/*
+# Excepto el archivo .gitkeep para que Git rastree el directorio
+!tmp/.gitkeep
+# -------------------------
+
+# --- Contexto README (Auto-añadido por script) ---
+# Enlace simbólico al contexto global de README personal (ignorar)
+.github/readme-context-personal-global.md
+# -------------------------------------------------
+
