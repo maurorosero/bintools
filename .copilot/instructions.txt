@@ -34,4 +34,4 @@
 
 ## Releases
 - Las releases son unificadas y se disparan manualmente a través de la Action "Unified Custom Release".
-- El versionado sigue reglas personalizadas detalladas en `CONTRIBUTING.md`.
+- El versionado sigue reglas personalizadas detalladas en `CONTRIBUTING.md`. 

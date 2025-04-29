@@ -2,6 +2,8 @@
 
 Colección de scripts y herramientas para automatizar tareas y mejorar la productividad.
 
+**Versión Actual:** <!-- CURRENT_VERSION_PLACEHOLDER --> ([Ver Releases](https://github.com/tu_usuario/tu_repo/releases)) <!-- Reemplaza tu_usuario/tu_repo con tu URL real -->
+
 ## 🚀 Inicio Rápido
 
 Para comenzar a usar estas utilidades:
@@ -63,6 +65,10 @@ Para información detallada sobre cada herramienta, consulte los documentos en l
 - [Documentación de mcp_manager.py](docs/mcp_manager.md)
 - [Documentación de pymanager.sh](docs/pymanager.md)
 - [Documentación de requirements.def](docs/requirements.md)
+
+## 🤝 Contribuyendo
+
+¡Las contribuciones son bienvenidas! Por favor, consulta la [Guía de Contribución](CONTRIBUTING.md) para detalles sobre cómo reportar bugs, sugerir mejoras y enviar Pull Requests, incluyendo el formato de commit requerido.
 
 ## 👥 Créditos
 

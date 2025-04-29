@@ -1,0 +1,243 @@
+# .github/workflows/release.yml
+name: Unified Custom Release
+
+# Disparador Manual: Ejecutar desde la pestaña Actions de GitHub
+on:
+  workflow_dispatch:
+    inputs:
+      force_bump_type:
+        description: 'Forzar tipo (major, minor, patch, none). Dejar vacío para auto-detectar.'
+        required: false
+        type: choice
+        options: # Opciones para la UI de GitHub Actions
+          - '' # Opción por defecto (vacío = auto)
+          - major
+          - minor
+          - patch
+          - none
+        default: '' # Por defecto, auto-detectar
+
+jobs:
+  create_custom_release:
+    runs-on: ubuntu-latest
+    # Permisos necesarios:
+    # contents: write - Para leer/escribir .github/major, crear tags/releases, commitear README/changelog
+    permissions:
+      contents: write
+
+    outputs:
+      new_version: ${{ steps.versioner.outputs.new_version }}
+      release_created: ${{ steps.versioner.outputs.release_created }}
+
+    steps:
+      # 1. Checkout del código (historial completo necesario para analizar commits y contenido antiguo)
+      - name: Checkout code (Full History + Current Branch)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Obtiene todo el historial
+          # Asegúrate de que el checkout se hace desde la rama correcta para la release (usualmente main)
+          # github.ref típicamente contiene refs/heads/main o la rama desde donde se disparó manualmente
+          # ref: main # Descomentar y ajustar si es necesario forzar una rama específica
+
+      # 2. Configurar Node.js (necesario para conventional-changelog-cli)
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18' # O una versión LTS reciente
+
+      # 3. Configurar Git (para commits y tags hechos por el workflow)
+      - name: Configure Git user
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      # 4. Lógica de Versionado (con Override Manual y Fallback Automático)
+      - name: Determine Release Type and Next Version
+        id: versioner
+        run: |
+          echo "--- Determining Version ---"
+          LAST_TAG=$(git describe --tags --abbrev=0 --match="v[0-9]*.[0-9]*.[0-9]*" 2>/dev/null || echo "v0.0.0")
+          echo "Last tag found: $LAST_TAG"
+
+          # Input manual para forzar el tipo
+          FORCED_BUMP_TYPE="${{ github.event.inputs.force_bump_type }}"
+          BUMP_TYPE="" # Inicializar
+          MAJOR_OVERRIDE_USED=false
+
+          if [ -n "$FORCED_BUMP_TYPE" ]; then
+            # --- Lógica de Override Manual ---
+            echo "Manual override detected: Forcing bump type to '$FORCED_BUMP_TYPE'"
+            BUMP_TYPE=$FORCED_BUMP_TYPE
+            # Si se fuerza 'major', marcamos que el override manual lo causó
+            if [ "$BUMP_TYPE" == "major" ]; then
+              MAJOR_OVERRIDE_USED=true # Indica que *un* override causó major
+            fi
+          else
+            # --- Lógica Automática (Major File + Commit Analysis) ---
+            echo "No manual override. Performing automatic detection..."
+            # Comprobar el override de Major vía archivo .github/major
+            MAJOR_FILE=".github/major"
+            if [ -f "$MAJOR_FILE" ]; then
+              CURRENT_MAJOR_CONTENT=$(cat $MAJOR_FILE)
+              PREVIOUS_MAJOR_CONTENT=$(git show $LAST_TAG:$MAJOR_FILE 2>/dev/null || echo "__FILE_DID_NOT_EXIST__")
+              if [ "$CURRENT_MAJOR_CONTENT" != "$PREVIOUS_MAJOR_CONTENT" ]; then
+                echo "Detected change in $MAJOR_FILE. Setting bump type to MAJOR."
+                BUMP_TYPE="major"
+                MAJOR_OVERRIDE_USED=true # Marcamos que el archivo causó el major
+              fi
+            fi
+
+            # Analizar commits si no hubo override de Major por archivo
+            if [ -z "$BUMP_TYPE" ]; then
+              echo "No major override via file. Analyzing commits since $LAST_TAG..."
+              COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:%s)
+              COMMIT_COUNT=$(git rev-list --count $LAST_TAG..HEAD)
+
+              # Revisa usando el formato del usuario: [TAG] o [TAG] #issue
+              if grep -q -E "^\[FEAT\](\s*#\d+)?\s*" <<< "$COMMITS"; then
+                echo "Found '[FEAT]' commits. Setting bump type to MINOR."
+                BUMP_TYPE="minor"
+              # Añadido 'CI' a la lista de patch triggers
+              elif grep -q -E "^\[(FIX|DOCS|REFACTOR|PERF|TEST|CHORE|STYLE|BUILD|CI)\](\s*#\d+)?\s*" <<< "$COMMITS"; then
+                echo "Found relevant commits ([FIX], [DOCS], etc.). Setting bump type to PATCH."
+                BUMP_TYPE="patch"
+              else
+                 # --- Lógica de Fallback Automático ---
+                 if [ $COMMIT_COUNT -gt 0 ]; then
+                   echo "WARN: No standard commit tags ([FEAT], [FIX], etc.) found, but $COMMIT_COUNT commits exist since $LAST_TAG."
+                   echo "Applying fallback: Setting bump type to PATCH."
+                   BUMP_TYPE="patch"
+                 else
+                   echo "No standard commit tags found and no new commits since $LAST_TAG."
+                   BUMP_TYPE="none"
+                 fi
+              fi
+            fi
+          fi # Fin de la lógica automática y override manual
+
+          # Calcular la siguiente versión
+          NEXT_VERSION=$LAST_TAG
+          RELEASE_CREATED="false"
+          if [ "$BUMP_TYPE" != "none" ] && [ -n "$BUMP_TYPE" ]; then # Asegurarse que BUMP_TYPE no sea 'none' ni vacío
+             # Extraer partes de la versión (quitando 'v' inicial)
+             VERSION_PARTS=(${LAST_TAG//./ })
+             MAJOR=${VERSION_PARTS[0]#v}; MINOR=${VERSION_PARTS[1]}; PATCH=${VERSION_PARTS[2]}
+             if [ "$BUMP_TYPE" == "major" ]; then
+               MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0
+             elif [ "$BUMP_TYPE" == "minor" ]; then
+               MINOR=$((MINOR + 1)); PATCH=0
+             elif [ "$BUMP_TYPE" == "patch" ]; then
+               PATCH=$((PATCH + 1))
+             fi
+             NEXT_VERSION="v$MAJOR.$MINOR.$PATCH"
+             RELEASE_CREATED="true"
+             echo "Calculated next version: $NEXT_VERSION (Bump type: $BUMP_TYPE)"
+          else
+             echo "No version bump determined (Bump type: '$BUMP_TYPE'). No release will be created."
+             # Asegurarse que NEXT_VERSION no se use si no hay bump
+             NEXT_VERSION="" 
+          fi
+
+          # Exportar resultados
+          echo "::set-output name=new_version::$NEXT_VERSION"
+          echo "::set-output name=release_created::$RELEASE_CREATED"
+          echo "::set-output name=last_tag::$LAST_TAG"
+          echo "::set-output name=major_override_used::$MAJOR_OVERRIDE_USED" # Indica si .github/major o el input manual causaron major
+          echo "::set-output name=forced_bump_type::$FORCED_BUMP_TYPE" # Exportar el input para usarlo en el reset de .github/major
+          echo "::set-output name=bump_type::$BUMP_TYPE"
+          echo "--- Version Determination Complete ---"
+
+      # 5. Actualizar README.md (Solo si se crea una release)
+      - name: Update README version placeholder
+        if: steps.versioner.outputs.release_created == 'true'
+        run: |
+           PLACEHOLDER="<!-- CURRENT_VERSION_PLACEHOLDER -->"; README_FILE="README.md"; NEW_VERSION="${{ steps.versioner.outputs.new_version }}"; echo "Attempting to update $README_FILE with version $NEW_VERSION"; if grep -q "$PLACEHOLDER" "$README_FILE"; then sed -i "s|$PLACEHOLDER|$NEW_VERSION|g" "$README_FILE"; echo "$README_FILE updated successfully."; echo "Content around updated area:"; grep -C 3 "$NEW_VERSION" "$README_FILE" || cat "$README_FILE"; else echo "WARN: Placeholder '$PLACEHOLDER' not found in $README_FILE. Skipping update."; fi
+
+      # 6. Commitear README.md actualizado (Solo si se creó release y hubo cambios)
+      - name: Commit updated README.md
+        if: steps.versioner.outputs.release_created == 'true'
+        run: |
+          # Revisa si README.md fue modificado
+          if [[ `git status --porcelain README.md` ]]; then
+            echo "Committing updated README.md..."
+            git add README.md
+            # Mensaje de commit con [skip ci] para evitar bucles de CI
+            git commit -m "docs: Update README version to ${{ steps.versioner.outputs.new_version }} [skip ci]"
+            # No hacemos push aquí, se hará junto con el tag más adelante o al final
+          else
+            echo "No changes detected in README.md to commit."
+          fi
+
+      # 7. Generar Notas de Changelog (Solo si se crea una release)
+      - name: Generate Changelog Notes
+        if: steps.versioner.outputs.release_created == 'true'
+        id: changelog
+        run: |
+          echo "Generating changelog notes from ${{ steps.versioner.outputs.last_tag }} to HEAD"
+          # Asume que conventional-changelog puede entender tu formato [TAG] si sigue la estructura
+          npm install -g conventional-changelog-cli conventional-changelog-conventionalcommits
+          # Genera solo las notas para el cuerpo de la release (usando preset 'conventionalcommits')
+          NOTES=$(conventional-changelog -p conventionalcommits -r 0 --commit-path .)
+          # Escapar para usar como output (manejo básico)
+          NOTES="${NOTES//'%'/'%25'}"
+          NOTES="${NOTES//$'
+'/'%0A'}"
+          NOTES="${NOTES//$'
+'/'%0D'}"
+          echo "::set-output name=notes::$NOTES"
+          echo "--- Changelog Notes Generated ---"
+          # Si quieres commitear CHANGELOG.md, añade lógica aquí similar al README
+
+      # 8. Crear y Empujar Tag Git (Solo si se crea una release)
+      - name: Create and Push Git Tag
+        if: steps.versioner.outputs.release_created == 'true'
+        run: |
+          NEW_TAG="${{ steps.versioner.outputs.new_version }}"
+          echo "Creating and pushing tag: $NEW_TAG"
+          # Crea el tag en el último commit (que ahora incluye el README actualizado si cambió)
+          git tag "$NEW_TAG"
+          # Empuja el tag y cualquier commit pendiente (como el del README) a la rama origen
+          git push origin "$NEW_TAG"
+          git push origin HEAD:${{ github.ref_name }} # Empuja el commit del README a la rama
+
+      # 9. Crear Release en GitHub (Solo si se crea una release)
+      - name: Create GitHub Release
+        if: steps.versioner.outputs.release_created == 'true'
+        id: create_release # ID para referenciar upload_url si se suben artefactos
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.versioner.outputs.new_version }}
+          release_name: Release ${{ steps.versioner.outputs.new_version }}
+          body: ${{ steps.changelog.outputs.notes }} # Usa las notas generadas
+          draft: false
+          prerelease: false
+
+      # 10. (Opcional) Resetear .github/major si se usó para override de ARCHIVO
+      - name: Reset Major Override File (If Used via FILE)
+        # Ejecuta solo si se creó release Y el override fue por ARCHIVO (.github/major) Y fue tipo major
+        if: steps.versioner.outputs.release_created == 'true' && steps.versioner.outputs.major_override_used == 'true' && steps.versioner.outputs.bump_type == 'major' && steps.versioner.outputs.forced_bump_type == ''
+        run: |
+          MAJOR_FILE=".github/major"
+          LAST_TAG="${{ steps.versioner.outputs.last_tag }}"
+          echo "Resetting content of $MAJOR_FILE back to its state at tag $LAST_TAG (triggered by file change)"
+          # Intenta restaurar el archivo como estaba en el tag anterior
+          # Si no existía, lo vacía
+          if git show $LAST_TAG:$MAJOR_FILE >/dev/null 2>&1; then
+             git show $LAST_TAG:$MAJOR_FILE > $MAJOR_FILE
+             git add $MAJOR_FILE
+             git commit -m "chore: Reset $MAJOR_FILE after ${{ steps.versioner.outputs.new_version }} release [skip ci]"
+             git push origin HEAD:${{ github.ref_name }}
+             echo "$MAJOR_FILE reset to previous content."
+          else
+             echo "$MAJOR_FILE did not exist at $LAST_TAG. Resetting by emptying."
+             echo "" > $MAJOR_FILE
+             git add $MAJOR_FILE
+             git commit -m "chore: Empty $MAJOR_FILE after ${{ steps.versioner.outputs.new_version }} release [skip ci]"
+             git push origin HEAD:${{ github.ref_name }}
+             echo "$MAJOR_FILE emptied."
+          fi
+
+      # Puedes añadir aquí pasos para construir artefactos y subirlos a la release
+      # usando ${{ steps.create_release.outputs.upload_url }} 
