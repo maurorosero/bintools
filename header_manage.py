@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # Copyright (c) 2025, MAURO ROSERO PÉREZ
 # License: GPLV3
@@ -137,6 +138,11 @@ def process_file(filepath, config, ignore_patterns):
     version_regex = get_version_regex(comment_prefix)
     placeholder_line = f"{comment_prefix} Version: {HEADER_PLACEHOLDER}"
     initial_version_line = f"{comment_prefix} Version: {config['initial_version']}"
+    # --- Define encoding line check --- 
+    encoding_line = f"{comment_prefix} -*- coding: utf-8 -*-"
+    file_extension = os.path.splitext(filepath)[1]
+    needs_encoding_check = file_extension in ['.py', '.sh'] and comment_prefix == '#'
+    # ---------------------------------
 
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
@@ -150,6 +156,12 @@ def process_file(filepath, config, ignore_patterns):
     version_found = False
     placeholder_found = False
     header_exists = False # Crude check
+    # --- Add encoding check flags --- 
+    encoding_found = False
+    has_shebang = False
+    if lines and lines[0].startswith("#!"):
+        has_shebang = True
+    # ---------------------------------
 
     # Check first few lines for existing header structure (simple check)
     if len(lines) >= 5:
@@ -159,11 +171,27 @@ def process_file(filepath, config, ignore_patterns):
         header_pattern_check = any(l.strip().startswith(f"{comment_prefix} Copyright (c)") for l in lines[:MAX_LINES_TO_CHECK])
         header_exists = first_line_check and header_pattern_check
 
+    # --- Check for encoding line explicitly --- 
+    if needs_encoding_check:
+        if has_shebang and len(lines) > 1 and lines[1].strip() == encoding_line.strip():
+            encoding_found = True
+        elif not has_shebang and len(lines) > 0 and lines[0].strip() == encoding_line.strip():
+            encoding_found = True
+    # -------------------------------------------
 
     new_lines = []
-    line_index_to_replace = -1
+    lines_processed = list(lines) # Work on a copy
 
-    for i, line in enumerate(lines):
+    # --- Insert encoding if missing (outside the main processing loop) ---
+    if needs_encoding_check and not encoding_found and header_exists:
+        # Only add if header exists but encoding is missing
+        insert_pos = 1 if has_shebang else 0
+        lines_processed.insert(insert_pos, encoding_line + '\n')
+        modified = True
+        print(f"  Adding missing encoding line to {filepath}")
+    # ------------------------------------------------------------------
+
+    for i, line in enumerate(lines_processed): # Iterate over potentially modified list
         # 1. Check for placeholder
         if line.strip() == placeholder_line.strip():
             new_lines.append(initial_version_line + '\n')
@@ -193,9 +221,22 @@ def process_file(filepath, config, ignore_patterns):
             version_found = True # Still mark version as found
             continue # Move to next line
 
+        # --- Skip appending encoding line if already processed ---
+        # Check if it's the line we *might* have inserted
+        is_inserted_encoding = False
+        if needs_encoding_check and line.strip() == encoding_line.strip():
+            check_pos = 1 if has_shebang else 0
+            # Check if it's the inserted line AND no other modification has happened yet
+            # This identifies the case where ONLY encoding was added.
+            if i == check_pos and not version_found and not placeholder_found:
+                is_inserted_encoding = True
+        
+        # Append line to new_lines. If encoding was the only thing added,
+        # new_lines will be constructed correctly including the inserted line.
         new_lines.append(line)
-
-    # 3. If no version/placeholder found, check if we need to add a header
+        # ---------------------------------------------------------
+        
+    # 3. If no version/placeholder found, check if we need to add a full header
     if not version_found:
         if not header_exists or not lines: # If no header structure OR empty file
             print(f"Adding standard header to {filepath}")
@@ -254,8 +295,10 @@ def process_file(filepath, config, ignore_patterns):
             if shebang_line:
                 final_lines.append(shebang_line)
             final_lines.extend([l + '\n' for l in header_template])
-            final_lines.extend(lines[content_start_index:]) # Add original content after header
-            new_lines = final_lines
+            # Make sure to use original lines here for content after header
+            content_start_index = 1 if has_shebang else 0 
+            final_lines.extend(original_lines[content_start_index:]) 
+            new_lines = final_lines # Replace entire content
             modified = True
         else:
             # Header seems to exist but no standard version line found. FAIL.
@@ -263,12 +306,21 @@ def process_file(filepath, config, ignore_patterns):
             print("Please fix the header manually according to the project standard.")
             sys.exit(1) # Fail the commit
 
+    # --- Final check before writing --- 
+    # If the only change was adding the encoding line, `new_lines` might be identical
+    # to `lines_processed` which *includes* the added encoding. Let's ensure
+    # we use the correct list to write.
+    final_content_to_write = new_lines
+    if modified and needs_encoding_check and not encoding_found and header_exists and not version_found and not placeholder_found:
+         # This condition implies only encoding was added. Use lines_processed. 
+         final_content_to_write = lines_processed
+    # ----------------------------------
 
     # Write changes if modified
     if modified:
         try:
             with open(filepath, 'w', encoding='utf-8') as f:
-                f.writelines(new_lines)
+                f.writelines(final_content_to_write) # Use the potentially corrected list
             return True # Indicate changes were made
         except Exception as e:
             print(f"Error writing changes to {filepath}: {e}")
