@@ -37,3 +37,35 @@ rules:
 
       # ... resto del código ...
       ```
+  - language: shellscript
+    prompt: |
+      Cuando generes un nuevo archivo Shell/Bash (.sh), por favor incluye un comentario `# Description: <resumen conciso>` cerca del inicio (después del shebang si existe) describiendo el propósito principal del script en una sola frase.
+      Ejemplo:
+      ```bash
+      #!/bin/bash
+      # Description: Este script automatiza las copias de seguridad diarias.
+
+      # ... resto del código ...
+      ```
+  - language: javascript
+    prompt: |
+      Cuando generes un nuevo archivo JavaScript (.js), por favor incluye un comentario `// Description: <resumen conciso>` cerca del inicio (después de las importaciones si existen) describiendo el propósito principal del script/módulo en una sola frase.
+      Ejemplo:
+      ```javascript
+      import fs from 'fs';
+      
+      // Description: Esta utilidad valida los datos de entrada del formulario.
+
+      // ... resto del código ...
+      ```
+  - language: typescript
+    prompt: |
+      Cuando generes un nuevo archivo TypeScript (.ts), por favor incluye un comentario `// Description: <resumen conciso>` cerca del inicio (después de las importaciones si existen) describiendo el propósito principal del script/módulo en una sola frase.
+      Ejemplo:
+      ```typescript
+      import { Request, Response } from 'express';
+      
+      // Description: Este controlador maneja las peticiones de autenticación de usuario.
+
+      // ... resto del código ...
+      ```

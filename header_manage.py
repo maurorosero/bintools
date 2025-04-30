@@ -195,15 +195,27 @@ def process_file(filepath, config, ignore_patterns):
             
             # --- Extract Description Logic ---
             description = "Description placeholder" # Default
-            file_extension = os.path.splitext(filepath)[1]
+            description_found = False
+            description_prefix_comment = f"{comment_prefix} Description: " # e.g. "# Description: " or "// Description: "
 
-            if file_extension == '.py':
+            # 1. Try finding explicit comment first (within first MAX_LINES_TO_CHECK lines)
+            for line in lines[:MAX_LINES_TO_CHECK]:
+                stripped_line = line.strip()
+                if stripped_line.startswith(description_prefix_comment):
+                    extracted_desc = stripped_line[len(description_prefix_comment):].strip()
+                    if extracted_desc:
+                        description = extracted_desc
+                        description_found = True
+                        print(f"  Found description (comment): \"{description}\"")
+                        break # Found it
+            
+            # 2. If not found via comment AND it's a Python file, try docstring
+            file_extension = os.path.splitext(filepath)[1]
+            if not description_found and file_extension == '.py':
                 try:
-                    # Re-read the full file content for parsing
                     with open(filepath, 'r', encoding='utf-8') as f_content:
                         file_content = f_content.read()
                     
-                    # Avoid parsing if file is empty or just has shebang
                     if file_content.strip() and not (file_content.startswith('#!') and not '\n' in file_content.strip()):
                         tree = ast.parse(file_content)
                         docstring = ast.get_docstring(tree, clean=True)
@@ -211,7 +223,8 @@ def process_file(filepath, config, ignore_patterns):
                             first_line = docstring.split('\n', 1)[0].strip()
                             if first_line:
                                 description = first_line
-                                print(f"  Found description: \"{description}\"")
+                                # No need to set description_found=True here, just using docstring if comment wasn't present
+                                print(f"  Found description (docstring): \"{description}\"")
                 except SyntaxError:
                     print(f"  Warning: Could not parse Python file {filepath} to extract docstring (Syntax Error).")
                 except Exception as e:
