@@ -6,7 +6,7 @@
 # Created: 2025-04-30 05:52:19
 # Version: 0.1.0
 #
-# devenv-setup.sh - Description placeholder
+# devenv-setup.sh - Script para configurar el entorno de desarrollo: instala dependencias de Python, hooks de pre-commit y snippets de VS Code.
 # -----------------------------------------------------------------------------
 #
 

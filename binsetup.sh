@@ -6,7 +6,7 @@
 # Created: 2025-04-30 05:52:19
 # Version: 0.1.0
 #
-# binsetup.sh - Description placeholder
+# binsetup.sh - Script para añadir o quitar el directorio `~/bin` del PATH, temporalmente o de forma persistente.
 # -----------------------------------------------------------------------------
 #
 

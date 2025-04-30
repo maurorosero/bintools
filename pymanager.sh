@@ -6,7 +6,7 @@
 # Created: 2025-04-30 05:52:19
 # Version: 0.1.0
 #
-# pymanager.sh - Description placeholder
+# pymanager.sh - Script de Bash para administrar entornos virtuales de Python (crear, listar, instalar paquetes, activar/desactivar, eliminar).
 # -----------------------------------------------------------------------------
 #
 

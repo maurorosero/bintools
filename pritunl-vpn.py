@@ -6,7 +6,7 @@
 # Created: 2025-04-30 05:52:19
 # Version: 0.1.0
 #
-# pritunl-vpn.py - Description placeholder
+# pritunl-vpn.py - Script multiplataforma para instalar o desinstalar el cliente VPN de Pritunl.
 # -----------------------------------------------------------------------------
 #
 # pritunl_vpn.py - Instalador/Desinstalador de Pritunl VPN Client

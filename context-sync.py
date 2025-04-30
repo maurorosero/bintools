@@ -6,7 +6,7 @@
 # Created: 2025-04-30 05:52:19
 # Version: 0.1.0
 #
-# context-sync.py - Description placeholder
+# context-sync.py - Sincroniza archivos de contexto README del usuario entre un directorio `tmp` y una ubicación externa. También configura enlaces simbólicos.
 # -----------------------------------------------------------------------------
 #
 import os

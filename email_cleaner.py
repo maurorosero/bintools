@@ -6,7 +6,7 @@
 # Created: 2025-04-30 05:52:19
 # Version: 0.1.0
 #
-# email_cleaner.py - Description placeholder
+# email_cleaner.py - Script para conectar a un servidor IMAP, analizar emails, categorizarlos, detectar spam y permitir la eliminación por categoría.
 # -----------------------------------------------------------------------------
 #
 

@@ -5,7 +5,7 @@
 // Created: 2025-04-30 05:52:19
 // Version: 0.1.0
 //
-// context.js - Description placeholder
+// context.js - Script de contexto para Cursor que carga instrucciones desde `CURSOR.md`.
 // -----------------------------------------------------------------------------
 //
 const fs = require("fs");

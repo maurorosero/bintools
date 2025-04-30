@@ -6,7 +6,7 @@
 # Created: 2025-04-30 05:52:19
 # Version: 0.1.0
 #
-# videoset.sh - Description placeholder
+# videoset.sh - Establece la resolución de pantalla para monitores conectados usando `xrandr`.
 # -----------------------------------------------------------------------------
 #
 #title           : videoset.sh

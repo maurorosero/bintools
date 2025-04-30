@@ -5,7 +5,7 @@
 # Created: 2025-04-30 05:43:12
 # Version: 0.1.1
 #
-# header_manage.py - Description placeholder
+# header_manage.py - Script para gestionar encabezados de archivos (añadir/actualizar) según configuración y extraer descripciones.
 # -----------------------------------------------------------------------------
 #
 import sys

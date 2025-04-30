@@ -6,7 +6,7 @@
 # Created: 2025-04-30 05:52:19
 # Version: 0.1.0
 #
-# mcp_manager.py - Description placeholder
+# mcp_manager.py - Sistema para cargar, configurar (validando y asignando puertos) y lanzar servidores MCP definidos en un archivo YAML.
 # -----------------------------------------------------------------------------
 #
 """

@@ -6,7 +6,7 @@
 # Created: 2025-04-30 05:52:19
 # Version: 0.1.0
 #
-# packages.sh - Description placeholder
+# packages.sh - Script para instalar y actualizar paquetes del sistema en diferentes distribuciones Linux y macOS, incluyendo SOPS.
 # -----------------------------------------------------------------------------
 #
 
