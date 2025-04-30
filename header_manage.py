@@ -80,22 +80,29 @@ def get_comment_prefix(filepath):
 
 def generate_header_lines(config, comment_prefix, filename, description):
     year = datetime.now().year
-    # Include time in the created timestamp
-    created_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S') 
-    return [
+    created_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    file_extension = os.path.splitext(filename)[1]
+    
+    header_lines = []
+    # Add UTF-8 encoding declaration for Python and Shell scripts (PEP 263 compatible)
+    if file_extension in ['.py', '.sh'] and comment_prefix == '#':
+        header_lines.append(f"{comment_prefix} -*- coding: utf-8 -*-")
+        
+    # Add the standard header block
+    header_lines.extend([
         f"{comment_prefix} -----------------------------------------------------------------------------",
         f"{comment_prefix} Copyright (c) {year}, {config['holder']}",
         f"{comment_prefix} License: {config['license']}",
         f"{comment_prefix} Author: {config['author']}",
-        # Use the new timestamp variable
-        f"{comment_prefix} Created: {created_timestamp}", 
-        f"{comment_prefix} Version: {HEADER_PLACEHOLDER}", # Placeholder added here
+        f"{comment_prefix} Created: {created_timestamp}",
+        f"{comment_prefix} Version: {HEADER_PLACEHOLDER}",
         f"{comment_prefix}",
-        # Use the passed description variable
-        f"{comment_prefix} {os.path.basename(filename)} - {description}", 
+        f"{comment_prefix} {os.path.basename(filename)} - {description}",
         f"{comment_prefix} -----------------------------------------------------------------------------",
         f"{comment_prefix}" # Add an empty comment line for spacing maybe?
-    ]
+    ])
+    
+    return header_lines
 
 def get_version_regex(comment_prefix):
     # Regex to find 'Version: X.Y.Z' preceded by the correct comment
