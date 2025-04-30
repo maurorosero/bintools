@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+ #!/usr/bin/env python3
 # -----------------------------------------------------------------------------
 # Copyright (c) 2025, MAURO ROSERO PÉREZ
 # License: GPLV3
