@@ -5,8 +5,8 @@ repos:
         name: Manage File Headers
         entry: python header_manage.py # Assuming python is in PATH
         language: system
-        types: [python, shell, javascript]
-        files: \.ts$
+        # Use only files regex to match all relevant extensions
+        files: \.(py|ts|sh|js)$ 
         # Pass filenames as arguments
         args: []
         # If you want to ensure it runs even if the script itself didn't change:

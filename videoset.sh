@@ -1,4 +1,14 @@
 #!/usr/bin/env bash
+# -----------------------------------------------------------------------------
+# Copyright (c) 2025, MAURO ROSERO PÉREZ
+# License: GPLV3
+# Author: Mauro Rosero P. (mauro.rosero@gmail.com)
+# Created: 2025-04-30 05:52:19
+# Version: 0.1.0
+#
+# videoset.sh - Description placeholder
+# -----------------------------------------------------------------------------
+#
 #title           : videoset.sh
 #description     : Set resolution to second monitor
 #author		     : MRP/mrp - Mauro Rosero P.

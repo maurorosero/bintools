@@ -1,4 +1,14 @@
 #!/bin/bash
+# -----------------------------------------------------------------------------
+# Copyright (c) 2025, MAURO ROSERO PÉREZ
+# License: GPLV3
+# Author: Mauro Rosero P. (mauro.rosero@gmail.com)
+# Created: 2025-04-30 05:52:19
+# Version: 0.1.0
+#
+# devenv-setup.sh - Description placeholder
+# -----------------------------------------------------------------------------
+#
 
 # Script para configurar el entorno de desarrollo básico para este proyecto.
 # Instala dependencias de Python y activa los hooks de pre-commit.

@@ -1,3 +1,13 @@
+# -----------------------------------------------------------------------------
+# Copyright (c) 2025, MAURO ROSERO PÉREZ
+# License: GPLV3
+# Author: Mauro Rosero P. (mauro.rosero@gmail.com)
+# Created: 2025-04-30 05:43:12
+# Version: 0.1.1
+#
+# header_manage.py - Description placeholder
+# -----------------------------------------------------------------------------
+#
 import sys
 import os
 import re
@@ -69,13 +79,15 @@ def get_comment_prefix(filepath):
 
 def generate_header_lines(config, comment_prefix, filename):
     year = datetime.now().year
-    created_date = datetime.now().strftime('%Y-%m-%d')
+    # Include time in the created timestamp
+    created_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S') 
     return [
         f"{comment_prefix} -----------------------------------------------------------------------------",
         f"{comment_prefix} Copyright (c) {year}, {config['holder']}",
         f"{comment_prefix} License: {config['license']}",
         f"{comment_prefix} Author: {config['author']}",
-        f"{comment_prefix} Created: {created_date}",
+        # Use the new timestamp variable
+        f"{comment_prefix} Created: {created_timestamp}", 
         f"{comment_prefix} Version: {HEADER_PLACEHOLDER}", # Placeholder added here
         f"{comment_prefix}",
         f"{comment_prefix} {os.path.basename(filename)} - Description placeholder", # Added placeholder
@@ -155,16 +167,21 @@ def process_file(filepath, config, ignore_patterns):
         # 2. Check for existing version
         match = version_regex.match(line.strip())
         if match:
-            current_version = match.group(1)
-            new_version = increment_patch_version(current_version)
-            if new_version:
-                new_lines.append(f"{comment_prefix} Version: {new_version}\n")
-                modified = True
-                version_found = True
-                print(f"Incrementing version in {filepath} to {new_version}")
-            else:
-                print(f"Warning: Could not increment invalid version '{current_version}' in {filepath}")
-                new_lines.append(line) # Keep original invalid line
+            # --- TEMPORARILY DISABLED VERSION INCREMENT ---
+            # current_version = match.group(1)
+            # new_version = increment_patch_version(current_version)
+            # if new_version:
+            #     new_lines.append(f"{comment_prefix} Version: {new_version}\n")
+            #     modified = True
+            #     version_found = True
+            #     print(f"Incrementing version in {filepath} to {new_version}")
+            # else:
+            #     print(f"Warning: Could not increment invalid version '{current_version}' in {filepath}")
+            #     new_lines.append(line) # Keep original invalid line
+            # --- END TEMPORARY DISABLE ---
+            # Just keep the existing version line for now
+            new_lines.append(line)
+            version_found = True # Still mark version as found
             continue # Move to next line
 
         new_lines.append(line)

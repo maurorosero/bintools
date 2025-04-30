@@ -1,4 +1,14 @@
 #!/usr/bin/env python3
+# -----------------------------------------------------------------------------
+# Copyright (c) 2025, MAURO ROSERO PÉREZ
+# License: GPLV3
+# Author: Mauro Rosero P. (mauro.rosero@gmail.com)
+# Created: 2025-04-30 05:52:19
+# Version: 0.1.0
+#
+# mcp_manager.py - Description placeholder
+# -----------------------------------------------------------------------------
+#
 """
 MCP Manager - Sistema para cargar, configurar y lanzar servidores MCP desde un archivo YAML
 """
