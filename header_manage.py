@@ -11,6 +11,7 @@
 import sys
 import os
 import re
+import ast
 import argparse
 import configparser
 from datetime import datetime
@@ -77,7 +78,7 @@ def get_comment_prefix(filepath):
     else:
         return None # Unsupported file type
 
-def generate_header_lines(config, comment_prefix, filename):
+def generate_header_lines(config, comment_prefix, filename, description):
     year = datetime.now().year
     # Include time in the created timestamp
     created_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S') 
@@ -90,7 +91,8 @@ def generate_header_lines(config, comment_prefix, filename):
         f"{comment_prefix} Created: {created_timestamp}", 
         f"{comment_prefix} Version: {HEADER_PLACEHOLDER}", # Placeholder added here
         f"{comment_prefix}",
-        f"{comment_prefix} {os.path.basename(filename)} - Description placeholder", # Added placeholder
+        # Use the passed description variable
+        f"{comment_prefix} {os.path.basename(filename)} - {description}", 
         f"{comment_prefix} -----------------------------------------------------------------------------",
         f"{comment_prefix}" # Add an empty comment line for spacing maybe?
     ]
@@ -190,6 +192,32 @@ def process_file(filepath, config, ignore_patterns):
     if not version_found:
         if not header_exists or not lines: # If no header structure OR empty file
             print(f"Adding standard header to {filepath}")
+            
+            # --- Extract Description Logic ---
+            description = "Description placeholder" # Default
+            file_extension = os.path.splitext(filepath)[1]
+
+            if file_extension == '.py':
+                try:
+                    # Re-read the full file content for parsing
+                    with open(filepath, 'r', encoding='utf-8') as f_content:
+                        file_content = f_content.read()
+                    
+                    # Avoid parsing if file is empty or just has shebang
+                    if file_content.strip() and not (file_content.startswith('#!') and not '\n' in file_content.strip()):
+                        tree = ast.parse(file_content)
+                        docstring = ast.get_docstring(tree, clean=True)
+                        if docstring:
+                            first_line = docstring.split('\n', 1)[0].strip()
+                            if first_line:
+                                description = first_line
+                                print(f"  Found description: \"{description}\"")
+                except SyntaxError:
+                    print(f"  Warning: Could not parse Python file {filepath} to extract docstring (Syntax Error).")
+                except Exception as e:
+                    print(f"  Warning: Error extracting docstring from {filepath}: {e}")
+            # --- End Extract Description ---
+
             # Basic check for shebang to keep it at the top
             shebang_line = None
             content_start_index = 0
@@ -197,10 +225,10 @@ def process_file(filepath, config, ignore_patterns):
                 shebang_line = lines[0]
                 content_start_index = 1
 
-            header_template = generate_header_lines(config, comment_prefix, filepath)
-            # Replace placeholder in template immediately
+            # Generate header using the determined description
+            header_template = generate_header_lines(config, comment_prefix, filepath, description)
+            # Replace version placeholder in template immediately
             header_template = [initial_version_line if l.strip() == placeholder_line.strip() else l for l in header_template]
-
 
             final_lines = []
             if shebang_line:
