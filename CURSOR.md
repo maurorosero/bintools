@@ -7,16 +7,16 @@
 ## Mensajes de Commit (¡MUY IMPORTANTE!)
 - **Formato Estricto:** Sigue EXACTAMENTE este formato: `[TAG] (#IssueNumber opcional) Descripción corta en presente`
 - **TAGS Válidos (MAYÚSCULAS):**
-    - `[FEAT]`: Nueva funcionalidad (resulta en versión Minor).
-    - `[FIX]`: Corrección de bug (resulta en versión Patch).
-    *   `[DOCS]`: Cambios solo en documentación (resulta en versión Patch).
-    *   `[STYLE]`: Cambios de formato/estilo (resulta en versión Patch).
-    *   `[REFACTOR]`: Refactorización sin cambio funcional (resulta en versión Patch).
-    *   `[PERF]`: Mejora de rendimiento (resulta en versión Patch).
-    *   `[TEST]`: Añadir/corregir tests (resulta en versión Patch).
-    *   `[BUILD]`: Cambios en build/dependencias (resulta en versión Patch).
-    *   `[CI]`: Cambios en CI/workflows (resulta en versión Patch).
-    *   `[CHORE]`: Tareas de mantenimiento (resulta en versión Patch).
+    * `[IMPROVE]`: Nueva funcionalidad (resulta en versión Minor).
+    * `[FIX]`: Corrección de bug (resulta en versión Patch).
+    * `[DOCS]`: Cambios solo en documentación (resulta en versión Patch).
+    * `[STYLE]`: Cambios de formato/estilo (resulta en versión Patch).
+    * `[REFACTOR]`: Refactorización sin cambio funcional (resulta en versión Patch).
+    * `[PERF]`: Mejora de rendimiento (resulta en versión Patch).
+    * `[TEST]`: Añadir/corregir tests (resulta en versión Patch).
+    * `[BUILD]`: Cambios en build/dependencias (resulta en versión Patch).
+    * `[CI]`: Cambios en CI/workflows (resulta en versión Patch).
+    * `[CHORE]`: Tareas de mantenimiento (resulta en versión Patch).
 - **IssueNumber:** Opcional, formato `(#123)`.
 - **Descripción:** Imperativo presente, empezar en minúscula (ej. "añade opción...").
 - **Ejemplo:** `[FIX] (#55) Corrige la validación de entrada en pymanager.sh`

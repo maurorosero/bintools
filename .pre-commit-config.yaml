@@ -1,0 +1,13 @@
+repos:
+  - repo: local
+    hooks:
+      - id: manage-headers
+        name: Manage File Headers
+        entry: python header_manage.py # Assuming python is in PATH
+        language: system
+        types: [python, shell, javascript]
+        files: \.ts$
+        # Pass filenames as arguments
+        args: []
+        # If you want to ensure it runs even if the script itself didn't change:
+        # always_run: true 

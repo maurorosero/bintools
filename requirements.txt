@@ -24,3 +24,6 @@ uvicorn>=0.15.0          # Servidor ASGI de alto rendimiento (usado con FastAPI/
 # --- Entorno de Consola ---
 rich                     # Formateo de texto enriquecido en la terminal (colores, estilos, tablas, spinners, etc.)
 questionary              # Prompts interactivos y bonitos (selecciones, confirmaciones, entradas)
+
+# --- Herramientas de Desarrollo y Calidad de Código ---
+pre-commit>=2.17.0       # Framework para gestionar y mantener hooks de pre-commit
