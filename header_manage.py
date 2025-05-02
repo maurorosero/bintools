@@ -4,7 +4,7 @@
 # Copyright (c) 2025, MAURO ROSERO PÉREZ
 # License: GPLV3
 # Author: Mauro Rosero P. (mauro.rosero@gmail.com)
-# Created: 2025-04-30 05:43:12
+# Created: 2025-04-30 05:43:13
 # Version: 0.1.1
 #
 # header_manage.py - Script para gestionar encabezados de archivos (añadir/actualizar) según configuración y extraer descripciones.

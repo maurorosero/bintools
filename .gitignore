@@ -44,7 +44,7 @@ wheels/
 *.egg
 
 # Entornos virtuales - modificado para mantener la carpeta pero ignorar su contenido
-.venv/  # Ignora todo el contenido de .venv/
+.venv/
 
 .env/
 .virtualenv/
