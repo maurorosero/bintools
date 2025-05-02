@@ -44,13 +44,8 @@ wheels/
 *.egg
 
 # Entornos virtuales - modificado para mantener la carpeta pero ignorar su contenido
-# venv/  <- comentado para no ignorar la carpeta
-venv/*  # Ignora todo el contenido de venv/
-!venv/.gitkeep  # Pero no ignores el archivo .gitkeep
+.venv/  # Ignora todo el contenido de .venv/
 
-ENV/
-env/
-.venv/
 .env/
 .virtualenv/
 
