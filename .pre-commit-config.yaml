@@ -3,8 +3,8 @@ repos:
     hooks:
       - id: manage-headers
         name: Manage File Headers
-        entry: python header_manage.py # Assuming python is in PATH
-        language: system
+        entry: python ./header_manage.py # Let python execute the script
+        language: python                 # Use python language environment
         # Use only files regex to match all relevant extensions
         files: \.(py|ts|sh|js)$ 
         # Pass filenames as arguments
