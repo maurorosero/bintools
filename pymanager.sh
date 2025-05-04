@@ -289,7 +289,7 @@ install_global_package() {
         local satisfied_count=$(grep -c 'Requirement already satisfied' "$TEMP_PIP_LOG")
         local installed_list=$(grep '^Successfully installed ' "$TEMP_PIP_LOG" | sed 's/^Successfully installed //')
         local installed_count=0; [[ -n "$installed_list" ]] && installed_count=$(echo "$installed_list" | wc -w)
-        local ignored_list=$(grep '^Ignoring .* markers' "$TEMP_PIP_LOG" | sed -E 's/^Ignoring ([^:]+):.*/\\1/')
+        local ignored_list=$(grep '^Ignoring .* markers' "$TEMP_PIP_LOG" | sed -E 's/^Ignoring ([^:]+):.*/\1/')
         local ignored_count=0; [[ -n "$ignored_list" ]] && ignored_count=$(echo "$ignored_list" | wc -l)
 
         mostrar_exito "Instalación/actualización desde $install_target_display completada."
@@ -445,7 +445,7 @@ install_local_package() {
         local satisfied_count=$(grep -c 'Requirement already satisfied' "$TEMP_PIP_LOG")
         local installed_list=$(grep '^Successfully installed ' "$TEMP_PIP_LOG" | sed 's/^Successfully installed //')
         local installed_count=0; [[ -n "$installed_list" ]] && installed_count=$(echo "$installed_list" | wc -w)
-        local ignored_list=$(grep '^Ignoring .* markers' "$TEMP_PIP_LOG" | sed -E 's/^Ignoring ([^:]+):.*/\\1/')
+        local ignored_list=$(grep '^Ignoring .* markers' "$TEMP_PIP_LOG" | sed -E 's/^Ignoring ([^:]+):.*/\1/')
         local ignored_count=0; [[ -n "$ignored_list" ]] && ignored_count=$(echo "$ignored_list" | wc -l)
 
         mostrar_exito "Instalación/actualización desde $install_target_display completada en ${COLOR_CYAN}$env_name${COLOR_RESET}."
