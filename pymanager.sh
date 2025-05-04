@@ -332,18 +332,12 @@ main() {
             remove_venv
             ;;
         --install)
-            # Permitir --install como comando principal si el venv ya existe
-            if [ ! -d "$BIN_VENV_DIR" ] && [ -z "$(get_local_venv_path)" ]; then
-                mostrar_error "El comando --install requiere que el entorno (default o local) ya exista, o úsalo junto con --create."
-                exit 1
-            fi
-            # Determinar si usar venv default o local
-            local target_venv_path=$(get_local_venv_path)
-            if [ -z "$target_venv_path" ]; then target_venv_path="$BIN_VENV_DIR"; fi
-            install_default_env "$target_venv_path"
+            # --install solo ahora actúa como --create --install para el entorno default
+            mostrar_info "Ejecutando --install (creará el entorno default si no existe)..."
+            # Llamar directamente a la función que crea/instala el default
+            # Pasamos la ruta del entorno default como argumento
+            install_default_env "$BIN_VENV_DIR"
             ;;
-        # --update ya no tiene sentido como comando separado, usar --create --install
-        # --autostart tampoco parece un comando principal aquí, ¿quizás una opción?
         --help|-h)
             usage
             ;;
