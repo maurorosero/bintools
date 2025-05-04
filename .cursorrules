@@ -25,6 +25,32 @@
 
 # Reglas específicas de Cursor
 rules:
+  # Regla para configuraciones CI/CD y .cursorrules
+  - path_patterns: 
+      - "**/.cursorrules"
+      - ".github/workflows/*.yml"
+      - "ci/*"
+      - "scripts/ci_utils/*.sh"
+    prompt: |
+      POLÍTICA DE COMMITS:
+      --------------------
+      1. Tags permitidos:
+         - [CHORE]: Mantenimiento/configuraciones (ej: actualizar reglas, reorganizar archivos)
+         - [CI]: Cambios en comportamiento de CI/CD (ej: modificar workflows, añadir jobs)
+         - [FIX]: Corrección de errores funcionales
+         - [DOCS]: Documentación técnica interna
+
+      2. Estructura del mensaje:
+         [TAG] (#Issue) Descripción específica [Componente]
+         Ej: [CI] (#45) Optimiza caché de dependencias [Workflow Tests]
+
+      3. Ejemplos:
+         ✓ [CHORE] Actualiza reglas de linting para scripts Bash [.cursorrules]
+         ✓ [CI] Agrega ejecución paralela de tests [Workflow Python]
+         ✓ [FIX] Corrige ruta de instalación en script CI [ci_utils/install.sh]
+         ✓ [DOCS] Añade diagrama de flujo del pipeline [docs/ci.md]
+
+  # Reglas existentes de lenguaje
   - language: markdown
     prompt: |
       Al crear o modificar significativamente un archivo README.md, asegúrate de que sigue la estructura definida en `.github/readme-context-personal-global.md`. Esto incluye:
@@ -86,3 +112,16 @@ rules:
 
       // ... resto del código ...
       \`\`\`
+  # Regla general de idioma
+  - language: "*"
+    prompt: |
+      Para este proyecto, todo el contenido generado (comentarios, documentación, mensajes de commit) 
+      debe estar en español por defecto, excepto cuando:
+      1. Se trate de términos técnicos sin traducción comúnmente aceptada
+      2. El usuario especifique explícitamente usar otro idioma
+      3. Sea requerido por convenciones externas (ej: nombres de variables, estándares de APIs)
+      
+      Excepciones permitidas:
+      - Código fuente: variables/funciones en inglés (por convención)
+      - Mensajes de commit: seguir el formato [TAG] en inglés
+      - Metadatos técnicos en archivos de configuración
