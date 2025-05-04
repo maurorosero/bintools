@@ -9,7 +9,7 @@ dnspython>=2.2.0         # Librería para consultas y manipulación de DNS
 # --- Procesamiento de HTML y web scraping ---
 beautifulsoup4>=4.11.0   # Parser de HTML/XML para extracción de datos y web scraping
 html2text>=2020.1.16     # Conversión de HTML a texto plano (útil para extracción de contenido)
-requests>=2.27.0         # Cliente HTTP para hacer peticiones a APIs y sitios web (AÑADIDO PARA DESCARGAS CON PROGRESO)
+requests>=2.28.0         # Cliente HTTP para hacer peticiones a APIs y sitios web (AÑADIDO PARA DESCARGAS CON PROGRESO)
 
 # --- Análisis de datos y manejo de fechas ---
 pandas>=1.5.0            # Análisis y manipulación de datos estructurados en DataFrames
@@ -22,8 +22,16 @@ pyyaml>=6.0              # Manejo de archivos YAML para configuración y almacen
 uvicorn>=0.15.0          # Servidor ASGI de alto rendimiento (usado con FastAPI/Starlette)
 
 # --- Entorno de Consola ---
-rich                     # Formateo de texto enriquecido en la terminal (colores, estilos, tablas, spinners, etc.)
-questionary              # Prompts interactivos y bonitos (selecciones, confirmaciones, entradas)
+rich>=13.0.0             # Formateo de texto enriquecido en la terminal (colores, estilos, tablas, spinners, etc.)
+questionary>=2.0.0       # Prompts interactivos y bonitos (selecciones, confirmaciones, entradas)
+textual>=0.1.10          # Librería para crear interfaces de usuario con Rich
 
 # --- Herramientas de Desarrollo y Calidad de Código ---
 pre-commit>=2.17.0       # Framework para gestionar y mantener hooks de pre-commit
+
+# --- Herramientas para manejo de GPG ---
+python-gnupg>=0.5.0      # Librería para manejar GPG (GnuPG)
+
+# --- TOML Parsing/Writing ---
+tomli; python_version < '3.11'   # Parser para archivos TOML (necesario para Python < 3.11)
+tomli-w                          # Librería para escribir archivos TOML

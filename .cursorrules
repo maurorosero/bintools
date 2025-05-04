@@ -25,47 +25,64 @@
 
 # Reglas específicas de Cursor
 rules:
+  - language: markdown
+    prompt: |
+      Al crear o modificar significativamente un archivo README.md, asegúrate de que sigue la estructura definida en `.github/readme-context-personal-global.md`. Esto incluye:
+      1.  Las secciones obligatorias en el orden correcto (Título, Metadatos/Descripción, Placeholder de Versión, Badges, Tabla Contenidos (opc), Instalación, Uso, Contribución (opc), Licencia, Contacto (opc)).
+      2.  El bloque EXACTO de metadatos parseables:
+          \`\`\`html
+          <!-- PARSEABLE_METADATA_START
+          purpose: [Descripción concisa y principal]
+          technology: [Tecnologías principales]
+          status: [Development/Beta/Stable/Archived]
+          PARSEABLE_METADATA_END -->
+          \`\`\`
+          (Recuerda: claves en inglés minúsculas, valores en el idioma del README).
+      3.  El placeholder de versión EXACTO: `<!-- CURRENT_VERSION_PLACEHOLDER -->`.
+      4.  Si modificas la sección de Contribución o generas un mensaje de commit para cambios en el README, recuerda la importancia del formato de commits convencional (`[TAG] Descripción`) mencionado en el contexto.
+      5.  Formula la sección de Licencia mencionando el archivo `LICENSE` (ej. "Distribuido bajo la Licencia MIT. Ver `LICENSE` para más información.").
+      6.  Intenta aplicar las heurísticas de auto-relleno definidas en el contexto si estás creando un nuevo README (buscar `pyproject.toml`, archivos de licencia, `git config`, etc.).
   - language: python
     prompt: |
       Cuando generes un nuevo archivo Python, asegúrate SIEMPRE de incluir un docstring a nivel de módulo inmediatamente después de las importaciones.
       La primera línea de este docstring DEBE ser un resumen conciso (una sola frase) del propósito principal del script.
       Ejemplo:
-      ```python
+      \`\`\`python
       import sys
       
       """Este script procesa archivos de log para extraer errores."""
 
       # ... resto del código ...
-      ```
+      \`\`\`
   - language: shellscript
     prompt: |
       Cuando generes un nuevo archivo Shell/Bash (.sh), por favor incluye un comentario `# Description: <resumen conciso>` cerca del inicio (después del shebang si existe) describiendo el propósito principal del script en una sola frase.
       Ejemplo:
-      ```bash
+      \`\`\`bash
       #!/bin/bash
       # Description: Este script automatiza las copias de seguridad diarias.
 
       # ... resto del código ...
-      ```
+      \`\`\`
   - language: javascript
     prompt: |
       Cuando generes un nuevo archivo JavaScript (.js), por favor incluye un comentario `// Description: <resumen conciso>` cerca del inicio (después de las importaciones si existen) describiendo el propósito principal del script/módulo en una sola frase.
       Ejemplo:
-      ```javascript
+      \`\`\`javascript
       import fs from 'fs';
       
       // Description: Esta utilidad valida los datos de entrada del formulario.
 
       // ... resto del código ...
-      ```
+      \`\`\`
   - language: typescript
     prompt: |
       Cuando generes un nuevo archivo TypeScript (.ts), por favor incluye un comentario `// Description: <resumen conciso>` cerca del inicio (después de las importaciones si existen) describiendo el propósito principal del script/módulo en una sola frase.
       Ejemplo:
-      ```typescript
+      \`\`\`typescript
       import { Request, Response } from 'express';
       
       // Description: Este controlador maneja las peticiones de autenticación de usuario.
 
       // ... resto del código ...
-      ```
+      \`\`\`
