@@ -323,6 +323,160 @@ install_global_package() {
     trap - EXIT SIGINT SIGTERM # Limpiar trap si salimos normalmente
 }
 
+# --- Nueva Función para --package-local ---
+# Instala un paquete o requirements.txt en un entorno LOCAL existente
+install_local_package() {
+    local env_name="default"
+    local source_arg=""
+    local package_or_reqs_file=""
+    local target_local_venv_path=""
+
+    # Parseo de argumentos: [<entorno>] [<paquete|reqs.txt>]
+    # Si $1 existe Y es un directorio en ./.venv, es el nombre del entorno.
+    # Si no, $1 es la fuente. Si hay $2, es la fuente.
+    if [[ -n "$1" ]]; then
+        if [[ -d "$PWD/.venv/$1" ]]; then
+            env_name="$1"
+            log "DEBUG" "Argumento 1 detectado como nombre de entorno local: $env_name"
+            if [[ -n "$2" ]]; then
+                source_arg="$2"
+                log "DEBUG" "Argumento 2 detectado como fuente: $source_arg"
+            fi
+        else
+            source_arg="$1"
+            log "DEBUG" "Argumento 1 detectado como fuente: $source_arg"
+            # $env_name sigue siendo "default"
+        fi
+    fi
+    # Si no se especificó fuente, usar requirements.txt local
+    if [[ -z "$source_arg" ]]; then
+        package_or_reqs_file="$PWD/requirements.txt"
+        log "DEBUG" "No se especificó fuente, usando por defecto: $package_or_reqs_file"
+    else
+        package_or_reqs_file="$source_arg"
+        log "DEBUG" "Fuente especificada: $package_or_reqs_file"
+    fi
+
+    target_local_venv_path="$PWD/.venv/$env_name"
+
+    mostrar_info "============================================================="
+    mostrar_info " Instalando Paquete/Reqs en Entorno LOCAL (${target_local_venv_path}) "
+    mostrar_info "============================================================="
+    log "INFO" "Iniciando --package-local para '$package_or_reqs_file' en $target_local_venv_path"
+
+    # 1. Verificar Entorno Local (DEBE EXISTIR)
+    if ! verificar_entorno_python "$target_local_venv_path"; then
+        mostrar_error "El entorno local especificado ${COLOR_RED}${target_local_venv_path}${COLOR_RESET} no existe o no es válido."
+        mostrar_info "El comando ${BOLD}--package-local${COLOR_RESET} requiere que el entorno local exista previamente."
+        mostrar_info "Puedes crearlo con: ${BOLD}pymanager.sh --create $env_name${COLOR_RESET}"
+        log "ERROR" "--package-local abortado: entorno local no válido/no existe: $target_local_venv_path"
+        exit 1
+    else
+        local py_version
+        py_version=$(obtener_version_python_entorno "$target_local_venv_path")
+        mostrar_info "Entorno local encontrado (${COLOR_CYAN}$env_name${COLOR_RESET}). Python: ${COLOR_YELLOW}${py_version:-N/A}${COLOR_RESET}"
+        log "INFO" "Entorno local $target_local_venv_path existe. Python: ${py_version:-N/A}"
+    fi
+
+    # 2. Verificar Fuente (si es un archivo)
+    # Asumimos que es un archivo si contiene / o .txt, o si -f lo confirma
+    local is_file=false
+    if [[ -f "$package_or_reqs_file" ]]; then
+        is_file=true
+    elif [[ "$package_or_reqs_file" == */* ]] || [[ "$package_or_reqs_file" == *.txt ]]; then
+         # Parece una ruta, verificar si existe
+         if [[ ! -f "$package_or_reqs_file" ]]; then
+             mostrar_error "El archivo de requisitos especificado ${COLOR_RED}$package_or_reqs_file${COLOR_RESET} no se encontró."
+             log "ERROR" "--package-local abortado: archivo de requisitos no encontrado: $package_or_reqs_file"
+             exit 1
+         fi
+         is_file=true
+    fi
+    # Si es el requirements.txt por defecto, también verificamos
+    if [[ "$package_or_reqs_file" == "$PWD/requirements.txt" && ! -f "$package_or_reqs_file" ]]; then
+        mostrar_error "No se encontró el archivo ${COLOR_RED}requirements.txt${COLOR_RESET} en el directorio actual ($PWD)."
+        log "ERROR" "--package-local abortado: requirements.txt por defecto no encontrado en $PWD."
+        exit 1
+    fi
+
+    # 3. Verificar Conexión y Actualizar Pip
+    if ! verificar_conexion_internet; then
+        mostrar_advertencia "Sin conexión a internet. No se puede instalar/actualizar."
+        log "WARN" "Sin conexión internet, abortando --package-local."
+        exit 1
+    fi
+
+    local TEMP_PIP_LOG="/tmp/pymanager_pip_output.$$.log"
+    trap 'rm -f "$TEMP_PIP_LOG"' EXIT SIGINT SIGTERM
+    log "INFO" "Usando archivo temporal para salida de pip: $TEMP_PIP_LOG"
+
+    mostrar_info "Actualizando pip en ${COLOR_CYAN}${target_local_venv_path}${COLOR_RESET}..."
+    echo -ne "${COLOR_YELLOW}▶${COLOR_RESET} Actualizando pip... "
+    if ("$target_local_venv_path/bin/pip" install --upgrade pip >> "$TEMP_PIP_LOG" 2>&1); then
+        echo -e "${COLOR_GREEN}✓${COLOR_RESET}"
+        log "INFO" "pip actualizado correctamente en $target_local_venv_path."
+    else
+        echo -e "${COLOR_RED}✗${COLOR_RESET}"
+        mostrar_advertencia "Fallo al actualizar pip. Ver $TEMP_PIP_LOG. Intentando continuar..."
+        log "WARN" "Fallo al actualizar pip en $target_local_venv_path. Salida en $TEMP_PIP_LOG."
+    fi
+
+    # 4. Determinar Comando Pip y Ejecutar
+    local pip_install_cmd=""
+    local install_target_display=""
+
+    if $is_file; then
+        install_target_display="archivo de requisitos ${COLOR_CYAN}$package_or_reqs_file${COLOR_RESET}"
+        pip_install_cmd="\"$target_local_venv_path/bin/pip\" install -r \"$package_or_reqs_file\""
+    else
+        install_target_display="paquete ${COLOR_CYAN}$package_or_reqs_file${COLOR_RESET}"
+        pip_install_cmd="\"$target_local_venv_path/bin/pip\" install \"$package_or_reqs_file\""
+    fi
+
+    mostrar_info "Instalando $install_target_display en ${COLOR_CYAN}${target_local_venv_path}${COLOR_RESET} (salida capturada)..."
+    log "INFO" "Ejecutando: $pip_install_cmd > $TEMP_PIP_LOG 2>&1"
+
+    eval "$pip_install_cmd" > "$TEMP_PIP_LOG" 2>&1
+    local pip_ret=$?
+    cat "$TEMP_PIP_LOG" >> "$LOG_FILE"
+
+    if [ $pip_ret -eq 0 ]; then
+        # Parse Output (copiado/adaptado de install_global_package)
+        local satisfied_count=$(grep -c 'Requirement already satisfied' "$TEMP_PIP_LOG")
+        local installed_list=$(grep '^Successfully installed ' "$TEMP_PIP_LOG" | sed 's/^Successfully installed //')
+        local installed_count=0; [[ -n "$installed_list" ]] && installed_count=$(echo "$installed_list" | wc -w)
+        local ignored_list=$(grep '^Ignoring .* markers' "$TEMP_PIP_LOG" | sed -E 's/^Ignoring ([^:]+):.*/\\1/')
+        local ignored_count=0; [[ -n "$ignored_list" ]] && ignored_count=$(echo "$ignored_list" | wc -l)
+
+        mostrar_exito "Instalación/actualización desde $install_target_display completada en ${COLOR_CYAN}$env_name${COLOR_RESET}."
+        echo -e "${COLOR_BLUE}Resumen:${COLOR_RESET}"
+        echo -e "  ${COLOR_GREEN}✓${COLOR_RESET} Paquetes ya satisfechos: $satisfied_count"
+        if [ "$installed_count" -gt 0 ]; then
+             echo -e "  ${COLOR_YELLOW}↑${COLOR_RESET} Paquetes instalados/actualizados ($installed_count):"
+             echo "$installed_list" | fold -s -w 70 | sed 's/^/    /'
+        fi
+        if [ "$ignored_count" -gt 0 ]; then
+             echo -e "  ${COLOR_CYAN}- ${COLOR_RESET} Paquetes ignorados (marcador) ($ignored_count):"
+             echo "$ignored_list" | sed 's/^/    /'
+        fi
+        log "INFO" "pip install exitoso para $install_target_display en $target_local_venv_path. Satisfechos: $satisfied_count, Instalados/Actualizados: $installed_count, Ignorados: $ignored_count"
+    else
+        mostrar_error "Hubo un error (código $pip_ret) durante la instalación de $install_target_display en ${COLOR_RED}$env_name${COLOR_RESET}."
+        mostrar_info "Mostrando las últimas 10 líneas de la salida de pip:"
+        echo "-------------------- Inicio Salida Pip (Error) --------------------"
+        tail -n 10 "$TEMP_PIP_LOG" | sed 's/^/  /'
+        echo "-------------------- Fin Salida Pip (Error) ---------------------"
+        mostrar_info "Consulte el archivo completo ${COLOR_YELLOW}$TEMP_PIP_LOG${COLOR_RESET} y ${COLOR_YELLOW}$LOG_FILE${COLOR_RESET} para más detalles."
+        rm -f "$TEMP_PIP_LOG"
+        trap - EXIT SIGINT SIGTERM
+        exit 1
+    fi
+
+    log "INFO" "Comando --package-local completado para '$package_or_reqs_file' en $target_local_venv_path."
+    rm -f "$TEMP_PIP_LOG"
+    trap - EXIT SIGINT SIGTERM
+}
+
 # Comando: Listar paquetes instalados (seleccionando entre locales/global)
 list_packages() {
     local options=()
@@ -648,32 +802,35 @@ show_banner() {
 show_help() {
     # ... (líneas de título, uso, etc.) ...
     echo
+    echo -e "${UNDERLINE}Uso:${COLOR_RESET} ${BOLD}pymanager.sh <comando> [argumentos...]${COLOR_RESET}"
+    echo
     echo -e "${UNDERLINE}Comandos:${COLOR_RESET}"
-    echo -e "  ${BOLD}--create [<nombre_env>] [--python <ver>]${COLOR_RESET} Crea un entorno virtual LOCAL (${BOLD}./.venv/...${COLOR_RESET})."
-    echo -e "                     - Sin <nombre_env>: Usa nombre 'default'."
-    echo -e "                     - Con <nombre_env>: Usa ese nombre."
-    echo -e "                     - Con --python <ver> (ej: 3.10): Usa esa versión de Python."
-    echo -e "                     - Sin --python: Intenta usar la última versión disponible."
+    echo -e "  ${BOLD}--create [<nombre_env>] [--python <ver>]${COLOR_RESET} Crea un entorno virtual LOCAL (${BOLD}./.venv/<nombre_env>${COLOR_RESET})."
+    echo -e "                     - Predeterminado: ${BOLD}./.venv/default${COLOR_RESET} con última versión Python."
     echo -e "                     (No instala paquetes)."
     echo -e "  ${BOLD}--activate${COLOR_RESET}       Muestra comando para activar entorno global ${BOLD}~/.venv/default${COLOR_RESET}."
-    echo -e "  ${BOLD}--package-global <paquete|reqs.txt>${COLOR_RESET} Instala un paquete o requirements.txt"
-    echo -e "                     en el entorno GLOBAL (${BOLD}~/.venv/default${COLOR_RESET}), creándolo si no existe."
+    echo -e "  ${BOLD}--package-global <paquete|reqs.txt>${COLOR_RESET} Instala paquete/requisitos en el entorno GLOBAL"
+    echo -e "                     (${BOLD}~/.venv/default${COLOR_RESET}), creándolo si es necesario."
+    echo -e "  ${BOLD}--package-local [<entorno>] [<paquete|reqs.txt>]${COLOR_RESET} Instala paquete/requisitos en un"
+    echo -e "                     entorno LOCAL ${BOLD}EXISTENTE${COLOR_RESET} (${BOLD}./.venv/<entorno>${COLOR_RESET})."
+    echo -e "                     - Si <entorno> se omite: usa ${BOLD}default${COLOR_RESET} (${BOLD}./.venv/default${COLOR_RESET})."
+    echo -e "                     - Si <paquete|reqs.txt> se omite: usa ${BOLD}./requirements.txt${COLOR_RESET}."
+    echo -e "                     (¡El entorno local DEBE existir! Usa --create primero si no)."
     echo -e "  ${BOLD}--list${COLOR_RESET}           Lista paquetes y versión de Python del entorno seleccionado."
-    echo -e "                     (Presenta menú si hay múltiples entornos locales/global)."
-    echo -e "  ${BOLD}--remove [<nombre_env>]${COLOR_RESET} Elimina un entorno virtual."
-    echo -e "                     - Sin <nombre_env>: Intenta eliminar ${BOLD}./.venv/default${COLOR_RESET}. Si no,"
-    echo -e "                       intenta eliminar el global ${BOLD}~/.venv/default${COLOR_RESET}."
-    echo -e "                     - Con <nombre_env>: Elimina el local ${BOLD}./.venv/<nombre_env>${COLOR_RESET}."
-    echo -e "                     (Pide confirmación)."
-    # La opción --install ahora está OBSOLETA y se reemplaza por --package-global
-    # echo -e "  ${BOLD}--install${COLOR_RESET}        ${COLOR_YELLOW}(OBSOLETO)${COLOR_RESET} Usar ${BOLD}--package-global requirements.txt${COLOR_RESET} en su lugar."
+    echo -e "                     (Menú interactivo si hay múltiples entornos locales/global)."
+    echo -e "  ${BOLD}--remove [<nombre_env>]${COLOR_RESET} Elimina un entorno virtual (local o global)."
+    echo -e "                     - Sin <nombre_env>: Intenta ${BOLD}./.venv/default${COLOR_RESET}, luego ${BOLD}~/.venv/default${COLOR_RESET}."
+    echo -e "                     - Con <nombre_env>: Elimina ${BOLD}./.venv/<nombre_env>${COLOR_RESET}."
+    echo -e "                     (Pide confirmación). (AÚN NO IMPLEMENTADO)"
+    # La opción --install está obsoleta
+    # echo -e "  ${BOLD}--install${COLOR_RESET}        ${COLOR_YELLOW}(OBSOLETO)${COLOR_RESET} Usar ${BOLD}--package-global <ruta/a/reqs.txt>${COLOR_RESET}."
     echo -e "  ${BOLD}--help${COLOR_RESET}, ${BOLD}-h${COLOR_RESET}       Muestra esta ayuda."
     echo -e "  ${BOLD}--version${COLOR_RESET}      Muestra la versión del script."
     echo
     echo -e "${UNDERLINE}Notas:${COLOR_RESET}"
-    echo -e "* ${BOLD}--create${COLOR_RESET} es siempre para entornos locales (${BOLD}./.venv/${COLOR_RESET})."
-    # echo -e "* ${BOLD}--install${COLOR_RESET} ha sido reemplazado por ${BOLD}--package-global${COLOR_RESET}."
-    echo -e "* ${BOLD}--package-global${COLOR_RESET} es siempre para el entorno global (${BOLD}~/.venv/default${COLOR_RESET})."
+    echo -e "* ${BOLD}--create${COLOR_RESET} es para crear entornos locales (${BOLD}./.venv/${COLOR_RESET})."
+    echo -e "* ${BOLD}--package-global${COLOR_RESET} es para instalar en el global (${BOLD}~/.venv/default${COLOR_RESET})."
+    echo -e "* ${BOLD}--package-local${COLOR_RESET} es para instalar en locales ${BOLD}existentes${COLOR_RESET} (${BOLD}./.venv/...${COLOR_RESET})."
     echo -e "* Los logs se guardan en ${BOLD}$LOG_FILE${COLOR_RESET}."
 }
 
@@ -706,14 +863,6 @@ main() {
             echo -e "  ${BOLD}source \"$BIN_VENV_DIR/bin/activate\"${COLOR_RESET}"
             log "INFO" "Mostrado comando de activación para $BIN_VENV_DIR"
             ;;
-        --list)
-            list_packages "$@" # Pasar argumentos por si se extiende en futuro
-            ;;
-        --remove)
-            # remove_venv "$@" # Aún falta definir esta función
-            mostrar_advertencia "El comando --remove aún no está implementado."
-            log "WARN" "Comando --remove llamado pero no implementado."
-            ;;
         --package-global)
              if [[ -z "$1" ]]; then
                  mostrar_error "El comando --package-global requiere un argumento (nombre de paquete o ruta a requirements.txt)."
@@ -723,22 +872,29 @@ main() {
              install_global_package "$1"
              shift # Consumir el argumento del paquete/archivo
              ;;
+        --package-local)
+            # Pasar todos los argumentos restantes a la función, ella se encarga del parseo
+            install_local_package "$@"
+            ;;
+        --list)
+            list_packages "$@"
+            ;;
+        --remove)
+            mostrar_advertencia "El comando --remove aún no está implementado."
+            log "WARN" "Comando --remove llamado pero no implementado."
+            ;;
         # El comando --install está obsoleto
         --install)
             mostrar_advertencia "El comando ${BOLD}--install${COLOR_RESET} está obsoleto."
-            mostrar_info "Para instalar requisitos globales, usa:"
-            echo "  pymanager.sh --package-global <ruta/a/requirements.txt>"
-            mostrar_info "Si necesitas buscar requirements.txt automáticamente (como antes), esa lógica ahora está en --package-global."
+            mostrar_info "Usa ${BOLD}--package-global <paquete|reqs.txt>${COLOR_RESET} o ${BOLD}--package-local [<entorno>] [<paquete|reqs.txt>]${COLOR_RESET}."
             log "WARN" "Comando obsoleto --install invocado."
-            # Podríamos llamar a install_global_package con un $DEFAULT_ENV_REQUIREMENTS_PATH si quisiéramos replicar exactamente
-            # Pero es mejor guiar al usuario al nuevo comando.
-            exit 1 # Salir para evitar confusión
+            exit 1
             ;;
         --help|-h)
             show_help
             ;;
         --version)
-            echo "${APP_NAME} v${VERSION}" # Usar VERSION definida al inicio
+            echo "${APP_NAME} v${VERSION}"
             exit 0
             ;;
         *)
