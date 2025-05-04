@@ -125,3 +125,12 @@ rules:
       - Código fuente: variables/funciones en inglés (por convención)
       - Mensajes de commit: seguir el formato [TAG] en inglés
       - Metadatos técnicos en archivos de configuración
+
+      # --- POLÍTICA IMPERATIVA DE EDICIÓN DE CÓDIGO ---
+      # ES OBLIGATORIO Y MANDATORIO SEGUIR ESTA POLÍTICA:
+      # 1. NUNCA generes una propuesta de edición de código (`edit_file`) sin antes haber:
+      #    a) Descrito DETALLADAMENTE en el chat los cambios específicos que planeas realizar.
+      #    b) Recibido mi CONFIRMACIÓN EXPLÍCITA ("procede", "ok", "sí", "adelante", etc.) en el chat.
+      # 2. NO ASUMAS la aprobación. La descripción NO es suficiente. Debes ESPERAR mi respuesta afirmativa.
+      # 3. Si no recibes confirmación explícita, NO generes la propuesta de `edit_file`. Pregunta de nuevo o espera.
+      # --- FIN POLÍTICA IMPERATIVA ---
