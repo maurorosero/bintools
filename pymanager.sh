@@ -22,8 +22,8 @@ DEFAULT_ENV_REQUIREMENTS_PATH="$SCRIPT_DIR/requirements.txt"
 LOG_DIR="$HOME/.logs"
 LOG_FILE="$LOG_DIR/pymanager.log"
 APP_NAME="Gestor de Entornos Python (pymanager)"
-APP_VERSION="0.4.0"
-APP_AUTHOR="Mauro Rosero P."
+VERSION="0.4.0"
+AUTHOR="Mauro Rosero P."
 ORIGINAL_ARGS=("$@")
 
 # Colores y formatos (estilo packages.sh)
@@ -47,10 +47,10 @@ log() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') [$level] - $message" >> "$LOG_FILE"
 }
 # Funciones para mostrar mensajes coloreados
-mostrar_error() { echo -e "${RED}${BOLD}Error:${NC}${RED} $1${NC}" >&2; log "ERROR" "$1"; }
-mostrar_advertencia() { echo -e "${YELLOW}${BOLD}Advertencia:${NC}${YELLOW} $1${NC}"; log "WARN" "$1"; }
-mostrar_exito() { echo -e "${GREEN}${BOLD}Éxito:${NC}${GREEN} $1${NC}"; log "INFO" "$1"; }
-mostrar_info() { echo -e "${BLUE}Info:${NC} $1"; }
+mostrar_error() { echo -e "${COLOR_RED}${BOLD}Error:${COLOR_RESET}${COLOR_RED} $1${COLOR_RESET}" >&2; log "ERROR" "$1"; }
+mostrar_advertencia() { echo -e "${COLOR_YELLOW}${BOLD}Advertencia:${COLOR_RESET}${COLOR_YELLOW} $1${COLOR_RESET}"; log "WARN" "$1"; }
+mostrar_exito() { echo -e "${COLOR_GREEN}${BOLD}Éxito:${COLOR_RESET}${COLOR_GREEN} $1${COLOR_RESET}"; log "INFO" "$1"; }
+mostrar_info() { echo -e "${COLOR_BLUE}Info:${COLOR_RESET} $1"; }
 
 # Verificar prerrequisitos (Python3 y venv)
 check_prerequisites() {
@@ -113,15 +113,15 @@ install_default_env() {
     # Reinstalar si es necesario
     if [ "$reinstall_env" = true ] && [ -d "$target_venv_path" ]; then
         mostrar_info "Eliminando entorno predeterminado existente..."
-        echo -ne "${YELLOW}▶${NC} Eliminando $target_venv_path... "; if rm -rf "$target_venv_path"; then echo -e "${GREEN}✓${NC}"; else echo -e "${RED}✗${NC}"; mostrar_error "No se pudo eliminar."; exit 1; fi
+        echo -ne "${COLOR_YELLOW}▶${COLOR_RESET} Eliminando $target_venv_path... "; if rm -rf "$target_venv_path"; then echo -e "${COLOR_GREEN}✓${COLOR_RESET}"; else echo -e "${COLOR_RED}✗${COLOR_RESET}"; mostrar_error "No se pudo eliminar."; exit 1; fi
     fi
 
     # Crear si no existe (o se acaba de borrar)
     if [ ! -d "$target_venv_path" ]; then
         ensure_venv_dir # Asegurar $VENV_DIR
         mostrar_info "Creando entorno virtual predeterminado en: $target_venv_path"
-        echo -ne "${YELLOW}▶${NC} Inicializando entorno virtual... "
-        if python3 -m venv "$target_venv_path" >> "$LOG_FILE" 2>&1; then echo -e "${GREEN}✓${NC}"; else echo -e "${RED}✗${NC}"; mostrar_error "Falló la creación."; exit 1; fi
+        echo -ne "${COLOR_YELLOW}▶${COLOR_RESET} Inicializando entorno virtual... "
+        if python3 -m venv "$target_venv_path" >> "$LOG_FILE" 2>&1; then echo -e "${COLOR_GREEN}✓${COLOR_RESET}"; else echo -e "${COLOR_RED}✗${COLOR_RESET}"; mostrar_error "Falló la creación."; exit 1; fi
         log "INFO" "Entorno $target_venv_path creado."
     fi
 
@@ -130,9 +130,9 @@ install_default_env() {
     if ! verificar_conexion_internet; then mostrar_advertencia "Sin conexión, no se instalarán paquetes."; exit 0; fi
 
     # Actualizar pip
-    mostrar_info "Actualizando pip..."; echo -ne "${YELLOW}▶${NC} Actualizando pip... "
+    mostrar_info "Actualizando pip..."; echo -ne "${COLOR_YELLOW}▶${COLOR_RESET} Actualizando pip... "
     # Capturar salida de actualización de pip también, por si acaso
-    if ("$target_venv_path/bin/pip" install --upgrade pip >> "$TEMP_PIP_LOG" 2>&1); then echo -e "${GREEN}✓${NC}"; else echo -e "${RED}✗${NC}"; mostrar_advertencia "Fallo al actualizar pip. Ver $TEMP_PIP_LOG"; log "WARN" "Fallo pip update"; fi
+    if ("$target_venv_path/bin/pip" install --upgrade pip >> "$TEMP_PIP_LOG" 2>&1); then echo -e "${COLOR_GREEN}✓${COLOR_RESET}"; else echo -e "${COLOR_RED}✗${COLOR_RESET}"; mostrar_advertencia "Fallo al actualizar pip. Ver $TEMP_PIP_LOG"; log "WARN" "Fallo pip update"; fi
 
     # --- INSTALLATION WITH OUTPUT CAPTURE ---
     mostrar_info "Instalando/actualizando paquetes desde $DEFAULT_ENV_REQUIREMENTS_PATH (salida capturada)..."
@@ -165,17 +165,17 @@ install_default_env() {
         fi
 
         mostrar_exito "Instalación/actualización desde $DEFAULT_ENV_REQUIREMENTS_PATH completada."
-        echo -e "${BLUE}Resumen:${NC}"
+        echo -e "${COLOR_BLUE}Resumen:${COLOR_RESET}"
         # Always show satisfied count
-        echo -e "  ${GREEN}✓${NC} Paquetes ya satisfechos: $satisfied_count"
+        echo -e "  ${COLOR_GREEN}✓${COLOR_RESET} Paquetes ya satisfechos: $satisfied_count"
         # Show installed/updated list if any
         if [ "$installed_count" -gt 0 ]; then
-             echo -e "  ${YELLOW}↑${NC} Paquetes instalados/actualizados ($installed_count):"
+             echo -e "  ${COLOR_YELLOW}↑${COLOR_RESET} Paquetes instalados/actualizados ($installed_count):"
              echo "$installed_list" | fold -s -w 70 | sed 's/^/    /' 
         fi
         # Show ignored list if any
         if [ "$ignored_count" -gt 0 ]; then
-             echo -e "  ${CYAN}- ${NC} Paquetes ignorados (marcador) ($ignored_count):"
+             echo -e "  ${COLOR_CYAN}- ${COLOR_RESET} Paquetes ignorados (marcador) ($ignored_count):"
              # Indent the list for clarity
              echo "$ignored_list" | sed 's/^/    /' 
         fi
@@ -229,11 +229,11 @@ list_packages() {
     fi
 
     log "INFO" "Listando paquetes en $target_venv_path ($env_name)"
-    echo -e "${BLUE}--- Paquetes en entorno '$env_name' ---${NC}"
+    echo -e "${COLOR_BLUE}--- Paquetes en entorno '$env_name' ---${COLOR_RESET}"
     if ! "$target_venv_path/bin/pip" list; then
         mostrar_error "Fallo al listar paquetes con pip list."; exit 1
     fi
-    echo -e "${BLUE}--------------------------------------${NC}"
+    echo -e "${COLOR_BLUE}--------------------------------------${COLOR_RESET}"
 }
 
 # ... (Resto de funciones: create_venv, activate_venv, add_package, remove_venv, update_packages, mostrar_ayuda, show_banner, main) ...
@@ -255,13 +255,13 @@ show_banner() {
   printf '|%*s|\n' "$width" ''
 
   # Versión alineada
-  local version_text="Version: $APP_VERSION"
+  local version_text="Version: $VERSION"
   local version_len=${#version_text}
   local version_pad=$((width - version_len - 1))
   printf '| %s%*s|\n' "$version_text" "$version_pad" ''
 
   # Autor alineado
-  local author_text="By: $APP_AUTHOR"
+  local author_text="By: $AUTHOR"
   local author_len=${#author_text}
   local author_pad=$((width - author_len - 1))
   printf '| %s%*s|\n' "$author_text" "$author_pad" ''
