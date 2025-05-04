@@ -818,12 +818,11 @@ show_help() {
     echo -e "                     (¡El entorno local DEBE existir! Usa --create primero si no)."
     echo -e "  ${BOLD}--list${COLOR_RESET}           Lista paquetes y versión de Python del entorno seleccionado."
     echo -e "                     (Menú interactivo si hay múltiples entornos locales/global)."
-    echo -e "  ${BOLD}--remove [<nombre_env>]${COLOR_RESET} Elimina un entorno virtual (local o global)."
-    echo -e "                     - Sin <nombre_env>: Intenta ${BOLD}./.venv/default${COLOR_RESET}, luego ${BOLD}~/.venv/default${COLOR_RESET}."
-    echo -e "                     - Con <nombre_env>: Elimina ${BOLD}./.venv/<nombre_env>${COLOR_RESET}."
-    echo -e "                     (Pide confirmación). (AÚN NO IMPLEMENTADO)"
-    # La opción --install está obsoleta
-    # echo -e "  ${BOLD}--install${COLOR_RESET}        ${COLOR_YELLOW}(OBSOLETO)${COLOR_RESET} Usar ${BOLD}--package-global <ruta/a/reqs.txt>${COLOR_RESET}."
+    echo -e "  ${BOLD}--remove-global${COLOR_RESET}  Elimina el entorno virtual global (${BOLD}~/.venv/default${COLOR_RESET})."
+    echo -e "                     (Pide confirmación)."
+    echo -e "  ${BOLD}--remove-local${COLOR_RESET}   Elimina entornos locales (${BOLD}./.venv/*${COLOR_RESET}) interactivamente."
+    echo -e "                     (Lista entornos, permite seleccionar uno/varios/todos)."
+    echo -e "                     (Pide confirmación)."
     echo -e "  ${BOLD}--help${COLOR_RESET}, ${BOLD}-h${COLOR_RESET}       Muestra esta ayuda."
     echo -e "  ${BOLD}--version${COLOR_RESET}      Muestra la versión del script."
     echo
@@ -832,6 +831,228 @@ show_help() {
     echo -e "* ${BOLD}--package-global${COLOR_RESET} es para instalar en el global (${BOLD}~/.venv/default${COLOR_RESET})."
     echo -e "* ${BOLD}--package-local${COLOR_RESET} es para instalar en locales ${BOLD}existentes${COLOR_RESET} (${BOLD}./.venv/...${COLOR_RESET})."
     echo -e "* Los logs se guardan en ${BOLD}$LOG_FILE${COLOR_RESET}."
+}
+
+# --- Nuevas Funciones para Eliminar Entornos ---
+
+# Elimina el entorno virtual global default (~/.venv/default)
+remove_global_env() {
+    local target_path="$BIN_VENV_DIR"
+    log "INFO" "Iniciando --remove-global para $target_path"
+
+    if [[ ! -d "$target_path" ]]; then
+        mostrar_info "El entorno virtual global (${COLOR_CYAN}$target_path${COLOR_RESET}) no existe."
+        log "INFO" "El entorno global $target_path no existe, nada que hacer."
+        exit 0
+    fi
+
+    mostrar_advertencia "Está a punto de eliminar permanentemente el entorno global:"
+    echo -e "  ${COLOR_YELLOW}$target_path${COLOR_RESET}"
+
+    local confirm_msg="¿Realmente desea eliminar este entorno global?"
+    local confirmed=false
+    if [[ "$HAS_GUM" == "true" ]] && command -v gum &> /dev/null; then
+        if gum confirm "$confirm_msg"; then confirmed=true; fi
+    else
+        local response
+        read -p "$confirm_msg (s/N): " response
+        if [[ "$response" =~ ^[Ss]$ ]]; then confirmed=true; fi
+    fi
+
+    if ! $confirmed; then
+        mostrar_info "Operación cancelada."
+        log "INFO" "Eliminación de $target_path cancelada por el usuario."
+        exit 0
+    fi
+
+    mostrar_info "Eliminando entorno global ${COLOR_CYAN}$target_path${COLOR_RESET}..."
+    echo -ne "${COLOR_YELLOW}▶${COLOR_RESET} Eliminando $target_path... "
+    if rm -rf "$target_path"; then
+        echo -e "${COLOR_GREEN}✓${COLOR_RESET}"
+        mostrar_exito "Entorno global ${COLOR_GREEN}$target_path${COLOR_RESET} eliminado."
+        log "INFO" "Entorno global $target_path eliminado exitosamente."
+    else
+        echo -e "${COLOR_RED}✗${COLOR_RESET}"
+        mostrar_error "No se pudo eliminar el entorno global ${COLOR_RED}$target_path${COLOR_RESET}."
+        log "ERROR" "Fallo al eliminar $target_path."
+        exit 1
+    fi
+}
+
+# Elimina uno o más entornos virtuales locales (./.venv/*) interactivamente
+remove_local_env() {
+    local local_venv_base_dir="$PWD/.venv"
+    log "INFO" "Iniciando --remove-local en $local_venv_base_dir"
+
+    if [[ ! -d "$local_venv_base_dir" ]]; then
+        mostrar_info "No existe el directorio de entornos locales (${COLOR_CYAN}$local_venv_base_dir${COLOR_RESET})."
+        log "INFO" "Directorio $local_venv_base_dir no encontrado, nada que eliminar."
+        exit 0
+    fi
+
+    local env_names=()
+    local env_paths=()
+    local options=()
+    local found_envs=false
+
+    mostrar_info "Buscando entornos locales en ${COLOR_CYAN}$local_venv_base_dir${COLOR_RESET}..."
+    while IFS= read -r -d $'\0' potential_env_path; do
+        local env_name
+        env_name=$(basename "$potential_env_path")
+        # Verificar si es realmente un entorno (opcional, podría eliminar cualquier dir)
+        # if verificar_entorno_python "$potential_env_path"; then
+            env_names+=("$env_name")
+            env_paths+=("$potential_env_path")
+            options+=("$env_name") # Añadir solo el nombre a las opciones del menú
+            log "INFO" "Entorno local encontrado: $env_name en $potential_env_path"
+            found_envs=true
+        # fi
+    done < <(find "$local_venv_base_dir" -maxdepth 1 -mindepth 1 -type d -print0)
+
+    if ! $found_envs; then
+        mostrar_info "No se encontraron entornos locales en ${COLOR_CYAN}$local_venv_base_dir${COLOR_RESET}."
+        log "INFO" "No se encontraron subdirectorios en $local_venv_base_dir."
+        exit 0
+    fi
+
+    # Añadir opciones especiales al menú
+    local all_option="[ Eliminar TODOS los listados (${#env_names[@]}) ]"
+    local cancel_option="[ Cancelar ]"
+    options+=("$all_option" "$cancel_option")
+
+    local selection=() # Array para guardar selecciones
+    local choice_str="" # String para selección única de 'select'
+
+    mostrar_info "Seleccione los entornos locales a eliminar:"
+    if [[ "$HAS_GUM" == "true" ]] && command -v gum &> /dev/null; then
+        # Usar gum choose con selección múltiple
+        # Necesitamos pasar las opciones como argumentos separados a gum choose
+        local gum_output
+        mapfile -t gum_output < <(printf "%s\n" "${options[@]}" | gum choose --no-limit --header="Selecciona entornos (Espacio para marcar, Enter para confirmar)")
+        local exit_code=$?
+        if [[ $exit_code -ne 0 ]]; then # Gum cancelado (ej: Ctrl+C)
+             mostrar_info "Operación cancelada."
+             log "INFO" "Selección cancelada en gum choose."
+             exit 0
+        fi
+        # Copiar salida de gum al array selection
+         for item in "${gum_output[@]}"; do
+             selection+=("$item")
+         done
+         log "DEBUG" "Selección de gum: ${selection[*]}"
+    else
+        # Fallback a select de Bash (selección única + TODOS)
+        mostrar_advertencia "(Usando menú básico. Instala 'gum' para seleccionar múltiples entornos individualmente)."
+        PS3="Selecciona el número del entorno a eliminar (o opción especial, q para salir): "
+        select opt in "${options[@]}"; do
+            if [[ "$REPLY" == "q" ]]; then
+                choice_str="$cancel_option" # Tratar 'q' como cancelar
+                break
+            elif [[ -n "$opt" ]]; then
+                choice_str="$opt"
+                break
+            else
+                echo "Selección inválida. Intenta de nuevo."
+            fi
+        done
+         # Añadir la selección única al array selection (si no es cancelar)
+         if [[ "$choice_str" != "$cancel_option" ]]; then
+             selection+=("$choice_str")
+         fi
+         log "DEBUG" "Selección de select: $choice_str"
+    fi
+
+    # Procesar selección
+    local paths_to_delete=()
+    local delete_all=false
+    local user_cancelled=false
+
+    if [[ ${#selection[@]} -eq 0 ]]; then # Si gum no devuelve nada o select eligió Cancelar
+         user_cancelled=true
+    else
+         for sel in "${selection[@]}"; do
+             if [[ "$sel" == "$cancel_option" ]]; then
+                 user_cancelled=true
+                 break # Salir del bucle si se encuentra Cancelar
+             elif [[ "$sel" == "$all_option" ]]; then
+                 delete_all=true
+                 # Si se elige TODOS, ignorar otras selecciones individuales
+                 paths_to_delete=("${env_paths[@]}") # Marcar todos para borrar
+                 log "INFO" "Seleccionado eliminar TODOS los entornos locales."
+                 break # Salir del bucle, ya tenemos la acción
+             elif [[ "$choice_str" != "" ]]; then # Si usamos select, solo procesar esa opción
+                 # Encontrar la ruta correspondiente al nombre seleccionado
+                 for i in "${!env_names[@]}"; do
+                     if [[ "${env_names[$i]}" == "$sel" ]]; then
+                         paths_to_delete+=("${env_paths[$i]}")
+                         log "INFO" "Entorno local seleccionado para eliminar: ${env_names[$i]}"
+                         break # Encontrado, salir del bucle interno
+                     fi
+                 done
+             fi
+         done
+    fi
+
+    if $user_cancelled; then
+        mostrar_info "Operación cancelada."
+        log "INFO" "Eliminación local cancelada por el usuario."
+        exit 0
+    fi
+
+    if [[ ${#paths_to_delete[@]} -eq 0 ]]; then
+        mostrar_info "No se seleccionó ningún entorno para eliminar."
+        log "INFO" "No se seleccionaron entornos válidos."
+        exit 0
+    fi
+
+    # Confirmación final
+    local confirm_msg_final=""
+    if $delete_all; then
+        confirm_msg_final="¿Realmente desea eliminar TODOS (${#paths_to_delete[@]}) los entornos locales listados?"
+    else
+         local names_to_delete_str=$(printf "'%s', " "${paths_to_delete[@]}" | sed 's|.*/||; s/, $//') # Extraer nombres de rutas
+         confirm_msg_final="¿Realmente desea eliminar los siguientes entornos locales (${#paths_to_delete[@]}): $names_to_delete_str?"
+    fi
+
+    local confirmed_final=false
+    if [[ "$HAS_GUM" == "true" ]] && command -v gum &> /dev/null; then
+        if gum confirm "$confirm_msg_final"; then confirmed_final=true; fi
+    else
+        local response_final
+        read -p "$confirm_msg_final (s/N): " response_final
+        if [[ "$response_final" =~ ^[Ss]$ ]]; then confirmed_final=true; fi
+    fi
+
+    if ! $confirmed_final; then
+        mostrar_info "Operación cancelada."
+        log "INFO" "Eliminación final cancelada por el usuario."
+        exit 0
+    fi
+
+    # Proceder con la eliminación
+    local errors_occurred=false
+    mostrar_info "Eliminando entornos locales seleccionados..."
+    for path_del in "${paths_to_delete[@]}"; do
+        local env_name_del
+        env_name_del=$(basename "$path_del")
+        echo -ne "${COLOR_YELLOW}▶${COLOR_RESET} Eliminando ${COLOR_CYAN}$env_name_del${COLOR_RESET} ($path_del)... "
+        if rm -rf "$path_del"; then
+            echo -e "${COLOR_GREEN}✓${COLOR_RESET}"
+            log "INFO" "Entorno local eliminado: $path_del"
+        else
+            echo -e "${COLOR_RED}✗${COLOR_RESET}"
+            mostrar_error "No se pudo eliminar ${COLOR_RED}$path_del${COLOR_RESET}."
+            log "ERROR" "Fallo al eliminar $path_del."
+            errors_occurred=true
+        fi
+    done
+
+    if $errors_occurred; then
+        mostrar_advertencia "Ocurrieron errores durante la eliminación. Revisa los mensajes anteriores."
+        exit 1
+    else
+        mostrar_exito "Entornos locales seleccionados eliminados correctamente."
+    fi
 }
 
 # --- Flujo Principal ---
@@ -879,16 +1100,11 @@ main() {
         --list)
             list_packages "$@"
             ;;
-        --remove)
-            mostrar_advertencia "El comando --remove aún no está implementado."
-            log "WARN" "Comando --remove llamado pero no implementado."
+        --remove-global)
+            remove_global_env
             ;;
-        # El comando --install está obsoleto
-        --install)
-            mostrar_advertencia "El comando ${BOLD}--install${COLOR_RESET} está obsoleto."
-            mostrar_info "Usa ${BOLD}--package-global <paquete|reqs.txt>${COLOR_RESET} o ${BOLD}--package-local [<entorno>] [<paquete|reqs.txt>]${COLOR_RESET}."
-            log "WARN" "Comando obsoleto --install invocado."
-            exit 1
+        --remove-local)
+            remove_local_env # No necesita argumentos
             ;;
         --help|-h)
             show_help
