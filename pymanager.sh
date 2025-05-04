@@ -21,13 +21,22 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
 DEFAULT_ENV_REQUIREMENTS_PATH="$SCRIPT_DIR/requirements.txt"
 LOG_DIR="$HOME/.logs"
 LOG_FILE="$LOG_DIR/pymanager.log"
-APP_NAME="Python Env Manager (pymanager)"
+APP_NAME="Gestor de Entornos Python (pymanager)"
 APP_VERSION="0.4.0"
 APP_AUTHOR="Mauro Rosero P."
 ORIGINAL_ARGS=("$@")
 
-# Colores
-RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; MAGENTA='\033[0;35m'; CYAN='\033[0;36m'; WHITE='\033[1;37m'; NC='\033[0m'; BOLD='\033[1m'; UNDERLINE='\033[4m'
+# Colores y formatos (estilo packages.sh)
+COLOR_GREEN="\033[0;32m"
+COLOR_YELLOW="\033[0;33m"
+COLOR_RED="\033[0;31m"
+COLOR_CYAN="\033[0;36m"
+COLOR_BLUE="\033[0;34m"
+COLOR_MAGENTA="\033[0;35m"
+COLOR_RESET="\033[0m"
+BOLD="\033[1m"
+UNDERLINE="\033[4m" # Añadido para compatibilidad con ayuda anterior
+ITALIC="\033[3m"    # Añadido si se quiere usar
 
 # Funciones de Utilidad (Logging, Mensajes, Prerrequisitos, etc.)
 # ============================================================
@@ -78,10 +87,11 @@ get_local_venv_path() {
 
 # --- install_default_env Simplified with Output Parsing ---
 install_default_env() {
+    local target_venv_path="$1"
     mostrar_info "====================================================="
     mostrar_info "  Instalando entorno Python predeterminado (default)"
     mostrar_info "====================================================="
-    log "INFO" "Iniciando instalación del entorno por defecto en $BIN_VENV_DIR"
+    log "INFO" "Iniciando instalación del entorno por defecto en $target_venv_path"
 
     # --- Setup Temp File for Pip Output --- 
     local TEMP_PIP_LOG="/tmp/pymanager_pip_output.$$.log"
@@ -91,8 +101,8 @@ install_default_env() {
     # --- End Setup ---
 
     local reinstall_env=false
-    if [ -d "$BIN_VENV_DIR" ]; then
-        read -p "El entorno predeterminado '$BIN_VENV_DIR' ya existe. ¿Desea reinstalarlo? (s/N/c=cancelar): " confirm
+    if [ -d "$target_venv_path" ]; then
+        read -p "El entorno predeterminado '$target_venv_path' ya existe. ¿Desea reinstalarlo? (s/N/c=cancelar): " confirm
         if [[ "$confirm" =~ ^[Cc]$ ]]; then mostrar_info "Operación cancelada."; exit 0;
         elif [[ "$confirm" =~ ^[Ss]$ ]]; then reinstall_env=true;
         else mostrar_info "Usando el entorno predeterminado existente."; fi
@@ -101,18 +111,18 @@ install_default_env() {
     fi
 
     # Reinstalar si es necesario
-    if [ "$reinstall_env" = true ] && [ -d "$BIN_VENV_DIR" ]; then
+    if [ "$reinstall_env" = true ] && [ -d "$target_venv_path" ]; then
         mostrar_info "Eliminando entorno predeterminado existente..."
-        echo -ne "${YELLOW}▶${NC} Eliminando $BIN_VENV_DIR... "; if rm -rf "$BIN_VENV_DIR"; then echo -e "${GREEN}✓${NC}"; else echo -e "${RED}✗${NC}"; mostrar_error "No se pudo eliminar."; exit 1; fi
+        echo -ne "${YELLOW}▶${NC} Eliminando $target_venv_path... "; if rm -rf "$target_venv_path"; then echo -e "${GREEN}✓${NC}"; else echo -e "${RED}✗${NC}"; mostrar_error "No se pudo eliminar."; exit 1; fi
     fi
 
     # Crear si no existe (o se acaba de borrar)
-    if [ ! -d "$BIN_VENV_DIR" ]; then
+    if [ ! -d "$target_venv_path" ]; then
         ensure_venv_dir # Asegurar $VENV_DIR
-        mostrar_info "Creando entorno virtual predeterminado en: $BIN_VENV_DIR"
+        mostrar_info "Creando entorno virtual predeterminado en: $target_venv_path"
         echo -ne "${YELLOW}▶${NC} Inicializando entorno virtual... "
-        if python3 -m venv "$BIN_VENV_DIR" >> "$LOG_FILE" 2>&1; then echo -e "${GREEN}✓${NC}"; else echo -e "${RED}✗${NC}"; mostrar_error "Falló la creación."; exit 1; fi
-        log "INFO" "Entorno $BIN_VENV_DIR creado."
+        if python3 -m venv "$target_venv_path" >> "$LOG_FILE" 2>&1; then echo -e "${GREEN}✓${NC}"; else echo -e "${RED}✗${NC}"; mostrar_error "Falló la creación."; exit 1; fi
+        log "INFO" "Entorno $target_venv_path creado."
     fi
 
     # Verificaciones comunes
@@ -122,11 +132,11 @@ install_default_env() {
     # Actualizar pip
     mostrar_info "Actualizando pip..."; echo -ne "${YELLOW}▶${NC} Actualizando pip... "
     # Capturar salida de actualización de pip también, por si acaso
-    if ("$BIN_VENV_DIR/bin/pip" install --upgrade pip >> "$TEMP_PIP_LOG" 2>&1); then echo -e "${GREEN}✓${NC}"; else echo -e "${RED}✗${NC}"; mostrar_advertencia "Fallo al actualizar pip. Ver $TEMP_PIP_LOG"; log "WARN" "Fallo pip update"; fi
+    if ("$target_venv_path/bin/pip" install --upgrade pip >> "$TEMP_PIP_LOG" 2>&1); then echo -e "${GREEN}✓${NC}"; else echo -e "${RED}✗${NC}"; mostrar_advertencia "Fallo al actualizar pip. Ver $TEMP_PIP_LOG"; log "WARN" "Fallo pip update"; fi
 
     # --- INSTALLATION WITH OUTPUT CAPTURE ---
     mostrar_info "Instalando/actualizando paquetes desde $DEFAULT_ENV_REQUIREMENTS_PATH (salida capturada)..."
-    local pip_install_cmd="$BIN_VENV_DIR/bin/pip install -r \"$DEFAULT_ENV_REQUIREMENTS_PATH\""
+    local pip_install_cmd="$target_venv_path/bin/pip install -r \"$DEFAULT_ENV_REQUIREMENTS_PATH\""
     log "INFO" "Ejecutando: $pip_install_cmd > $TEMP_PIP_LOG 2>&1"
 
     # Ejecutar pip install -r capturando toda la salida
@@ -184,13 +194,19 @@ install_default_env() {
     fi
     # --- END OF INSTALLATION WITH OUTPUT CAPTURE ---
 
-    # Crear alias y mostrar info final (asumiendo que las funciones crear_alias_* existen)
-    # crear_alias_pybin; crear_alias_pyunbin # Descomentar si estas funciones existen y son necesarias
-    # echo -e "\\n${WHITE}Para activar:${NC} source ~/.bashrc && pybin" # Ajustar si es necesario
-    # echo -e "${WHITE}Para desactivar:${NC} pyunbin" # Ajustar si es necesario
-    log "INFO" "Comando --install completado."
+    # --- Mensaje final sobre activación --- 
+    mostrar_info "Entorno '$target_venv_path' listo."
+    # Sugerir el comando source estándar
+    echo -e "${COLOR_YELLOW}Para activar este entorno global, ejecuta:${COLOR_RESET}"
+    echo -e "  ${BOLD}source $target_venv_path/bin/activate${COLOR_RESET}"
+    # Opcional: Si tienes un alias específico, puedes sugerirlo también
+    # if command -e pybin &> /dev/null; then # Ejemplo de comprobación de alias
+    #     echo -e "${COLOR_YELLOW}O usa tu alias:${COLOR_RESET} ${BOLD}pybin${COLOR_RESET}"
+    # fi
+
+    log "INFO" "Comando --install completado para $target_venv_path. Mensaje de activación mostrado."
     rm -f "$TEMP_PIP_LOG" # Limpieza explícita si todo va bien
-    trap - EXIT SIGINT SIGTERM # Limpiar trap si salimos normalmente
+    trap - EXIT SIGINT SIGTERM # Limpiar trap si salimos normally
 }
 
 # Comando: Listar paquetes instalados (default o local)
@@ -258,33 +274,31 @@ show_banner() {
 
 # Ayuda
 usage() {
-    cat << EOF
-${BOLD}${APP_NAME} v${APP_VERSION}${NC} por ${APP_AUTHOR}
-Gestión simplificada de entornos virtuales Python.
-
-${UNDERLINE}Uso:${NC} ${BOLD}pymanager.sh${NC} --comando [opciones]
-
-${UNDERLINE}Comandos:${NC}
-  ${BOLD}--create${NC}         Crea el entorno virtual predeterminado (${BOLD}~/.venv/default${NC})
-                     o un entorno local (${BOLD}./.venv${NC}) si existe un ${BOLD}./.venv${NC} vacío.
-                     Si ya existe, solo muestra advertencia (a menos que se use con ${BOLD}--install${NC}).
-  ${BOLD}--activate${NC}       Muestra el comando para activar el entorno 'default' global.
-                     (No activa el entorno local automáticamente).
-  ${BOLD}--list${NC}           Lista los paquetes instalados en el entorno 'default' o local.
-  ${BOLD}--remove${NC}         Elimina el entorno 'default' o local (pide confirmación).
-  ${BOLD}--install${NC}        (Opción para ${BOLD}--create${NC}) Instala/actualiza paquetes desde ${BOLD}requirements.txt${NC}.
-                     *Nota: Ahora se usa principalmente con ${BOLD}--create${NC}, o solo si el venv ya existe.*
-  ${BOLD}--help${NC}, ${BOLD}-h${NC}       Muestra esta ayuda.
-  ${BOLD}--version${NC}      Muestra la versión del script.
-
-${UNDERLINE}Notas:${NC}
-* El script prioriza un entorno local (${BOLD}./.venv${NC}) si existe para ${BOLD}--create${NC}, ${BOLD}--list${NC}, ${BOLD}--remove${NC}.
-* La activación (${BOLD}--activate${NC}) siempre se refiere al entorno global 'default'.
-* La instalación con ${BOLD}--install${NC} usa ${BOLD}requirements.txt${NC} del directorio del script.
-* Los logs se guardan en ${BOLD}${LOG_FILE}${NC}.
-
-EOF
-    exit 0
+    # Usar echo -e y las variables de estilo definidas
+    echo -e "${BOLD}${COLOR_BLUE}$APP_NAME (pymanager) v${VERSION}${COLOR_RESET} por ${AUTHOR}"
+    echo -e "${ITALIC}${COLOR_CYAN}Gestión simplificada de entornos virtuales Python.${COLOR_RESET}"
+    echo
+    echo -e "${UNDERLINE}Uso:${COLOR_RESET} ${BOLD}pymanager.sh${COLOR_RESET} --comando [opciones]"
+    echo
+    echo -e "${UNDERLINE}Comandos:${COLOR_RESET}"
+    echo -e "  ${BOLD}--create${COLOR_RESET}         Crea el entorno virtual predeterminado (${BOLD}~/.venv/default${COLOR_RESET})"
+    echo -e "                     o un entorno local (${BOLD}./.venv${COLOR_RESET}) si existe un ${BOLD}./.venv${COLOR_RESET} vacío."
+    echo -e "                     Si ya existe, solo muestra advertencia (a menos que se use con ${BOLD}--install${COLOR_RESET})."
+    echo -e "  ${BOLD}--activate${COLOR_RESET}       Muestra el comando para activar el entorno 'default' global."
+    echo -e "                     (No activa el entorno local automáticamente)."
+    echo -e "  ${BOLD}--list${COLOR_RESET}           Lista los paquetes instalados en el entorno 'default' o local."
+    echo -e "  ${BOLD}--remove${COLOR_RESET}         Elimina el entorno 'default' o local (pide confirmación)."
+    echo -e "  ${BOLD}--install${COLOR_RESET}        (Opción para ${BOLD}--create${RESET}) Instala/actualiza paquetes desde ${BOLD}requirements.txt${COLOR_RESET}."
+    echo -e "                     *Nota: Ahora se usa principalmente con ${BOLD}--create${COLOR_RESET}, o solo si el venv ya existe.*"
+    echo -e "  ${BOLD}--help${COLOR_RESET}, ${BOLD}-h${COLOR_RESET}       Muestra esta ayuda."
+    echo -e "  ${BOLD}--version${COLOR_RESET}      Muestra la versión del script."
+    echo
+    echo -e "${UNDERLINE}Notas:${COLOR_RESET}"
+    echo -e "* El script prioriza un entorno local (${BOLD}./.venv${COLOR_RESET}) si existe para ${BOLD}--create${COLOR_RESET}, ${BOLD}--list${COLOR_RESET}, ${BOLD}--remove${COLOR_RESET}."
+    echo -e "* La activación (${BOLD}--activate${COLOR_RESET}) siempre se refiere al entorno global 'default'."
+    echo -e "* La instalación con ${BOLD}--install${COLOR_RESET} usa ${BOLD}requirements.txt${COLOR_RESET} del directorio del script."
+    echo -e "* Los logs se guardan en ${BOLD}/home/mrosero/.logs/pymanager.log${COLOR_RESET}."
+    # exit 0
 }
 
 # --- Flujo Principal ---
