@@ -192,17 +192,107 @@ obtener_version_python_entorno() {
 
 # --- Fin Funciones Auxiliares ---
 
+# --- Funciones para gestionar alias global ---
+
+# Define marcadores para identificar el bloque de alias en .bashrc
+PYMAN_ALIAS_START_MARKER="# >>> pymanager alias start >>>"
+PYMAN_ALIAS_END_MARKER="# <<< pymanager alias end <<<";
+BASHRC_FILE="$HOME/.bashrc"
+
+# Añade el alias pyglobalset a .bashrc
+set_global_alias() {
+    local alias_name="pyglobalset"
+    local activate_script="$BIN_VENV_DIR/bin/activate"
+    local alias_definition="alias ${alias_name}='source \"${activate_script}\"'"
+
+    mostrar_info "Configurando alias global '${alias_name}'..."
+    log "INFO" "Iniciando --set global para alias ${alias_name}"
+
+    # 1. Verificar que el script de activación existe
+    if [[ ! -f "$activate_script" ]]; then
+        mostrar_error "No se encontró el script de activación del entorno global: ${activate_script}"
+        mostrar_info "Asegúrate de que el entorno global exista. Puedes crearlo e instalar paquetes con 'pymanager.sh --install' o 'pymanager.sh --package-global ...'."
+        log "ERROR" "--set global abortado: No se encontró ${activate_script}"
+        exit 1
+    fi
+
+    # 2. Verificar si el alias ya está configurado en .bashrc
+    if grep -qF "$PYMAN_ALIAS_START_MARKER" "$BASHRC_FILE"; then
+        mostrar_info "El alias '${alias_name}' ya parece estar configurado en ${BASHRC_FILE}."
+        log "INFO" "--set global: Marcador encontrado en ${BASHRC_FILE}. No se realizaron cambios."
+        # Podríamos opcionalmente mostrar las instrucciones de uso igualmente
+        echo -e "${COLOR_YELLOW}Para asegurarte de que está activo en esta sesión, ejecuta:${COLOR_RESET}"
+        echo -e "  ${BOLD}source ${BASHRC_FILE}${COLOR_RESET}"
+        echo -e "${COLOR_YELLOW}Luego, activa el entorno con:${COLOR_RESET}"
+        echo -e "  ${BOLD}${alias_name}${COLOR_RESET}"
+        echo -e "${COLOR_YELLOW}Para desactivarlo, simplemente ejecuta:${COLOR_RESET} ${BOLD}deactivate${COLOR_RESET}"
+        exit 0
+    fi
+
+    # 3. Añadir el bloque de alias a .bashrc
+    mostrar_info "Añadiendo alias '${alias_name}' a ${BASHRC_FILE}..."
+    {
+        echo "" # Línea en blanco antes del bloque
+        echo "$PYMAN_ALIAS_START_MARKER"
+        echo "$alias_definition"
+        echo "$PYMAN_ALIAS_END_MARKER"
+    } >> "$BASHRC_FILE"
+
+    if [[ $? -eq 0 ]]; then
+        log "INFO" "Alias ${alias_name} añadido a ${BASHRC_FILE}"
+        mostrar_exito "Alias '${alias_name}' añadido correctamente a ${BASHRC_FILE}."
+        echo -e "${COLOR_YELLOW}Para usar el alias en la sesión actual:${COLOR_RESET}"
+        echo -e "  1. Recarga la configuración: ${BOLD}source ${BASHRC_FILE}${COLOR_RESET}"
+        echo -e "  2. Activa el entorno con: ${BOLD}${alias_name}${COLOR_RESET}"
+        echo -e "${COLOR_YELLOW}Para desactivarlo, simplemente ejecuta:${COLOR_RESET} ${BOLD}deactivate${COLOR_RESET}"
+        echo -e "En nuevas sesiones de terminal, el alias '${alias_name}' estará disponible automáticamente."
+    else
+        mostrar_error "Hubo un error al intentar añadir el alias a ${BASHRC_FILE}."
+        log "ERROR" "Fallo al añadir el bloque de alias a ${BASHRC_FILE}"
+        exit 1
+    fi
+}
+
+# Elimina el alias pyglobalset de .bashrc
+unset_global_alias() {
+    local alias_name="pyglobalset"
+
+    mostrar_info "Eliminando alias global '${alias_name}' de .bashrc..."
+    log "INFO" "Iniciando --unset global para alias ${alias_name}"
+
+    # 1. Verificar si el alias está configurado en .bashrc
+    if ! grep -qF "$PYMAN_ALIAS_START_MARKER" "$BASHRC_FILE"; then
+        mostrar_info "El alias '${alias_name}' no parece estar configurado en ${BASHRC_FILE}."
+        log "INFO" "--unset global: Marcador no encontrado en ${BASHRC_FILE}. No se realizaron cambios."
+        exit 0
+    fi
+
+    # 2. Eliminar el bloque de alias usando sed
+    # Usamos comas como delimitador en sed para evitar problemas con las barras en las rutas
+    # La opción -i.bak crea una copia de seguridad
+    mostrar_info "Eliminando bloque de alias de ${BASHRC_FILE} (se creará backup ${BASHRC_FILE}.bak)..."
+    sed -i.bak "\,$PYMAN_ALIAS_START_MARKER,,\,${PYMAN_ALIAS_END_MARKER},d" "$BASHRC_FILE"
+
+    if [[ $? -eq 0 ]]; then
+        log "INFO" "Bloque de alias ${alias_name} eliminado de ${BASHRC_FILE}"
+        mostrar_exito "Alias '${alias_name}' eliminado correctamente de ${BASHRC_FILE}."
+        echo -e "${COLOR_YELLOW}Para que este cambio tenga efecto en la sesión actual:${COLOR_RESET}"
+        echo -e "  Recarga la configuración: ${BOLD}source ${BASHRC_FILE}${COLOR_RESET}"
+        echo -e "El alias ya no estará disponible en nuevas sesiones."
+    else
+        mostrar_error "Hubo un error al intentar eliminar el alias de ${BASHRC_FILE}."
+        mostrar_info "Puede que necesites editar ${BASHRC_FILE} manualmente."
+        mostrar_info "Se intentó crear un backup en ${BASHRC_FILE}.bak"
+        log "ERROR" "Fallo sed al eliminar el bloque de alias de ${BASHRC_FILE}"
+        exit 1
+    fi
+}
+
+# --- Fin Funciones para gestionar alias global ---
+
 # Funciones Principales de Comandos (create, activate, add, remove, etc.)
 # =====================================================================
 
-# --- install_default_env Simplified with Output Parsing ---
-# ESTA FUNCIÓN SE VUELVE OBSOLETA y será reemplazada/integrada en install_global_package
-# Se mantiene por ahora como referencia, pero la llamada en main() se cambiará.
-install_default_env() {
-    # ... (código existente de install_default_env) ...
-    # ... (Será eliminado/refactorizado en la función install_global_package) ...
-    mostrar_advertencia "La función install_default_env está obsoleta y será eliminada."
-}
 
 # --- Nueva Función para --package-global ---
 # Instala un paquete o requirements.txt en el entorno global default
@@ -808,7 +898,6 @@ show_help() {
     echo -e "  ${BOLD}--create [<nombre_env>] [--python <ver>]${COLOR_RESET} Crea un entorno virtual LOCAL (${BOLD}./.venv/<nombre_env>${COLOR_RESET})."
     echo -e "                     - Predeterminado: ${BOLD}./.venv/default${COLOR_RESET} con última versión Python."
     echo -e "                     (No instala paquetes)."
-    echo -e "  ${BOLD}--activate${COLOR_RESET}       Muestra comando para activar entorno global ${BOLD}~/.venv/default${COLOR_RESET}."
     echo -e "  ${BOLD}--install${COLOR_RESET}          Crea entorno GLOBAL (${BOLD}$BIN_VENV_DIR${COLOR_RESET}) si no existe,"
     echo -e "                     e instala reqs. por defecto (${COLOR_CYAN}${DEFAULT_ENV_REQUIREMENTS_PATH##*/}${COLOR_RESET})."
     echo -e "  ${BOLD}--package-global <paquete|reqs.txt>${COLOR_RESET} Instala paquete/requisitos en el entorno GLOBAL"
@@ -824,7 +913,8 @@ show_help() {
     echo -e "                     (Pide confirmación)."
     echo -e "  ${BOLD}--remove-local${COLOR_RESET}   Elimina entornos locales (${BOLD}./.venv/*${COLOR_RESET}) interactivamente."
     echo -e "                     (Lista entornos, permite seleccionar uno/varios/todos)."
-    echo -e "                     (Pide confirmación)."
+    echo -e "  ${BOLD}--set global${COLOR_RESET}     Configura el alias 'pyglobalset' en ~/.bashrc para activar entorno global."
+    echo -e "  ${BOLD}--unset global${COLOR_RESET}   Elimina el alias 'pyglobalset' de ~/.bashrc."
     echo -e "  ${BOLD}--help${COLOR_RESET}, ${BOLD}-h${COLOR_RESET}       Muestra esta ayuda."
     echo -e "  ${BOLD}--version${COLOR_RESET}      Muestra la versión del script."
     echo
@@ -1103,12 +1193,6 @@ main() {
             mostrar_info "Opción --install seleccionada. Instalando requisitos por defecto en entorno global..."
             install_global_package "$DEFAULT_ENV_REQUIREMENTS_PATH"
             ;;
-        --activate)
-            # activate_venv # Aún falta definir esta función
-            mostrar_info "Para activar el entorno global default, ejecuta:"
-            echo -e "  ${BOLD}source \"$BIN_VENV_DIR/bin/activate\"${COLOR_RESET}"
-            log "INFO" "Mostrado comando de activación para $BIN_VENV_DIR"
-            ;;
         --package-global)
              if [[ -z "$1" ]]; then
                  mostrar_error "El comando --package-global requiere un argumento (nombre de paquete o ruta a requirements.txt)."
@@ -1124,6 +1208,26 @@ main() {
             ;;
         --list)
             list_packages "$@"
+            ;;
+        --set)
+            if [[ "$1" == "global" ]]; then
+                set_global_alias
+                shift # Consumir 'global'
+            else
+                mostrar_error "El comando --set requiere el argumento 'global'."
+                show_help
+                exit 1
+            fi
+            ;;
+        --unset)
+            if [[ "$1" == "global" ]]; then
+                unset_global_alias
+                shift # Consumir 'global'
+            else
+                mostrar_error "El comando --unset requiere el argumento 'global'."
+                show_help
+                exit 1
+            fi
             ;;
         --remove-global)
             remove_global_env
