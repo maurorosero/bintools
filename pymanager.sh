@@ -809,6 +809,8 @@ show_help() {
     echo -e "                     - Predeterminado: ${BOLD}./.venv/default${COLOR_RESET} con última versión Python."
     echo -e "                     (No instala paquetes)."
     echo -e "  ${BOLD}--activate${COLOR_RESET}       Muestra comando para activar entorno global ${BOLD}~/.venv/default${COLOR_RESET}."
+    echo -e "  ${BOLD}--install${COLOR_RESET}          Crea entorno GLOBAL (${BOLD}$BIN_VENV_DIR${COLOR_RESET}) si no existe,"
+    echo -e "                     e instala reqs. por defecto (${COLOR_CYAN}${DEFAULT_ENV_REQUIREMENTS_PATH##*/}${COLOR_RESET})."
     echo -e "  ${BOLD}--package-global <paquete|reqs.txt>${COLOR_RESET} Instala paquete/requisitos en el entorno GLOBAL"
     echo -e "                     (${BOLD}~/.venv/default${COLOR_RESET}), creándolo si es necesario."
     echo -e "  ${BOLD}--package-local [<entorno>] [<paquete|reqs.txt>]${COLOR_RESET} Instala paquete/requisitos en un"
@@ -920,30 +922,44 @@ remove_local_env() {
     local cancel_option="[ Cancelar ]"
     options+=("$all_option" "$cancel_option")
 
-    local selection=() # Array para guardar selecciones
-    local choice_str="" # String para selección única de 'select'
+    local selection=() # Array para guardar selecciones (ya no necesario)
+    local choice_str="" # Variable para la única selección
 
-    mostrar_info "Seleccione los entornos locales a eliminar:"
-    if [[ "$HAS_GUM" == "true" ]] && command -v gum &> /dev/null; then
-        # Usar gum choose con selección múltiple
-        # Necesitamos pasar las opciones como argumentos separados a gum choose
-        local gum_output
-        mapfile -t gum_output < <(printf "%s\n" "${options[@]}" | gum choose --no-limit --header="Selecciona entornos (Espacio para marcar, Enter para confirmar)")
-        local exit_code=$?
-        if [[ $exit_code -ne 0 ]]; then # Gum cancelado (ej: Ctrl+C)
-             mostrar_info "Operación cancelada."
-             log "INFO" "Selección cancelada en gum choose."
+    mostrar_info "Seleccione el entorno local a eliminar (Enter selecciona, Esc cancela):"
+    if [[ "$HAS_GUM" == "true" ]] && command -v gum &> /dev/null;
+    then
+        # Usar gum choose en modo SELECCIÓN ÚNICA (sin --no-limit)
+        # Capturar stdout (la selección) Y código de salida
+        choice_str=$(printf "%s\n" "${options[@]}" | gum choose --header="Selecciona entorno/acción")
+        local gum_exit_code=$?
+
+        log "DEBUG" "gum choose (single) exit code: $gum_exit_code"
+        log "DEBUG" "gum choose (single) output: '$choice_str'"
+
+        # Códigos salida Gum: 0=OK, 1=Error, 130=Ctrl+C/Esc
+        if [[ $gum_exit_code -ne 0 ]]; then
+             # 130 es cancelación normal (Esc), otros son errores
+             if [[ $gum_exit_code -eq 130 ]]; then
+                mostrar_info "Operación cancelada (Esc)."
+                log "INFO" "Selección cancelada en gum choose (Exit code 130)."
+             else
+                mostrar_advertencia "gum choose finalizó con un error inesperado (código $gum_exit_code)."
+                log "WARN" "gum choose finalizó con código de error $gum_exit_code. Asumiendo cancelación."
+             fi
              exit 0
         fi
-        # Copiar salida de gum al array selection
-         for item in "${gum_output[@]}"; do
-             selection+=("$item")
-         done
-         log "DEBUG" "Selección de gum: ${selection[*]}"
+
+        # Si el código es 0 pero la salida está vacía (¿imposible en modo selección única? Por si acaso)
+        if [[ -z "$choice_str" ]]; then
+            log "DEBUG" "gum choose devolvió código 0 pero sin salida. Tratando como cancelación."
+            mostrar_info "Operación cancelada."
+            exit 0
+        fi
+
     else
-        # Fallback a select de Bash (selección única + TODOS)
-        mostrar_advertencia "(Usando menú básico. Instala 'gum' para seleccionar múltiples entornos individualmente)."
-        PS3="Selecciona el número del entorno a eliminar (o opción especial, q para salir): "
+        # Fallback a select de Bash (Selección ÚNICA aquí también)
+        mostrar_advertencia "(Usando menú básico. Instala 'gum' para una mejor experiencia)."
+        PS3="Selecciona el número (o q para salir): "
         select opt in "${options[@]}"; do
             if [[ "$REPLY" == "q" ]]; then
                 choice_str="$cancel_option" # Tratar 'q' como cancelar
@@ -955,57 +971,62 @@ remove_local_env() {
                 echo "Selección inválida. Intenta de nuevo."
             fi
         done
-         # Añadir la selección única al array selection (si no es cancelar)
-         if [[ "$choice_str" != "$cancel_option" ]]; then
-             selection+=("$choice_str")
-         fi
-         log "DEBUG" "Selección de select: $choice_str"
+        log "DEBUG" "Selección de select: $choice_str"
     fi
 
-    # Procesar selección
+    # --- Procesar la SELECCIÓN ÚNICA (choice_str) --- 
     local paths_to_delete=()
     local delete_all=false
-    local user_cancelled=false
+    local user_cancelled=false # Para la opción '[ Cancelar ]'
 
-    if [[ ${#selection[@]} -eq 0 ]]; then # Si gum no devuelve nada o select eligió Cancelar
-         user_cancelled=true
-    else
-         for sel in "${selection[@]}"; do
-             if [[ "$sel" == "$cancel_option" ]]; then
-                 user_cancelled=true
-                 break # Salir del bucle si se encuentra Cancelar
-             elif [[ "$sel" == "$all_option" ]]; then
-                 delete_all=true
-                 # Si se elige TODOS, ignorar otras selecciones individuales
-                 paths_to_delete=("${env_paths[@]}") # Marcar todos para borrar
-                 log "INFO" "Seleccionado eliminar TODOS los entornos locales."
-                 break # Salir del bucle, ya tenemos la acción
-             elif [[ "$choice_str" != "" ]]; then # Si usamos select, solo procesar esa opción
-                 # Encontrar la ruta correspondiente al nombre seleccionado
-                 for i in "${!env_names[@]}"; do
-                     if [[ "${env_names[$i]}" == "$sel" ]]; then
-                         paths_to_delete+=("${env_paths[$i]}")
-                         log "INFO" "Entorno local seleccionado para eliminar: ${env_names[$i]}"
-                         break # Encontrado, salir del bucle interno
-                     fi
-                 done
-             fi
-         done
-    fi
+    case "$choice_str" in
+        "$cancel_option")
+            user_cancelled=true
+            ;;
+        "$all_option")
+            delete_all=true
+            paths_to_delete=("${env_paths[@]}")
+            log "INFO" "Acción seleccionada: Eliminar TODOS los entornos locales."
+            ;;
+        *) 
+            # Es un nombre de entorno individual
+            local found_path=false
+            for i in "${!env_names[@]}"; do
+                # Comparar con los nombres originales
+                if [[ "${env_names[$i]}" == "$choice_str" ]]; then
+                    paths_to_delete=("${env_paths[$i]}") # Guardar la única ruta
+                    log "INFO" "Entorno local seleccionado para eliminar: $choice_str (Path: ${paths_to_delete[0]})"
+                    found_path=true
+                    break
+                fi
+            done
+            if ! $found_path; then
+                 # Esto no debería ocurrir si la selección viene del menú
+                 mostrar_error "Error interno: La selección '$choice_str' no coincide con ningún entorno conocido."
+                 log "ERROR" "La selección '$choice_str' no coincide con ningún nombre de entorno conocido."
+                 exit 1
+            fi
+            ;;
+    esac
 
+    # --- INICIO MODIFICACIÓN 4 (AHORA USANDO case) ---
+    # SI SE CANCELÓ EXPLÍCITAMENTE
     if $user_cancelled; then
         mostrar_info "Operación cancelada."
-        log "INFO" "Eliminación local cancelada por el usuario."
+        log "INFO" "Eliminación local cancelada explícitamente por el usuario."
         exit 0
     fi
 
+    # Comprobar si hay algo que borrar (paths_to_delete no debería estar vacío si no se canceló)
     if [[ ${#paths_to_delete[@]} -eq 0 ]]; then
-        mostrar_info "No se seleccionó ningún entorno para eliminar."
-        log "INFO" "No se seleccionaron entornos válidos."
-        exit 0
+        # Este caso ahora es menos probable, a menos que ocurra un error interno
+        mostrar_error "Error interno: No se determinaron rutas para eliminar a pesar de no cancelar."
+        log "ERROR" "paths_to_delete está vacío después del procesamiento de selección única, sin cancelación."
+        exit 1 # Salir con error, esto no debería pasar
     fi
+    # --- FIN MODIFICACIÓN 4 --- 
 
-    # Confirmación final
+    # --- Confirmación final y bucle de eliminación (ajustado para mensaje) --- 
     local confirm_msg_final=""
     if $delete_all; then
         confirm_msg_final="¿Realmente desea eliminar TODOS (${#paths_to_delete[@]}) los entornos locales listados?"
@@ -1077,6 +1098,10 @@ main() {
         --create)
             # Pasar todos los argumentos restantes a create_venv
             create_venv "$@"
+            ;;
+        --install)
+            mostrar_info "Opción --install seleccionada. Instalando requisitos por defecto en entorno global..."
+            install_global_package "$DEFAULT_ENV_REQUIREMENTS_PATH"
             ;;
         --activate)
             # activate_venv # Aún falta definir esta función
