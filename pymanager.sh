@@ -288,11 +288,143 @@ unset_global_alias() {
     fi
 }
 
-# --- Fin Funciones para gestionar alias global ---
+# Muestra información de activación para un entorno local
+show_local_activation_info() {
+    local requested_env_name="$1" # Nombre opcional del entorno desde el argumento
+    local local_venv_base_dir="$PWD/.venv"
+    local target_env_name=""
+    local target_venv_path=""
+
+    log "INFO" "Iniciando --set local. Nombre solicitado: '${requested_env_name:-ninguno}'."
+
+    # 1. Buscar entornos locales válidos
+    local env_names=()
+    local env_paths=()
+    local found_envs=false
+
+    if [[ ! -d "$local_venv_base_dir" ]]; then
+        mostrar_error "No existe el directorio de entornos locales: ${local_venv_base_dir}"
+        log "ERROR" "--set local: Directorio ${local_venv_base_dir} no encontrado."
+        exit 1
+    fi
+
+    log "INFO" "Buscando entornos locales válidos en ${local_venv_base_dir}..."
+    while IFS= read -r -d $'\0' potential_env_path; do
+        local env_name
+        env_name=$(basename "$potential_env_path")
+        # Verificar si contiene un script de activación ejecutable
+        if [[ -f "$potential_env_path/bin/activate" && -x "$potential_env_path/bin/activate" ]]; then
+            env_names+=("$env_name")
+            env_paths+=("$potential_env_path")
+            log "INFO" "Entorno local válido encontrado: $env_name en $potential_env_path"
+            found_envs=true
+        else
+            log "WARN" "Directorio $potential_env_path encontrado pero no es un entorno válido (falta activate ejecutable?)."
+        fi
+    done < <(find "$local_venv_base_dir" -maxdepth 1 -mindepth 1 -type d -print0)
+
+    if ! $found_envs; then
+        mostrar_error "No se encontraron entornos locales válidos en ${local_venv_base_dir}."
+        log "ERROR" "--set local: No se encontraron entornos válidos."
+        exit 1
+    fi
+
+    # 2. Determinar el entorno a usar (argumento, único encontrado, o selección)
+    if [[ -n "$requested_env_name" ]]; then
+        # Nombre específico proporcionado
+        log "INFO" "Procesando nombre de entorno solicitado: $requested_env_name"
+        local found_requested=false
+        for i in "${!env_names[@]}"; do
+            if [[ "${env_names[$i]}" == "$requested_env_name" ]]; then
+                target_env_name="${env_names[$i]}"
+                target_venv_path="${env_paths[$i]}"
+                found_requested=true
+                break
+            fi
+        done
+        if ! $found_requested; then
+            mostrar_error "El entorno local solicitado '${requested_env_name}' no se encontró o no es válido en ${local_venv_base_dir}."
+            log "ERROR" "--set local: Entorno solicitado '$requested_env_name' no encontrado/válido."
+            exit 1
+        fi
+        mostrar_info "Mostrando comandos para el entorno local especificado: ${COLOR_CYAN}${target_env_name}${COLOR_RESET}"
+
+    elif [[ ${#env_names[@]} -eq 1 ]]; then
+        # Solo se encontró un entorno, usarlo automáticamente
+        target_env_name="${env_names[0]}"
+        target_venv_path="${env_paths[0]}"
+        log "INFO" "Solo se encontró un entorno local válido (${target_env_name}), seleccionándolo automáticamente."
+        mostrar_info "Mostrando comandos para el único entorno local encontrado: ${COLOR_CYAN}${target_env_name}${COLOR_RESET}"
+    else
+        # Múltiples entornos encontrados, pedir selección
+        mostrar_info "Múltiples entornos locales encontrados. Por favor, selecciona uno:"
+        local options=("${env_names[@]}" "[ Cancelar ]") # Añadir opción cancelar
+        local choice_str=""
+        local cancel_option="[ Cancelar ]" # Definir para comparación
+
+        if [[ "$HAS_GUM" == "true" ]] && command -v gum &> /dev/null; then
+            # Usar gum choose (selección única)
+             choice_str=$(printf "%s\n" "${options[@]}" | gum choose --header="Selecciona entorno local")
+             local gum_exit_code=$?
+             log "DEBUG" "--set local gum choose exit: $gum_exit_code, output: '$choice_str'"
+             if [[ $gum_exit_code -ne 0 || "$choice_str" == "$cancel_option" || -z "$choice_str" ]]; then
+                  mostrar_info "Operación cancelada."
+                  log "INFO" "--set local: Selección cancelada por el usuario."
+                  exit 0
+             fi
+        else
+             # Fallback a select
+             mostrar_advertencia "(Usando menú básico. Instala 'gum' para una mejor experiencia)."
+             PS3="Selecciona el número del entorno (o q para salir): "
+             select opt in "${options[@]}"; do
+                 if [[ "$REPLY" == "q" || "$opt" == "$cancel_option" ]]; then
+                     choice_str="$cancel_option"
+                     break
+                 elif [[ -n "$opt" ]]; then
+                     choice_str="$opt"
+                     break
+                 else
+                     echo "Selección inválida."
+                 fi
+             done
+             log "DEBUG" "--set local select output: $choice_str"
+             if [[ "$choice_str" == "$cancel_option" ]]; then
+                  mostrar_info "Operación cancelada."
+                  log "INFO" "--set local: Selección cancelada por el usuario."
+                  exit 0
+             fi
+        fi
+
+        # Encontrar la ruta para la elección
+        local found_selected=false
+        for i in "${!env_names[@]}"; do
+             if [[ "${env_names[$i]}" == "$choice_str" ]]; then
+                 target_env_name="${env_names[$i]}"
+                 target_venv_path="${env_paths[$i]}"
+                 found_selected=true
+                 break
+             fi
+        done
+        if ! $found_selected; then # No debería ocurrir
+             mostrar_error "Error interno: No se pudo procesar la selección '$choice_str'."
+             exit 1
+        fi
+         mostrar_info "Mostrando comandos para el entorno local seleccionado: ${COLOR_CYAN}${target_env_name}${COLOR_RESET}"
+    fi
+
+    # 3. Mostrar la información
+    log "INFO" "Mostrando información de activación para: ${target_venv_path}"
+    echo
+    echo -e "${COLOR_YELLOW}Para activar el entorno local '${target_env_name}' en tu sesión actual, ejecuta:${COLOR_RESET}"
+    echo -e "  ${BOLD}source \"${target_venv_path}/bin/activate\"${COLOR_RESET}"
+    echo
+    echo -e "${COLOR_YELLOW}Cuando termines, para desactivarlo, ejecuta:${COLOR_RESET}"
+    echo -e "  ${BOLD}deactivate${COLOR_RESET}"
+    echo
+}
 
 # Funciones Principales de Comandos (create, activate, add, remove, etc.)
 # =====================================================================
-
 
 # --- Nueva Función para --package-global ---
 # Instala un paquete o requirements.txt en el entorno global default
@@ -840,10 +972,27 @@ create_venv() {
         # Usar el ejecutable de Python seleccionado
         if "$python_executable" -m venv "$target_venv_path" >> "$LOG_FILE" 2>&1; then
              echo -e "${COLOR_GREEN}✓${COLOR_RESET}"; log "INFO" "Entorno local $target_venv_path creado.";
+
+             # --- INICIO CAMBIO: Asegurar permisos de activate ---
+             local activate_script_path="$target_venv_path/bin/activate"
+             if [[ -f "$activate_script_path" ]]; then
+                 if chmod +x "$activate_script_path"; then
+                     log "INFO" "Permiso de ejecución asegurado para $activate_script_path"
+                 else
+                     mostrar_advertencia "No se pudo establecer permiso de ejecución para $activate_script_path."
+                     log "WARN" "Fallo chmod +x en $activate_script_path"
+                     # No salimos, pero registramos la advertencia
+                 fi
+             else
+                  mostrar_advertencia "No se encontró el script $activate_script_path después de crear el entorno."
+                  log "WARN" "No se encontró $activate_script_path post-creación."
+             fi
+             # --- FIN CAMBIO ---
+
              mostrar_exito "Entorno local '$env_name' creado en $target_venv_path."
              # Mensaje de activación específico para entorno local
              echo -e "${COLOR_YELLOW}Para activar este entorno local, desde este directorio ejecuta:${COLOR_RESET}"
-             echo -e "  ${BOLD}source $target_venv_path/bin/activate${COLOR_RESET}"
+             echo -e "  ${BOLD}source $activate_script_path${COLOR_RESET}" # Usar la variable
         else
              echo -e "${COLOR_RED}✗${COLOR_RESET}"; mostrar_error "Falló la creación del entorno en $target_venv_path."; exit 1;
         fi
@@ -914,6 +1063,8 @@ show_help() {
     echo -e "  ${BOLD}--remove-local${COLOR_RESET}   Elimina entornos locales (${BOLD}./.venv/*${COLOR_RESET}) interactivamente."
     echo -e "                     (Lista entornos, permite seleccionar uno/varios/todos)."
     echo -e "  ${BOLD}--set global${COLOR_RESET}     Configura el alias 'pyglobalset' en ~/.bashrc para activar entorno global."
+    echo -e "  ${BOLD}--set local [<env>]${COLOR_RESET} Muestra comandos para activar/desactivar un entorno LOCAL específico."
+    echo -e "                     (Pide selección si hay múltiples y no se especifica <env>)."
     echo -e "  ${BOLD}--unset global${COLOR_RESET}   Elimina el alias 'pyglobalset' de ~/.bashrc."
     echo -e "  ${BOLD}--help${COLOR_RESET}, ${BOLD}-h${COLOR_RESET}       Muestra esta ayuda."
     echo -e "  ${BOLD}--version${COLOR_RESET}      Muestra la versión del script."
@@ -1061,7 +1212,12 @@ remove_local_env() {
                 echo "Selección inválida. Intenta de nuevo."
             fi
         done
-        log "DEBUG" "Selección de select: $choice_str"
+        log "DEBUG" "--set local select output: $choice_str"
+        if [[ "$choice_str" == "$cancel_option" ]]; then
+             mostrar_info "Operación cancelada."
+             log "INFO" "--set local: Selección cancelada por el usuario."
+             exit 0
+        fi
     fi
 
     # --- Procesar la SELECCIÓN ÚNICA (choice_str) --- 
@@ -1210,11 +1366,15 @@ main() {
             list_packages "$@"
             ;;
         --set)
+            # Comprobar el argumento: global o local
             if [[ "$1" == "global" ]]; then
                 set_global_alias
                 shift # Consumir 'global'
+            elif [[ "$1" == "local" ]]; then
+                shift # Consumir 'local'
+                show_local_activation_info "$@" # Pasar el resto de args (nombre_env opcional)
             else
-                mostrar_error "El comando --set requiere el argumento 'global'."
+                mostrar_error "El comando --set requiere el argumento 'global' o 'local'."
                 show_help
                 exit 1
             fi
