@@ -68,6 +68,29 @@ rules:
       4.  Si modificas la sección de Contribución o generas un mensaje de commit para cambios en el README, recuerda la importancia del formato de commits convencional (`[TAG] Descripción`) mencionado en el contexto.
       5.  Formula la sección de Licencia mencionando el archivo `LICENSE` (ej. "Distribuido bajo la Licencia MIT. Ver `LICENSE` para más información.").
       6.  Intenta aplicar las heurísticas de auto-relleno definidas en el contexto si estás creando un nuevo README (buscar `pyproject.toml`, archivos de licencia, `git config`, etc.).
+
+  # Nueva regla para placeholders de imagen en Markdown
+  - language: markdown
+    prompt: |
+      # Instrucción para Placeholders de Imágenes en Markdown
+
+      Cuando el usuario explícitamente solicite 'preparar un documento para la inserción posterior de imágenes', 'añadir placeholders de imagen para una herramienta', o una frase similar que indique esta intención específica para un archivo Markdown:
+      
+      Utiliza OBLIGATORIAMENTE el siguiente formato de comentario HTML para cada placeholder:
+
+      <!-- IMAGE_PLACEHOLDER id="N" name="nombre_sugerido_para_la_imagen.png" context="Descripción detallada del contenido y propósito de la imagen." -->
+
+      Donde:
+      - "N" es un identificador numérico secuencial para la imagen dentro del documento (comenzando desde 1).
+      - "nombre_sugerido_para_la_imagen.png" es un nombre de archivo descriptivo, en minúsculas, con guiones en lugar de espacios, y único para la imagen (ej. `flujo-inicializacion-nombre-repo.png`).
+      - "Descripción detallada del contenido y propósito de la imagen." es el contexto esencial que ayudará a generar o seleccionar la imagen correcta. Este contexto debe ser claro y conciso.
+
+      Asegúrate de que estos placeholders:
+      1. NO sean visibles en la renderización normal del Markdown.
+      2. Sean el ÚNICO método para indicar un placeholder de imagen procesable por herramientas.
+      
+      Elimina cualquier otra forma de placeholder de imagen que hayas usado previamente (ej. `[IMAGEN: ...]`, `*Contexto:* ...`) y reemplázala íntegramente con este formato de comentario HTML. Cada placeholder debe estar en su propia línea o ser claramente distinguible.
+
   - language: python
     prompt: |
       Cuando generes un nuevo archivo Python, asegúrate SIEMPRE de incluir un docstring a nivel de módulo inmediatamente después de las importaciones.
