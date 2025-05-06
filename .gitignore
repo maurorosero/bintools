@@ -49,6 +49,9 @@ wheels/
 .env/
 .virtualenv/
 
+# Definición y metadatos de Proyecto
+.project/
+
 # Jupyter Notebook
 .ipynb_checkpoints
 
@@ -110,9 +113,4 @@ tmp/*
 # Excepto el archivo .gitkeep para que Git rastree el directorio
 !tmp/.gitkeep
 # -------------------------
-
-# --- Contexto README (Auto-añadido por script) ---
-# Enlace simbólico al contexto global de README personal (ignorar)
-.github/readme-context-personal-global.md
-# -------------------------------------------------
 
