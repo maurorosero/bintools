@@ -50,6 +50,75 @@ rules:
          ✓ [FIX] Corrige ruta de instalación en script CI [ci_utils/install.sh]
          ✓ [DOCS] Añade diagrama de flujo del pipeline [docs/ci.md]
 
+  # Nueva regla para estandarizar banners en CLI Tools
+  - name: "StandardizeBannersCLITools"
+    languages:
+      - "python"
+      - "shellscript"
+      - "javascript"
+      - "typescript"
+    prompt: |
+      # Estándar para Banners en Herramientas de Consola Interactivas (CLI)
+
+      Esta guía se aplica **EXCLUSIVAMENTE** CUANDO:
+      1. Estás creando una **NUEVA herramienta de consola interactiva** (script o aplicación CLI).
+      2. El usuario te solicita **explícitamente** añadir o estandarizar un banner para una herramienta existente.
+      
+      Si **UNA** de estas condiciones se cumple, y estás trabajando en un archivo que es el punto de entrada principal o un módulo relevante para una CLI, implementa un banner de inicio siguiendo estas directrices:
+
+      ## Requisitos Funcionales Obligatorios:
+      1.  **Limpieza de Pantalla Previa**: Antes de mostrar el banner, la terminal DEBE ser limpiada.
+          *   Python: `import os; os.system('cls' if os.name == 'nt' else 'clear')`
+          *   Bash: `clear`
+          *   Node.js (JavaScript/TypeScript): `console.clear()` o `process.stdout.write('\x1Bc');` (prefiere `console.clear()` si está disponible en el entorno de ejecución).
+      2.  **Implementación Encapsulada**: La lógica para mostrar el banner DEBE estar en una función dedicada (ej. `show_banner()`, `display_header()`, `print_banner()`).
+      3.  **Llamada Temprana y Única**: Invoca esta función UNA SOLA VEZ, al inicio de la ejecución principal de la herramienta interactiva, antes de cualquier otra salida o lógica principal.
+
+      ## Contenido Mínimo Obligatorio del Banner:
+      El banner DEBE mostrar, como mínimo, la siguiente información, definida mediante constantes globales o de módulo:
+      1.  **Nombre de la Aplicación/Herramienta**:
+          *   Usa una constante denominada `APP_NAME`.
+          *   Ej: `APP_NAME = "Mi Super Herramienta"` (Python/JS), `readonly APP_NAME="Mi Super Herramienta"` (Bash).
+      2.  **Versión**:
+          *   Usa una constante denominada `VERSION`.
+          *   Ej: `VERSION = "0.1.0"` (Python/JS), `readonly VERSION="0.1.0"` (Bash).
+          *   **Fuente Única de Verdad (SSoT)**: Prioriza obtener esta información dinámicamente de metadatos del proyecto (ej. `pyproject.toml` en Python, `package.json` en Node.js, un archivo `VERSION` dedicado, o variables de entorno) antes que codificarla directamente si ya existe una fuente canónica. Si se obtiene dinámicamente, aún puedes asignarla a la constante `VERSION` para uso interno.
+      3.  **Autor**:
+          *   Usa una constante denominada `AUTHOR`.
+          *   Ej: `AUTHOR = "Tu Nombre/Organización"` (Python/JS), `readonly AUTHOR="Tu Nombre/Organización"` (Bash).
+          *   **SSoT**: Similar a la versión, intenta obtenerla de fuentes como `git config user.name`, archivos de proyecto, etc., si es apropiado y factible, para mantener la consistencia.
+
+      ## Estilo Visual y Formato (Recomendaciones):
+      *   **Consistencia Visual**: Intenta que el estilo del banner sea coherente con otras herramientas del proyecto (ej. el banner de `pymanager.sh` o `promanager.py`).
+      *   **Claridad y Legibilidad**: El banner debe ser claro, conciso y fácil de leer. Evita el exceso de información.
+      *   **Delimitadores**: Utiliza caracteres como `*`, `=`, `-` para enmarcar el texto del banner y separarlo visualmente del resto de la salida. Considera usar un ancho fijo (ej. `BANNER_WIDTH = 70` o `80`) para el banner y centrar el texto dentro de él.
+      *   **Centrado (Opcional pero Recomendado)**: Si es sencillo de implementar en el lenguaje destino y mejora la estética, centra las líneas de texto del banner.
+      *   **Espaciado**: Añade al menos una línea vacía (`print()` o `echo`) después del banner completo para separarlo limpiamente de la salida subsiguiente de la herramienta.
+
+      ## Ejemplo de Estructura de Banner (Conceptual):
+      \`\`\`
+      ======================================================================
+                       [APP_NAME] - Versión [VERSION]
+                            Autor: [AUTHOR]
+            (Opcional: breve eslogan o descripción de una línea)
+      ======================================================================
+      \`\`\`
+
+      ## Idioma:
+      *   El texto descriptivo del banner (eslóganes, etc.) debe estar en español, a menos que el contexto del proyecto indique otro idioma.
+      *   Los nombres de las constantes (`APP_NAME`, `VERSION`, `AUTHOR`, `BANNER_WIDTH`) deben ser en inglés como se especifica.
+
+      **IMPORTANTE**: Adapta la implementación (sintaxis de constantes, funciones, limpieza de pantalla, manejo de cadenas y formato) a las convenciones y características específicas del lenguaje de programación del archivo actual (Python, Bash, JavaScript, TypeScript, etc.).
+
+      # --- POLÍTICA IMPERATIVA DE EDICIÓN DE CÓDIGO ---
+      # ES OBLIGATORIO Y MANDATORIO SEGUIR ESTA POLÍTICA:
+      # 1. NUNCA generes una propuesta de edición de código (`edit_file`) sin antes haber:
+      #    a) Descrito DETALLADAMENTE en el chat los cambios específicos que planeas realizar.
+      #    b) Recibido mi CONFIRMACIÓN EXPLÍCITA ("procede", "ok", "sí", "adelante", etc.) en el chat.
+      # 2. NO ASUMAS la aprobación. La descripción NO es suficiente. Debes ESPERAR mi respuesta afirmativa.
+      # 3. Si no recibes confirmación explícita, NO generes la propuesta de `edit_file`. Pregunta de nuevo o espera.
+      # --- FIN POLÍTICA IMPERATIVA ---
+
   # Reglas existentes de lenguaje
   - language: markdown
     prompt: |
