@@ -14,7 +14,7 @@ PARSEABLE_METADATA_END -->
 
 ## Descripción General
 
-`project_manager.py` es una herramienta de línea de comandos diseñada para simplificar la gestión de los metadatos de un proyecto. Estos metadatos se almacenan en un archivo llamado `project_meta.toml`, ubicado en el directorio `.project/` dentro de la raíz de tu proyecto. La herramienta facilita la creación inicial de este archivo, así como la edición interactiva de la información del repositorio, detalles del proyecto y otros metadatos configurables.
+`promanager.py` es una herramienta de línea de comandos diseñada para simplificar la gestión de los metadatos de un proyecto. Estos metadatos se almacenan en un archivo llamado `project_meta.toml`, ubicado en el directorio `.project/` dentro de la raíz de tu proyecto. La herramienta facilita la creación inicial de este archivo, así como la edición interactiva de la información del repositorio, detalles del proyecto y otros metadatos configurables.
 
 El objetivo principal es centralizar la información crucial del proyecto de una manera estructurada y accesible, tanto para humanos como para posibles automatizaciones futuras.
 
@@ -64,18 +64,18 @@ Puedes ejecutar el script directamente si tiene permisos de ejecución, o usando
 
 Ejecución básica (opera en el directorio actual):
 ```bash
-./project_manager.py
+./promanager.py
 # o
-python project_manager.py
+python promanager.py
 ```
 
 Especificar la ruta del proyecto:
 ```bash
-python project_manager.py -p /ruta/a/mi/proyecto
+python promanager.py -p /ruta/a/mi/proyecto
 ```
 o
 ```bash
-python project_manager.py --path ../otro-proyecto
+python promanager.py --path ../otro-proyecto
 ```
 
 ### Flujo de Inicialización
@@ -125,7 +125,7 @@ Descripción de las opciones del menú:
 
 *   **Editar Metadatos Adicionales (Manual)**:
     *   Esta opción abre el archivo `project_meta.toml` directamente en el editor de texto configurado en tu sistema (variable de entorno `$EDITOR`, o `vim` por defecto).
-    *   Se te instruirá que realices los cambios deseados en la sección `[additional_metadata]` (o cualquier otra, con cuidado), guardes el archivo en el editor, cierres el editor, y luego presiones Enter en la terminal donde corre `project_manager.py`.
+    *   Se te instruirá que realices los cambios deseados en la sección `[additional_metadata]` (o cualquier otra, con cuidado), guardes el archivo en el editor, cierres el editor, y luego presiones Enter en la terminal donde corre `promanager.py`.
     *   La herramienta intentará recargar el archivo TOML. Si hay errores de formato, se te notificará y los metadatos previos (antes de la edición manual) se conservarán.
     *   <!-- IMAGE_PLACEHOLDER id="5" name="edit_manual_metadata_prompt.png" context="Captura de pantalla mostrando el mensaje que indica que el archivo se abrirá en el editor (ej. 'Abriendo .project/project_meta.toml en vim...') y la instrucción para guardar, cerrar el editor y pulsar Enter para recargar." -->
 
