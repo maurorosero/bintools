@@ -70,6 +70,11 @@ lerna-debug.log*
 package-lock.json
 yarn.lock
 
+# Archivos de configuración de sops
+sops/
+!sops/devspath.def
+.sops.yaml
+
 # Archivos de entorno específicos de Node.js
 .env.development.local
 .env.test.local
