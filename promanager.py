@@ -26,10 +26,229 @@ import questionary
 from pathlib import Path
 import sys
 import os
-import argparse # Importar argparse
+import argparse
+import base64
+import subprocess
+from typing import Optional, Dict, Any, Tuple, List
+import fnmatch
+
+# --- Constantes para Protección de Ramas ---
+BRANCH_TYPES = {
+    "feature": {
+        "pattern": "feature/*",
+        "description": "Nuevas características",
+        "target_branch": "develop",
+        "allow_direct_push": True
+    },
+    "fix": {
+        "pattern": "fix/*",
+        "description": "Correcciones de errores",
+        "target_branch": "develop",
+        "allow_direct_push": True
+    },
+    "hotfix": {
+        "pattern": "hotfix/*",
+        "description": "Correcciones urgentes",
+        "target_branch": ["main", "develop"],
+        "allow_direct_push": True
+    },
+    "docs": {
+        "pattern": "docs/*",
+        "description": "Documentación",
+        "target_branch": "develop",
+        "allow_direct_push": True
+    },
+    "refactor": {
+        "pattern": "refactor/*",
+        "description": "Refactorización",
+        "target_branch": "develop",
+        "allow_direct_push": True
+    },
+    "test": {
+        "pattern": "test/*",
+        "description": "Tests",
+        "target_branch": "develop",
+        "allow_direct_push": True
+    },
+    "chore": {
+        "pattern": "chore/*",
+        "description": "Mantenimiento",
+        "target_branch": "develop",
+        "allow_direct_push": True
+    }
+}
+
+MAIN_BRANCHES = {
+    "main": {
+        "protection_level": "strict",
+        "allow_direct_push": False,
+        "allowed_pr_from": ["hotfix/*", "staging"]
+    },
+    "develop": {
+        "protection_level": "strict",
+        "allow_direct_push": False,
+        "allowed_pr_from": ["feature/*", "fix/*", "docs/*", "refactor/*", "test/*", "chore/*"]
+    },
+    "staging": {
+        "protection_level": "strict",
+        "allow_direct_push": False,
+        "allowed_pr_from": ["develop"]
+    }
+}
+
+class GitServerConfigurator:
+    """Clase base para configurar servidores Git."""
+    
+    def __init__(self, project_data: Dict[str, Any], token: str):
+        self.project_data = project_data
+        self.token = token
+        self.repo_data = project_data["repository"]
+    
+    def configure_branch_protection(self, branch: str, rules: Dict[str, Any]) -> Tuple[bool, str]:
+        """Configura protección de rama."""
+        raise NotImplementedError
+    
+    def configure_review_leadership(self, reviewers: List[str], branch_leaders: List[str]) -> Tuple[bool, str]:
+        """Configura liderazgo de revisión."""
+        raise NotImplementedError
+    
+    def validate_pull_request(self, source_branch: str, target_branch: str) -> Tuple[bool, str]:
+        """Valida si un PR está permitido según las reglas."""
+        if target_branch not in MAIN_BRANCHES:
+            return False, f"Rama destino {target_branch} no existe"
+        
+        allowed_branches = MAIN_BRANCHES[target_branch]["allowed_pr_from"]
+        
+        for pattern in allowed_branches:
+            if fnmatch.fnmatch(source_branch, pattern):
+                return True, "PR permitido"
+        
+        return False, f"PR de {source_branch} a {target_branch} no está permitido"
+
+class GitHubConfigurator(GitServerConfigurator):
+    """Configurador específico para GitHub."""
+    
+    def __init__(self, project_data: Dict[str, Any], token: str):
+        super().__init__(project_data, token)
+        try:
+            # Decodificar el token si viene en base64
+            try:
+                decoded_token = base64.b64decode(token).decode('utf-8')
+            except Exception:
+                decoded_token = token  # Si no es base64, usar el token tal cual
+            
+            self.github = Github(decoded_token)
+            
+            # Verificar si el repositorio existe
+            owner = self.repo_data.get('owner_name', '')
+            if not owner:  # Si no hay owner_name, usar el usuario autenticado
+                owner = self.github.get_user().login
+            
+            repo_name = self.repo_data.get('name', '')
+            if not repo_name:
+                raise ValueError("No se especificó el nombre del repositorio")
+            
+            try:
+                self.repo = self.github.get_repo(f"{owner}/{repo_name}")
+            except GithubException as e:
+                if e.status == 404:
+                    raise ValueError(f"El repositorio {owner}/{repo_name} no existe en GitHub")
+                raise
+            
+        except Exception as e:
+            raise ValueError(f"Error inicializando GitHub: {str(e)}")
+    
+    def configure_branch_protection(self, branch: str, rules: Dict[str, Any]) -> Tuple[bool, str]:
+        try:
+            # Verificar si la rama existe
+            try:
+                self.repo.get_branch(branch)
+            except GithubException as e:
+                if e.status == 404:
+                    return False, f"La rama {branch} no existe en el repositorio"
+                raise
+            
+            branch_protection = {
+                "required_status_checks": {
+                    "strict": True,
+                    "contexts": ["ci/check"]
+                },
+                "enforce_admins": True,
+                "required_pull_request_reviews": {
+                    "required_approving_review_count": 0
+                } if not rules.get("allow_direct_push") else None,
+                "restrictions": {
+                    "users": ["@maintainers"],
+                    "teams": ["@maintainers"]
+                } if not rules.get("allow_direct_push") else None
+            }
+            
+            self.repo.get_branch(branch).edit_protection(**branch_protection)
+            return True, f"Protección configurada para rama {branch}"
+        except Exception as e:
+            return False, f"Error configurando protección para {branch}: {str(e)}"
+    
+    def configure_review_leadership(self, reviewers: List[str], branch_leaders: List[str]) -> Tuple[bool, str]:
+        try:
+            # Configurar revisores
+            if reviewers:
+                for reviewer in reviewers:
+                    try:
+                        self.repo.add_to_collaborators(reviewer, "push")
+                    except GithubException as e:
+                        if e.status == 404:
+                            return False, f"Usuario o equipo {reviewer} no encontrado en GitHub"
+                        raise
+            
+            # Configurar líderes de rama
+            if branch_leaders:
+                for leader in branch_leaders:
+                    try:
+                        self.repo.add_to_collaborators(leader, "admin")
+                    except GithubException as e:
+                        if e.status == 404:
+                            return False, f"Usuario o equipo {leader} no encontrado en GitHub"
+                        raise
+            
+            return True, "Liderazgo de revisión configurado"
+        except Exception as e:
+            return False, f"Error configurando liderazgo: {str(e)}"
+
+def check_and_install_pygithub() -> bool:
+    """Verifica si PyGithub está instalado y lo instala si es necesario."""
+    try:
+        import github
+        return True
+    except ImportError:
+        # Verificar si estamos en un entorno virtual
+        in_venv = sys.prefix != sys.base_prefix
+        
+        if not in_venv:
+            questionary.print("Error: No se detectó un entorno virtual Python activo.", style="fg:red")
+            questionary.print("Para usar esta funcionalidad, necesitas crear y activar un entorno virtual:", style="fg:yellow")
+            questionary.print("  1. Crear entorno: pymanager --create", style="fg:yellow")
+            questionary.print("  2. Activar entorno: source .venv/bin/activate", style="fg:yellow")
+            return False
+        
+        # Si estamos en un entorno virtual, intentar instalar PyGithub
+        questionary.print("Instalando PyGithub...", style="fg:cyan")
+        try:
+            subprocess.run([sys.executable, "-m", "pip", "install", "PyGithub"], 
+                         check=True, capture_output=True, text=True)
+            return True
+        except subprocess.CalledProcessError as e:
+            questionary.print(f"Error al instalar PyGithub: {e.stderr}", style="fg:red")
+            return False
+
+# Dependencias para GitHub
+if not check_and_install_pygithub():
+    sys.exit(1)
+
+from github import Github
+from github.GithubException import GithubException
 
 # --- Constantes para el Banner ---
-APP_NAME = "Project Metadata Manager"  # Anteriormente APP_NAME_BANNER
+APP_NAME = "Gestor de Poryectos de Desarrollo"  # Anteriormente APP_NAME_BANNER
 VERSION = "0.1.0"  # Anteriormente SCRIPT_VERSION
 AUTHOR = "Mauro Rosero P."  # Anteriormente SCRIPT_AUTHOR
 BANNER_WIDTH = 70 # Ancho ajustado para el nombre más largo
@@ -323,7 +542,428 @@ def show_banner():
     print(linea_superior_inferior)
     print() # Línea vacía después del banner
 
-# --- Lógica Principal (Modificada para usar argparse y pasar rutas) ---
+def check_git_repo() -> Tuple[bool, str]:
+    """Verifica si el directorio actual es un repositorio git y lo inicializa si no lo es."""
+    try:
+        # Verificar si es un repositorio git
+        result = subprocess.run(['git', 'rev-parse', '--is-inside-work-tree'], 
+                              capture_output=True, text=True)
+        if result.returncode == 0:
+            return True, "El directorio ya es un repositorio git."
+        
+        # Si no es un repositorio, inicializarlo
+        questionary.print("Inicializando nuevo repositorio git...", style="fg:cyan")
+        subprocess.run(['git', 'init'], check=True)
+        subprocess.run(['git', 'branch', '-M', 'main'], check=True)
+        return True, "Repositorio git inicializado con rama main."
+        
+    except subprocess.CalledProcessError as e:
+        return False, f"Error al inicializar repositorio git: {e}"
+    except Exception as e:
+        return False, f"Error inesperado: {e}"
+
+def check_git_config() -> Tuple[bool, Dict[str, str]]:
+    """Verifica la configuración global de git."""
+    config = {}
+    required = ['user.name', 'user.email', 'user.signingkey']
+    
+    try:
+        for key in required:
+            result = subprocess.run(['git', 'config', '--global', key], 
+                                  capture_output=True, text=True)
+            if result.returncode == 0:
+                config[key] = result.stdout.strip()
+            else:
+                config[key] = ""
+        
+        missing = [key for key, value in config.items() if not value]
+        return len(missing) == 0, config
+        
+    except Exception as e:
+        return False, {"error": str(e)}
+
+def check_git_remote() -> Tuple[bool, str]:
+    """Verifica si hay remotes configurados."""
+    try:
+        result = subprocess.run(['git', 'remote', '-v'], 
+                              capture_output=True, text=True)
+        if result.stdout.strip():
+            return True, "Ya existe un repositorio remoto configurado."
+        return False, "No hay repositorios remotos configurados."
+    except Exception as e:
+        return False, f"Error al verificar repositorios remotos: {e}"
+
+def get_token(args: argparse.Namespace, platform: str) -> Optional[str]:
+    """Obtiene el token de autenticación para la plataforma especificada.
+    
+    Args:
+        args: Argumentos de línea de comandos
+        platform: Plataforma Git (github, gitlab, gitea)
+    
+    Returns:
+        Token decodificado o None si no se encuentra
+    """
+    def decode_base64_token(token: str) -> Optional[str]:
+        """Intenta decodificar un token de base64."""
+        try:
+            return base64.b64decode(token).decode('utf-8')
+        except Exception:
+            return None
+
+    # 1. Intentar obtener del argumento --token
+    if args.token:
+        decoded_token = decode_base64_token(args.token)
+        if decoded_token:
+            return decoded_token
+        questionary.print("Error: El token proporcionado no es un base64 válido.", style="fg:red")
+        return None
+    
+    # 2. Intentar obtener de la variable de entorno específica de la plataforma
+    env_token = os.environ.get(f'{platform.upper()}_TOKEN')
+    if env_token:
+        decoded_token = decode_base64_token(env_token)
+        if decoded_token:
+            return decoded_token
+        questionary.print(f"Error: El token en la variable de entorno {platform.upper()}_TOKEN no es un base64 válido.", style="fg:red")
+        return None
+    
+    # 3. Si no se encontró en ninguna parte, mostrar error
+    questionary.print(f"Error: No se encontró el token para {platform}.", style="fg:red")
+    questionary.print("Debes proporcionar el token de una de estas formas:", style="fg:yellow")
+    questionary.print("  1. Usando el argumento --token <token_base64>", style="fg:yellow")
+    questionary.print(f"  2. Configurando la variable de entorno {platform.upper()}_TOKEN", style="fg:yellow")
+    questionary.print("El token debe estar codificado en base64.", style="fg:yellow")
+    return None
+
+def push_branches_to_remote() -> Tuple[bool, str]:
+    """Realiza push de las ramas existentes al repositorio remoto.
+    
+    Ramas que se intentan hacer push:
+    - main (siempre)
+    - develop (si existe)
+    - staging (si existe)
+    """
+    try:
+        # Obtener lista de ramas locales
+        result = subprocess.run(['git', 'branch', '--format=%(refname:short)'], 
+                              capture_output=True, text=True, check=True)
+        local_branches = result.stdout.strip().split('\n')
+        
+        # Hacer push de main primero
+        questionary.print("Haciendo push de la rama main...", style="fg:cyan")
+        subprocess.run(['git', 'push', '-u', 'origin', 'main'], check=True)
+        
+        # Hacer push de develop si existe
+        if 'develop' in local_branches:
+            questionary.print("Haciendo push de la rama develop...", style="fg:cyan")
+            subprocess.run(['git', 'push', '-u', 'origin', 'develop'], check=True)
+        
+        # Hacer push de staging si existe
+        if 'staging' in local_branches:
+            questionary.print("Haciendo push de la rama staging...", style="fg:cyan")
+            subprocess.run(['git', 'push', '-u', 'origin', 'staging'], check=True)
+        
+        return True, "Ramas subidas exitosamente al repositorio remoto"
+        
+    except subprocess.CalledProcessError as e:
+        return False, f"Error al hacer push de las ramas: {e.stderr}"
+    except Exception as e:
+        return False, f"Error inesperado al hacer push: {e}"
+
+def create_github_repository(project_data: Dict[str, Any], token: str, use_https: bool = False) -> Tuple[bool, str]:
+    """Crea un repositorio en GitHub usando la API."""
+    try:
+        g = Github(token)
+        repo_data = project_data["repository"]
+        repo_name = repo_data["name"]
+        description = repo_data.get("description", "")
+        private = repo_data.get("visibility", "private") == "private"
+        owner_type = repo_data.get("owner_type", "user")
+        owner_name = repo_data.get("owner_name", "")
+        
+        # Determinar el propietario del repositorio
+        if owner_type == "organization":
+            if not owner_name:
+                return False, "Error: Se requiere el nombre de la organización cuando owner_type es 'organization'"
+            try:
+                owner = g.get_organization(owner_name)
+            except GithubException as e:
+                return False, f"Error al obtener la organización '{owner_name}': {e}"
+        else:  # user
+            owner = g.get_user()
+        
+        # Crear el repositorio
+        repo = owner.create_repo(
+            name=repo_name,
+            description=description,
+            private=private,
+            has_issues=True,
+            has_wiki=True,
+            has_projects=True,
+            auto_init=False
+        )
+        
+        # Configurar el remote local
+        if use_https:
+            remote_url = repo.clone_url.replace('https://', f'https://{token}@')
+        else:
+            remote_url = repo.ssh_url
+        
+        subprocess.run(['git', 'remote', 'add', 'origin', remote_url], check=True)
+        
+        # Hacer push de las ramas
+        push_success, push_msg = push_branches_to_remote()
+        if not push_success:
+            return False, push_msg
+        
+        return True, f"Repositorio creado exitosamente en: {repo.html_url}"
+        
+    except GithubException as e:
+        return False, f"Error en la API de GitHub: {e}"
+    except Exception as e:
+        return False, f"Error inesperado: {e}"
+
+def create_gitlab_repository(project_data: Dict[str, Any], token: str, use_https: bool = False) -> Tuple[bool, str]:
+    """Crea un repositorio en GitLab usando la API."""
+    # TODO: Implementar soporte para GitLab
+    return False, "Soporte para GitLab aún no implementado"
+
+def create_gitea_repository(project_data: Dict[str, Any], token: str, use_https: bool = False) -> Tuple[bool, str]:
+    """Crea un repositorio en Gitea usando la API."""
+    # TODO: Implementar soporte para Gitea
+    return False, "Soporte para Gitea aún no implementado"
+
+def create_remote_repo(project_base_path: Path, args: argparse.Namespace) -> None:
+    """Función principal para crear un repositorio remoto basado en la plataforma configurada."""
+    # 1. Verificar repositorio git
+    is_repo, msg = check_git_repo()
+    if not is_repo:
+        questionary.print(f"Error: {msg}", style="fg:red")
+        sys.exit(1)
+    questionary.print(msg, style="fg:green")
+    
+    # 2. Verificar configuración git
+    has_config, config = check_git_config()
+    if not has_config:
+        questionary.print("Error: Faltan configuraciones globales de git:", style="fg:red")
+        for key, value in config.items():
+            if not value:
+                questionary.print(f"  - {key}", style="fg:red")
+        sys.exit(1)
+    
+    # 3. Verificar remotes
+    has_remote, msg = check_git_remote()
+    if has_remote:
+        questionary.print(f"Error: {msg}", style="fg:red")
+        sys.exit(1)
+    
+    # 4. Verificar metadatos
+    project_meta_file = project_base_path / ".project" / "project_meta.toml"
+    if not project_meta_file.is_file():
+        questionary.print("Error: No se encontró el archivo de metadatos del proyecto.", style="fg:red")
+        questionary.print("Ejecuta primero el comando sin argumentos para crear el proyecto.", style="fg:yellow")
+        sys.exit(1)
+    
+    project_data = load_project_data(project_meta_file)
+    platform = project_data["repository"].get("platform", "").lower()
+    
+    # 5. Obtener token
+    token = get_token(args, platform)
+    if not token:
+        sys.exit(1)
+    
+    # 6. Crear repositorio según la plataforma
+    success = False
+    msg = ""
+    
+    if platform == "github":
+        success, msg = create_github_repository(project_data, token, args.https)
+    elif platform == "gitlab.com" or platform == "gitlab (auto-alojado)":
+        success, msg = create_gitlab_repository(project_data, token, args.https)
+    elif platform == "gitea":
+        success, msg = create_gitea_repository(project_data, token, args.https)
+    else:
+        questionary.print(f"Error: La plataforma '{platform}' no está soportada actualmente.", style="fg:red")
+        questionary.print("Plataformas soportadas: GitHub, GitLab, Gitea", style="fg:yellow")
+        sys.exit(1)
+    
+    if success:
+        questionary.print(msg, style="fg:green")
+    else:
+        questionary.print(f"Error: {msg}", style="fg:red")
+        sys.exit(1)
+
+def verify_repository_info(repo_data: Dict[str, Any], project_base_path: Path) -> Tuple[bool, str]:
+    """Verifica que la información del repositorio en el TOML coincida con el repositorio local.
+    
+    Args:
+        repo_data: Diccionario con la información del repositorio del TOML
+        project_base_path: Ruta base del proyecto
+    
+    Returns:
+        Tuple[bool, str]: (éxito, mensaje)
+    """
+    try:
+        # 1. Verificar que es un repositorio git
+        result = subprocess.run(['git', 'rev-parse', '--is-inside-work-tree'], 
+                              cwd=project_base_path,
+                              capture_output=True, text=True)
+        if result.returncode != 0:
+            return False, "El directorio no es un repositorio git"
+        
+        # 2. Verificar el remote origin
+        result = subprocess.run(['git', 'remote', 'get-url', 'origin'],
+                              cwd=project_base_path,
+                              capture_output=True, text=True)
+        if result.returncode != 0:
+            return False, "No hay un remote 'origin' configurado"
+        
+        remote_url = result.stdout.strip()
+        
+        # 3. Verificar que la URL coincide con la del TOML
+        toml_url = repo_data.get("url", "")
+        if toml_url and toml_url != remote_url:
+            return False, f"La URL del repositorio en el TOML ({toml_url}) no coincide con el remote origin ({remote_url})"
+        
+        # 4. Verificar el nombre del repositorio
+        repo_name = repo_data.get("name", "")
+        if not repo_name:
+            return False, "No se especificó el nombre del repositorio en el TOML"
+        
+        # 5. Verificar que estamos en la rama main
+        result = subprocess.run(['git', 'branch', '--show-current'],
+                              cwd=project_base_path,
+                              capture_output=True, text=True)
+        if result.returncode != 0:
+            return False, "Error al obtener la rama actual"
+        
+        current_branch = result.stdout.strip()
+        if current_branch != "main":
+            return False, f"Debes estar en la rama 'main' para configurar la protección (actual: {current_branch})"
+        
+        return True, "Información del repositorio verificada correctamente"
+        
+    except Exception as e:
+        return False, f"Error al verificar el repositorio: {str(e)}"
+
+def configure_branch_protection(project_base_path: Path, args: argparse.Namespace) -> None:
+    """Configura las reglas de protección de ramas según el tipo de proyecto."""
+    # 1. Verificar metadatos
+    project_meta_file = project_base_path / ".project" / "project_meta.toml"
+    if not project_meta_file.is_file():
+        questionary.print("Error: No se encontró el archivo de metadatos del proyecto.", style="fg:red")
+        questionary.print("Ejecuta primero el comando sin argumentos para crear el proyecto.", style="fg:yellow")
+        sys.exit(1)
+    
+    project_data = load_project_data(project_meta_file)
+    repo_data = project_data.get("repository", {})
+    
+    # 2. Verificar que es un repositorio Git válido
+    is_repo, msg = check_git_repo()
+    if not is_repo:
+        questionary.print(f"Error: {msg}", style="fg:red")
+        sys.exit(1)
+    
+    # 3. Verificar si existe el repositorio remoto
+    has_remote, msg = check_git_remote()
+    if not has_remote:
+        questionary.print("Error: No hay un repositorio remoto configurado.", style="fg:red")
+        questionary.print("Ejecuta '--newrepo' para crear y configurar el repositorio remoto.", style="fg:yellow")
+        sys.exit(1)
+    
+    # 4. Verificar información del repositorio
+    success, msg = verify_repository_info(repo_data, project_base_path)
+    if not success:
+        questionary.print(f"Error: {msg}", style="fg:red")
+        sys.exit(1)
+    questionary.print(msg, style="fg:green")
+    
+    # 5. Obtener plataforma del TOML
+    platform = repo_data.get("platform", "").lower()
+    if not platform:
+        questionary.print("Error: No se especificó la plataforma en el archivo TOML.", style="fg:red")
+        sys.exit(1)
+    
+    # 6. Obtener token (ahora obligatorio)
+    if not args.token and not os.environ.get(f"{platform.upper()}_TOKEN"):
+        questionary.print(f"Error: Se requiere un token para {platform}.", style="fg:red")
+        questionary.print("Debes proporcionar el token de una de estas formas:", style="fg:yellow")
+        questionary.print("  1. Usando el argumento --token <token_base64>", style="fg:yellow")
+        questionary.print(f"  2. Configurando la variable de entorno {platform.upper()}_TOKEN", style="fg:yellow")
+        questionary.print("El token debe estar codificado en base64.", style="fg:yellow")
+        sys.exit(1)
+    
+    token = get_token(args, platform)
+    if not token:
+        sys.exit(1)
+    
+    # 7. Actualizar configuración en el TOML
+    if "protection_config" not in repo_data:
+        repo_data["protection_config"] = {}
+    
+    # Determinar si es proyecto de equipo
+    is_team_project = args.team if args.team is not None else not repo_data["protection_config"].get("single_developer", True)
+    
+    # Obtener revisores y líderes
+    reviewers = args.reviewers.split(",") if args.reviewers else repo_data["protection_config"].get("reviewers", [])
+    branch_leaders = args.branch_leaders.split(",") if args.branch_leaders else repo_data["protection_config"].get("branch_leaders", [])
+    
+    # Actualizar configuración en el TOML
+    repo_data["protection_config"].update({
+        "single_developer": not is_team_project,
+        "reviewers": reviewers,
+        "branch_leaders": branch_leaders,
+        "branches": MAIN_BRANCHES,
+        "work_branches": BRANCH_TYPES
+    })
+    
+    # Guardar cambios en el TOML
+    save_project_data(project_data, project_meta_file)
+    questionary.print("✓ Configuración de protección guardada en project_meta.toml", style="fg:green")
+    
+    # 8. Aplicar la configuración en el repositorio
+    try:
+        if platform == "github":
+            configurator = GitHubConfigurator(project_data, token)
+        elif platform == "gitlab.com" or platform == "gitlab (auto-alojado)":
+            # TODO: Implementar GitLabConfigurator
+            questionary.print("Soporte para GitLab aún no implementado", style="fg:yellow")
+            sys.exit(1)
+        elif platform == "gitea":
+            # TODO: Implementar GiteaConfigurator
+            questionary.print("Soporte para Gitea aún no implementado", style="fg:yellow")
+            sys.exit(1)
+        else:
+            questionary.print(f"Error: La plataforma '{platform}' no está soportada actualmente.", style="fg:red")
+            sys.exit(1)
+    except ValueError as e:
+        questionary.print(f"Error: {str(e)}", style="fg:red")
+        sys.exit(1)
+    except Exception as e:
+        questionary.print(f"Error inesperado: {str(e)}", style="fg:red")
+        sys.exit(1)
+    
+    # 9. Configurar protección de ramas principales
+    for branch, rules in MAIN_BRANCHES.items():
+        # Ajustar reglas según si es proyecto de equipo o no
+        branch_rules = rules.copy()
+        if not is_team_project:
+            branch_rules["allow_direct_push"] = True
+            branch_rules["required_pull_request_reviews"] = None
+        
+        success, msg = configurator.configure_branch_protection(branch, branch_rules)
+        if success:
+            questionary.print(f"✓ {msg}", style="fg:green")
+        else:
+            questionary.print(f"✗ {msg}", style="fg:red")
+    
+    # 10. Configurar revisores y líderes si se especificaron
+    if reviewers or branch_leaders:
+        success, msg = configurator.configure_review_leadership(reviewers, branch_leaders)
+        if success:
+            questionary.print(f"✓ {msg}", style="fg:green")
+        else:
+            questionary.print(f"✗ {msg}", style="fg:red")
 
 def main():
     """Función principal de la herramienta."""
@@ -331,12 +971,66 @@ def main():
     show_banner()
 
     # --- Configurar y Parsear Argparse PRIMERO ---
-    parser = argparse.ArgumentParser(description="Gestiona el archivo de metadatos del proyecto (project_meta.toml).")
+    parser = argparse.ArgumentParser(
+        description="Gestiona el archivo de metadatos del proyecto (project_meta.toml).",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Ejemplos:
+  %(prog)s
+  %(prog)s --newrepo
+  %(prog)s --newrepo --token <token_base64>
+  %(prog)s --newrepo --https
+  %(prog)s --configure-protection
+  %(prog)s --configure-protection --team --reviewers "user1,user2"
+  %(prog)s --configure-protection --branch-leaders "user1,user2"
+
+Nota: El token es requerido para --newrepo y --configure-protection.
+Puede proporcionarse con --token o mediante la variable de entorno <PLATFORM>_TOKEN.
+"""
+    )
     parser.add_argument(
         "-p", "--path",
         default=".",
         help="Ruta al directorio del proyecto (por defecto: directorio actual)."
     )
+    parser.add_argument(
+        "--newrepo",
+        action="store_true",
+        help="Crea un nuevo repositorio remoto basado en la plataforma configurada en project_meta.toml."
+    )
+    parser.add_argument(
+        "--configure-protection",
+        action="store_true",
+        help="Configura las reglas de protección de ramas según el tipo de proyecto."
+    )
+    parser.add_argument(
+        "--team",
+        action="store_true",
+        help="Configura el repositorio como proyecto de equipo (requiere revisión de PRs)."
+    )
+    parser.add_argument(
+        "--reviewers",
+        help="Lista de revisores separados por comas (ej: user1,user2,team1)."
+    )
+    parser.add_argument(
+        "--branch-leaders",
+        help="Lista de líderes de rama separados por comas (ej: user1,user2,team1)."
+    )
+    parser.add_argument(
+        "--token",
+        help="Token de autenticación en base64 (alternativa a GITHUB_TOKEN)."
+    )
+    parser.add_argument(
+        "--https",
+        action="store_true",
+        help="Usa HTTPS en lugar de SSH para el repositorio remoto."
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {VERSION}",
+        help="Muestra la versión del programa y sale."
+    )
+    
     # Parsear argumentos. Si es --help, argparse saldrá aquí.
     args = parser.parse_args()
     # ------------------------------------------
@@ -348,6 +1042,16 @@ def main():
 
     questionary.print(f"Operando en el directorio del proyecto: {project_base_path}")
     # ------------------------------------------
+
+    # --- Manejar comando --newrepo ---
+    if args.newrepo:
+        create_remote_repo(project_base_path, args)
+        return
+
+    # --- Manejar comando --configure-protection ---
+    if args.configure_protection:
+        configure_branch_protection(project_base_path, args)
+        return
 
     # --- Check y Flujo de Creación/Edición ---
     if not project_meta_file.is_file():
