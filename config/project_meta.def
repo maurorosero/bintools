@@ -1,0 +1,41 @@
+schema_version = "1.5"
+
+[repository]
+name = ""
+owner_name = ""
+owner_type = "user"
+visibility = "private"
+platform = "GitHub"
+platform_url = ""
+description = ""
+created_flag = false
+url = ""
+
+[repository.init_options]
+add_readme = true
+add_gitignore = true
+gitignore_template = "Python"
+add_license = true
+license_template = "mit"
+
+[project_details]
+title = ""
+purpose = ""
+status = "planning"
+lead = ""
+objectives = []
+stakeholders = []
+technology_stack = []
+risks = []
+assumptions = []
+
+[project_details.pm_tool_info]
+tool_name = ""
+project_link = ""
+project_key = ""
+
+[project_details.constraints]
+budget = "TBD"
+timeline = "TBD"
+
+[additional_metadata]

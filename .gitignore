@@ -50,7 +50,8 @@ wheels/
 .virtualenv/
 
 # Definición y metadatos de Proyecto
-.project/
+.project/project_meta.toml  # Ignorar específicamente el archivo de metadatos
+!.project/  # Permitir seguimiento de la carpeta .project
 
 # Jupyter Notebook
 .ipynb_checkpoints

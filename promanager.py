@@ -409,18 +409,67 @@ def edit_repository_info(repo_data, is_initial_setup=False):
     is_created = repo_data.get("created_flag", False) or repo_data.get("url")
 
     if is_created:
-        questionary.print("--- Info Repositorio (Creado - Campos clave sólo lectura) ---", style="bold")
+        questionary.print("--- Info Repositorio (Creado - Campos editables) ---", style="bold")
+        questionary.print("Nota: Los campos clave no pueden ser modificados una vez creado el repositorio.", style="fg:yellow")
         questionary.print(f"  Nombre:       {repo_data.get('name', 'N/A')}")
         questionary.print(f"  Propietario:  {repo_data.get('owner_name', 'N/A')} ({repo_data.get('owner_type', 'N/A')})")
         questionary.print(f"  Visibilidad: {repo_data.get('visibility', 'N/A')}")
-        # Mostrar plataforma y URL si existe
         platform_display = repo_data.get('platform', 'N/A')
         platform_url_display = repo_data.get('platform_url')
         if platform_url_display:
             platform_display += f" ({platform_url_display})"
         questionary.print(f"  Plataforma:   {platform_display}")
         questionary.print(f"  URL Repo:     {repo_data.get('url', 'No establecido')}")
-        repo_data['description'] = questionary.text("Descripción:", default=repo_data.get('description', "")).ask() or repo_data.get('description', "")
+        
+        # Editar campos editables
+        description = questionary.text(
+            "Descripción:",
+            default=repo_data.get('description', "")
+        ).ask()
+        if description is None: return # Check for cancellation
+        repo_data['description'] = description
+        
+        # Editar opciones de inicialización
+        init_options = repo_data.get("init_options", {})
+        
+        add_readme = questionary.confirm(
+            "¿Inicializar con README?",
+            default=init_options.get('add_readme', True)
+        ).ask()
+        if add_readme is None: return # Check for cancellation
+        init_options['add_readme'] = add_readme
+        
+        add_gitignore = questionary.confirm(
+            "¿Añadir .gitignore?",
+            default=init_options.get('add_gitignore', True)
+        ).ask()
+        if add_gitignore is None: return # Check for cancellation
+        init_options['add_gitignore'] = add_gitignore
+        
+        if add_gitignore:
+            gitignore_template = questionary.text(
+                "Plantilla .gitignore (ej., Python, Node, vacío para ninguno):",
+                default=init_options.get('gitignore_template', "Python")
+            ).ask()
+            if gitignore_template is None: return # Check for cancellation
+            init_options['gitignore_template'] = gitignore_template
+        
+        add_license = questionary.confirm(
+            "¿Añadir LICENSE?",
+            default=init_options.get('add_license', True)
+        ).ask()
+        if add_license is None: return # Check for cancellation
+        init_options['add_license'] = add_license
+        
+        if add_license:
+            license_template = questionary.text(
+                "Plantilla Licencia (ID SPDX, ej., mit, gpl-3.0):",
+                default=init_options.get('license_template', "mit")
+            ).ask()
+            if license_template is None: return # Check for cancellation
+            init_options['license_template'] = license_template
+        
+        repo_data["init_options"] = init_options
     else:
         if not is_initial_setup:
             questionary.print("--- Info Repositorio (Campos requeridos *) ---", style="bold")
@@ -430,24 +479,50 @@ def edit_repository_info(repo_data, is_initial_setup=False):
         else:
             questionary.print("--- Info Repositorio (Opciones Adicionales) ---", style="bold")
 
-        repo_data['description'] = questionary.text("Descripción:", default=repo_data.get('description', "")).ask() or repo_data.get('description', "")
-        if repo_data['description'] is None: return # Check for cancellation
+        description = questionary.text(
+            "Descripción:",
+            default=repo_data.get('description', "")
+        ).ask()
+        if description is None: return # Check for cancellation
+        repo_data['description'] = description
 
         init_options = repo_data.get("init_options", {})
-        init_options['add_readme'] = questionary.confirm("¿Inicializar con README?", default=init_options.get('add_readme', True)).ask()
-        if init_options['add_readme'] is None: return
+        add_readme = questionary.confirm(
+            "¿Inicializar con README?",
+            default=init_options.get('add_readme', True)
+        ).ask()
+        if add_readme is None: return # Check for cancellation
+        init_options['add_readme'] = add_readme
 
-        init_options['add_gitignore'] = questionary.confirm("¿Añadir .gitignore?", default=init_options.get('add_gitignore', True)).ask()
-        if init_options['add_gitignore'] is None: return
-        if init_options['add_gitignore']:
-            init_options['gitignore_template'] = questionary.text("Plantilla .gitignore (ej., Python, Node, vacío para ninguno):", default=init_options.get('gitignore_template', "Python")).ask() or init_options.get('gitignore_template', "Python")
-            if init_options['gitignore_template'] is None: return
+        add_gitignore = questionary.confirm(
+            "¿Añadir .gitignore?",
+            default=init_options.get('add_gitignore', True)
+        ).ask()
+        if add_gitignore is None: return # Check for cancellation
+        init_options['add_gitignore'] = add_gitignore
 
-        init_options['add_license'] = questionary.confirm("¿Añadir LICENSE?", default=init_options.get('add_license', True)).ask()
-        if init_options['add_license'] is None: return
-        if init_options['add_license']:
-            init_options['license_template'] = questionary.text("Plantilla Licencia (ID SPDX, ej., mit, gpl-3.0):", default=init_options.get('license_template', "mit")).ask() or init_options.get('license_template', "mit")
-            if init_options['license_template'] is None: return
+        if add_gitignore:
+            gitignore_template = questionary.text(
+                "Plantilla .gitignore (ej., Python, Node, vacío para ninguno):",
+                default=init_options.get('gitignore_template', "Python")
+            ).ask()
+            if gitignore_template is None: return # Check for cancellation
+            init_options['gitignore_template'] = gitignore_template
+
+        add_license = questionary.confirm(
+            "¿Añadir LICENSE?",
+            default=init_options.get('add_license', True)
+        ).ask()
+        if add_license is None: return # Check for cancellation
+        init_options['add_license'] = add_license
+
+        if add_license:
+            license_template = questionary.text(
+                "Plantilla Licencia (ID SPDX, ej., mit, gpl-3.0):",
+                default=init_options.get('license_template', "mit")
+            ).ask()
+            if license_template is None: return # Check for cancellation
+            init_options['license_template'] = license_template
 
         repo_data["init_options"] = init_options
 
@@ -711,6 +786,51 @@ def create_github_repository(project_data: Dict[str, Any], token: str, use_https
         
         subprocess.run(['git', 'remote', 'add', 'origin', remote_url], check=True)
         
+        # Configurar protección de ramas por defecto
+        questionary.print("Configurando protección de ramas por defecto...", style="fg:cyan")
+        
+        # Configurar rama main
+        main_protection = {
+            "required_status_checks": {
+                "strict": True,
+                "contexts": ["ci/check"]
+            },
+            "enforce_admins": True,
+            "required_pull_request_reviews": {
+                "required_approving_review_count": 1,
+                "dismiss_stale_reviews": True,
+                "require_code_owner_reviews": True
+            },
+            "restrictions": None  # Permitir push a administradores
+        }
+        
+        # Configurar rama develop
+        develop_protection = {
+            "required_status_checks": {
+                "strict": True,
+                "contexts": ["ci/check"]
+            },
+            "enforce_admins": True,
+            "required_pull_request_reviews": {
+                "required_approving_review_count": 1,
+                "dismiss_stale_reviews": True,
+                "require_code_owner_reviews": False
+            },
+            "restrictions": None  # Permitir push a administradores
+        }
+        
+        try:
+            # Aplicar protección a main
+            repo.get_branch("main").edit_protection(**main_protection)
+            questionary.print("✓ Protección configurada para rama main", style="fg:green")
+            
+            # Aplicar protección a develop
+            repo.get_branch("develop").edit_protection(**develop_protection)
+            questionary.print("✓ Protección configurada para rama develop", style="fg:green")
+        except GithubException as e:
+            questionary.print(f"Advertencia: No se pudo configurar la protección de ramas: {e}", style="fg:yellow")
+            questionary.print("Puedes configurar la protección manualmente más tarde con --configure-protection", style="fg:yellow")
+        
         # Hacer push de las ramas
         push_success, push_msg = push_branches_to_remote()
         if not push_success:
@@ -772,7 +892,19 @@ def create_remote_repo(project_base_path: Path, args: argparse.Namespace) -> Non
     if not token:
         sys.exit(1)
     
-    # 6. Crear repositorio según la plataforma
+    # 6. Crear directorio config y copiar TOML como .def
+    config_dir = project_base_path / "config"
+    config_dir.mkdir(exist_ok=True)
+    def_file = config_dir / "project_meta.def"
+    try:
+        import shutil
+        shutil.copy2(project_meta_file, def_file)
+        questionary.print(f"✓ Copia de configuración guardada en {def_file}", style="fg:green")
+    except Exception as e:
+        questionary.print(f"Error al copiar archivo de configuración: {e}", style="fg:red")
+        sys.exit(1)
+    
+    # 7. Crear repositorio según la plataforma
     success = False
     msg = ""
     
@@ -965,6 +1097,40 @@ def configure_branch_protection(project_base_path: Path, args: argparse.Namespac
         else:
             questionary.print(f"✗ {msg}", style="fg:red")
 
+def initialize_project_structure(project_base_path: Path) -> bool:
+    """Inicializa la estructura del proyecto verificando y creando los directorios y archivos necesarios.
+    
+    Args:
+        project_base_path: Ruta base del proyecto
+        
+    Returns:
+        bool: True si la inicialización fue exitosa, False si hay error
+    """
+    try:
+        # Crear directorio .project si no existe
+        project_dir = project_base_path / ".project"
+        project_dir.mkdir(exist_ok=True)
+        
+        # Verificar si existe project_meta.toml
+        meta_file = project_dir / "project_meta.toml"
+        if not meta_file.exists():
+            # Intentar copiar desde config/project_meta.def
+            def_file = project_base_path / "config" / "project_meta.def"
+            if def_file.exists():
+                import shutil
+                shutil.copy2(def_file, meta_file)
+                questionary.print("✓ Configuración del proyecto restaurada desde config/project_meta.def", style="fg:green")
+            else:
+                questionary.print("Error: No se encontró la configuración del proyecto.", style="fg:red")
+                questionary.print("Por favor, ejecuta:", style="fg:yellow")
+                questionary.print("  promanager.py --newrepo", style="fg:yellow")
+                questionary.print("para crear una nueva configuración o restaura config/project_meta.def desde un backup.", style="fg:yellow")
+                return False
+        return True
+    except Exception as e:
+        questionary.print(f"Error al inicializar la estructura del proyecto: {e}", style="fg:red")
+        return False
+
 def main():
     """Función principal de la herramienta."""
     clear_screen()
@@ -975,7 +1141,7 @@ def main():
         description="Gestiona el archivo de metadatos del proyecto (project_meta.toml).",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Ejemplos:
-  %(prog)s
+  %(prog)s --project
   %(prog)s --newrepo
   %(prog)s --newrepo --token <token_base64>
   %(prog)s --newrepo --https
@@ -991,6 +1157,11 @@ Puede proporcionarse con --token o mediante la variable de entorno <PLATFORM>_TO
         "-p", "--path",
         default=".",
         help="Ruta al directorio del proyecto (por defecto: directorio actual)."
+    )
+    parser.add_argument(
+        "--project",
+        action="store_true",
+        help="Crea o edita el archivo de metadatos del proyecto (project_meta.toml)."
     )
     parser.add_argument(
         "--newrepo",
@@ -1031,17 +1202,94 @@ Puede proporcionarse con --token o mediante la variable de entorno <PLATFORM>_TO
         help="Muestra la versión del programa y sale."
     )
     
-    # Parsear argumentos. Si es --help, argparse saldrá aquí.
+    # Parsear argumentos. Si no hay argumentos, mostrar help y salir
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(0)
+        
     args = parser.parse_args()
     # ------------------------------------------
 
-    # --- Definir rutas basadas en el argumento (solo se ejecuta si no fue --help) ---
+    # --- Definir rutas basadas en el argumento ---
     project_base_path = Path(args.path).resolve() # Resuelve a ruta absoluta
+    
+    # Inicializar estructura del proyecto
+    if not initialize_project_structure(project_base_path):
+        sys.exit(1)
+        
     project_meta_dir = project_base_path / ".project"
     project_meta_file = project_meta_dir / "project_meta.toml"
 
     questionary.print(f"Operando en el directorio del proyecto: {project_base_path}")
     # ------------------------------------------
+
+    # --- Manejar comando --project ---
+    if args.project:
+        # Crear directorio .project si no existe
+        project_meta_dir.mkdir(exist_ok=True)
+        
+        # Si el archivo no existe, crear uno nuevo
+        if not project_meta_file.is_file():
+            project_data = get_default_structure()
+            save_project_data(project_data, project_meta_file)
+            questionary.print("Archivo project_meta.toml creado exitosamente.", style="fg:green")
+        else:
+            # Si existe, cargar y editar
+            project_data = load_project_data(project_meta_file)
+            original_data_str = str(project_data)
+            modified = False
+
+            while True:
+                try:
+                    current_data_str = str(project_data)
+                    modified = (current_data_str != original_data_str)
+                    prompt_title = "Selecciona acción:" + (" (Hay cambios sin guardar)" if modified else "")
+
+                    action = questionary.select(
+                        prompt_title,
+                        choices=[
+                            "Editar Info Repositorio",
+                            "Editar Detalles Proyecto",
+                            "Editar Metadatos Adicionales (Manual)",
+                            "Guardar Cambios",
+                            "Salir (Descartar Cambios)",
+                            "Guardar y Salir"
+                        ],
+                        qmark=">", pointer="->"
+                    ).ask()
+                except KeyboardInterrupt:
+                    action = None
+
+                if action == "Editar Info Repositorio":
+                    edit_repository_info(project_data["repository"])
+                elif action == "Editar Detalles Proyecto":
+                    edit_project_details(project_data["project_details"])
+                elif action == "Editar Metadatos Adicionales (Manual)":
+                    new_metadata = edit_additional_metadata(project_data.get("additional_metadata", {}), project_meta_file)
+                    project_data["additional_metadata"] = new_metadata
+                elif action == "Guardar Cambios":
+                    save_project_data(project_data, project_meta_file)
+                    original_data_str = str(project_data)
+                    modified = False
+                elif action == "Salir (Descartar Cambios)":
+                    if modified:
+                        confirm_exit = questionary.confirm("¿Descartar cambios sin guardar?").ask()
+                        if not confirm_exit:
+                            continue
+                    print("Saliendo sin guardar.")
+                    sys.exit(0)
+                elif action == "Guardar y Salir":
+                    save_project_data(project_data, project_meta_file)
+                    print("Saliendo.")
+                    sys.exit(0)
+                elif action is None:
+                    if modified:
+                        confirm_exit = questionary.confirm("Tienes cambios sin guardar. ¿Salir de todas formas?").ask()
+                        if not confirm_exit:
+                            continue
+                    print("Saliendo.")
+                    sys.exit(0)
+        return
 
     # --- Manejar comando --newrepo ---
     if args.newrepo:
@@ -1052,121 +1300,6 @@ Puede proporcionarse con --token o mediante la variable de entorno <PLATFORM>_TO
     if args.configure_protection:
         configure_branch_protection(project_base_path, args)
         return
-
-    # --- Check y Flujo de Creación/Edición ---
-    if not project_meta_file.is_file():
-        if project_meta_file.exists():
-             questionary.print(f"Advertencia: La ruta {project_meta_file} existe pero no es un archivo.", style="fg:cyan")
-
-        questionary.print(f"Archivo de metadatos {project_meta_file} no encontrado. ¡Creándolo!", style="fg:cyan")
-        project_data = get_default_structure()
-
-        questionary.print("--- Información Repositorio (Requerida*) ---", style="bold")
-        # Usar try-except en caso de que questionary falle o sea interrumpido
-        try:
-            required_answers = prompt_for_required_repo_info(project_data["repository"])
-        except Exception as e:
-            print(f"Error durante la entrada: {e}")
-            required_answers = None
-
-        if required_answers is None:
-             print("Operación cancelada.")
-             sys.exit(0)
-        project_data["repository"].update(required_answers)
-
-        # Asegurar que los flujos de confirmación también manejen None/Cancelación
-        try:
-            fill_optional_repo = questionary.confirm("¿Rellenar detalles opcionales del repositorio ahora? (Descripción, Opciones Init)").ask()
-            if fill_optional_repo is None: raise KeyboardInterrupt # Tratar cancelación como interrupción
-            if fill_optional_repo:
-                 edit_repository_info(project_data["repository"], is_initial_setup=True)
-
-            fill_project_details = questionary.confirm("¿Rellenar detalles del proyecto ahora?").ask()
-            if fill_project_details is None: raise KeyboardInterrupt
-            if fill_project_details:
-                 edit_project_details(project_data["project_details"])
-        except KeyboardInterrupt:
-            print("Operación cancelada durante entrada opcional.")
-            # Decidir si guardar lo mínimo o salir sin guardar
-            save_minimal = questionary.confirm("¿Guardar la información mínima requerida recopilada hasta ahora?").ask()
-            if save_minimal:
-                 save_project_data(project_data, project_meta_file)
-                 questionary.print(f"Metadatos mínimos del proyecto guardados en {project_meta_file}.", style="fg:green")
-            else:
-                 print("Saliendo sin guardar.")
-            sys.exit(0)
-
-
-        save_project_data(project_data, project_meta_file) # Pasar ruta
-        questionary.print(f"Metadatos iniciales del proyecto guardados en {project_meta_file}.", style="fg:green")
-        questionary.print("Puedes ejecutar esta herramienta de nuevo para editar detalles.")
-
-    else:
-        # --- Flujo de Edición ---
-        project_data = load_project_data(project_meta_file) # Pasar ruta
-        # Crear copia profunda para detectar cambios reales sería mejor
-        # import copy
-        # original_data = copy.deepcopy(project_data) # Necesitaría import copy
-        original_data_str = str(project_data) # Comparación simple por ahora
-        modified = False
-
-        while True:
-            try:
-                # Reevaluar si hay cambios antes de mostrar el menú
-                current_data_str = str(project_data)
-                modified = (current_data_str != original_data_str)
-                prompt_title = "Selecciona acción:" + (" (Hay cambios sin guardar)" if modified else "")
-
-                action = questionary.select(
-                    prompt_title,
-                    choices=[
-                        "Editar Info Repositorio",
-                        "Editar Detalles Proyecto",
-                        "Editar Metadatos Adicionales (Manual)",
-                        # --- Opción futura ---
-                        # questionary.Choice("Crear Repositorio Remoto", disabled=project_data["repository"].get("created_flag")),
-                        "Guardar Cambios",
-                        "Salir (Descartar Cambios)",
-                        "Guardar y Salir"
-                    ],
-                    qmark=">", pointer="->"
-                ).ask()
-            except KeyboardInterrupt:
-                action = None # Tratar Ctrl+C como None
-
-
-            if action == "Editar Info Repositorio":
-                edit_repository_info(project_data["repository"])
-            elif action == "Editar Detalles Proyecto":
-                edit_project_details(project_data["project_details"])
-            elif action == "Editar Metadatos Adicionales (Manual)":
-                 new_metadata = edit_additional_metadata(project_data.get("additional_metadata", {}), project_meta_file)
-                 project_data["additional_metadata"] = new_metadata
-            # elif action == "Crear Repositorio Remoto":
-            #     pass # Lógica futura
-            elif action == "Guardar Cambios":
-                save_project_data(project_data, project_meta_file) # Pasar ruta
-                original_data_str = str(project_data) # Actualizar estado guardado
-                modified = False # Marcar como no modificado después de guardar
-            elif action == "Salir (Descartar Cambios)":
-                if modified:
-                    confirm_exit = questionary.confirm("¿Descartar cambios sin guardar?").ask()
-                    if not confirm_exit:
-                        continue # Volver al menú
-                print("Saliendo sin guardar.")
-                sys.exit(0)
-            elif action == "Guardar y Salir":
-                save_project_data(project_data, project_meta_file) # Pasar ruta
-                print("Saliendo.")
-                sys.exit(0)
-            elif action is None: # User pressed Ctrl+C or equivalent
-                 if modified:
-                     confirm_exit = questionary.confirm("Tienes cambios sin guardar. ¿Salir de todas formas?").ask()
-                     if not confirm_exit:
-                          continue # Volver al menú si no quiere salir
-                 print("Saliendo.") # Añadir newline para limpieza
-                 sys.exit(0)
-
 
 if __name__ == "__main__":
     # Pequeño ajuste para mejor manejo de interrupciones globales
