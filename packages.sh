@@ -89,7 +89,7 @@ if [[ "$(id -u)" -eq 0 ]]; then
   LOG_DIR="/var/log"
 else
   # Solo para procesos sin escalar, usar directorio en home
-  LOG_DIR="$USER_HOME/bin/logs"
+  LOG_DIR="$USER_HOME/.logs"
 fi
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/packages.log"

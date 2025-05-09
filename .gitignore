@@ -44,15 +44,13 @@ wheels/
 *.egg
 
 # Entornos virtuales - modificado para mantener la carpeta pero ignorar su contenido
-# venv/  <- comentado para no ignorar la carpeta
-venv/*  # Ignora todo el contenido de venv/
-!venv/.gitkeep  # Pero no ignores el archivo .gitkeep
-
-ENV/
-env/
 .venv/
+
 .env/
 .virtualenv/
+
+# Definición y metadatos de Proyecto
+.project/
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -71,6 +69,11 @@ lerna-debug.log*
 # Archivos de bloqueo de versiones
 package-lock.json
 yarn.lock
+
+# Archivos de configuración de sops
+sops/
+!sops/devspath.def
+.sops.yaml
 
 # Archivos de entorno específicos de Node.js
 .env.development.local
@@ -115,9 +118,4 @@ tmp/*
 # Excepto el archivo .gitkeep para que Git rastree el directorio
 !tmp/.gitkeep
 # -------------------------
-
-# --- Contexto README (Auto-añadido por script) ---
-# Enlace simbólico al contexto global de README personal (ignorar)
-.github/readme-context-personal-global.md
-# -------------------------------------------------
 

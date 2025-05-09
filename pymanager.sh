@@ -1,901 +1,1006 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # Copyright (c) 2025, MAURO ROSERO PÉREZ
 # License: GPLV3
 # Author: Mauro Rosero P. (mauro.rosero@gmail.com)
-# Created: 2025-04-30 05:52:19
-# Version: 0.1.0
+# Created: 2025-04-27 10:15:53
+# Version: 0.4.0
 #
-# pymanager.sh - Script de Bash para administrar entornos virtuales de Python (crear, listar, instalar paquetes, activar/desactivar, eliminar).
+# pymanager.sh - Gestión simplificada de entornos virtuales Python
 # -----------------------------------------------------------------------------
 #
+# Description: Script para crear, activar, listar y eliminar entornos virtuales Python (.venv)
 
-# py_manager.sh - Administrador de Entornos Virtuales de Python
-#
-# Este script permite administrar entornos virtuales de Python de manera sencilla.
-# Funcionalidades:
-#  - Crear entornos virtuales
-#  - Instalar paquetes desde archivos de requisitos
-#  - Listar entornos disponibles
-#  - Activar/desactivar entornos mediante alias (pybin/pyunbin)
-#  - Eliminar entornos virtuales
-
-# --- Banner --- #
-APP_NAME="Python Virtual Environment Manager"
-APP_VERSION="0.5.5 (2025/05)"
-APP_AUTHOR="Mauro Rosero Pérez (mauro.rosero@gmail.com)"
-
-# Constantes
-BIN_DIR="$HOME/bin"
-VENV_DIR="$BIN_DIR/venv"
-BIN_VENV_DIR="$BIN_DIR/venv/$USER"
-BI_REQUIREMENTS="$BIN_DIR/requirements.txt"
-TIMEOUT_SECONDS=5
-
-# Colores para mensajes
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-MAGENTA='\033[0;35m'
-CYAN='\033[0;36m'
-WHITE='\033[1;37m'
-NC='\033[0m' # No Color
-
-# --- Configuración de Logs --- #
-# Detectar $HOME del usuario que invocó sudo, si aplica
-if [[ -n "${SUDO_USER-}" ]]; then
-  USER_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
-else
-  USER_HOME=$HOME
-fi
-
-# Determinar ruta de logs según si se ejecuta como root o usuario normal
-if [[ "$(id -u)" -eq 0 ]]; then
-  # Si se ejecuta con privilegios escalados (root/sudo), siempre usar /var/log
-  LOG_DIR="/var/log"
-else
-  # Solo para procesos sin escalar, usar directorio en home
-  LOG_DIR="$USER_HOME/bin/logs"
-fi
-mkdir -p "$LOG_DIR" 2>/dev/null || true
+# Configuración básica
+# ==================
+VENV_BASE_DIR_RELATIVE=".venv"
+VENV_DIR="$HOME/$VENV_BASE_DIR_RELATIVE"
+BIN_VENV_DIR="$VENV_DIR/default"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+DEFAULT_ENV_REQUIREMENTS_PATH="$SCRIPT_DIR/requirements.txt"
+LOG_DIR="$HOME/.logs"
 LOG_FILE="$LOG_DIR/pymanager.log"
-
-# Guardar argumentos originales para el log
+APP_NAME="Gestor de Entornos Python (pymanager)"
+VERSION="0.4.0"
+AUTHOR="Mauro Rosero P."
 ORIGINAL_ARGS=("$@")
 
-# Función para registrar en el log
+# Colores y formatos (estilo packages.sh)
+COLOR_GREEN="\033[0;32m"
+COLOR_YELLOW="\033[0;33m"
+COLOR_RED="\033[0;31m"
+COLOR_CYAN="\033[0;36m"
+COLOR_BLUE="\033[0;34m"
+COLOR_MAGENTA="\033[0;35m"
+COLOR_RESET="\033[0m"
+BOLD="\033[1m"
+UNDERLINE="\033[4m"
+ITALIC="\033[3m"
+
+# === Funciones de Utilidad (Logging, Mensajes) ===
+# Mover definiciones aquí, ANTES de usarlas
+
+# Función de logging
 log() {
-    local level="$1"
-    local message="$2"
-    local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
-    echo "[$timestamp] [$level] $message" >> "$LOG_FILE"
+    local level="$1"; local message="$2"; mkdir -p "$LOG_DIR"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') [$level] - $message" >> "$LOG_FILE"
 }
+# Funciones para mostrar mensajes coloreados
+mostrar_error() { echo -e "${COLOR_RED}${BOLD}Error:${COLOR_RESET}${COLOR_RED} $1${COLOR_RESET}" >&2; log "ERROR" "$1"; }
+mostrar_advertencia() { echo -e "${COLOR_YELLOW}${BOLD}Advertencia:${COLOR_RESET}${COLOR_YELLOW} $1${COLOR_RESET}"; log "WARN" "$1"; }
+mostrar_exito() { echo -e "${COLOR_GREEN}${BOLD}Éxito:${COLOR_RESET}${COLOR_GREEN} $1${COLOR_RESET}"; log "INFO" "$1"; }
+mostrar_info() { echo -e "${COLOR_BLUE}Info:${COLOR_RESET} $1"; }
 
-# Función para mostrar mensajes de error
-mostrar_error() {
-    echo -e "${RED}ERROR: $1${NC}" >&2
-    log "ERROR" "$1"
-}
+# === Comprobaciones Iniciales y otras utilidades ===
 
-# Función para mostrar mensajes de éxito
-mostrar_exito() {
-    echo -e "${GREEN}$1${NC}"
-    log "INFO" "$1"
-}
+# Detectar si gum está disponible (Ahora puede llamar a log)
+HAS_GUM=false
+if command -v gum &> /dev/null; then
+    HAS_GUM=true
+    log "INFO" "Comando 'gum' detectado. Se usarán menús mejorados."
+else
+    log "INFO" "Comando 'gum' no encontrado. Se usarán menús básicos."
+fi
 
-# Función para mostrar advertencias
-mostrar_advertencia() {
-    echo -e "${YELLOW}ADVERTENCIA: $1${NC}"
-    log "WARN" "$1"
-}
-
-# Función para mostrar información
-mostrar_info() {
-    echo -e "${CYAN}$1${NC}"
-    log "INFO" "$1"
-}
-
-# Función para mostrar debug
-mostrar_debug() {
-    if [[ "${DEBUG:-0}" -eq 1 ]]; then
-        echo -e "${MAGENTA}DEBUG: $1${NC}"
-    fi
-    log "DEBUG" "$1"
-}
-
-# Función para verificar la conexión a internet
-verificar_conexion_internet() {
-    mostrar_debug "Verificando conexión a internet..."
-    # Intentar hacer ping a Google DNS con timeout
-    if ping -c 1 -W "$TIMEOUT_SECONDS" 8.8.8.8 &> /dev/null; then
-        mostrar_debug "Conexión a internet verificada correctamente"
-        return 0 # Hay conexión
-    else
-        mostrar_error "No hay conexión a internet. No se puede continuar con la operación."
-        return 1 # No hay conexión
-    fi
-}
-
-# Función para verificar si las dependencias requeridas están instaladas
+# Verificar prerrequisitos (Python3 y venv)
 check_prerequisites() {
-    local errores=0
-    mostrar_debug "Verificando prerrequisitos..."
-
-    if ! command -v python3 &> /dev/null; then
-        mostrar_error "python3 no está instalado. Por favor, instálelo primero."
-        errores=1
-    else
-        # Verificar la versión de Python
-        local python_version=$(python3 --version | cut -d' ' -f2)
-        mostrar_exito "Python versión $python_version encontrada."
-    fi
-    
-    if ! command -v pip &> /dev/null; then
-        mostrar_error "pip no está instalado. Por favor, instálelo primero."
-        errores=1
-    else
-        # Verificar la versión de pip
-        local pip_version=$(pip --version | awk '{print $2}')
-        mostrar_exito "Pip versión $pip_version encontrado."
-    fi
-
-    if ! command -v venv &> /dev/null && ! python3 -c "import venv" &> /dev/null; then
-        mostrar_advertencia "El módulo venv parece no estar disponible. Intente instalar python3-venv."
-        errores=1
-    fi
-
-    # Si hay errores, salir
-    if [ $errores -ne 0 ]; then
-        log "ERROR" "Verificación de prerrequisitos fallida"
-        exit 1
-    fi
-    
-    mostrar_debug "Verificación de prerrequisitos completada con éxito"
+    log "INFO" "Verificando prerrequisitos (python3, python3-venv)"
+    local error_found=0
+    if ! command -v python3 &> /dev/null; then mostrar_error "Python 3 no está instalado..."; error_found=1; fi
+    if ! python3 -c "import venv" &> /dev/null; then mostrar_error "Módulo 'venv' no disponible..."; error_found=1; fi
+    if [ "$error_found" -eq 1 ]; then exit 1; fi
+    log "INFO" "Prerrequisitos verificados."
 }
-
-# Función para asegurar que el directorio de entornos virtuales existe
+# Asegurar que el directorio base de venv exista
 ensure_venv_dir() {
-    mostrar_debug "Verificando si existe el directorio de entornos virtuales: $VENV_DIR"
     if [ ! -d "$VENV_DIR" ]; then
-        mkdir -p "$VENV_DIR" || {
-            mostrar_error "No se pudo crear el directorio $VENV_DIR"
-            exit 1
-        }
-        mostrar_exito "Directorio creado: $VENV_DIR"
+        log "INFO" "Creando $VENV_DIR"; if ! mkdir -p "$VENV_DIR"; then mostrar_error "No se pudo crear $VENV_DIR"; exit 1; fi
+        log "INFO" "$VENV_DIR creado."
     fi
 }
-
-# Función para crear un nuevo entorno virtual
-create_venv() {
-    local env_name="$1"
-    local req_file="$2"
-    
-    if [ -z "$env_name" ]; then
-        mostrar_error "Se requiere un nombre para el entorno."
-        echo "Uso: $0 create <nombre_entorno> [archivo_requisitos]"
-        exit 1
-    fi
-    
-    local env_path="$VENV_DIR/$env_name"
-    log "INFO" "Intentando crear entorno virtual: $env_name en $env_path"
-    
-    # Verificar si el entorno ya existe
-    local entorno_existente=false
-    if [ -d "$env_path" ]; then
-        entorno_existente=true
-        mostrar_info "El entorno '$env_name' ya existe en $env_path"
-        mostrar_info "Verificando paquetes instalados..."
-        log "INFO" "Entorno '$env_name' ya existe, continuando con actualización de paquetes"
+# Verificar conexión a internet
+verificar_conexion_internet() {
+    if ping -c 1 8.8.8.8 > /dev/null 2>&1 || ping -c 1 1.1.1.1 > /dev/null 2>&1; then
+        log "INFO" "Conexión internet OK."; return 0
     else
-        # Crear el entorno virtual si no existe
-        mostrar_info "Creando entorno virtual: $env_name"
-        python3 -m venv "$env_path" || {
-            mostrar_error "Falló la creación del entorno virtual."
-            exit 1
-        }
-        
-        mostrar_exito "Entorno virtual creado exitosamente en: $env_path"
+        mostrar_advertencia "No se detectó conexión a internet."; log "WARN" "Sin conexión internet."; return 1
     fi
-    
-    # Si no se proporciona archivo de requisitos, terminar
-    if [ -z "$req_file" ]; then
-        if [ "$entorno_existente" = true ]; then
-            echo "Para instalar paquetes adicionales, proporcione un archivo de requisitos."
-        else
-            echo "Ejecute el siguiente comando para activar el entorno:"
-            mostrar_exito "source $env_path/bin/activate"
-        fi
-        exit 0
-    fi
-    
-    # Verificar conexión a internet antes de instalar paquetes
-    if ! verificar_conexion_internet; then
-        mostrar_advertencia "No se instalarán paquetes debido a la falta de conexión a internet."
-        echo "Puede instalar los paquetes más tarde cuando tenga conexión."
-        echo "Ejecute el siguiente comando para activar el entorno:"
-        echo "source $env_path/bin/activate"
-        exit 0
-    fi
-    
-    # Instalar paquetes según el archivo de requisitos
-    install_packages "$env_name" "$req_file"
-    
-    echo "Ejecute el siguiente comando para activar el entorno:"
-    mostrar_exito "source $env_path/bin/activate"
+}
+# Función para obtener la ruta de un entorno local si existe y es válido
+get_local_venv_path() {
+    local local_venv="$PWD/.venv"
+    if [ -d "$local_venv" ] && [ -f "$local_venv/bin/activate" ]; then echo "$local_venv"; else echo ""; fi
 }
 
-# Función para verificar el estado de un paquete
-check_package_status() {
-    local pkg_line="$1" # Renombrar para claridad
-    local env_path="$2"
-    local activate_cmd="source $env_path/bin/activate"
+# --- Nuevas Funciones Auxiliares para Gestión de Entornos ---
 
-    # Eliminar comentarios y espacios en blanco al final
-    local pkg=${pkg_line%%#*} # Elimina todo desde # hasta el final
-    pkg=$(echo "$pkg" | xargs) # Elimina espacios en blanco iniciales/finales
-
-    # Si la línea está vacía después de quitar comentarios/espacios, no hacer nada
-    if [[ -z "$pkg" ]]; then
-        echo "empty_line" # Devolver un estado especial o simplemente retornar
-        return
-    fi
-
-    # Extraer nombre base del paquete
-    local pkg_name=$(echo "$pkg" | cut -d'[' -f1 | cut -d'=' -f1 | cut -d'>' -f1 | cut -d'<' -f1 | cut -d'~' -f1 | tr -d ' ')
-
-    # Verificar si se ha especificado alguna versión
-    local version_constraint=""
-    if [[ "$pkg" == *"="* || "$pkg" == *">"* || "$pkg" == *"<"* || "$pkg" == *"~"* ]]; then
-        version_constraint=$(echo "$pkg" | grep -o '[=<>~][=<>~0-9.]*')
-    fi
-    
-    # Verificar si el paquete está instalado
-    if $activate_cmd && pip list | grep -i "^$pkg_name " > /dev/null 2>&1; then
-        # Obtener la versión instalada
-        local installed_version=$($activate_cmd && pip list | grep -i "^$pkg_name " | awk '{print $2}')
-        
-        # Si hay una restricción de versión, verificar si necesita actualizarse
-        if [[ -n "$version_constraint" ]]; then
-            if ! $activate_cmd && pip list --outdated | grep -i "^$pkg_name " > /dev/null 2>&1; then
-                echo "installed_update" # Instalado pero requiere actualización
-                return
-            fi
-        fi
-        echo "installed" # Ya instalado
+# Verifica si una ruta dada es un entorno Python válido (contiene pip ejecutable)
+verificar_entorno_python() {
+    local venv_path="$1"
+    if [[ -d "$venv_path" && -x "$venv_path/bin/pip" ]]; then
+        log "DEBUG" "Entorno verificado como válido: $venv_path"
+        return 0 # Éxito (entorno válido)
     else
-        echo "not_installed" # No instalado
+        log "DEBUG" "Entorno verificado como NO válido: $venv_path"
+        return 1 # Fracaso (no válido)
     fi
 }
 
-# Función para mostrar lista de paquetes formateada en dos columnas
-display_packages_status() {
-    local req_file="$1"
-    local env_path="$2"
-    local max_pkg_len=25
-    local total_pkgs=0 # Calcular dinámicamente
-    local installed_count=0
-    local update_count=0
-    local pending_count=0
+# Determina el mejor ejecutable de Python disponible en el sistema
+# Devuelve el nombre del ejecutable (ej: python3.11) o "python3" como fallback.
+# Sale con error si no se encuentra ninguno.
+determinar_python_executable() {
+    local python_executable=""
+    local versions_to_try=("3.12" "3.11" "3.10" "3.9") # Prioridad
+    local found_python=false
 
-    declare -A pkg_status
-
-    # Primer bucle: Verificar estado y contar total válido
-    while IFS= read -r pkg_line || [ -n "$pkg_line" ]; do
-        local pkg=${pkg_line%%#*} # Eliminar comentarios
-        pkg=$(echo "$pkg" | xargs) # Limpiar espacios
-        [[ -z "$pkg" ]] && continue # Saltar líneas vacías/comentadas
-
-        ((total_pkgs++))
-        local pkg_name=$(echo "$pkg" | cut -d'[' -f1 | cut -d'=' -f1 | cut -d'>' -f1 | cut -d'<' -f1 | cut -d'~' -f1 | tr -d ' ')
-        local status=$(check_package_status "$pkg_line" "$env_path") # Pasar la línea original
-        pkg_status["$pkg_name"]="$status"
-
-        case "$status" in
-            installed) ((installed_count++)) ;; 
-            installed_update) ((update_count++)) ;; 
-            not_installed) ((pending_count++)) ;; 
-        esac
-    done < "$req_file"
-
-    # Mostrar encabezado con resumen
-    echo -e "\n${WHITE}Estado de paquetes ($total_pkgs total):${NC}"
-    echo -e " • ${GREEN}Ya instalados:${NC} $installed_count"
-    echo -e " • ${YELLOW}Requieren actualización:${NC} $update_count"
-    echo -e " • ${CYAN}Pendientes de instalar:${NC} $pending_count"
-    echo
-
-    # Segundo bucle: Mostrar listado
-    local count=0
-    local col_width=$((max_pkg_len + 5))
-    echo -e "${WHITE}Listado de paquetes:${NC}"
-    while IFS= read -r pkg_line || [ -n "$pkg_line" ]; do
-        local pkg=${pkg_line%%#*} # Eliminar comentarios
-        pkg=$(echo "$pkg" | xargs) # Limpiar espacios
-        [[ -z "$pkg" ]] && continue # Saltar líneas vacías/comentadas
-
-        local pkg_name=$(echo "$pkg" | cut -d'[' -f1 | cut -d'=' -f1 | cut -d'>' -f1 | cut -d'<' -f1 | cut -d'~' -f1 | tr -d ' ')
-        local formatted_name
-        case "${pkg_status[$pkg_name]}" in
-            installed) formatted_name="${GREEN}✓${NC} $pkg_name" ;; 
-            installed_update) formatted_name="${YELLOW}✓${NC} $pkg_name ${YELLOW}(u)${NC}" ;; 
-            not_installed) formatted_name="${CYAN}•${NC} $pkg_name" ;; 
-        esac
-
-        local padding=$((col_width - ${#pkg_name} - 3)) # Ajustar padding si es necesario
-        [[ $padding -lt 1 ]] && padding=1
-        formatted_name="$formatted_name$(printf '%*s' $padding '')"
-
-        if ((count % 2 == 0)); then echo -ne "  $formatted_name"; else echo -e "  $formatted_name"; fi
-        ((count++))
-    done < "$req_file"
-
-    if ((count % 2 != 0)); then echo; fi
-    echo
-}
-
-# Función para instalar paquetes desde un archivo de requisitos
-install_packages() {
-    local env_name="$1"
-    local req_file="$2"
-    local env_path="$VENV_DIR/$env_name"
-    log "INFO" "Instalando paquetes para $env_name desde $req_file"
-
-    if [ ! -f "$req_file" ]; then
-        mostrar_error "El archivo de requisitos '$req_file' no fue encontrado."
-        exit 1
-    fi
-    
-    # Verificar conexión a internet antes de instalar paquetes
-    if ! verificar_conexion_internet; then
-        exit 1
-    fi
-    
-    mostrar_info "Instalando paquetes desde $req_file..."
-    source "$env_path/bin/activate" || {
-        mostrar_error "No se pudo activar el entorno virtual."
-        exit 1
-    }
-    
-    # Actualizar pip dentro del entorno virtual
-    mostrar_info "Actualizando pip en el entorno virtual..."
-    echo -ne "${YELLOW}▶${NC} Actualizando pip... "
-    if pip install --upgrade pip >> "$LOG_FILE" 2>&1; then
-        echo -e "${GREEN}✓${NC}"
-    else
-        echo -e "${RED}✗${NC}"
-        mostrar_advertencia "No se pudo actualizar pip. Continuando con la instalación de paquetes."
-        log "WARN" "Fallo al actualizar pip: $(tail -n 5 "$LOG_FILE" | grep -v WARN)"
-    fi
-    
-    # Mostrar el estado de los paquetes
-    display_packages_status "$req_file" "$env_path"
-    
-    # Contar el número total de paquetes a instalar
-    local pending_count=0
-    while IFS= read -r pkg_line || [ -n "$pkg_line" ]; do
-        local pkg=${pkg_line%%#*} # Eliminar comentarios
-        pkg=$(echo "$pkg" | xargs) # Limpiar espacios
-        [[ -z "$pkg" ]] && continue # Saltar líneas vacías/comentadas
-
-        local status=$(check_package_status "$pkg_line" "$env_path") # Pasar la línea original
-        if [[ "$status" == "not_installed" || "$status" == "installed_update" ]]; then
-            ((pending_count++))
-        fi
-    done < "$req_file"
-    
-    # Si no hay nada que instalar, terminar
-    if [ "$pending_count" -eq 0 ]; then
-        mostrar_exito "Todos los paquetes ya están instalados y actualizados."
-        deactivate
-        return
-    fi
-    
-    # Mostrar cabecera para instalación
-    echo -e "\n${WHITE}Instalando $pending_count paquetes pendientes:${NC}"
-    
-    # Contador para paquetes instalados
-    local count=0
-    
-    # Leer línea por línea e instalar los pendientes
-    while IFS= read -r pkg_line || [ -n "$pkg_line" ]; do
-        local pkg=${pkg_line%%#*} # Eliminar comentarios
-        pkg=$(echo "$pkg" | xargs) # Limpiar espacios
-        [[ -z "$pkg" ]] && continue # Saltar líneas vacías/comentadas
-
-        local pkg_name=$(echo "$pkg" | cut -d'[' -f1 | cut -d'=' -f1 | cut -d'>' -f1 | cut -d'<' -f1 | cut -d'~' -f1 | tr -d ' ')
-        local status=$(check_package_status "$pkg_line" "$env_path") # Pasar la línea original
-
-        if [[ "$status" == "not_installed" || "$status" == "installed_update" ]]; then
-            ((count++))
-            
-            # Formato de progreso: [1/10] instalando numpy...
-            echo -ne "${CYAN}[${count}/${pending_count}]${NC} ${pkg_name}... "
-            log "DEBUG" "Instalando paquete: $pkg"
-            
-            if pip install "$pkg" >> "$LOG_FILE" 2>&1; then
-                echo -e "${GREEN}✓${NC}"
-                log "INFO" "Paquete $pkg_name instalado correctamente"
-            else
-                echo -e "${RED}✗${NC}"
-                mostrar_error "Falló la instalación del paquete $pkg_name"
-                log "ERROR" "Fallo en la instalación de $pkg_name: $(tail -n 10 "$LOG_FILE" | grep -v ERROR)"
-                echo -e "\nRevise el archivo de log para más detalles: $LOG_FILE"
-                deactivate
-                exit 1
-            fi
-        fi
-    done < "$req_file"
-    
-    echo
-    mostrar_exito "Paquetes instalados exitosamente."
-    deactivate
-}
-
-# Función para crear alias pybin
-crear_alias_pybin() {
-    # Definir el alias
-    local alias_cmd="alias pybin='source $BIN_VENV_DIR/bin/activate'"
-    
-    # Crear alias para la sesión actual
-    eval "$alias_cmd"
-    
-    # Verificar si ya existe en .bashrc
-    if ! grep -q "alias pybin='source $BIN_VENV_DIR/bin/activate'" "$HOME/.bashrc"; then
-        # Añadir alias al .bashrc para persistencia
-        echo -e "\n# Alias para activar el entorno Python por defecto" >> "$HOME/.bashrc"
-        echo "$alias_cmd" >> "$HOME/.bashrc"
-        mostrar_info "Alias 'pybin' creado y añadido a ~/.bashrc"
-        mostrar_info "Para activar el alias en esta sesión ejecute: source ~/.bashrc"
-    else
-        mostrar_info "Alias 'pybin' ya existía en ~/.bashrc"
-    fi
-    
-    log "INFO" "Alias pybin configurado para activar $BIN_VENV_DIR"
-}
-
-# Función para crear alias pyunbin para desactivar entorno
-crear_alias_pyunbin() {
-    # Definir el alias
-    local alias_cmd="alias pyunbin='deactivate'"
-    
-    # Crear alias para la sesión actual
-    eval "$alias_cmd"
-    
-    # Verificar si ya existe en .bashrc
-    if ! grep -q "alias pyunbin='deactivate'" "$HOME/.bashrc"; then
-        # Añadir alias al .bashrc para persistencia
-        echo -e "# Alias para desactivar el entorno Python activo" >> "$HOME/.bashrc"
-        echo "$alias_cmd" >> "$HOME/.bashrc"
-        mostrar_info "Alias 'pyunbin' creado y añadido a ~/.bashrc"
-    else
-        mostrar_info "Alias 'pyunbin' ya existía en ~/.bashrc"
-    fi
-    
-    log "INFO" "Alias pyunbin configurado para desactivar entornos virtuales"
-}
-
-# Función para configurar el autostart del entorno virtual
-configurar_autostart() {
-    local action="$1"
-    log "INFO" "Configurando autostart del entorno virtual (acción: $action)"
-    
-    # Definir el código que se añadirá al .bashrc
-    local autostart_code="
-# Inicio automático del entorno virtual Python
-if [ -f \"\$HOME/.venv-auto\" ]; then
-    if [ -f \"$BIN_VENV_DIR/bin/activate\" ]; then
-        source \"$BIN_VENV_DIR/bin/activate\"
-        echo -e \"${GREEN}Entorno virtual Python activado automáticamente${NC}\"
-    fi
-fi"
-    
-    # Verificar si ya existe la configuración
-    if ! grep -q "# Inicio automático del entorno virtual Python" "$HOME/.bashrc"; then
-        # Añadir código al .bashrc
-        echo -e "$autostart_code" >> "$HOME/.bashrc"
-        mostrar_exito "Configuración de inicio automático añadida a ~/.bashrc"
-        mostrar_info "Para aplicar los cambios en esta sesión ejecute: source ~/.bashrc"
-    else
-        mostrar_info "La configuración de inicio automático ya existe en ~/.bashrc"
-    fi
-    
-    # Procesar acción según el parámetro
-    case "$action" in
-        on)
-            # Activar autostart creando el archivo indicador
-            touch "$HOME/.venv-auto"
-            mostrar_exito "Inicio automático del entorno virtual ACTIVADO"
-            mostrar_info "El entorno se activará automáticamente en el próximo inicio de sesión"
-            ;;
-        off)
-            # Desactivar autostart eliminando el archivo indicador
-            if [ -f "$HOME/.venv-auto" ]; then
-                rm -f "$HOME/.venv-auto"
-                mostrar_exito "Inicio automático del entorno virtual DESACTIVADO"
-                mostrar_info "El entorno ya no se activará automáticamente en los inicios de sesión"
-            else
-                mostrar_info "El inicio automático ya estaba desactivado"
-            fi
-            ;;
-        *)
-            mostrar_error "Acción no válida: $action"
-            mostrar_info "Opciones disponibles: 'on' para activar o 'off' para desactivar"
-            exit 1
-            ;;
-    esac
-    
-    log "INFO" "Configuración de autostart completada"
-}
-
-# Función para instalar el entorno por defecto y sus dependencias
-install_default_env() {
-    mostrar_info "========================================="
-    mostrar_info "  Instalando entorno Python por defecto"
-    mostrar_info "========================================="
-    log "INFO" "Iniciando instalación del entorno por defecto en $BIN_VENV_DIR"
-    
-    # Verificar si el directorio ya existe
-    if [ -d "$BIN_VENV_DIR" ]; then
-        read -p "El entorno '$USER' ya existe. ¿Desea reinstalarlo? (s/N/c=cancelar): " confirm
-        # Verificar la respuesta del usuario
-        if [[ "$confirm" =~ ^[Cc]$ ]]; then
-            # Opción 'c' - Cancelar completamente la operación
-            mostrar_info "Operación cancelada por el usuario."
-            log "INFO" "Operación cancelada por el usuario"
-            exit 0
-        elif [[ -z "$confirm" || ! "$confirm" =~ ^[Ss] ]]; then
-            # Opción 'n' (por defecto) - Usar el entorno existente
-            mostrar_info "Usando el entorno existente."
-            # Continuar con la verificación de paquetes sin reinstalar
-            log "INFO" "Se usará el entorno existente en $BIN_VENV_DIR"
-            
-            # Verificar si el archivo de requisitos existe
-            if [ ! -f "$BI_REQUIREMENTS" ]; then
-                mostrar_error "El archivo de requisitos '$BI_REQUIREMENTS' no fue encontrado."
-                exit 1
-            fi
-            
-            # Verificar conexión a internet antes de instalar paquetes
-            if ! verificar_conexion_internet; then
-                mostrar_advertencia "No se instalarán paquetes debido a la falta de conexión a internet."
-                echo "Puede instalar los paquetes más tarde cuando tenga conexión."
-                echo "Ejecute el siguiente comando para activar el entorno:"
-                echo "source $BIN_VENV_DIR/bin/activate"
-                exit 0
-            fi
-            
-            # Mostrar resumen del proceso
-            echo -e "\n${WHITE}Resumen de la instalación:${NC}"
-            echo -e " • Entorno: ${CYAN}$BIN_VENV_DIR${NC} (existente)"
-            echo -e " • Paquetes: ${CYAN}$BI_REQUIREMENTS${NC}"
-            echo -e " • Log: ${CYAN}$LOG_FILE${NC}"
-            echo
-            
-            # Instalar paquetes pendientes
-            mostrar_info "Verificando paquetes en $BI_REQUIREMENTS..."
-            install_packages "$USER" "$BI_REQUIREMENTS"
-            
-            # Crear alias para activar el entorno
-            crear_alias_pybin
-            crear_alias_pyunbin
-            
-            echo -e "\n${WHITE}Para activar este entorno:${NC}"
-            echo -e "1. Actualice su shell: ${GREEN}source ~/.bashrc${NC}"
-            echo -e "2. Use el alias: ${GREEN}pybin${NC}"
-            echo -e "\n${WHITE}Para desactivar el entorno:${NC}"
-            echo -e "  Use el alias: ${GREEN}pyunbin${NC}"
-            log "INFO" "Verificación de paquetes completada con éxito"
-            return
-        else
-            # Opción 's' - Reinstalar el entorno
-            mostrar_info "Eliminando entorno existente..."
-            echo -ne "${YELLOW}▶${NC} Eliminando $BIN_VENV_DIR... "
-            if rm -rf "$BIN_VENV_DIR"; then
-                echo -e "${GREEN}✓${NC}"
-            else
-                echo -e "${RED}✗${NC}"
-                mostrar_error "No se pudo eliminar el entorno existente."
-                exit 1
-            fi
-        fi
-    fi
-    
-    # Verificar si el archivo de requisitos existe
-    if [ ! -f "$BI_REQUIREMENTS" ]; then
-        mostrar_error "El archivo de requisitos '$BI_REQUIREMENTS' no fue encontrado."
-        exit 1
-    fi
-    
-    # Crear el directorio del entorno virtual si no existe
-    echo -ne "${YELLOW}▶${NC} Preparando directorio... "
-    if mkdir -p "$(dirname "$BIN_VENV_DIR")"; then
-        echo -e "${GREEN}✓${NC}"
-    else
-        echo -e "${RED}✗${NC}"
-        mostrar_error "No se pudo crear el directorio para el entorno virtual."
-        exit 1
-    fi
-    
-    # Crear el entorno virtual
-    mostrar_info "Creando entorno virtual en: $BIN_VENV_DIR"
-    echo -ne "${YELLOW}▶${NC} Inicializando entorno virtual... "
-    if python3 -m venv "$BIN_VENV_DIR" >> "$LOG_FILE" 2>&1; then
-        echo -e "${GREEN}✓${NC}"
-        mostrar_exito "Entorno virtual creado exitosamente"
-    else
-        echo -e "${RED}✗${NC}"
-        mostrar_error "Falló la creación del entorno virtual."
-        log "ERROR" "Creación del entorno fallida: $(tail -n 10 "$LOG_FILE" | grep -v ERROR)"
-        exit 1
-    fi
-    
-    # Verificar conexión a internet antes de instalar paquetes
-    if ! verificar_conexion_internet; then
-        mostrar_advertencia "Se ha creado el entorno virtual, pero no se instalarán paquetes debido a la falta de conexión a internet."
-        echo "Puede instalar los paquetes más tarde cuando tenga conexión."
-        echo "Ejecute el siguiente comando para activar el entorno:"
-        echo "source $BIN_VENV_DIR/bin/activate"
-        exit 0
-    fi
-    
-    # Mostrar resumen del proceso
-    echo -e "\n${WHITE}Resumen de la instalación:${NC}"
-    echo -e " • Entorno: ${CYAN}$BIN_VENV_DIR${NC} (nuevo)"
-    echo -e " • Paquetes: ${CYAN}$BI_REQUIREMENTS${NC}"
-    echo -e " • Log: ${CYAN}$LOG_FILE${NC}"
-    echo
-    
-    # Instalar los paquetes
-    mostrar_info "Instalando paquetes desde $BI_REQUIREMENTS..."
-    source "$BIN_VENV_DIR/bin/activate" || {
-        mostrar_error "No se pudo activar el entorno virtual."
-        exit 1
-    }
-    
-    # Actualizar pip dentro del entorno virtual
-    echo -ne "${YELLOW}▶${NC} Actualizando pip... "
-    if pip install --upgrade pip >> "$LOG_FILE" 2>&1; then
-        echo -e "${GREEN}✓${NC}"
-    else
-        echo -e "${RED}✗${NC}"
-        mostrar_advertencia "No se pudo actualizar pip. Continuando con la instalación de paquetes."
-        log "WARN" "Fallo al actualizar pip: $(tail -n 5 "$LOG_FILE" | grep -v WARN)"
-    fi
-    
-    # Mostrar el estado de los paquetes
-    display_packages_status "$BI_REQUIREMENTS" "$BIN_VENV_DIR"
-    
-    # Contar el número total de paquetes a instalar
-    local pending_count=0
-    while IFS= read -r pkg_line || [ -n "$pkg_line" ]; do
-        local pkg=${pkg_line%%#*} # Eliminar comentarios
-        pkg=$(echo "$pkg" | xargs) # Limpiar espacios
-        [[ -z "$pkg" ]] && continue # Saltar líneas vacías/comentadas
-
-        local status=$(check_package_status "$pkg_line" "$BIN_VENV_DIR") # Pasar la línea original
-        if [[ "$status" == "not_installed" || "$status" == "installed_update" ]]; then
-            ((pending_count++))
-        fi
-    done < "$BI_REQUIREMENTS"
-    
-    # Si no hay nada que instalar, terminar
-    if [ "$pending_count" -eq 0 ]; then
-        mostrar_exito "Todos los paquetes ya están instalados y actualizados."
-        deactivate
-        
-        # Crear alias para activar y desactivar el entorno
-        crear_alias_pybin
-        crear_alias_pyunbin
-        
-        echo -e "\n${WHITE}Para activar este entorno:${NC}"
-        echo -e "1. Actualice su shell: ${GREEN}source ~/.bashrc${NC}"
-        echo -e "2. Use el alias: ${GREEN}pybin${NC}"
-        echo -e "\n${WHITE}Para desactivar el entorno:${NC}"
-        echo -e "  Use el alias: ${GREEN}pyunbin${NC}"
-        log "INFO" "Instalación del entorno por defecto completada con éxito"
-        return
-    fi
-    
-    # Mostrar cabecera para instalación
-    echo -e "\n${WHITE}Instalando $pending_count paquetes pendientes:${NC}"
-    
-    # Contador para paquetes instalados
-    local count=0
-    
-    # Leer línea por línea e instalar
-    while IFS= read -r pkg_line || [ -n "$pkg_line" ]; do
-        local pkg=${pkg_line%%#*} # Eliminar comentarios
-        pkg=$(echo "$pkg" | xargs) # Limpiar espacios
-        [[ -z "$pkg" ]] && continue # Saltar líneas vacías/comentadas
-
-        local pkg_name=$(echo "$pkg" | cut -d'[' -f1 | cut -d'=' -f1 | cut -d'>' -f1 | cut -d'<' -f1 | cut -d'~' -f1 | tr -d ' ')
-        local status=$(check_package_status "$pkg_line" "$BIN_VENV_DIR") # Pasar la línea original
-
-        if [[ "$status" == "not_installed" || "$status" == "installed_update" ]]; then
-            ((count++))
-            
-            # Formato de progreso: [1/10] instalando numpy...
-            echo -ne "${CYAN}[${count}/${pending_count}]${NC} ${pkg_name}... "
-            log "DEBUG" "Instalando paquete: $pkg"
-            
-            if pip install "$pkg" >> "$LOG_FILE" 2>&1; then
-                echo -e "${GREEN}✓${NC}"
-                log "INFO" "Paquete $pkg_name instalado correctamente"
-            else
-                echo -e "${RED}✗${NC}"
-                mostrar_error "Falló la instalación del paquete $pkg_name"
-                log "ERROR" "Fallo en la instalación de $pkg_name: $(tail -n 10 "$LOG_FILE" | grep -v ERROR)"
-                echo -e "\nRevise el archivo de log para más detalles: $LOG_FILE"
-                deactivate
-                exit 1
-            fi
-        fi
-    done < "$BI_REQUIREMENTS"
-    
-    echo
-    mostrar_exito "Instalación completada exitosamente."
-    deactivate
-    
-    # Crear alias para activar y desactivar el entorno
-    crear_alias_pybin
-    crear_alias_pyunbin
-    
-    echo -e "\n${WHITE}Para activar este entorno:${NC}"
-    echo -e "1. Actualice su shell: ${GREEN}source ~/.bashrc${NC}"
-    echo -e "2. Use el alias: ${GREEN}pybin${NC}"
-    echo -e "\n${WHITE}Para desactivar el entorno:${NC}"
-    echo -e "  Use el alias: ${GREEN}pyunbin${NC}"
-    log "INFO" "Instalación del entorno por defecto completada con éxito"
-}
-
-# Función para proporcionar instrucciones de activación
-activate_venv() {
-    local env_name="$1"
-    
-    if [ -z "$env_name" ]; then
-        mostrar_error "Se requiere un nombre para el entorno."
-        echo "Uso: $0 activate <nombre_entorno>"
-        exit 1
-    fi
-    
-    local env_path="$VENV_DIR/$env_name"
-    log "INFO" "Solicitando activación del entorno: $env_name"
-    
-    if [ ! -d "$env_path" ]; then
-        mostrar_error "El entorno '$env_name' no existe en $env_path"
-        echo "Entornos disponibles:"
-        list_venvs
-        exit 1
-    fi
-    
-    echo "Para activar este entorno, ejecute el siguiente comando:"
-    mostrar_exito "source $env_path/bin/activate"
-}
-
-# Función para listar todos los entornos virtuales
-list_venvs() {
-    mostrar_info "Entornos virtuales disponibles:"
-    log "INFO" "Listando entornos virtuales disponibles"
-    
-    if [ ! -d "$VENV_DIR" ] || [ -z "$(ls -A "$VENV_DIR" 2>/dev/null)" ]; then
-        mostrar_advertencia "No hay entornos virtuales creados aún."
-        return
-    fi
-    
-    for env in "$VENV_DIR"/*; do
-        if [ -d "$env" ] && [ -f "$env/bin/activate" ]; then
-            echo "  * $(basename "$env")"
+    log "INFO" "Determinando ejecutable de Python a usar..."
+    for ver in "${versions_to_try[@]}"; do
+        if command -v "python${ver}" &> /dev/null; then
+            python_executable="python${ver}"
+            found_python=true
+            log "INFO" "Encontrada versión de Python específica: $python_executable"
+            break
         fi
     done
+
+    if ! $found_python; then
+        if command -v python3 &> /dev/null; then
+            python_executable="python3"
+            log "WARN" "No se encontró versión específica (${versions_to_try[*]}). Usando 'python3' por defecto."
+            mostrar_advertencia "No se encontró versión específica (${versions_to_try[*]}). Usando 'python3' por defecto."
+        else
+            log "ERROR" "No se encontró ningún ejecutable de Python (ni específico ni python3)."
+            mostrar_error "No se encontró ningún ejecutable de Python (ni específico ni python3) para crear el entorno."
+            exit 1
+        fi
+    fi
+    # Devolver el ejecutable encontrado
+    echo "$python_executable"
 }
 
-# Función para eliminar entornos o paquetes
-remove_venv() {
-    local env_name="$1"
-    local option="$2"
-    local pkg_name="$3"
-    
-    if [ -z "$env_name" ]; then
-        mostrar_error "Se requiere un nombre para el entorno."
-        echo "Uso: $0 remove <nombre_entorno> [--package <paquete>]"
+# Crea un entorno virtual en la ruta especificada usando el ejecutable Python dado
+crear_entorno_python() {
+    local venv_path="$1"
+    local python_exe="$2"
+
+    log "INFO" "Intentando crear entorno en $venv_path usando $python_exe"
+    mostrar_info "Creando entorno virtual en ${COLOR_CYAN}$venv_path${COLOR_RESET} usando ${COLOR_YELLOW}$python_exe${COLOR_RESET}..."
+
+    # Crear directorio padre si no existe (ej: ~/.venv)
+    local parent_dir
+    parent_dir=$(dirname "$venv_path")
+    if [[ ! -d "$parent_dir" ]]; then
+        log "INFO" "Creando directorio padre: $parent_dir"
+        if ! mkdir -p "$parent_dir"; then
+            mostrar_error "No se pudo crear el directorio padre $parent_dir."
+            log "ERROR" "Fallo al crear directorio padre $parent_dir"
+            return 1
+        fi
+    fi
+
+    echo -ne "${COLOR_YELLOW}▶${COLOR_RESET} Inicializando entorno virtual... "
+    # Ejecutar el comando venv, redirigiendo stdout/stderr al log para limpieza
+    if "$python_exe" -m venv "$venv_path" >> "$LOG_FILE" 2>&1; then
+        echo -e "${COLOR_GREEN}✓${COLOR_RESET}"
+        log "INFO" "Entorno creado exitosamente en $venv_path con $python_exe."
+        mostrar_exito "Entorno virtual creado en ${COLOR_GREEN}$venv_path${COLOR_RESET}."
+        # Mostrar mensaje de activación post-creación
+        echo -e "${COLOR_YELLOW}Para activar este entorno, ejecuta:${COLOR_RESET}"
+        echo -e "  ${BOLD}source \"$venv_path/bin/activate\"${COLOR_RESET}"
+        return 0 # Éxito
+    else
+        echo -e "${COLOR_RED}✗${COLOR_RESET}"
+        log "ERROR" "Falló la creación del entorno en $venv_path con $python_exe. Ver $LOG_FILE."
+        mostrar_error "Falló la creación del entorno en ${COLOR_RED}$venv_path${COLOR_RESET}. Consulta $LOG_FILE."
+        # Intentar limpiar si falla la creación? Podría dejarlo inconsistente. Mejor no.
+        return 1 # Fracaso
+    fi
+}
+
+# Obtiene la versión de Python de un entorno virtual dado
+obtener_version_python_entorno() {
+    local venv_path="$1"
+    local python_exe="$venv_path/bin/python"
+    if [[ -x "$python_exe" ]]; then
+        "$python_exe" --version 2>&1 # Devuelve la salida (ej: Python 3.10.12)
+    else
+        echo "" # Devuelve vacío si no se encuentra python
+    fi
+}
+
+# --- Fin Funciones Auxiliares ---
+
+# --- Funciones para gestionar alias global ---
+
+# Define marcadores para identificar el bloque de alias en .bashrc
+PYMAN_ALIAS_START_MARKER="# >>> pymanager alias start >>>"
+PYMAN_ALIAS_END_MARKER="# <<< pymanager alias end <<<";
+BASHRC_FILE="$HOME/.bashrc"
+
+# Añade el alias pyglobalset a .bashrc
+set_global_alias() {
+    local alias_name="pyglobalset"
+    local activate_script="$BIN_VENV_DIR/bin/activate"
+    local alias_definition="alias ${alias_name}='source \"${activate_script}\"'"
+
+    mostrar_info "Configurando alias global '${alias_name}'..."
+    log "INFO" "Iniciando --set global para alias ${alias_name}"
+
+    # 1. Verificar que el script de activación existe
+    if [[ ! -f "$activate_script" ]]; then
+        mostrar_error "No se encontró el script de activación del entorno global: ${activate_script}"
+        mostrar_info "Asegúrate de que el entorno global exista. Puedes crearlo e instalar paquetes con 'pymanager.sh --install' o 'pymanager.sh --package-global ...'."
+        log "ERROR" "--set global abortado: No se encontró ${activate_script}"
         exit 1
     fi
-    
-    local env_path="$VENV_DIR/$env_name"
-    
-    # Verificar si existe el entorno
-    if [ ! -d "$env_path" ]; then
-        mostrar_error "El entorno '$env_name' no existe en $env_path"
-        echo "Entornos disponibles:"
-        list_venvs
+
+    # 2. Verificar si el alias ya está configurado en .bashrc
+    if grep -qF "$PYMAN_ALIAS_START_MARKER" "$BASHRC_FILE"; then
+        mostrar_info "El alias '${alias_name}' ya parece estar configurado en ${BASHRC_FILE}."
+        log "INFO" "--set global: Marcador encontrado en ${BASHRC_FILE}. No se realizaron cambios."
+        # Podríamos opcionalmente mostrar las instrucciones de uso igualmente
+        echo -e "${COLOR_YELLOW}Para asegurarte de que está activo en esta sesión, ejecuta:${COLOR_RESET}"
+        echo -e "  ${BOLD}source ${BASHRC_FILE}${COLOR_RESET}"
+        echo -e "${COLOR_YELLOW}Luego, activa el entorno con:${COLOR_RESET}"
+        echo -e "  ${BOLD}${alias_name}${COLOR_RESET}"
+        echo -e "${COLOR_YELLOW}Para desactivarlo, simplemente ejecuta:${COLOR_RESET} ${BOLD}deactivate${COLOR_RESET}"
+        exit 0
+    fi
+
+    # 3. Añadir el bloque de alias a .bashrc
+    mostrar_info "Añadiendo alias '${alias_name}' a ${BASHRC_FILE}..."
+    {
+        echo "" # Línea en blanco antes del bloque
+        echo "$PYMAN_ALIAS_START_MARKER"
+        echo "$alias_definition"
+        echo "$PYMAN_ALIAS_END_MARKER"
+    } >> "$BASHRC_FILE"
+
+    if [[ $? -eq 0 ]]; then
+        log "INFO" "Alias ${alias_name} añadido a ${BASHRC_FILE}"
+        mostrar_exito "Alias '${alias_name}' añadido correctamente a ${BASHRC_FILE}."
+        echo -e "${COLOR_YELLOW}Para usar el alias en la sesión actual:${COLOR_RESET}"
+        echo -e "  1. Recarga la configuración: ${BOLD}source ${BASHRC_FILE}${COLOR_RESET}"
+        echo -e "  2. Activa el entorno con: ${BOLD}${alias_name}${COLOR_RESET}"
+        echo -e "${COLOR_YELLOW}Para desactivarlo, simplemente ejecuta:${COLOR_RESET} ${BOLD}deactivate${COLOR_RESET}"
+        echo -e "En nuevas sesiones de terminal, el alias '${alias_name}' estará disponible automáticamente."
+    else
+        mostrar_error "Hubo un error al intentar añadir el alias a ${BASHRC_FILE}."
+        log "ERROR" "Fallo al añadir el bloque de alias a ${BASHRC_FILE}"
         exit 1
     fi
-    
-    # Si la opción es --package, eliminar un paquete específico
-    if [[ "$option" == "--package" ]]; then
-        if [ -z "$pkg_name" ]; then
-            mostrar_error "Se requiere un nombre de paquete para eliminar."
-            echo "Uso: $0 remove <nombre_entorno> --package <paquete>"
-            exit 1
-        fi
-        
-        log "INFO" "Solicitando eliminación del paquete: $pkg_name del entorno $env_name"
-        
-        # Activar el entorno
-        source "$env_path/bin/activate" || {
-            mostrar_error "No se pudo activar el entorno virtual."
-            exit 1
-        }
-        
-        # Verificar si el paquete está instalado
-        if ! pip list | grep -i "^$pkg_name " > /dev/null 2>&1; then
-            mostrar_error "El paquete '$pkg_name' no está instalado en este entorno."
-            deactivate
-            exit 1
-        fi
-        
-        read -p "¿Está seguro de que desea eliminar el paquete '$pkg_name' del entorno '$env_name'? (s/N): " confirm
-        if [[ "$confirm" =~ ^[Ss]$ ]]; then
-            mostrar_info "Eliminando paquete $pkg_name del entorno $env_name..."
-            echo -ne "${YELLOW}▶${NC} Desinstalando $pkg_name... "
-            
-            if pip uninstall -y "$pkg_name" >> "$LOG_FILE" 2>&1; then
-                echo -e "${GREEN}✓${NC}"
-                mostrar_exito "Paquete $pkg_name eliminado exitosamente."
-                log "INFO" "Paquete $pkg_name eliminado del entorno $env_name con éxito"
-            else
-                echo -e "${RED}✗${NC}"
-                mostrar_error "Falló la eliminación del paquete $pkg_name"
-                log "ERROR" "Fallo al eliminar el paquete $pkg_name: $(tail -n 10 "$LOG_FILE" | grep -v ERROR)"
-            fi
-            
-            deactivate
+}
+
+# Elimina el alias pyglobalset de .bashrc
+unset_global_alias() {
+    local alias_name="pyglobalset"
+
+    mostrar_info "Eliminando alias global '${alias_name}' de .bashrc..."
+    log "INFO" "Iniciando --unset global para alias ${alias_name}"
+
+    # 1. Verificar si el alias está configurado en .bashrc
+    if ! grep -qF "$PYMAN_ALIAS_START_MARKER" "$BASHRC_FILE"; then
+        mostrar_info "El alias '${alias_name}' no parece estar configurado en ${BASHRC_FILE}."
+        log "INFO" "--unset global: Marcador no encontrado en ${BASHRC_FILE}. No se realizaron cambios."
+        exit 0
+    fi
+
+    # 2. Eliminar el bloque de alias usando sed
+    # Usamos comas como delimitador en sed para evitar problemas con las barras en las rutas
+    # La opción -i.bak crea una copia de seguridad
+    mostrar_info "Eliminando bloque de alias de ${BASHRC_FILE} (se creará backup ${BASHRC_FILE}.bak)..."
+    sed -i.bak "\,$PYMAN_ALIAS_START_MARKER,,\,${PYMAN_ALIAS_END_MARKER},d" "$BASHRC_FILE"
+
+    if [[ $? -eq 0 ]]; then
+        log "INFO" "Bloque de alias ${alias_name} eliminado de ${BASHRC_FILE}"
+        mostrar_exito "Alias '${alias_name}' eliminado correctamente de ${BASHRC_FILE}."
+        echo -e "${COLOR_YELLOW}Para que este cambio tenga efecto en la sesión actual:${COLOR_RESET}"
+        echo -e "  Recarga la configuración: ${BOLD}source ${BASHRC_FILE}${COLOR_RESET}"
+        echo -e "El alias ya no estará disponible en nuevas sesiones."
+    else
+        mostrar_error "Hubo un error al intentar eliminar el alias de ${BASHRC_FILE}."
+        mostrar_info "Puede que necesites editar ${BASHRC_FILE} manualmente."
+        mostrar_info "Se intentó crear un backup en ${BASHRC_FILE}.bak"
+        log "ERROR" "Fallo sed al eliminar el bloque de alias de ${BASHRC_FILE}"
+        exit 1
+    fi
+}
+
+# Muestra información de activación para un entorno local
+show_local_activation_info() {
+    local requested_env_name="$1" # Nombre opcional del entorno desde el argumento
+    local local_venv_base_dir="$PWD/.venv"
+    local target_env_name=""
+    local target_venv_path=""
+
+    log "INFO" "Iniciando --set local. Nombre solicitado: '${requested_env_name:-ninguno}'."
+
+    # 1. Buscar entornos locales válidos
+    local env_names=()
+    local env_paths=()
+    local found_envs=false
+
+    if [[ ! -d "$local_venv_base_dir" ]]; then
+        mostrar_error "No existe el directorio de entornos locales: ${local_venv_base_dir}"
+        log "ERROR" "--set local: Directorio ${local_venv_base_dir} no encontrado."
+        exit 1
+    fi
+
+    log "INFO" "Buscando entornos locales válidos en ${local_venv_base_dir}..."
+    while IFS= read -r -d $'\0' potential_env_path; do
+        local env_name
+        env_name=$(basename "$potential_env_path")
+        # Verificar si contiene un script de activación ejecutable
+        if [[ -f "$potential_env_path/bin/activate" && -x "$potential_env_path/bin/activate" ]]; then
+            env_names+=("$env_name")
+            env_paths+=("$potential_env_path")
+            log "INFO" "Entorno local válido encontrado: $env_name en $potential_env_path"
+            found_envs=true
         else
-            mostrar_info "Operación cancelada."
-            log "INFO" "Eliminación del paquete $pkg_name cancelada por el usuario"
-            deactivate
+            log "WARN" "Directorio $potential_env_path encontrado pero no es un entorno válido (falta activate ejecutable?)."
+        fi
+    done < <(find "$local_venv_base_dir" -maxdepth 1 -mindepth 1 -type d -print0)
+
+    if ! $found_envs; then
+        mostrar_error "No se encontraron entornos locales válidos en ${local_venv_base_dir}."
+        log "ERROR" "--set local: No se encontraron entornos válidos."
+        exit 1
+    fi
+
+    # 2. Determinar el entorno a usar (argumento, único encontrado, o selección)
+    if [[ -n "$requested_env_name" ]]; then
+        # Nombre específico proporcionado
+        log "INFO" "Procesando nombre de entorno solicitado: $requested_env_name"
+        local found_requested=false
+        for i in "${!env_names[@]}"; do
+            if [[ "${env_names[$i]}" == "$requested_env_name" ]]; then
+                target_env_name="${env_names[$i]}"
+                target_venv_path="${env_paths[$i]}"
+                found_requested=true
+                break
+            fi
+        done
+        if ! $found_requested; then
+            mostrar_error "El entorno local solicitado '${requested_env_name}' no se encontró o no es válido en ${local_venv_base_dir}."
+            log "ERROR" "--set local: Entorno solicitado '$requested_env_name' no encontrado/válido."
+            exit 1
+        fi
+        mostrar_info "Mostrando comandos para el entorno local especificado: ${COLOR_CYAN}${target_env_name}${COLOR_RESET}"
+
+    elif [[ ${#env_names[@]} -eq 1 ]]; then
+        # Solo se encontró un entorno, usarlo automáticamente
+        target_env_name="${env_names[0]}"
+        target_venv_path="${env_paths[0]}"
+        log "INFO" "Solo se encontró un entorno local válido (${target_env_name}), seleccionándolo automáticamente."
+        mostrar_info "Mostrando comandos para el único entorno local encontrado: ${COLOR_CYAN}${target_env_name}${COLOR_RESET}"
+    else
+        # Múltiples entornos encontrados, pedir selección
+        mostrar_info "Múltiples entornos locales encontrados. Por favor, selecciona uno:"
+        local options=("${env_names[@]}" "[ Cancelar ]") # Añadir opción cancelar
+        local choice_str=""
+        local cancel_option="[ Cancelar ]" # Definir para comparación
+
+        if [[ "$HAS_GUM" == "true" ]] && command -v gum &> /dev/null; then
+            # Usar gum choose (selección única)
+             choice_str=$(printf "%s\n" "${options[@]}" | gum choose --header="Selecciona entorno local")
+             local gum_exit_code=$?
+             log "DEBUG" "--set local gum choose exit: $gum_exit_code, output: '$choice_str'"
+             if [[ $gum_exit_code -ne 0 || "$choice_str" == "$cancel_option" || -z "$choice_str" ]]; then
+                  mostrar_info "Operación cancelada."
+                  log "INFO" "--set local: Selección cancelada por el usuario."
+                  exit 0
+             fi
+        else
+             # Fallback a select
+             mostrar_advertencia "(Usando menú básico. Instala 'gum' para una mejor experiencia)."
+             PS3="Selecciona el número del entorno (o q para salir): "
+             select opt in "${options[@]}"; do
+                 if [[ "$REPLY" == "q" || "$opt" == "$cancel_option" ]]; then
+                     choice_str="$cancel_option"
+                     break
+                 elif [[ -n "$opt" ]]; then
+                     choice_str="$opt"
+                     break
+                 else
+                     echo "Selección inválida."
+                 fi
+             done
+             log "DEBUG" "--set local select output: $choice_str"
+             if [[ "$choice_str" == "$cancel_option" ]]; then
+                  mostrar_info "Operación cancelada."
+                  log "INFO" "--set local: Selección cancelada por el usuario."
+                  exit 0
+             fi
+        fi
+
+        # Encontrar la ruta para la elección
+        local found_selected=false
+        for i in "${!env_names[@]}"; do
+             if [[ "${env_names[$i]}" == "$choice_str" ]]; then
+                 target_env_name="${env_names[$i]}"
+                 target_venv_path="${env_paths[$i]}"
+                 found_selected=true
+                 break
+             fi
+        done
+        if ! $found_selected; then # No debería ocurrir
+             mostrar_error "Error interno: No se pudo procesar la selección '$choice_str'."
+             exit 1
+        fi
+         mostrar_info "Mostrando comandos para el entorno local seleccionado: ${COLOR_CYAN}${target_env_name}${COLOR_RESET}"
+    fi
+
+    # 3. Mostrar la información
+    log "INFO" "Mostrando información de activación para: ${target_venv_path}"
+    echo
+    echo -e "${COLOR_YELLOW}Para activar el entorno local '${target_env_name}' en tu sesión actual, ejecuta:${COLOR_RESET}"
+    echo -e "  ${BOLD}source \"${target_venv_path}/bin/activate\"${COLOR_RESET}"
+    echo
+    echo -e "${COLOR_YELLOW}Cuando termines, para desactivarlo, ejecuta:${COLOR_RESET}"
+    echo -e "  ${BOLD}deactivate${COLOR_RESET}"
+    echo
+}
+
+# Funciones Principales de Comandos (create, activate, add, remove, etc.)
+# =====================================================================
+
+# --- Nueva Función para --package-global ---
+# Instala un paquete o requirements.txt en el entorno global default
+install_global_package() {
+    local package_or_reqs_file="$1"
+    local venv_path="$BIN_VENV_DIR" # Ruta del entorno global
+
+    mostrar_info "============================================================"
+    mostrar_info " Instalando Paquete/Reqs en Entorno GLOBAL (${venv_path}) "
+    mostrar_info "============================================================"
+    log "INFO" "Iniciando --package-global para '$package_or_reqs_file' en $venv_path"
+
+    # 1. Verificar/Crear Entorno Global
+    if ! verificar_entorno_python "$venv_path"; then
+        mostrar_advertencia "El entorno global default ${COLOR_YELLOW}${venv_path}${COLOR_RESET} no existe o no es válido."
+        local python_exe
+        python_exe=$(determinar_python_executable) # Sale si no hay Python
+        if ! crear_entorno_python "$venv_path" "$python_exe"; then
+             mostrar_error "No se pudo crear el entorno global. Abortando instalación."
+             exit 1
+        fi
+        # Entorno recién creado, continuar
+    else
+        local py_version
+        py_version=$(obtener_version_python_entorno "$venv_path")
+        mostrar_info "Entorno global default encontrado. Python: ${COLOR_YELLOW}${py_version:-N/A}${COLOR_RESET}"
+        log "INFO" "Entorno global $venv_path existe. Python: ${py_version:-N/A}"
+    fi
+
+    # 2. Verificar Conexión y Actualizar Pip
+    if ! verificar_conexion_internet; then
+        mostrar_advertencia "Sin conexión a internet. No se puede instalar/actualizar."
+        log "WARN" "Sin conexión internet, abortando --package-global."
+        # Salir aquí podría ser lo más seguro
+        exit 1 # O return 1 si prefieres que el script continúe
+    fi
+
+    # Setup Temp File for Pip Output
+    local TEMP_PIP_LOG="/tmp/pymanager_pip_output.$$.log"
+    trap 'rm -f "$TEMP_PIP_LOG"' EXIT SIGINT SIGTERM
+    log "INFO" "Usando archivo temporal para salida de pip: $TEMP_PIP_LOG"
+
+    mostrar_info "Actualizando pip en ${COLOR_CYAN}${venv_path}${COLOR_RESET}..."
+    echo -ne "${COLOR_YELLOW}▶${COLOR_RESET} Actualizando pip... "
+    if ("$venv_path/bin/pip" install --upgrade pip >> "$TEMP_PIP_LOG" 2>&1); then
+        echo -e "${COLOR_GREEN}✓${COLOR_RESET}"
+        log "INFO" "pip actualizado correctamente en $venv_path."
+    else
+        echo -e "${COLOR_RED}✗${COLOR_RESET}"
+        mostrar_advertencia "Fallo al actualizar pip. Ver $TEMP_PIP_LOG. Intentando continuar..."
+        log "WARN" "Fallo al actualizar pip en $venv_path. Salida en $TEMP_PIP_LOG."
+        # No salimos necesariamente, pip podría funcionar igual
+    fi
+
+    # 3. Determinar Comando Pip (Paquete o Reqs)
+    local pip_install_cmd=""
+    local install_target_display="" # Para mensajes
+
+    if [[ -f "$package_or_reqs_file" ]]; then
+        # Es un archivo de requisitos
+        install_target_display="archivo de requisitos ${COLOR_CYAN}$package_or_reqs_file${COLOR_RESET}"
+        pip_install_cmd="$venv_path/bin/pip install -r \"$package_or_reqs_file\""
+        log "INFO" "Detectado archivo de requisitos: $package_or_reqs_file"
+    else
+        # Asumir que es un nombre de paquete
+        install_target_display="paquete ${COLOR_CYAN}$package_or_reqs_file${COLOR_RESET}"
+        # Podríamos añadir validación básica del nombre del paquete si quisiéramos
+        pip_install_cmd="$venv_path/bin/pip install \"$package_or_reqs_file\""
+        log "INFO" "Detectado nombre de paquete: $package_or_reqs_file"
+    fi
+
+    # 4. Ejecutar Instalación con Captura de Salida
+    mostrar_info "Instalando $install_target_display en ${COLOR_CYAN}${venv_path}${COLOR_RESET} (salida capturada)..."
+    log "INFO" "Ejecutando: $pip_install_cmd > $TEMP_PIP_LOG 2>&1"
+
+    # Ejecutar pip install capturando toda la salida
+    eval "$pip_install_cmd" > "$TEMP_PIP_LOG" 2>&1
+    local pip_ret=$?
+    # Copiar salida temporal al log principal también
+    cat "$TEMP_PIP_LOG" >> "$LOG_FILE"
+
+    if [ $pip_ret -eq 0 ]; then
+        # --- Parse Output on Success (Similar a install_default_env) ---
+        local satisfied_count=$(grep -c 'Requirement already satisfied' "$TEMP_PIP_LOG")
+        local installed_list=$(grep '^Successfully installed ' "$TEMP_PIP_LOG" | sed 's/^Successfully installed //')
+        local installed_count=0; [[ -n "$installed_list" ]] && installed_count=$(echo "$installed_list" | wc -w)
+        local ignored_list=$(grep '^Ignoring .* markers' "$TEMP_PIP_LOG" | sed -E 's/^Ignoring ([^:]+):.*/\1/')
+        local ignored_count=0; [[ -n "$ignored_list" ]] && ignored_count=$(echo "$ignored_list" | wc -l)
+
+        mostrar_exito "Instalación/actualización desde $install_target_display completada."
+        echo -e "${COLOR_BLUE}Resumen:${COLOR_RESET}"
+        echo -e "  ${COLOR_GREEN}✓${COLOR_RESET} Paquetes ya satisfechos: $satisfied_count"
+        if [ "$installed_count" -gt 0 ]; then
+             echo -e "  ${COLOR_YELLOW}↑${COLOR_RESET} Paquetes instalados/actualizados ($installed_count):"
+             echo "$installed_list" | fold -s -w 70 | sed 's/^/    /'
+        fi
+        if [ "$ignored_count" -gt 0 ]; then
+             echo -e "  ${COLOR_CYAN}- ${COLOR_RESET} Paquetes ignorados (marcador) ($ignored_count):"
+             echo "$ignored_list" | sed 's/^/    /'
+        fi
+        log "INFO" "pip install exitoso para $install_target_display. Satisfechos: $satisfied_count, Instalados/Actualizados: $installed_count, Ignorados: $ignored_count"
+    else
+        # --- Show Error Details on Failure ---
+        mostrar_error "Hubo un error (código $pip_ret) durante la instalación de $install_target_display."
+        mostrar_info "Mostrando las últimas 10 líneas de la salida de pip:"
+        echo "-------------------- Inicio Salida Pip (Error) --------------------"
+        tail -n 10 "$TEMP_PIP_LOG" | sed 's/^/  /' # Indentar salida
+        echo "-------------------- Fin Salida Pip (Error) ---------------------"
+        mostrar_info "Consulte el archivo completo ${COLOR_YELLOW}$TEMP_PIP_LOG${COLOR_RESET} y ${COLOR_YELLOW}$LOG_FILE${COLOR_RESET} para más detalles."
+        # Salir con error si pip falló
+        rm -f "$TEMP_PIP_LOG" # Limpiar aunque falle
+        trap - EXIT SIGINT SIGTERM
+        exit 1
+    fi
+
+    log "INFO" "Comando --package-global completado para '$package_or_reqs_file'."
+    rm -f "$TEMP_PIP_LOG" # Limpieza explícita si todo va bien
+    trap - EXIT SIGINT SIGTERM # Limpiar trap si salimos normalmente
+}
+
+# --- Nueva Función para --package-local ---
+# Instala un paquete o requirements.txt en un entorno LOCAL existente
+install_local_package() {
+    local env_name="default"
+    local source_arg=""
+    local package_or_reqs_file=""
+    local target_local_venv_path=""
+
+    # Parseo de argumentos: [<entorno>] [<paquete|reqs.txt>]
+    # Si $1 existe Y es un directorio en ./.venv, es el nombre del entorno.
+    # Si no, $1 es la fuente. Si hay $2, es la fuente.
+    if [[ -n "$1" ]]; then
+        if [[ -d "$PWD/.venv/$1" ]]; then
+            env_name="$1"
+            log "DEBUG" "Argumento 1 detectado como nombre de entorno local: $env_name"
+            if [[ -n "$2" ]]; then
+                source_arg="$2"
+                log "DEBUG" "Argumento 2 detectado como fuente: $source_arg"
+            fi
+        else
+            source_arg="$1"
+            log "DEBUG" "Argumento 1 detectado como fuente: $source_arg"
+            # $env_name sigue siendo "default"
+        fi
+    fi
+    # Si no se especificó fuente, usar requirements.txt local
+    if [[ -z "$source_arg" ]]; then
+        package_or_reqs_file="$PWD/requirements.txt"
+        log "DEBUG" "No se especificó fuente, usando por defecto: $package_or_reqs_file"
+    else
+        package_or_reqs_file="$source_arg"
+        log "DEBUG" "Fuente especificada: $package_or_reqs_file"
+    fi
+
+    target_local_venv_path="$PWD/.venv/$env_name"
+
+    mostrar_info "============================================================="
+    mostrar_info " Instalando Paquete/Reqs en Entorno LOCAL (${target_local_venv_path}) "
+    mostrar_info "============================================================="
+    log "INFO" "Iniciando --package-local para '$package_or_reqs_file' en $target_local_venv_path"
+
+    # 1. Verificar Entorno Local (DEBE EXISTIR)
+    if ! verificar_entorno_python "$target_local_venv_path"; then
+        mostrar_error "El entorno local especificado ${COLOR_RED}${target_local_venv_path}${COLOR_RESET} no existe o no es válido."
+        mostrar_info "El comando ${BOLD}--package-local${COLOR_RESET} requiere que el entorno local exista previamente."
+        mostrar_info "Puedes crearlo con: ${BOLD}pymanager.sh --create $env_name${COLOR_RESET}"
+        log "ERROR" "--package-local abortado: entorno local no válido/no existe: $target_local_venv_path"
+        exit 1
+    else
+        local py_version
+        py_version=$(obtener_version_python_entorno "$target_local_venv_path")
+        mostrar_info "Entorno local encontrado (${COLOR_CYAN}$env_name${COLOR_RESET}). Python: ${COLOR_YELLOW}${py_version:-N/A}${COLOR_RESET}"
+        log "INFO" "Entorno local $target_local_venv_path existe. Python: ${py_version:-N/A}"
+    fi
+
+    # 2. Verificar Fuente (si es un archivo)
+    # Asumimos que es un archivo si contiene / o .txt, o si -f lo confirma
+    local is_file=false
+    if [[ -f "$package_or_reqs_file" ]]; then
+        is_file=true
+    elif [[ "$package_or_reqs_file" == */* ]] || [[ "$package_or_reqs_file" == *.txt ]]; then
+         # Parece una ruta, verificar si existe
+         if [[ ! -f "$package_or_reqs_file" ]]; then
+             mostrar_error "El archivo de requisitos especificado ${COLOR_RED}$package_or_reqs_file${COLOR_RESET} no se encontró."
+             log "ERROR" "--package-local abortado: archivo de requisitos no encontrado: $package_or_reqs_file"
+             exit 1
+         fi
+         is_file=true
+    fi
+    # Si es el requirements.txt por defecto, también verificamos
+    if [[ "$package_or_reqs_file" == "$PWD/requirements.txt" && ! -f "$package_or_reqs_file" ]]; then
+        mostrar_error "No se encontró el archivo ${COLOR_RED}requirements.txt${COLOR_RESET} en el directorio actual ($PWD)."
+        log "ERROR" "--package-local abortado: requirements.txt por defecto no encontrado en $PWD."
+        exit 1
+    fi
+
+    # 3. Verificar Conexión y Actualizar Pip
+    if ! verificar_conexion_internet; then
+        mostrar_advertencia "Sin conexión a internet. No se puede instalar/actualizar."
+        log "WARN" "Sin conexión internet, abortando --package-local."
+        exit 1
+    fi
+
+    local TEMP_PIP_LOG="/tmp/pymanager_pip_output.$$.log"
+    trap 'rm -f "$TEMP_PIP_LOG"' EXIT SIGINT SIGTERM
+    log "INFO" "Usando archivo temporal para salida de pip: $TEMP_PIP_LOG"
+
+    mostrar_info "Actualizando pip en ${COLOR_CYAN}${target_local_venv_path}${COLOR_RESET}..."
+    echo -ne "${COLOR_YELLOW}▶${COLOR_RESET} Actualizando pip... "
+    if ("$target_local_venv_path/bin/pip" install --upgrade pip >> "$TEMP_PIP_LOG" 2>&1); then
+        echo -e "${COLOR_GREEN}✓${COLOR_RESET}"
+        log "INFO" "pip actualizado correctamente en $target_local_venv_path."
+    else
+        echo -e "${COLOR_RED}✗${COLOR_RESET}"
+        mostrar_advertencia "Fallo al actualizar pip. Ver $TEMP_PIP_LOG. Intentando continuar..."
+        log "WARN" "Fallo al actualizar pip en $target_local_venv_path. Salida en $TEMP_PIP_LOG."
+    fi
+
+    # 4. Determinar Comando Pip y Ejecutar
+    local pip_install_cmd=""
+    local install_target_display=""
+
+    if $is_file; then
+        install_target_display="archivo de requisitos ${COLOR_CYAN}$package_or_reqs_file${COLOR_RESET}"
+        pip_install_cmd="\"$target_local_venv_path/bin/pip\" install -r \"$package_or_reqs_file\""
+    else
+        install_target_display="paquete ${COLOR_CYAN}$package_or_reqs_file${COLOR_RESET}"
+        pip_install_cmd="\"$target_local_venv_path/bin/pip\" install \"$package_or_reqs_file\""
+    fi
+
+    mostrar_info "Instalando $install_target_display en ${COLOR_CYAN}${target_local_venv_path}${COLOR_RESET} (salida capturada)..."
+    log "INFO" "Ejecutando: $pip_install_cmd > $TEMP_PIP_LOG 2>&1"
+
+    eval "$pip_install_cmd" > "$TEMP_PIP_LOG" 2>&1
+    local pip_ret=$?
+    cat "$TEMP_PIP_LOG" >> "$LOG_FILE"
+
+    if [ $pip_ret -eq 0 ]; then
+        # Parse Output (copiado/adaptado de install_global_package)
+        local satisfied_count=$(grep -c 'Requirement already satisfied' "$TEMP_PIP_LOG")
+        local installed_list=$(grep '^Successfully installed ' "$TEMP_PIP_LOG" | sed 's/^Successfully installed //')
+        local installed_count=0; [[ -n "$installed_list" ]] && installed_count=$(echo "$installed_list" | wc -w)
+        local ignored_list=$(grep '^Ignoring .* markers' "$TEMP_PIP_LOG" | sed -E 's/^Ignoring ([^:]+):.*/\1/')
+        local ignored_count=0; [[ -n "$ignored_list" ]] && ignored_count=$(echo "$ignored_list" | wc -l)
+
+        mostrar_exito "Instalación/actualización desde $install_target_display completada en ${COLOR_CYAN}$env_name${COLOR_RESET}."
+        echo -e "${COLOR_BLUE}Resumen:${COLOR_RESET}"
+        echo -e "  ${COLOR_GREEN}✓${COLOR_RESET} Paquetes ya satisfechos: $satisfied_count"
+        if [ "$installed_count" -gt 0 ]; then
+             echo -e "  ${COLOR_YELLOW}↑${COLOR_RESET} Paquetes instalados/actualizados ($installed_count):"
+             echo "$installed_list" | fold -s -w 70 | sed 's/^/    /'
+        fi
+        if [ "$ignored_count" -gt 0 ]; then
+             echo -e "  ${COLOR_CYAN}- ${COLOR_RESET} Paquetes ignorados (marcador) ($ignored_count):"
+             echo "$ignored_list" | sed 's/^/    /'
+        fi
+        log "INFO" "pip install exitoso para $install_target_display en $target_local_venv_path. Satisfechos: $satisfied_count, Instalados/Actualizados: $installed_count, Ignorados: $ignored_count"
+    else
+        mostrar_error "Hubo un error (código $pip_ret) durante la instalación de $install_target_display en ${COLOR_RED}$env_name${COLOR_RESET}."
+        mostrar_info "Mostrando las últimas 10 líneas de la salida de pip:"
+        echo "-------------------- Inicio Salida Pip (Error) --------------------"
+        tail -n 10 "$TEMP_PIP_LOG" | sed 's/^/  /'
+        echo "-------------------- Fin Salida Pip (Error) ---------------------"
+        mostrar_info "Consulte el archivo completo ${COLOR_YELLOW}$TEMP_PIP_LOG${COLOR_RESET} y ${COLOR_YELLOW}$LOG_FILE${COLOR_RESET} para más detalles."
+        rm -f "$TEMP_PIP_LOG"
+        trap - EXIT SIGINT SIGTERM
+        exit 1
+    fi
+
+    log "INFO" "Comando --package-local completado para '$package_or_reqs_file' en $target_local_venv_path."
+    rm -f "$TEMP_PIP_LOG"
+    trap - EXIT SIGINT SIGTERM
+}
+
+# Comando: Listar paquetes instalados (seleccionando entre locales/global)
+list_packages() {
+    local options=()
+    local env_paths=()
+    local global_env_valid=false
+    local local_envs_found=false
+    # Asumimos que HAS_GUM se define al inicio del script
+    # HAS_GUM=false; if command -v gum &> /dev/null; then HAS_GUM=true; fi
+
+    # --- Detectar Global ---
+    if [ -d "$BIN_VENV_DIR" ] && [ -x "$BIN_VENV_DIR/bin/pip" ]; then
+        global_env_valid=true
+        options+=("Global: $BIN_VENV_DIR")
+        env_paths+=("$BIN_VENV_DIR")
+        log "INFO" "Entorno global default detectado y válido."
+    else
+         log "INFO" "Entorno global default no encontrado o inválido."
+    fi
+
+    # --- Detectar Locales ---
+    local local_venv_base_dir="$PWD/.venv"
+    if [ -d "$local_venv_base_dir" ]; then
+        log "INFO" "Directorio local .venv encontrado. Buscando entornos..."
+        local found_local=false
+        # Usar find para buscar directorios que contengan un bin/pip ejecutable
+        while IFS= read -r -d $'\0' potential_env_path; do
+            local env_name=$(basename "$potential_env_path")
+            # Añadir solo si es un directorio y pip es ejecutable
+             if [ -d "$potential_env_path" ] && [ -x "$potential_env_path/bin/pip" ]; then
+                 # Formato de opción mejorado para claridad
+                 local display_name="Local: $env_name ($potential_env_path)"
+                 if [[ "$env_name" == "default" ]]; then
+                    display_name="Local: default ($potential_env_path)"
+                 fi 
+                 options+=("$display_name")
+                 env_paths+=("$potential_env_path")
+                 log "INFO" "Entorno local válido encontrado: $env_name en $potential_env_path"
+                 found_local=true
+             else
+                log "WARN" "Directorio $potential_env_path encontrado pero no es un entorno válido (falta pip ejecutable?)."
+             fi
+        done < <(find "$local_venv_base_dir" -maxdepth 1 -mindepth 1 -type d -print0) # Buscar solo directorios en el primer nivel
+
+        if $found_local; then
+             local_envs_found=true
+        else
+            log "INFO" "Directorio local .venv existe pero no contiene entornos válidos."
         fi
     else
-        # Eliminar el entorno completo
-        log "INFO" "Solicitando eliminación del entorno: $env_name"
-    
-        read -p "¿Está seguro de que desea eliminar el entorno '$env_name'? (s/N): " confirm
-        if [[ "$confirm" =~ ^[Ss]$ ]]; then
-            mostrar_info "Eliminando entorno virtual: $env_name"
-            rm -rf "$env_path" || {
-                mostrar_error "No se pudo eliminar el entorno virtual."
-                exit 1
-            }
-            mostrar_exito "Entorno virtual eliminado exitosamente."
-            log "INFO" "Entorno virtual $env_name eliminado con éxito"
-        else
-            mostrar_info "Operación cancelada."
-            log "INFO" "Eliminación del entorno $env_name cancelada por el usuario"
-        fi
+        log "INFO" "Directorio local .venv no encontrado."
     fi
+
+    # --- Decidir qué listar ---
+    local target_venv_path=""
+    local env_name_display=""
+
+    if [ ${#options[@]} -eq 0 ]; then
+        # No hay entornos válidos
+        mostrar_error "No se encontraron entornos virtuales válidos (ni global ni locales)."
+        mostrar_info "Usa 'pymanager.sh --create' para crear uno local o 'pymanager.sh --install' para el global."
+        exit 1
+    elif [ ${#options[@]} -eq 1 ]; then
+        # Solo hay una opción, usarla directamente
+        target_venv_path="${env_paths[0]}"
+        env_name_display="${options[0]}" # Usar la etiqueta completa (ej: "Global: ...")
+        mostrar_info "Listando paquetes del único entorno disponible: $env_name_display"
+    else
+        # Hay múltiples opciones, mostrar menú
+        mostrar_info "Múltiples entornos encontrados. Por favor, selecciona cuál listar:"
+        local choice=""
+        # Comprobar HAS_GUM aquí o asumir que está definida globalmente
+        if [[ "${HAS_GUM:-false}" == "true" ]] && command -v gum &> /dev/null; then # Doble check por si acaso
+             # Usar gum choose
+             choice=$(printf "%s\n" "${options[@]}" | gum choose --header "Selecciona el entorno")
+             # Comprobar si el usuario canceló en gum (salida vacía)
+             if [ -z "$choice" ]; then
+                mostrar_info "Operación cancelada."
+                exit 0
+             fi
+        else
+            # Fallback a select de Bash
+            mostrar_info "(Usando menú básico. Instala 'gum' para una mejor experiencia)."
+            PS3="Selecciona el número del entorno (o q para salir): " # Prompt mejorado
+            select opt in "${options[@]}" "Salir"; do
+                if [[ "$REPLY" == "q" || "$opt" == "Salir" ]]; then
+                    mostrar_info "Operación cancelada."
+                    exit 0
+                elif [[ -n "$opt" ]]; then
+                    choice="$opt"
+                    break
+                else
+                    echo "Selección inválida. Intenta de nuevo."
+                fi
+            done
+        fi
+
+        # Procesar la elección (ya no necesitamos verificar si está vacío por los checks anteriores)
+        # Encontrar la ruta correspondiente a la opción elegida
+        for i in "${!options[@]}"; do
+            if [[ "${options[$i]}" == "$choice" ]]; then
+                target_venv_path="${env_paths[$i]}"
+                env_name_display="$choice"
+                break
+            fi
+        done
+
+        # Fallback por si algo muy raro pasa
+        if [ -z "$target_venv_path" ]; then
+             mostrar_error "Error interno: No se pudo encontrar la ruta para la selección '$choice'."
+             exit 1
+        fi
+        mostrar_info "Listando paquetes del entorno seleccionado: $env_name_display"
+    fi
+
+
+    # --- Listar paquetes del entorno seleccionado ---
+    log "INFO" "Ejecutando 'pip list' en $target_venv_path ($env_name_display)"
+    echo -e "${COLOR_BLUE}--- Paquetes en entorno '$env_name_display' ---${COLOR_RESET}"
+
+    # Obtener y mostrar versión de Python
+    local python_ver="N/A"
+    if [ -x "$target_venv_path/bin/python" ]; then
+        python_ver=$("$target_venv_path/bin/python" --version 2>&1)
+        echo -e "${COLOR_CYAN}Versión de Python:${COLOR_RESET} $python_ver"
+        log "INFO" "Versión de Python en $target_venv_path: $python_ver"
+    else
+        mostrar_advertencia "No se pudo encontrar el ejecutable python en $target_venv_path para determinar la versión."
+        log "WARN" "No se encontró python ejecutable en $target_venv_path"
+    fi
+    echo # Línea extra para separar
+
+    # Ejecutar pip list y capturar error explícitamente
+    if ! "$target_venv_path/bin/pip" list; then
+        local pip_ret=$?
+        mostrar_error "Fallo al ejecutar 'pip list' (código $pip_ret) en el entorno '$env_name_display'."
+        mostrar_info "El entorno '$target_venv_path' puede estar dañado."
+        mostrar_info "Consulta $LOG_FILE para más detalles."
+        exit 1
+    fi
+
+    echo -e "${COLOR_BLUE}-------------------------------------------------${COLOR_RESET}"
+    log "INFO" "'pip list' completado para $target_venv_path ($env_name_display)"
 }
 
-# Función para mostrar la ayuda
-mostrar_ayuda() {
-    echo -e "
-    ${WHITE}Uso:${NC} $0 {create|activate|list|remove|--install|--update|--autostart|help}
-    
-    ${WHITE}Comandos:${NC}
-      ${CYAN}create${NC} <nombre_entorno> [archivo_requisitos]  Crear un nuevo entorno virtual
-      ${CYAN}activate${NC} <nombre_entorno>                     Mostrar instrucciones de activación para un entorno
-      ${CYAN}list${NC}                                          Listar todos los entornos virtuales disponibles
-      ${CYAN}remove${NC} <nombre_entorno> [--package <paquete>] Eliminar un entorno virtual o un paquete específico
-      ${CYAN}--install${NC}                                     Instalar entorno predeterminado en $BIN_VENV_DIR
-      ${CYAN}--update${NC} [nombre_entorno] [paquete]           Actualizar paquetes en un entorno virtual
-      ${CYAN}--autostart${NC} {on|off}                          Activar/desactivar inicio automático del entorno
-      ${CYAN}help${NC}                                          Mostrar esta ayuda
-      
-    ${WHITE}Aliases creados con --install:${NC}
-      ${CYAN}pybin${NC}                                         Activa el entorno predeterminado
-      ${CYAN}pyunbin${NC}                                       Desactiva el entorno activo"
-    log "INFO" "Se mostró la ayuda al usuario"
+# Comando: Crear entorno virtual LOCAL (default o nombrado)
+# Uso: create_venv [--python <version>] [<nombre_env>]
+create_venv() {
+    local python_version_requested=""
+    local env_name="default"
+    local target_venv_path=""
+    local venv_type=""
+    local python_executable=""
+
+    # Procesar argumentos para create_venv (más complejo ahora)
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --python)
+                if [ -z "$2" ]; then
+                    mostrar_error "La opción --python requiere un argumento de versión (ej: 3.10)."
+                    exit 1
+                fi
+                # Validar formato básico de versión (ej: 3.10, 3.11)
+                if [[ ! "$2" =~ ^[0-9]+\.[0-9]+$ ]]; then
+                     mostrar_error "Formato de versión inválido para --python: '$2'. Use X.Y (ej: 3.10)."
+                     exit 1
+                fi
+                python_version_requested="$2"
+                log "INFO" "Versión de Python solicitada: $python_version_requested"
+                shift 2 # Consume --python y la versión
+                ;;
+            --*)
+                mostrar_error "Opción no reconocida para --create: $1"
+                show_help
+                exit 1
+                ;;
+            *)
+                # Asumir nombre de entorno
+                if [ -z "$env_name" ] || [ "$env_name" == "default" ]; then # Permitir sobrescribir default si es el primer arg
+                    if [[ "$1" == --* ]]; then # No permitir nombres que parezcan opciones
+                        mostrar_error "Nombre de entorno inválido: '$1'. No debe empezar con --."
+                        exit 1
+                    fi
+                    env_name="$1"
+                else
+                    mostrar_error "Demasiados argumentos de nombre de entorno para --create: $1"
+                    show_help
+                    exit 1
+                fi
+                shift # Consume nombre del entorno
+                ;;
+        esac
+    done
+
+    # Determinar el ejecutable de Python a usar
+    if [ -n "$python_version_requested" ]; then
+        # Versión específica solicitada
+        python_executable="python${python_version_requested}"
+        if ! command -v "$python_executable" &> /dev/null; then
+            mostrar_error "No se encontró la versión de Python solicitada ($python_executable) en el sistema."
+            mostrar_info "Versiones comunes disponibles podrían ser python3.9, python3.10, python3.11, etc."
+            exit 1
+        fi
+        mostrar_info "Usando la versión de Python solicitada: $python_executable"
+    else
+        # Ninguna versión solicitada, buscar la última disponible (ej: 3.12 -> 3.11 -> 3.10 -> 3.9 -> python3)
+        mostrar_info "No se especificó versión de Python. Buscando la última disponible..."
+        local versions_to_try=("3.12" "3.11" "3.10" "3.9") # Añadir/quitar según sea necesario
+        local found_python=false
+        for ver in "${versions_to_try[@]}"; do
+            if command -v "python${ver}" &> /dev/null; then
+                python_executable="python${ver}"
+                mostrar_info "Encontrada versión: $python_executable"
+                found_python=true
+                break
+            fi
+        done
+        # Si no se encontró ninguna versión específica, usar 'python3' por defecto
+        if ! $found_python; then
+            if command -v python3 &> /dev/null; then
+                python_executable="python3"
+                mostrar_warning "No se encontró una versión específica (3.12, 3.11, ...). Usando 'python3' por defecto."
+            else
+                mostrar_error "No se encontró ningún ejecutable de Python (ni específico ni python3)."
+                exit 1
+            fi
+        fi
+    fi
+    log "INFO" "Ejecutable de Python seleccionado para venv: $python_executable"
+
+    # Determinar tipo y ruta (SIEMPRE LOCAL)
+    if [ "$env_name" == "default" ]; then
+        venv_type="local_default"
+    else
+        venv_type="local_named"
+    fi
+    local local_venv_base_dir="$PWD/.venv"
+    target_venv_path="$local_venv_base_dir/$env_name"
+
+    mostrar_info "Preparando para crear entorno $venv_type '$env_name': $target_venv_path"
+    log "INFO" "Intentando crear entorno $venv_type en $target_venv_path usando $python_executable"
+
+    # Crear directorio base local .venv si no existe
+    if [ ! -d "$local_venv_base_dir" ]; then
+        log "INFO" "Creando directorio base local $local_venv_base_dir"
+        if ! mkdir -p "$local_venv_base_dir"; then mostrar_error "No se pudo crear $local_venv_base_dir"; exit 1; fi
+    fi
+
+    # --- Lógica de creación / reinstalación --- 
+    local reinstall_env=false
+    if [ -d "$target_venv_path" ]; then
+        read -p "El entorno local '$target_venv_path' ya existe. ¿Desea reinstalarlo? (s/N/c=cancelar): " confirm_create
+        if [[ "$confirm_create" =~ ^[Cc]$ ]]; then mostrar_info "Operación cancelada."; exit 0;
+        elif [[ "$confirm_create" =~ ^[Ss]$ ]]; then reinstall_env=true;
+        else mostrar_info "Operación cancelada. No se reinstalará el entorno existente."; exit 0; fi # Si no es S o C, cancelar
+    else
+        reinstall_env=true # Si no existe, siempre crear
+    fi
+
+    # Reinstalar si es necesario
+    if [ "$reinstall_env" = true ] && [ -d "$target_venv_path" ]; then
+        mostrar_info "Eliminando entorno local existente en '$target_venv_path'..."
+        echo -ne "${COLOR_YELLOW}▶${COLOR_RESET} Eliminando $target_venv_path... ";
+        if rm -rf "$target_venv_path"; then echo -e "${COLOR_GREEN}✓${COLOR_RESET}"; log "INFO" "Directorio local eliminado: $target_venv_path";
+        else echo -e "${COLOR_RED}✗${COLOR_RESET}"; mostrar_error "No se pudo eliminar $target_venv_path."; exit 1; fi
+    fi
+
+    # Crear si no existe (o se acaba de borrar)
+    if [ ! -d "$target_venv_path" ]; then
+        mostrar_info "Creando estructura de entorno virtual local con $python_executable en: $target_venv_path"
+        echo -ne "${COLOR_YELLOW}▶${COLOR_RESET} Inicializando entorno virtual... "
+        # Usar el ejecutable de Python seleccionado
+        if "$python_executable" -m venv "$target_venv_path" >> "$LOG_FILE" 2>&1; then
+             echo -e "${COLOR_GREEN}✓${COLOR_RESET}"; log "INFO" "Entorno local $target_venv_path creado.";
+
+             # --- INICIO CAMBIO: Asegurar permisos de activate ---
+             local activate_script_path="$target_venv_path/bin/activate"
+             if [[ -f "$activate_script_path" ]]; then
+                 if chmod +x "$activate_script_path"; then
+                     log "INFO" "Permiso de ejecución asegurado para $activate_script_path"
+                 else
+                     mostrar_advertencia "No se pudo establecer permiso de ejecución para $activate_script_path."
+                     log "WARN" "Fallo chmod +x en $activate_script_path"
+                     # No salimos, pero registramos la advertencia
+                 fi
+             else
+                  mostrar_advertencia "No se encontró el script $activate_script_path después de crear el entorno."
+                  log "WARN" "No se encontró $activate_script_path post-creación."
+             fi
+             # --- FIN CAMBIO ---
+
+             mostrar_exito "Entorno local '$env_name' creado en $target_venv_path."
+             # Mensaje de activación específico para entorno local
+             echo -e "${COLOR_YELLOW}Para activar este entorno local, desde este directorio ejecuta:${COLOR_RESET}"
+             echo -e "  ${BOLD}source $activate_script_path${COLOR_RESET}" # Usar la variable
+        else
+             echo -e "${COLOR_RED}✗${COLOR_RESET}"; mostrar_error "Falló la creación del entorno en $target_venv_path."; exit 1;
+        fi
+    fi
+    # --- Fin lógica creación / reinstalación ---
+
+    log "INFO" "Comando --create completado para $target_venv_path ($venv_type)."
+    # No hay instalación de paquetes aquí
 }
 
 # Función para mostrar el banner simple y estético
@@ -904,103 +1009,410 @@ show_banner() {
   local width=50
 
   # Línea superior
-  printf '%s\n' "$(printf '+%*s+' "$width" '' | tr ' ' '-')"
+  printf '+%*s+\n' "$width" '' | tr ' ' '-'
 
   # Título centrado
   local title_len=${#APP_NAME}
   local title_pad=$(( (width - title_len) / 2 ))
-  printf '%s\n' "$(printf '|%*s%s%*s|' "$title_pad" '' "$APP_NAME" "$((width - title_pad - title_len))" '')"
+  printf '|%*s%s%*s|\n' "$title_pad" '' "$APP_NAME" "$((width - title_pad - title_len))" ''
 
   # Separador
-  printf '%s\n' "$(printf '|%*s|' "$width" '')"
+  printf '|%*s|\n' "$width" ''
 
   # Versión alineada
-  local version_text="Version: $APP_VERSION"
+  local version_text="Version: $VERSION"
   local version_len=${#version_text}
   local version_pad=$((width - version_len - 1))
-  printf '%s\n' "$(printf '| %s%*s|' "$version_text" "$version_pad" '')"
+  printf '| %s%*s|\n' "$version_text" "$version_pad" ''
 
   # Autor alineado
-  local author_text="By: $APP_AUTHOR"
+  local author_text="By: $AUTHOR"
   local author_len=${#author_text}
   local author_pad=$((width - author_len - 1))
-  printf '%s\n' "$(printf '| %s%*s|' "$author_text" "$author_pad" '')"
+  printf '| %s%*s|\n' "$author_text" "$author_pad" ''
 
   # Línea inferior
-  printf '%s\n' "$(printf '+%*s+' "$width" '' | tr ' ' '-')"
+  printf '+%*s+\n' "$width" '' | tr ' ' '-'
 
   echo # Línea en blanco después del banner
 }
 
-# Función principal
-main() {
-    # Mostrar banner inicial
-    show_banner
-    
-    # Iniciar log
-    log "INFO" "Iniciando $APP_NAME v$APP_VERSION"
-    log "INFO" "Comando ejecutado: $0 ${ORIGINAL_ARGS[*]-}"
-    
-    check_prerequisites
-    ensure_venv_dir
-    
-    local command="$1"
-    shift
-    
-    # Si no se proporciona ningún comando, mostrar la ayuda
-    if [ -z "$command" ]; then
-        mostrar_ayuda
+# Función para mostrar la ayuda (estilo packages.sh)
+show_help() {
+    # ... (líneas de título, uso, etc.) ...
+    echo
+    echo -e "${UNDERLINE}Uso:${COLOR_RESET} ${BOLD}pymanager.sh <comando> [argumentos...]${COLOR_RESET}"
+    echo
+    echo -e "${UNDERLINE}Comandos:${COLOR_RESET}"
+    echo -e "  ${BOLD}--create [<nombre_env>] [--python <ver>]${COLOR_RESET} Crea un entorno virtual LOCAL (${BOLD}./.venv/<nombre_env>${COLOR_RESET})."
+    echo -e "                     - Predeterminado: ${BOLD}./.venv/default${COLOR_RESET} con última versión Python."
+    echo -e "                     (No instala paquetes)."
+    echo -e "  ${BOLD}--install${COLOR_RESET}          Crea entorno GLOBAL (${BOLD}$BIN_VENV_DIR${COLOR_RESET}) si no existe,"
+    echo -e "                     e instala reqs. por defecto (${COLOR_CYAN}${DEFAULT_ENV_REQUIREMENTS_PATH##*/}${COLOR_RESET})."
+    echo -e "  ${BOLD}--package-global <paquete|reqs.txt>${COLOR_RESET} Instala paquete/requisitos en el entorno GLOBAL"
+    echo -e "                     (${BOLD}~/.venv/default${COLOR_RESET}), creándolo si es necesario."
+    echo -e "  ${BOLD}--package-local [<entorno>] [<paquete|reqs.txt>]${COLOR_RESET} Instala paquete/requisitos en un"
+    echo -e "                     entorno LOCAL ${BOLD}EXISTENTE${COLOR_RESET} (${BOLD}./.venv/<entorno>${COLOR_RESET})."
+    echo -e "                     - Si <entorno> se omite: usa ${BOLD}default${COLOR_RESET} (${BOLD}./.venv/default${COLOR_RESET})."
+    echo -e "                     - Si <paquete|reqs.txt> se omite: usa ${BOLD}./requirements.txt${COLOR_RESET}."
+    echo -e "                     (¡El entorno local DEBE existir! Usa --create primero si no)."
+    echo -e "  ${BOLD}--list${COLOR_RESET}           Lista paquetes y versión de Python del entorno seleccionado."
+    echo -e "                     (Menú interactivo si hay múltiples entornos locales/global)."
+    echo -e "  ${BOLD}--remove-global${COLOR_RESET}  Elimina el entorno virtual global (${BOLD}~/.venv/default${COLOR_RESET})."
+    echo -e "                     (Pide confirmación)."
+    echo -e "  ${BOLD}--remove-local${COLOR_RESET}   Elimina entornos locales (${BOLD}./.venv/*${COLOR_RESET}) interactivamente."
+    echo -e "                     (Lista entornos, permite seleccionar uno/varios/todos)."
+    echo -e "  ${BOLD}--set global${COLOR_RESET}     Configura el alias 'pyglobalset' en ~/.bashrc para activar entorno global."
+    echo -e "  ${BOLD}--set local [<env>]${COLOR_RESET} Muestra comandos para activar/desactivar un entorno LOCAL específico."
+    echo -e "                     (Pide selección si hay múltiples y no se especifica <env>)."
+    echo -e "  ${BOLD}--unset global${COLOR_RESET}   Elimina el alias 'pyglobalset' de ~/.bashrc."
+    echo -e "  ${BOLD}--help${COLOR_RESET}, ${BOLD}-h${COLOR_RESET}       Muestra esta ayuda."
+    echo -e "  ${BOLD}--version${COLOR_RESET}      Muestra la versión del script."
+    echo
+    echo -e "${UNDERLINE}Notas:${COLOR_RESET}"
+    echo -e "* ${BOLD}--create${COLOR_RESET} es para crear entornos locales (${BOLD}./.venv/${COLOR_RESET})."
+    echo -e "* ${BOLD}--package-global${COLOR_RESET} es para instalar en el global (${BOLD}~/.venv/default${COLOR_RESET})."
+    echo -e "* ${BOLD}--package-local${COLOR_RESET} es para instalar en locales ${BOLD}existentes${COLOR_RESET} (${BOLD}./.venv/...${COLOR_RESET})."
+    echo -e "* Los logs se guardan en ${BOLD}$LOG_FILE${COLOR_RESET}."
+}
+
+# --- Nuevas Funciones para Eliminar Entornos ---
+
+# Elimina el entorno virtual global default (~/.venv/default)
+remove_global_env() {
+    local target_path="$BIN_VENV_DIR"
+    log "INFO" "Iniciando --remove-global para $target_path"
+
+    if [[ ! -d "$target_path" ]]; then
+        mostrar_info "El entorno virtual global (${COLOR_CYAN}$target_path${COLOR_RESET}) no existe."
+        log "INFO" "El entorno global $target_path no existe, nada que hacer."
         exit 0
     fi
-    
-    case "$command" in
-        create)
-            local env_name="$1"
-            local req_file="$2"
-            create_venv "$env_name" "$req_file"
+
+    mostrar_advertencia "Está a punto de eliminar permanentemente el entorno global:"
+    echo -e "  ${COLOR_YELLOW}$target_path${COLOR_RESET}"
+
+    local confirm_msg="¿Realmente desea eliminar este entorno global?"
+    local confirmed=false
+    if [[ "$HAS_GUM" == "true" ]] && command -v gum &> /dev/null; then
+        if gum confirm "$confirm_msg"; then confirmed=true; fi
+    else
+        local response
+        read -p "$confirm_msg (s/N): " response
+        if [[ "$response" =~ ^[Ss]$ ]]; then confirmed=true; fi
+    fi
+
+    if ! $confirmed; then
+        mostrar_info "Operación cancelada."
+        log "INFO" "Eliminación de $target_path cancelada por el usuario."
+        exit 0
+    fi
+
+    mostrar_info "Eliminando entorno global ${COLOR_CYAN}$target_path${COLOR_RESET}..."
+    echo -ne "${COLOR_YELLOW}▶${COLOR_RESET} Eliminando $target_path... "
+    if rm -rf "$target_path"; then
+        echo -e "${COLOR_GREEN}✓${COLOR_RESET}"
+        mostrar_exito "Entorno global ${COLOR_GREEN}$target_path${COLOR_RESET} eliminado."
+        log "INFO" "Entorno global $target_path eliminado exitosamente."
+    else
+        echo -e "${COLOR_RED}✗${COLOR_RESET}"
+        mostrar_error "No se pudo eliminar el entorno global ${COLOR_RED}$target_path${COLOR_RESET}."
+        log "ERROR" "Fallo al eliminar $target_path."
+        exit 1
+    fi
+}
+
+# Elimina uno o más entornos virtuales locales (./.venv/*) interactivamente
+remove_local_env() {
+    local local_venv_base_dir="$PWD/.venv"
+    log "INFO" "Iniciando --remove-local en $local_venv_base_dir"
+
+    if [[ ! -d "$local_venv_base_dir" ]]; then
+        mostrar_info "No existe el directorio de entornos locales (${COLOR_CYAN}$local_venv_base_dir${COLOR_RESET})."
+        log "INFO" "Directorio $local_venv_base_dir no encontrado, nada que eliminar."
+        exit 0
+    fi
+
+    local env_names=()
+    local env_paths=()
+    local options=()
+    local found_envs=false
+
+    mostrar_info "Buscando entornos locales en ${COLOR_CYAN}$local_venv_base_dir${COLOR_RESET}..."
+    while IFS= read -r -d $'\0' potential_env_path; do
+        local env_name
+        env_name=$(basename "$potential_env_path")
+        # Verificar si es realmente un entorno (opcional, podría eliminar cualquier dir)
+        # if verificar_entorno_python "$potential_env_path"; then
+            env_names+=("$env_name")
+            env_paths+=("$potential_env_path")
+            options+=("$env_name") # Añadir solo el nombre a las opciones del menú
+            log "INFO" "Entorno local encontrado: $env_name en $potential_env_path"
+            found_envs=true
+        # fi
+    done < <(find "$local_venv_base_dir" -maxdepth 1 -mindepth 1 -type d -print0)
+
+    if ! $found_envs; then
+        mostrar_info "No se encontraron entornos locales en ${COLOR_CYAN}$local_venv_base_dir${COLOR_RESET}."
+        log "INFO" "No se encontraron subdirectorios en $local_venv_base_dir."
+        exit 0
+    fi
+
+    # Añadir opciones especiales al menú
+    local all_option="[ Eliminar TODOS los listados (${#env_names[@]}) ]"
+    local cancel_option="[ Cancelar ]"
+    options+=("$all_option" "$cancel_option")
+
+    local selection=() # Array para guardar selecciones (ya no necesario)
+    local choice_str="" # Variable para la única selección
+
+    mostrar_info "Seleccione el entorno local a eliminar (Enter selecciona, Esc cancela):"
+    if [[ "$HAS_GUM" == "true" ]] && command -v gum &> /dev/null;
+    then
+        # Usar gum choose en modo SELECCIÓN ÚNICA (sin --no-limit)
+        # Capturar stdout (la selección) Y código de salida
+        choice_str=$(printf "%s\n" "${options[@]}" | gum choose --header="Selecciona entorno/acción")
+        local gum_exit_code=$?
+
+        log "DEBUG" "gum choose (single) exit code: $gum_exit_code"
+        log "DEBUG" "gum choose (single) output: '$choice_str'"
+
+        # Códigos salida Gum: 0=OK, 1=Error, 130=Ctrl+C/Esc
+        if [[ $gum_exit_code -ne 0 ]]; then
+             # 130 es cancelación normal (Esc), otros son errores
+             if [[ $gum_exit_code -eq 130 ]]; then
+                mostrar_info "Operación cancelada (Esc)."
+                log "INFO" "Selección cancelada en gum choose (Exit code 130)."
+             else
+                mostrar_advertencia "gum choose finalizó con un error inesperado (código $gum_exit_code)."
+                log "WARN" "gum choose finalizó con código de error $gum_exit_code. Asumiendo cancelación."
+             fi
+             exit 0
+        fi
+
+        # Si el código es 0 pero la salida está vacía (¿imposible en modo selección única? Por si acaso)
+        if [[ -z "$choice_str" ]]; then
+            log "DEBUG" "gum choose devolvió código 0 pero sin salida. Tratando como cancelación."
+            mostrar_info "Operación cancelada."
+            exit 0
+        fi
+
+    else
+        # Fallback a select de Bash (Selección ÚNICA aquí también)
+        mostrar_advertencia "(Usando menú básico. Instala 'gum' para una mejor experiencia)."
+        PS3="Selecciona el número (o q para salir): "
+        select opt in "${options[@]}"; do
+            if [[ "$REPLY" == "q" ]]; then
+                choice_str="$cancel_option" # Tratar 'q' como cancelar
+                break
+            elif [[ -n "$opt" ]]; then
+                choice_str="$opt"
+                break
+            else
+                echo "Selección inválida. Intenta de nuevo."
+            fi
+        done
+        log "DEBUG" "--set local select output: $choice_str"
+        if [[ "$choice_str" == "$cancel_option" ]]; then
+             mostrar_info "Operación cancelada."
+             log "INFO" "--set local: Selección cancelada por el usuario."
+             exit 0
+        fi
+    fi
+
+    # --- Procesar la SELECCIÓN ÚNICA (choice_str) --- 
+    local paths_to_delete=()
+    local delete_all=false
+    local user_cancelled=false # Para la opción '[ Cancelar ]'
+
+    case "$choice_str" in
+        "$cancel_option")
+            user_cancelled=true
             ;;
-        activate)
-            local env_name="$1"
-            activate_venv "$env_name"
+        "$all_option")
+            delete_all=true
+            paths_to_delete=("${env_paths[@]}")
+            log "INFO" "Acción seleccionada: Eliminar TODOS los entornos locales."
             ;;
-        list)
-            list_venvs
+        *) 
+            # Es un nombre de entorno individual
+            local found_path=false
+            for i in "${!env_names[@]}"; do
+                # Comparar con los nombres originales
+                if [[ "${env_names[$i]}" == "$choice_str" ]]; then
+                    paths_to_delete=("${env_paths[$i]}") # Guardar la única ruta
+                    log "INFO" "Entorno local seleccionado para eliminar: $choice_str (Path: ${paths_to_delete[0]})"
+                    found_path=true
+                    break
+                fi
+            done
+            if ! $found_path; then
+                 # Esto no debería ocurrir si la selección viene del menú
+                 mostrar_error "Error interno: La selección '$choice_str' no coincide con ningún entorno conocido."
+                 log "ERROR" "La selección '$choice_str' no coincide con ningún nombre de entorno conocido."
+                 exit 1
+            fi
             ;;
-        remove)
-            local env_name="$1"
-            local option="$2"
-            local pkg_name="$3"
-            remove_venv "$env_name" "$option" "$pkg_name"
+    esac
+
+    # --- INICIO MODIFICACIÓN 4 (AHORA USANDO case) ---
+    # SI SE CANCELÓ EXPLÍCITAMENTE
+    if $user_cancelled; then
+        mostrar_info "Operación cancelada."
+        log "INFO" "Eliminación local cancelada explícitamente por el usuario."
+        exit 0
+    fi
+
+    # Comprobar si hay algo que borrar (paths_to_delete no debería estar vacío si no se canceló)
+    if [[ ${#paths_to_delete[@]} -eq 0 ]]; then
+        # Este caso ahora es menos probable, a menos que ocurra un error interno
+        mostrar_error "Error interno: No se determinaron rutas para eliminar a pesar de no cancelar."
+        log "ERROR" "paths_to_delete está vacío después del procesamiento de selección única, sin cancelación."
+        exit 1 # Salir con error, esto no debería pasar
+    fi
+    # --- FIN MODIFICACIÓN 4 --- 
+
+    # --- Confirmación final y bucle de eliminación (ajustado para mensaje) --- 
+    local confirm_msg_final=""
+    if $delete_all; then
+        confirm_msg_final="¿Realmente desea eliminar TODOS (${#paths_to_delete[@]}) los entornos locales listados?"
+    else
+         local names_to_delete_str=$(printf "'%s', " "${paths_to_delete[@]}" | sed 's|.*/||; s/, $//') # Extraer nombres de rutas
+         confirm_msg_final="¿Realmente desea eliminar los siguientes entornos locales (${#paths_to_delete[@]}): $names_to_delete_str?"
+    fi
+
+    local confirmed_final=false
+    if [[ "$HAS_GUM" == "true" ]] && command -v gum &> /dev/null; then
+        if gum confirm "$confirm_msg_final"; then confirmed_final=true; fi
+    else
+        local response_final
+        read -p "$confirm_msg_final (s/N): " response_final
+        if [[ "$response_final" =~ ^[Ss]$ ]]; then confirmed_final=true; fi
+    fi
+
+    if ! $confirmed_final; then
+        mostrar_info "Operación cancelada."
+        log "INFO" "Eliminación final cancelada por el usuario."
+        exit 0
+    fi
+
+    # Proceder con la eliminación
+    local errors_occurred=false
+    mostrar_info "Eliminando entornos locales seleccionados..."
+    for path_del in "${paths_to_delete[@]}"; do
+        local env_name_del
+        env_name_del=$(basename "$path_del")
+        echo -ne "${COLOR_YELLOW}▶${COLOR_RESET} Eliminando ${COLOR_CYAN}$env_name_del${COLOR_RESET} ($path_del)... "
+        if rm -rf "$path_del"; then
+            echo -e "${COLOR_GREEN}✓${COLOR_RESET}"
+            log "INFO" "Entorno local eliminado: $path_del"
+        else
+            echo -e "${COLOR_RED}✗${COLOR_RESET}"
+            mostrar_error "No se pudo eliminar ${COLOR_RED}$path_del${COLOR_RESET}."
+            log "ERROR" "Fallo al eliminar $path_del."
+            errors_occurred=true
+        fi
+    done
+
+    if $errors_occurred; then
+        mostrar_advertencia "Ocurrieron errores durante la eliminación. Revisa los mensajes anteriores."
+        exit 1
+    else
+        mostrar_exito "Entornos locales seleccionados eliminados correctamente."
+    fi
+}
+
+# --- Flujo Principal ---
+main() {
+    log "INFO" "=== Inicio ejecución pymanager.sh ==="
+    show_banner # Llamada única aquí
+    log "INFO" "Argumentos originales: ${ORIGINAL_ARGS[*]}"
+    check_prerequisites
+
+    # El primer argumento ahora DEBE ser un comando con --
+    local comando=${1}
+    # Si no se proporciona comando o no empieza con --, mostrar ayuda
+    if [[ -z "$comando" || "$comando" != --* ]]; then
+        # Antes de mostrar ayuda, verificar si es un nombre de entorno conocido
+        # (Lógica futura para activar por nombre?)
+        show_help
+        exit 1
+    fi
+    shift # Quitar el comando de la lista de argumentos para procesar opciones
+
+    case "$comando" in
+        --create)
+            # Pasar todos los argumentos restantes a create_venv
+            create_venv "$@"
             ;;
         --install)
-            install_default_env
+            mostrar_info "Opción --install seleccionada. Instalando requisitos por defecto en entorno global..."
+            install_global_package "$DEFAULT_ENV_REQUIREMENTS_PATH"
             ;;
-        --update)
-            local env_name="$1"
-            local pkg_name="$2"
-            update_packages "$env_name" "$pkg_name"
+        --package-global)
+             if [[ -z "$1" ]]; then
+                 mostrar_error "El comando --package-global requiere un argumento (nombre de paquete o ruta a requirements.txt)."
+                 show_help
+                 exit 1
+             fi
+             install_global_package "$1"
+             shift # Consumir el argumento del paquete/archivo
+             ;;
+        --package-local)
+            # Pasar todos los argumentos restantes a la función, ella se encarga del parseo
+            install_local_package "$@"
             ;;
-        --autostart)
-            local action="$1"
-            if [ -z "$action" ]; then
-                mostrar_error "Se requiere una acción para --autostart: on u off"
-                echo "Uso: $0 --autostart {on|off}"
+        --list)
+            list_packages "$@"
+            ;;
+        --set)
+            # Comprobar el argumento: global o local
+            if [[ "$1" == "global" ]]; then
+                set_global_alias
+                shift # Consumir 'global'
+            elif [[ "$1" == "local" ]]; then
+                shift # Consumir 'local'
+                show_local_activation_info "$@" # Pasar el resto de args (nombre_env opcional)
+            else
+                mostrar_error "El comando --set requiere el argumento 'global' o 'local'."
+                show_help
                 exit 1
             fi
-            configurar_autostart "$action"
             ;;
-        help)
-            mostrar_ayuda
+        --unset)
+            if [[ "$1" == "global" ]]; then
+                unset_global_alias
+                shift # Consumir 'global'
+            else
+                mostrar_error "El comando --unset requiere el argumento 'global'."
+                show_help
+                exit 1
+            fi
+            ;;
+        --remove-global)
+            remove_global_env
+            ;;
+        --remove-local)
+            remove_local_env # No necesita argumentos
+            ;;
+        --help|-h)
+            show_help
+            ;;
+        --version)
+            echo "${APP_NAME} v${VERSION}"
+            exit 0
             ;;
         *)
-            mostrar_error "Comando desconocido: $command"
-            mostrar_ayuda
+            mostrar_error "Comando '$comando' no reconocido."
+            show_help
             exit 1
             ;;
     esac
-    
-    log "INFO" "Finalización exitosa: $0 ${ORIGINAL_ARGS[*]-}"
+    log "INFO" "=== Fin ejecución pymanager.sh ==="
+    exit 0
 }
 
-# Ejecutar la función principal con todos los argumentos
-main "$@" 
+# Ejecutar main si el script no está siendo "sourced"
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi 
