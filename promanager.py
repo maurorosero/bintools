@@ -405,124 +405,47 @@ def prompt_for_required_repo_info(defaults):
 
 
 def edit_repository_info(repo_data, is_initial_setup=False):
-    """Formulario para editar info del repo."""
+    """Edita la información del repositorio de forma interactiva."""
     is_created = repo_data.get("created_flag", False) or repo_data.get("url")
 
     if is_created:
-        questionary.print("--- Info Repositorio (Creado - Campos editables) ---", style="bold")
-        questionary.print("Nota: Los campos clave no pueden ser modificados una vez creado el repositorio.", style="fg:yellow")
+        questionary.print("--- Info Repositorio (Creado - Campos clave sólo lectura) ---", style="bold")
         questionary.print(f"  Nombre:       {repo_data.get('name', 'N/A')}")
         questionary.print(f"  Propietario:  {repo_data.get('owner_name', 'N/A')} ({repo_data.get('owner_type', 'N/A')})")
         questionary.print(f"  Visibilidad: {repo_data.get('visibility', 'N/A')}")
+        # Mostrar plataforma y URL si existe
         platform_display = repo_data.get('platform', 'N/A')
         platform_url_display = repo_data.get('platform_url')
         if platform_url_display:
             platform_display += f" ({platform_url_display})"
         questionary.print(f"  Plataforma:   {platform_display}")
         questionary.print(f"  URL Repo:     {repo_data.get('url', 'No establecido')}")
-        
-        # Editar campos editables
-        description = questionary.text(
-            "Descripción:",
-            default=repo_data.get('description', "")
-        ).ask()
-        if description is None: return # Check for cancellation
-        repo_data['description'] = description
-        
-        # Editar opciones de inicialización
-        init_options = repo_data.get("init_options", {})
-        
-        add_readme = questionary.confirm(
-            "¿Inicializar con README?",
-            default=init_options.get('add_readme', True)
-        ).ask()
-        if add_readme is None: return # Check for cancellation
-        init_options['add_readme'] = add_readme
-        
-        add_gitignore = questionary.confirm(
-            "¿Añadir .gitignore?",
-            default=init_options.get('add_gitignore', True)
-        ).ask()
-        if add_gitignore is None: return # Check for cancellation
-        init_options['add_gitignore'] = add_gitignore
-        
-        if add_gitignore:
-            gitignore_template = questionary.text(
-                "Plantilla .gitignore (ej., Python, Node, vacío para ninguno):",
-                default=init_options.get('gitignore_template', "Python")
-            ).ask()
-            if gitignore_template is None: return # Check for cancellation
-            init_options['gitignore_template'] = gitignore_template
-        
-        add_license = questionary.confirm(
-            "¿Añadir LICENSE?",
-            default=init_options.get('add_license', True)
-        ).ask()
-        if add_license is None: return # Check for cancellation
-        init_options['add_license'] = add_license
-        
-        if add_license:
-            license_template = questionary.text(
-                "Plantilla Licencia (ID SPDX, ej., mit, gpl-3.0):",
-                default=init_options.get('license_template', "mit")
-            ).ask()
-            if license_template is None: return # Check for cancellation
-            init_options['license_template'] = license_template
-        
-        repo_data["init_options"] = init_options
+        repo_data['description'] = questionary.text("Descripción:", default=repo_data.get('description', "")).ask() or repo_data.get('description', "")
     else:
         if not is_initial_setup:
             questionary.print("--- Info Repositorio (Campos requeridos *) ---", style="bold")
-            answers = prompt_for_required_repo_info(repo_data)
-            if not answers: return # User cancelled
-            repo_data.update(answers)
+            questionary.print("Nota: Los campos marcados con * son obligatorios.", style="fg:yellow")
         else:
             questionary.print("--- Info Repositorio (Opciones Adicionales) ---", style="bold")
 
-        description = questionary.text(
-            "Descripción:",
-            default=repo_data.get('description', "")
-        ).ask()
-        if description is None: return # Check for cancellation
-        repo_data['description'] = description
+        repo_data['description'] = questionary.text("Descripción:", default=repo_data.get('description', "")).ask() or repo_data.get('description', "")
+        if repo_data['description'] is None: return # Check for cancellation
 
         init_options = repo_data.get("init_options", {})
-        add_readme = questionary.confirm(
-            "¿Inicializar con README?",
-            default=init_options.get('add_readme', True)
-        ).ask()
-        if add_readme is None: return # Check for cancellation
-        init_options['add_readme'] = add_readme
+        init_options['add_readme'] = questionary.confirm("¿Inicializar con README?", default=init_options.get('add_readme', True)).ask()
+        if init_options['add_readme'] is None: return
 
-        add_gitignore = questionary.confirm(
-            "¿Añadir .gitignore?",
-            default=init_options.get('add_gitignore', True)
-        ).ask()
-        if add_gitignore is None: return # Check for cancellation
-        init_options['add_gitignore'] = add_gitignore
+        init_options['add_gitignore'] = questionary.confirm("¿Añadir .gitignore?", default=init_options.get('add_gitignore', True)).ask()
+        if init_options['add_gitignore'] is None: return
+        if init_options['add_gitignore']:
+            init_options['gitignore_template'] = questionary.text("Plantilla .gitignore (ej., Python, Node, vacío para ninguno):", default=init_options.get('gitignore_template', "Python")).ask() or init_options.get('gitignore_template', "Python")
+            if init_options['gitignore_template'] is None: return
 
-        if add_gitignore:
-            gitignore_template = questionary.text(
-                "Plantilla .gitignore (ej., Python, Node, vacío para ninguno):",
-                default=init_options.get('gitignore_template', "Python")
-            ).ask()
-            if gitignore_template is None: return # Check for cancellation
-            init_options['gitignore_template'] = gitignore_template
-
-        add_license = questionary.confirm(
-            "¿Añadir LICENSE?",
-            default=init_options.get('add_license', True)
-        ).ask()
-        if add_license is None: return # Check for cancellation
-        init_options['add_license'] = add_license
-
-        if add_license:
-            license_template = questionary.text(
-                "Plantilla Licencia (ID SPDX, ej., mit, gpl-3.0):",
-                default=init_options.get('license_template', "mit")
-            ).ask()
-            if license_template is None: return # Check for cancellation
-            init_options['license_template'] = license_template
+        init_options['add_license'] = questionary.confirm("¿Añadir LICENSE?", default=init_options.get('add_license', True)).ask()
+        if init_options['add_license'] is None: return
+        if init_options['add_license']:
+            init_options['license_template'] = questionary.text("Plantilla Licencia (ID SPDX, ej., mit, gpl-3.0):", default=init_options.get('license_template', "mit")).ask() or init_options.get('license_template', "mit")
+            if init_options['license_template'] is None: return
 
         repo_data["init_options"] = init_options
 
@@ -745,7 +668,7 @@ def push_branches_to_remote() -> Tuple[bool, str]:
     except Exception as e:
         return False, f"Error inesperado al hacer push: {e}"
 
-def create_github_repository(project_data: Dict[str, Any], token: str, use_https: bool = False) -> Tuple[bool, str]:
+def create_github_repository(project_data: Dict[str, Any], token: str, use_https: bool = True) -> Tuple[bool, str]:
     """Crea un repositorio en GitHub usando la API."""
     try:
         g = Github(token)
@@ -786,62 +709,15 @@ def create_github_repository(project_data: Dict[str, Any], token: str, use_https
         
         subprocess.run(['git', 'remote', 'add', 'origin', remote_url], check=True)
         
-        # Configurar protección de ramas por defecto
-        questionary.print("Configurando protección de ramas por defecto...", style="fg:cyan")
-        
-        # Configurar rama main
-        main_protection = {
-            "required_status_checks": {
-                "strict": True,
-                "contexts": ["ci/check"]
-            },
-            "enforce_admins": True,
-            "required_pull_request_reviews": {
-                "required_approving_review_count": 1,
-                "dismiss_stale_reviews": True,
-                "require_code_owner_reviews": True
-            },
-            "restrictions": None  # Permitir push a administradores
-        }
-        
-        # Configurar rama develop
-        develop_protection = {
-            "required_status_checks": {
-                "strict": True,
-                "contexts": ["ci/check"]
-            },
-            "enforce_admins": True,
-            "required_pull_request_reviews": {
-                "required_approving_review_count": 1,
-                "dismiss_stale_reviews": True,
-                "require_code_owner_reviews": False
-            },
-            "restrictions": None  # Permitir push a administradores
-        }
-        
-        try:
-            # Aplicar protección a main
-            repo.get_branch("main").edit_protection(**main_protection)
-            questionary.print("✓ Protección configurada para rama main", style="fg:green")
-            
-            # Aplicar protección a develop
-            repo.get_branch("develop").edit_protection(**develop_protection)
-            questionary.print("✓ Protección configurada para rama develop", style="fg:green")
-        except GithubException as e:
-            questionary.print(f"Advertencia: No se pudo configurar la protección de ramas: {e}", style="fg:yellow")
-            questionary.print("Puedes configurar la protección manualmente más tarde con --configure-protection", style="fg:yellow")
-        
         # Hacer push de las ramas
         push_success, push_msg = push_branches_to_remote()
         if not push_success:
             return False, push_msg
         
-        return True, f"Repositorio creado exitosamente en: {repo.html_url}"
+        return True, f"Repositorio creado exitosamente en {remote_url}"
         
-    except GithubException as e:
-        return False, f"Error en la API de GitHub: {e}"
     except Exception as e:
-        return False, f"Error inesperado: {e}"
+        return False, f"Error al crear el repositorio: {str(e)}"
 
 def create_gitlab_repository(project_data: Dict[str, Any], token: str, use_https: bool = False) -> Tuple[bool, str]:
     """Crea un repositorio en GitLab usando la API."""
@@ -854,7 +730,7 @@ def create_gitea_repository(project_data: Dict[str, Any], token: str, use_https:
     return False, "Soporte para Gitea aún no implementado"
 
 def create_remote_repo(project_base_path: Path, args: argparse.Namespace) -> None:
-    """Función principal para crear un repositorio remoto basado en la plataforma configurada."""
+    """Crea un repositorio remoto en la plataforma especificada."""
     # 1. Verificar repositorio git
     is_repo, msg = check_git_repo()
     if not is_repo:
@@ -892,19 +768,7 @@ def create_remote_repo(project_base_path: Path, args: argparse.Namespace) -> Non
     if not token:
         sys.exit(1)
     
-    # 6. Crear directorio config y copiar TOML como .def
-    config_dir = project_base_path / "config"
-    config_dir.mkdir(exist_ok=True)
-    def_file = config_dir / "project_meta.def"
-    try:
-        import shutil
-        shutil.copy2(project_meta_file, def_file)
-        questionary.print(f"✓ Copia de configuración guardada en {def_file}", style="fg:green")
-    except Exception as e:
-        questionary.print(f"Error al copiar archivo de configuración: {e}", style="fg:red")
-        sys.exit(1)
-    
-    # 7. Crear repositorio según la plataforma
+    # 6. Crear repositorio según la plataforma
     success = False
     msg = ""
     
