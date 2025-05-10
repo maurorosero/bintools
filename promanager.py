@@ -168,22 +168,22 @@ class GitHubConfigurator(GitServerConfigurator):
                     return False, f"La rama {branch} no existe en el repositorio"
                 raise
             
-            branch_protection = {
-                "required_status_checks": {
-                    "strict": True,
-                    "contexts": ["ci/check"]
-                },
+            # Configurar protección según las reglas
+            protection = {
                 "enforce_admins": True,
                 "required_pull_request_reviews": {
-                    "required_approving_review_count": 0
+                    "required_approving_review_count": 1,
+                    "dismiss_stale_reviews": True,
+                    "require_code_owner_reviews": False
                 } if not rules.get("allow_direct_push") else None,
-                "restrictions": {
-                    "users": ["@maintainers"],
-                    "teams": ["@maintainers"]
-                } if not rules.get("allow_direct_push") else None
+                "restrictions": None if rules.get("allow_direct_push") else {
+                    "users": [],
+                    "teams": []
+                }
             }
             
-            self.repo.get_branch(branch).edit_protection(**branch_protection)
+            # Aplicar la protección
+            self.repo.get_branch(branch).edit_protection(**protection)
             return True, f"Protección configurada para rama {branch}"
         except Exception as e:
             return False, f"Error configurando protección para {branch}: {str(e)}"
@@ -299,20 +299,57 @@ def load_project_data(meta_file_path: Path): # Añadido argumento
              questionary.print(f"Advertencia: Se esperaba un archivo pero se encontró un directorio en {meta_file_path}. Usando datos por defecto.", style="fg:cyan")
         return get_default_structure()
 
-def save_project_data(data, meta_file_path: Path): # Añadido argumento
-    """Guarda los datos en la ruta especificada, creando el directorio si es necesario."""
-    project_dir = meta_file_path.parent # Obtener directorio padre
+def save_project_data(data, meta_file_path: Path, project_base_path: Path):
+    """Guarda los datos en el archivo TOML especificado y también en config/project_meta.def."""
+    project_dir = meta_file_path.parent # Directorio .project/
     try:
         project_dir.mkdir(parents=True, exist_ok=True)
+        # Asegurar que schema_version está actualizado antes de guardar
+        data["schema_version"] = CURRENT_SCHEMA_VERSION
         with open(meta_file_path, "wb") as f:
             tomli_w.dump(data, f)
-        questionary.print(f"Datos del proyecto guardados en {meta_file_path}", style="fg:green")
+        questionary.print(f"✓ Datos del proyecto guardados en {meta_file_path}", style="fg:green")
+
+        # Ahora, también guardar en config/project_meta.def
+        def_dir = project_base_path / "config"
+        def_file_path = def_dir / "project_meta.def"
+        try:
+            def_dir.mkdir(parents=True, exist_ok=True)
+            with open(def_file_path, "wb") as f_def:
+                tomli_w.dump(data, f_def) # Guardar los mismos datos 'data'
+            questionary.print(f"✓ Configuración también guardada en {def_file_path}", style="fg:green")
+        except Exception as e_def:
+            questionary.print(f"✗ Error al guardar en {def_file_path}: {e_def}", style="fg:red")
+            questionary.print(f"  Sin embargo, {meta_file_path} se guardó correctamente.", style="fg:yellow")
+
     except Exception as e:
-        questionary.print(f"Error al guardar {meta_file_path}: {e}", style="fg:red")
+        questionary.print(f"✗ Error al guardar {meta_file_path}: {e}", style="fg:red")
+
+def get_git_user_info() -> Dict[str, str]:
+    """Obtiene user.name y user.email de la configuración global de Git."""
+    user_info = {"name": "", "email": ""}
+    try:
+        # Obtener user.name
+        result_name = subprocess.run(['git', 'config', '--global', 'user.name'], 
+                                     capture_output=True, text=True, check=False)
+        if result_name.returncode == 0:
+            user_info["name"] = result_name.stdout.strip()
+
+        # Obtener user.email
+        result_email = subprocess.run(['git', 'config', '--global', 'user.email'], 
+                                      capture_output=True, text=True, check=False)
+        if result_email.returncode == 0:
+            user_info["email"] = result_email.stdout.strip()
+            
+    except FileNotFoundError: # Git no está instalado o no está en el PATH
+        questionary.print("Advertencia: Comando 'git' no encontrado. No se pueden precargar datos de usuario.", style="fg:yellow")
+    except Exception as e:
+        questionary.print(f"Advertencia: Error al obtener datos de git config: {e}", style="fg:yellow")
+    return user_info
 
 def get_default_structure():
-    """Retorna la estructura TOML por defecto como diccionario Python."""
-    # Mantener claves en inglés para consistencia interna
+    """Retorna la estructura TOML por defecto como diccionario Python, precargando datos de git config."""
+    git_user = get_git_user_info()
     return {
         "schema_version": CURRENT_SCHEMA_VERSION,
         "repository": {
@@ -326,7 +363,9 @@ def get_default_structure():
             }
         },
         "project_details": {
-            "title": "", "purpose": "", "status": "planning", "lead": "",
+            "title": "", "purpose": "", "status": "planning", 
+            "lead": git_user.get("name", ""), 
+            "lead_email": git_user.get("email", ""),
             "pm_tool_info": {"tool_name": "", "project_link": "", "project_key": ""},
             "objectives": [], "stakeholders": [], "technology_stack": [],
             "risks": [], "assumptions": [],
@@ -405,7 +444,7 @@ def prompt_for_required_repo_info(defaults):
 
 
 def edit_repository_info(repo_data, is_initial_setup=False):
-    """Edita la información del repositorio de forma interactiva."""
+    """Edita la información del repositorio de forma interactiva. Devuelve True si éxito, None si se cancela."""
     is_created = repo_data.get("created_flag", False) or repo_data.get("url")
 
     if is_created:
@@ -413,14 +452,16 @@ def edit_repository_info(repo_data, is_initial_setup=False):
         questionary.print(f"  Nombre:       {repo_data.get('name', 'N/A')}")
         questionary.print(f"  Propietario:  {repo_data.get('owner_name', 'N/A')} ({repo_data.get('owner_type', 'N/A')})")
         questionary.print(f"  Visibilidad: {repo_data.get('visibility', 'N/A')}")
-        # Mostrar plataforma y URL si existe
         platform_display = repo_data.get('platform', 'N/A')
         platform_url_display = repo_data.get('platform_url')
         if platform_url_display:
             platform_display += f" ({platform_url_display})"
         questionary.print(f"  Plataforma:   {platform_display}")
         questionary.print(f"  URL Repo:     {repo_data.get('url', 'No establecido')}")
-        repo_data['description'] = questionary.text("Descripción:", default=repo_data.get('description', "")).ask() or repo_data.get('description', "")
+        
+        description_val = questionary.text("Descripción:", default=repo_data.get('description', "")).ask()
+        if description_val is None: return None
+        repo_data['description'] = description_val
     else:
         if not is_initial_setup:
             questionary.print("--- Info Repositorio (Campos requeridos *) ---", style="bold")
@@ -428,65 +469,101 @@ def edit_repository_info(repo_data, is_initial_setup=False):
         else:
             questionary.print("--- Info Repositorio (Opciones Adicionales) ---", style="bold")
 
-        repo_data['description'] = questionary.text("Descripción:", default=repo_data.get('description', "")).ask() or repo_data.get('description', "")
-        if repo_data['description'] is None: return # Check for cancellation
+        # Si es setup inicial, el nombre ya debería haber sido pedido por prompt_for_required_repo_info.
+        # Si no es setup inicial, o si por alguna razón el nombre falta, se pide aquí.
+        if not repo_data.get('name', '').strip() or not is_initial_setup:
+            name_val = questionary.text(
+                "Nombre del Repositorio:",
+                default=repo_data.get('name', ""),
+                validate=lambda text: True if len(text.strip()) > 0 else "El nombre no puede estar vacío"
+            ).ask()
+            if name_val is None: return None
+            repo_data['name'] = name_val.strip()
+        
+        description_val = questionary.text("Descripción:", default=repo_data.get('description', "")).ask()
+        if description_val is None: return None
+        repo_data['description'] = description_val
 
         init_options = repo_data.get("init_options", {})
-        init_options['add_readme'] = questionary.confirm("¿Inicializar con README?", default=init_options.get('add_readme', True)).ask()
-        if init_options['add_readme'] is None: return
+        
+        add_readme_val = questionary.confirm("¿Inicializar con README?", default=init_options.get('add_readme', True)).ask()
+        if add_readme_val is None: return None
+        init_options['add_readme'] = add_readme_val
 
-        init_options['add_gitignore'] = questionary.confirm("¿Añadir .gitignore?", default=init_options.get('add_gitignore', True)).ask()
-        if init_options['add_gitignore'] is None: return
+        add_gitignore_val = questionary.confirm("¿Añadir .gitignore?", default=init_options.get('add_gitignore', True)).ask()
+        if add_gitignore_val is None: return None
+        init_options['add_gitignore'] = add_gitignore_val
+        
         if init_options['add_gitignore']:
-            init_options['gitignore_template'] = questionary.text("Plantilla .gitignore (ej., Python, Node, vacío para ninguno):", default=init_options.get('gitignore_template', "Python")).ask() or init_options.get('gitignore_template', "Python")
-            if init_options['gitignore_template'] is None: return
+            gitignore_template_val = questionary.text("Plantilla .gitignore (ej., Python, Node, vacío para ninguno):", default=init_options.get('gitignore_template', "Python")).ask()
+            if gitignore_template_val is None: return None
+            init_options['gitignore_template'] = gitignore_template_val
+        
+        add_license_val = questionary.confirm("¿Añadir LICENSE?", default=init_options.get('add_license', True)).ask()
+        if add_license_val is None: return None
+        init_options['add_license'] = add_license_val
 
-        init_options['add_license'] = questionary.confirm("¿Añadir LICENSE?", default=init_options.get('add_license', True)).ask()
-        if init_options['add_license'] is None: return
         if init_options['add_license']:
-            init_options['license_template'] = questionary.text("Plantilla Licencia (ID SPDX, ej., mit, gpl-3.0):", default=init_options.get('license_template', "mit")).ask() or init_options.get('license_template', "mit")
-            if init_options['license_template'] is None: return
-
+            license_template_val = questionary.text("Plantilla Licencia (ID SPDX, ej., mit, gpl-3.0):", default=init_options.get('license_template', "mit")).ask()
+            if license_template_val is None: return None
+            init_options['license_template'] = license_template_val
+            
         repo_data["init_options"] = init_options
+    return True
 
 
 def edit_project_details(details_data):
-    """Formulario para editar detalles del proyecto."""
+    """Formulario para editar detalles del proyecto. Devuelve True si éxito, None si se cancela."""
     questionary.print("--- Detalle del Proyecto ---", style="bold")
-    details_data['title'] = questionary.text("Título del Proyecto:", default=details_data.get('title', "")).ask() or details_data.get('title', "")
-    if details_data['title'] is None: return
-    details_data['purpose'] = questionary.text("Propósito/Descripción:", default=details_data.get('purpose', "")).ask() or details_data.get('purpose', "")
-    if details_data['purpose'] is None: return
-    details_data['status'] = questionary.select("Estado:", choices=STATUS_CHOICES, default=details_data.get('status', "planning")).ask()
-    if details_data['status'] is None: return
-    details_data['lead'] = questionary.text("Líder del Proyecto:", default=details_data.get('lead', "")).ask() or details_data.get('lead', "")
-    if details_data['lead'] is None: return
+    
+    title_val = questionary.text("Título del Proyecto:", default=details_data.get('title', "")).ask()
+    if title_val is None: return None
+    details_data['title'] = title_val
+    
+    purpose_val = questionary.text("Propósito/Descripción:", default=details_data.get('purpose', "")).ask()
+    if purpose_val is None: return None
+    details_data['purpose'] = purpose_val
+    
+    status_val = questionary.select("Estado:", choices=STATUS_CHOICES, default=details_data.get('status', "planning")).ask()
+    if status_val is None: return None
+    details_data['status'] = status_val
+    
+    lead_val = questionary.text("Líder del Proyecto:", default=details_data.get('lead', "")).ask()
+    if lead_val is None: return None
+    details_data['lead'] = lead_val
 
-    # PM Tool Info
+    lead_email_val = questionary.text("Email Líder Proyecto:", default=details_data.get('lead_email', "")).ask()
+    if lead_email_val is None: return None
+    details_data['lead_email'] = lead_email_val
+
     pm_info = details_data.get("pm_tool_info", {})
-    pm_info['tool_name'] = questionary.text("Herramienta Gestión Proyectos (Jira, Trello, etc., vacío si ninguna):", default=pm_info.get('tool_name', "")).ask() or pm_info.get('tool_name', "")
-    if pm_info['tool_name'] is None: return
-    pm_info['project_link'] = questionary.text("URL Proyecto (Gestión):", default=pm_info.get('project_link', "")).ask() or pm_info.get('project_link', "")
-    if pm_info['project_link'] is None: return
-    pm_info['project_key'] = questionary.text("Clave Proyecto (Gestión, si aplica):", default=pm_info.get('project_key', "")).ask() or pm_info.get('project_key', "")
-    if pm_info['project_key'] is None: return
+    tool_name_val = questionary.text("Herramienta Gestión Proyectos (Jira, Trello, etc., vacío si ninguna):", default=pm_info.get('tool_name', "")).ask()
+    if tool_name_val is None: return None
+    pm_info['tool_name'] = tool_name_val
+    
+    project_link_val = questionary.text("URL Proyecto (Gestión):", default=pm_info.get('project_link', "")).ask()
+    if project_link_val is None: return None
+    pm_info['project_link'] = project_link_val
+    
+    project_key_val = questionary.text("Clave Proyecto (Gestión, si aplica):", default=pm_info.get('project_key', "")).ask()
+    if project_key_val is None: return None
+    pm_info['project_key'] = project_key_val
     details_data["pm_tool_info"] = pm_info
 
-    # Editar listas (simplificado por ahora, solo muestra)
-    # TODO: Implementar edición de listas (add/remove/edit)
     questionary.print(f"Objetivos: {details_data.get('objectives', [])} (Editar manualmente o mejorar script)")
     questionary.print(f"Interesados: {details_data.get('stakeholders', [])} (Editar manualmente o mejorar script)")
     questionary.print(f"Stack Tecnológico: {details_data.get('technology_stack', [])} (Editar manualmente o mejorar script)")
-    # ... etc para risks, assumptions
 
-    # Constraints
     constraints = details_data.get("constraints", {})
-    constraints['budget'] = questionary.text("Restricción Presupuesto:", default=constraints.get('budget', 'TBD')).ask() or constraints.get('budget', 'TBD')
-    if constraints['budget'] is None: return
-    constraints['timeline'] = questionary.text("Restricción Cronograma:", default=constraints.get('timeline', 'TBD')).ask() or constraints.get('timeline', 'TBD')
-    if constraints['timeline'] is None: return
+    budget_val = questionary.text("Restricción Presupuesto:", default=constraints.get('budget', 'TBD')).ask()
+    if budget_val is None: return None
+    constraints['budget'] = budget_val
+    
+    timeline_val = questionary.text("Restricción Cronograma:", default=constraints.get('timeline', 'TBD')).ask()
+    if timeline_val is None: return None
+    constraints['timeline'] = timeline_val
     details_data["constraints"] = constraints
-
+    return True
 
 def edit_additional_metadata(metadata_data, meta_file_path: Path): # Añadido argumento
      """Abre el archivo TOML en el editor para metadatos adicionales."""
@@ -633,53 +710,51 @@ def get_token(args: argparse.Namespace, platform: str) -> Optional[str]:
     questionary.print("El token debe estar codificado en base64.", style="fg:yellow")
     return None
 
-def push_branches_to_remote() -> Tuple[bool, str]:
-    """Realiza push de las ramas existentes al repositorio remoto.
-    
-    Ramas que se intentan hacer push:
-    - main (siempre)
-    - develop (si existe)
-    - staging (si existe)
-    """
+def push_branches_to_remote(project_base_path: Path) -> Tuple[bool, str]:
+    """Realiza push de las ramas existentes al repositorio remoto."""
     try:
-        # Obtener lista de ramas locales
         result = subprocess.run(['git', 'branch', '--format=%(refname:short)'], 
-                              capture_output=True, text=True, check=True)
+                              capture_output=True, text=True, check=True, cwd=project_base_path)
         local_branches = result.stdout.strip().split('\n')
         
-        # Hacer push de main primero
-        questionary.print("Haciendo push de la rama main...", style="fg:cyan")
-        subprocess.run(['git', 'push', '-u', 'origin', 'main'], check=True)
-        
-        # Hacer push de develop si existe
+        if 'main' in local_branches:
+            questionary.print("Haciendo push de la rama main...", style="fg:cyan")
+            subprocess.run(['git', 'push', '-u', 'origin', 'main'], check=True, cwd=project_base_path)
+        else:
+            questionary.print("Advertencia: No se encontró la rama 'main' local para hacer push.", style="fg:yellow")
+
         if 'develop' in local_branches:
             questionary.print("Haciendo push de la rama develop...", style="fg:cyan")
-            subprocess.run(['git', 'push', '-u', 'origin', 'develop'], check=True)
+            subprocess.run(['git', 'push', '-u', 'origin', 'develop'], check=True, cwd=project_base_path)
         
-        # Hacer push de staging si existe
         if 'staging' in local_branches:
             questionary.print("Haciendo push de la rama staging...", style="fg:cyan")
-            subprocess.run(['git', 'push', '-u', 'origin', 'staging'], check=True)
+            subprocess.run(['git', 'push', '-u', 'origin', 'staging'], check=True, cwd=project_base_path)
         
-        return True, "Ramas subidas exitosamente al repositorio remoto"
+        return True, "✓ Ramas subidas exitosamente al repositorio remoto"
         
     except subprocess.CalledProcessError as e:
-        return False, f"Error al hacer push de las ramas: {e.stderr}"
+        # Decodificar stderr si es bytes
+        error_output = e.stderr.decode('utf-8', 'replace') if isinstance(e.stderr, bytes) else e.stderr
+        return False, f"Error al hacer push de las ramas: {error_output}"
     except Exception as e:
-        return False, f"Error inesperado al hacer push: {e}"
+        return False, f"Error inesperado al hacer push: {str(e)}"
 
-def create_github_repository(project_data: Dict[str, Any], token: str, use_https: bool = True) -> Tuple[bool, str]:
-    """Crea un repositorio en GitHub usando la API."""
+def create_github_repository(project_data: Dict[str, Any], token: str, use_https: bool = True, project_base_path: Path = Path(".")) -> Tuple[bool, str]:
+    """Crea un repositorio en GitHub usando la API y hace commit/push inicial del proyecto completo."""
     try:
         g = Github(token)
         repo_data = project_data["repository"]
-        repo_name = repo_data["name"]
+        repo_name = repo_data.get("name", "").strip()
+        
+        if not repo_name:
+            return False, "Error: El nombre del repositorio no puede estar vacío. Por favor, configura el nombre en project_meta.toml"
+        
         description = repo_data.get("description", "")
         private = repo_data.get("visibility", "private") == "private"
         owner_type = repo_data.get("owner_type", "user")
         owner_name = repo_data.get("owner_name", "")
         
-        # Determinar el propietario del repositorio
         if owner_type == "organization":
             if not owner_name:
                 return False, "Error: Se requiere el nombre de la organización cuando owner_type es 'organization'"
@@ -687,10 +762,10 @@ def create_github_repository(project_data: Dict[str, Any], token: str, use_https
                 owner = g.get_organization(owner_name)
             except GithubException as e:
                 return False, f"Error al obtener la organización '{owner_name}': {e}"
-        else:  # user
+        else:
             owner = g.get_user()
         
-        # Crear el repositorio
+        questionary.print(f"Creando repositorio '{repo_name}' en GitHub para {'la organización ' + owner_name if owner_type == 'organization' else 'el usuario ' + owner.login}...", style="fg:cyan")
         repo = owner.create_repo(
             name=repo_name,
             description=description,
@@ -700,24 +775,59 @@ def create_github_repository(project_data: Dict[str, Any], token: str, use_https
             has_projects=True,
             auto_init=False
         )
+        questionary.print(f"✓ Repositorio '{repo.full_name}' creado en GitHub.", style="fg:green")
         
-        # Configurar el remote local
-        if use_https:
-            remote_url = repo.clone_url.replace('https://', f'https://{token}@')
+        remote_url_to_add = repo.clone_url
+        if use_https and token:
+            remote_url_to_add = remote_url_to_add.replace("https://", f"https://{token}@")
+        elif not use_https:
+            remote_url_to_add = repo.ssh_url
+
+        questionary.print(f"Configurando remote 'origin' a: {remote_url_to_add.replace(token, '<TOKEN>') if token and use_https else remote_url_to_add}", style="fg:cyan")
+        subprocess.run(['git', 'remote', 'add', 'origin', remote_url_to_add], check=True, cwd=project_base_path)
+        questionary.print("✓ Remote 'origin' configurado.", style="fg:green")
+
+        # Añadir todo el contenido del proyecto y hacer commit inicial
+        questionary.print("Añadiendo todos los archivos del proyecto al staging (git add .)...", style="fg:cyan")
+        subprocess.run(['git', 'add', '.'], check=True, cwd=project_base_path)
+        
+        # Verificar si hay cambios en el staging para commitear
+        # `git diff --staged --quiet` devuelve 0 si no hay cambios, 1 si hay cambios.
+        result_staged = subprocess.run(['git', 'diff', '--staged', '--quiet'], check=False, cwd=project_base_path)
+        
+        if result_staged.returncode == 1: # Hay cambios en el staging
+            commit_message = "[CHORE] Commit inicial del proyecto"
+            questionary.print(f"Realizando commit inicial: {commit_message}", style="fg:cyan")
+            subprocess.run(['git', 'commit', '-m', commit_message], check=True, cwd=project_base_path)
+            questionary.print("✓ Commit inicial del proyecto realizado.", style="fg:green")
         else:
-            remote_url = repo.ssh_url
-        
-        subprocess.run(['git', 'remote', 'add', 'origin', remote_url], check=True)
-        
+            questionary.print("No se detectaron nuevos cambios en el proyecto para el commit inicial.", style="fg:yellow")
+
+        # Actualizar el campo URL en los datos del proyecto y guardarlo
+        project_meta_file_rel_path = Path(".project") / "project_meta.toml"
+        repo_data["url"] = repo.html_url
+        repo_data["created_flag"] = True
+        save_project_data(project_data, project_base_path / project_meta_file_rel_path, project_base_path)
+        questionary.print(f"URL del repositorio ({repo.html_url}) guardada en la configuración.", style="fg:green")
+
         # Hacer push de las ramas
-        push_success, push_msg = push_branches_to_remote()
+        push_success, push_msg = push_branches_to_remote(project_base_path)
         if not push_success:
             return False, push_msg
         
-        return True, f"Repositorio creado exitosamente en {remote_url}"
+        display_url = remote_url_to_add.replace(token, '<TOKEN>') if token and use_https else remote_url_to_add
+        return True, f"Repositorio creado y configurado exitosamente en {display_url}"
         
+    except GithubException as ge:
+        if ge.status == 422:
+            error_details = ge.data.get('message', '')
+            if 'name already exists' in error_details:
+                return False, f"Error: El repositorio '{repo_name}' ya existe en GitHub para el propietario especificado."
+        return False, f"Error de GitHub API: {str(ge)} (Status: {ge.status}, Data: {ge.data})"
+    except subprocess.CalledProcessError as cpe:
+        return False, f"Error ejecutando comando git: {cpe.cmd} falló con salida: {cpe.stderr or cpe.stdout}"
     except Exception as e:
-        return False, f"Error al crear el repositorio: {str(e)}"
+        return False, f"Error inesperado al crear el repositorio: {str(e)}"
 
 def create_gitlab_repository(project_data: Dict[str, Any], token: str, use_https: bool = False) -> Tuple[bool, str]:
     """Crea un repositorio en GitLab usando la API."""
@@ -731,6 +841,14 @@ def create_gitea_repository(project_data: Dict[str, Any], token: str, use_https:
 
 def create_remote_repo(project_base_path: Path, args: argparse.Namespace) -> None:
     """Crea un repositorio remoto en la plataforma especificada."""
+    project_meta_file = project_base_path / ".project" / "project_meta.toml" # Definir aquí
+
+    # Verificar explícitamente que project_meta.toml exista antes de cualquier otra cosa
+    if not project_meta_file.is_file():
+        questionary.print(f"✗ Error: El archivo de metadatos del proyecto ({project_meta_file.name}) no existe.", style="fg:red")
+        questionary.print("  Ejecuta primero 'promanager.py --project' primero para crear y guardar la configuración.", style="fg:yellow")
+        sys.exit(1)
+        
     # 1. Verificar repositorio git
     is_repo, msg = check_git_repo()
     if not is_repo:
@@ -754,7 +872,6 @@ def create_remote_repo(project_base_path: Path, args: argparse.Namespace) -> Non
         sys.exit(1)
     
     # 4. Verificar metadatos
-    project_meta_file = project_base_path / ".project" / "project_meta.toml"
     if not project_meta_file.is_file():
         questionary.print("Error: No se encontró el archivo de metadatos del proyecto.", style="fg:red")
         questionary.print("Ejecuta primero el comando sin argumentos para crear el proyecto.", style="fg:yellow")
@@ -844,13 +961,15 @@ def verify_repository_info(repo_data: Dict[str, Any], project_base_path: Path) -
 
 def configure_branch_protection(project_base_path: Path, args: argparse.Namespace) -> None:
     """Configura las reglas de protección de ramas según el tipo de proyecto."""
-    # 1. Verificar metadatos
-    project_meta_file = project_base_path / ".project" / "project_meta.toml"
+    project_meta_file = project_base_path / ".project" / "project_meta.toml" # Definir aquí
+
+    # Verificar explícitamente que project_meta.toml exista
     if not project_meta_file.is_file():
-        questionary.print("Error: No se encontró el archivo de metadatos del proyecto.", style="fg:red")
-        questionary.print("Ejecuta primero el comando sin argumentos para crear el proyecto.", style="fg:yellow")
+        questionary.print(f"✗ Error: El archivo de metadatos del proyecto ({project_meta_file.name}) no existe.", style="fg:red")
+        questionary.print(f"  Por favor, ejecute 'promanager.py --project' primero para crear y guardar la configuración.", style="fg:yellow")
         sys.exit(1)
-    
+        
+    # 1. Verificar metadatos
     project_data = load_project_data(project_meta_file)
     repo_data = project_data.get("repository", {})
     
@@ -914,7 +1033,7 @@ def configure_branch_protection(project_base_path: Path, args: argparse.Namespac
     })
     
     # Guardar cambios en el TOML
-    save_project_data(project_data, project_meta_file)
+    save_project_data(project_data, project_meta_file, project_base_path)
     questionary.print("✓ Configuración de protección guardada en project_meta.toml", style="fg:green")
     
     # 8. Aplicar la configuración en el repositorio
@@ -961,39 +1080,25 @@ def configure_branch_protection(project_base_path: Path, args: argparse.Namespac
         else:
             questionary.print(f"✗ {msg}", style="fg:red")
 
-def initialize_project_structure(project_base_path: Path) -> bool:
-    """Inicializa la estructura del proyecto verificando y creando los directorios y archivos necesarios.
+def initialize_project_structure(project_base_path: Path) -> Tuple[bool, str]:
+    """Verifica la existencia de archivos de configuración. No crea ni copia archivos."""
+    meta_file = project_base_path / ".project" / "project_meta.toml"
+    def_file = project_base_path / "config" / "project_meta.def"
+
+    if meta_file.is_file():
+        return True, f"✓ Archivo de metadatos {meta_file.name} encontrado."
     
-    Args:
-        project_base_path: Ruta base del proyecto
-        
-    Returns:
-        bool: True si la inicialización fue exitosa, False si hay error
-    """
-    try:
-        # Crear directorio .project si no existe
-        project_dir = project_base_path / ".project"
-        project_dir.mkdir(exist_ok=True)
-        
-        # Verificar si existe project_meta.toml
-        meta_file = project_dir / "project_meta.toml"
-        if not meta_file.exists():
-            # Intentar copiar desde config/project_meta.def
-            def_file = project_base_path / "config" / "project_meta.def"
-            if def_file.exists():
-                import shutil
-                shutil.copy2(def_file, meta_file)
-                questionary.print("✓ Configuración del proyecto restaurada desde config/project_meta.def", style="fg:green")
-            else:
-                questionary.print("Error: No se encontró la configuración del proyecto.", style="fg:red")
-                questionary.print("Por favor, ejecuta:", style="fg:yellow")
-                questionary.print("  promanager.py --newrepo", style="fg:yellow")
-                questionary.print("para crear una nueva configuración o restaura config/project_meta.def desde un backup.", style="fg:yellow")
-                return False
-        return True
-    except Exception as e:
-        questionary.print(f"Error al inicializar la estructura del proyecto: {e}", style="fg:red")
-        return False
+    # meta_file no existe
+    if def_file.is_file():
+        # No es un error per se, pero el .toml principal falta.
+        return True, f"ℹ️ Archivo {meta_file.name} no encontrado, pero {def_file.name} existe. Use --project para generar {meta_file.name}."
+    
+    # Ni meta_file ni def_file existen
+    error_message = (
+        f"✗ Error: No se encontró {meta_file.name} ni {def_file.name}.\n"
+        f"  Por favor, ejecute 'promanager.py --project' para crear una nueva configuración."
+    )
+    return False, error_message
 
 def main():
     """Función principal de la herramienta."""
@@ -1010,8 +1115,8 @@ def main():
   %(prog)s --newrepo --token <token_base64>
   %(prog)s --newrepo --https
   %(prog)s --configure-protection
-  %(prog)s --configure-protection --team --reviewers "user1,user2"
-  %(prog)s --configure-protection --branch-leaders "user1,user2"
+  %(prog)s --configure-protection --team --reviewers \"user1,user2\"
+  %(prog)s --configure-protection --branch-leaders \"user1,user2\"
 
 Nota: El token es requerido para --newrepo y --configure-protection.
 Puede proporcionarse con --token o mediante la variable de entorno <PLATFORM>_TOKEN.
@@ -1066,7 +1171,6 @@ Puede proporcionarse con --token o mediante la variable de entorno <PLATFORM>_TO
         help="Muestra la versión del programa y sale."
     )
     
-    # Parsear argumentos. Si no hay argumentos, mostrar help y salir
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(0)
@@ -1075,85 +1179,192 @@ Puede proporcionarse con --token o mediante la variable de entorno <PLATFORM>_TO
     # ------------------------------------------
 
     # --- Definir rutas basadas en el argumento ---
-    project_base_path = Path(args.path).resolve() # Resuelve a ruta absoluta
-    
-    # Inicializar estructura del proyecto
-    if not initialize_project_structure(project_base_path):
-        sys.exit(1)
-        
+    project_base_path = Path(args.path).resolve()
     project_meta_dir = project_base_path / ".project"
     project_meta_file = project_meta_dir / "project_meta.toml"
-
-    questionary.print(f"Operando en el directorio del proyecto: {project_base_path}")
-    # ------------------------------------------
-
+    config_def_file_path = project_base_path / "config" / "project_meta.def" # Definido para uso general
+    
     # --- Manejar comando --project ---
     if args.project:
-        # Crear directorio .project si no existe
-        project_meta_dir.mkdir(exist_ok=True)
+        # La lógica de initialize_project_structure no es necesaria aquí, 
+        # ya que --project maneja la creación/carga en memoria directamente.
+        questionary.print(f"Operando en el directorio del proyecto: {project_base_path}")
         
-        # Si el archivo no existe, crear uno nuevo
-        if not project_meta_file.is_file():
-            project_data = get_default_structure()
-            save_project_data(project_data, project_meta_file)
-            questionary.print("Archivo project_meta.toml creado exitosamente.", style="fg:green")
-        else:
-            # Si existe, cargar y editar
+        file_existed_at_start = project_meta_file.is_file()
+        project_data: Dict[str, Any]
+
+        if not file_existed_at_start:
+            if config_def_file_path.is_file():
+                questionary.print(f"ℹ️ Archivo {project_meta_file.name} no encontrado. Iniciando con datos de {config_def_file_path.name}.", style="fg:cyan")
+                project_data = load_project_data(config_def_file_path)
+            else: # Ni .toml ni .def existen
+                questionary.print(f"ℹ️ Archivo {project_meta_file.name} y {config_def_file_path.name} no encontrados. Iniciando configuración nueva.", style="fg:cyan")
+                project_data = get_default_structure()
+                
+                # --- MODO DE CAPTURA INICIAL ---
+                questionary.print("--- Configuración Inicial Obligatoria ---", style="bold fg:yellow")
+                
+                # 1. Información requerida del repositorio
+                repo_info_collected = prompt_for_required_repo_info(project_data['repository'])
+                if repo_info_collected is None:
+                    questionary.print("Configuración inicial cancelada. Saliendo.", style="fg:red")
+                    sys.exit(1)
+                project_data['repository'].update(repo_info_collected)
+
+                # 2. Opciones adicionales del repositorio (descripción, README, .gitignore, licencia)
+                # edit_repository_info ahora devuelve True/None y se le pasa is_initial_setup=True
+                if edit_repository_info(project_data['repository'], is_initial_setup=True) is None:
+                    questionary.print("Configuración inicial cancelada. Saliendo.", style="fg:red")
+                    sys.exit(1)
+                
+                # 3. Detalles del proyecto
+                if edit_project_details(project_data['project_details']) is None:
+                    questionary.print("Configuración inicial cancelada. Saliendo.", style="fg:red")
+                    sys.exit(1)
+                
+                questionary.print("✓ Configuración inicial completada. Ahora puede guardar o seguir editando.", style="fg:green")
+                # --- FIN MODO DE CAPTURA INICIAL ---
+            original_data_str = str(project_data) # Para detectar cambios desde este punto
+        else: # .toml sí existe
             project_data = load_project_data(project_meta_file)
             original_data_str = str(project_data)
-            modified = False
 
-            while True:
-                try:
-                    current_data_str = str(project_data)
-                    modified = (current_data_str != original_data_str)
-                    prompt_title = "Selecciona acción:" + (" (Hay cambios sin guardar)" if modified else "")
+        while True:
+            try:
+                current_data_str = str(project_data)
+                modified_since_load_or_default = (current_data_str != original_data_str)
+                
+                prompt_title = "Selecciona acción:"
+                if modified_since_load_or_default:
+                    prompt_title += " (Hay cambios sin guardar)"
 
-                    action = questionary.select(
-                        prompt_title,
-                        choices=[
-                            "Editar Info Repositorio",
-                            "Editar Detalles Proyecto",
-                            "Editar Metadatos Adicionales (Manual)",
-                            "Guardar Cambios",
-                            "Salir (Descartar Cambios)",
-                            "Guardar y Salir"
-                        ],
-                        qmark=">", pointer="->"
-                    ).ask()
-                except KeyboardInterrupt:
-                    action = None
+                choices = [
+                    "Editar Info Repositorio",
+                    "Editar Detalles Proyecto",
+                    "Editar Metadatos Adicionales (Manual)",
+                ]
+                
+                can_save = modified_since_load_or_default or not file_existed_at_start
+                
+                if can_save:
+                    choices.append("Guardar Cambios")
+                
+                choices.append("Salir (Descartar Cambios)")
 
-                if action == "Editar Info Repositorio":
-                    edit_repository_info(project_data["repository"])
-                elif action == "Editar Detalles Proyecto":
-                    edit_project_details(project_data["project_details"])
-                elif action == "Editar Metadatos Adicionales (Manual)":
-                    new_metadata = edit_additional_metadata(project_data.get("additional_metadata", {}), project_meta_file)
-                    project_data["additional_metadata"] = new_metadata
-                elif action == "Guardar Cambios":
-                    save_project_data(project_data, project_meta_file)
-                    original_data_str = str(project_data)
-                    modified = False
-                elif action == "Salir (Descartar Cambios)":
-                    if modified:
-                        confirm_exit = questionary.confirm("¿Descartar cambios sin guardar?").ask()
-                        if not confirm_exit:
-                            continue
-                    print("Saliendo sin guardar.")
-                    sys.exit(0)
-                elif action == "Guardar y Salir":
-                    save_project_data(project_data, project_meta_file)
-                    print("Saliendo.")
-                    sys.exit(0)
-                elif action is None:
-                    if modified:
-                        confirm_exit = questionary.confirm("Tienes cambios sin guardar. ¿Salir de todas formas?").ask()
-                        if not confirm_exit:
-                            continue
-                    print("Saliendo.")
-                    sys.exit(0)
+                if can_save:
+                    choices.append("Guardar y Salir")
+                
+                action = questionary.select(
+                    prompt_title,
+                    choices=choices,
+                    qmark=">", pointer="->"
+                ).ask()
+            except KeyboardInterrupt:
+                action = None
+
+            if action == "Editar Info Repositorio":
+                edit_repository_info(project_data["repository"])
+            elif action == "Editar Detalles Proyecto":
+                edit_project_details(project_data["project_details"])
+            elif action == "Editar Metadatos Adicionales (Manual)":
+                if not project_meta_file.is_file() and not file_existed_at_start :
+                    if questionary.confirm(f"El archivo {project_meta_file.name} aún no se ha creado. ¿Guardar la configuración actual para poder editarla manualmente?").ask():
+                        save_project_data(project_data, project_meta_file, project_base_path)
+                        original_data_str = str(project_data) 
+                        file_existed_at_start = True
+                    else:
+                        continue 
+                elif not project_meta_file.is_file() and file_existed_at_start:
+                     questionary.print(f"Advertencia: {project_meta_file.name} parece haber sido borrado externamente. Guarde primero.", style="fg:yellow")
+                     continue
+                new_metadata = edit_additional_metadata(project_data.get("additional_metadata", {}), project_meta_file)
+                project_data["additional_metadata"] = new_metadata
+            elif action == "Guardar Cambios":
+                save_project_data(project_data, project_meta_file, project_base_path)
+                original_data_str = str(project_data) 
+                file_existed_at_start = True 
+            elif action == "Salir (Descartar Cambios)":
+                if modified_since_load_or_default: 
+                    confirm_exit = questionary.confirm("¿Descartar cambios no guardados?").ask()
+                    if not confirm_exit:
+                        continue
+                print("Saliendo sin guardar.")
+                sys.exit(0)
+            elif action == "Guardar y Salir":
+                save_project_data(project_data, project_meta_file, project_base_path)
+                print("Saliendo.")
+                sys.exit(0)
+            elif action is None: 
+                if modified_since_load_or_default:
+                    confirm_exit = questionary.confirm("Tienes cambios no guardados. ¿Salir de todas formas?").ask()
+                    if not confirm_exit:
+                        continue
+                print("Saliendo.")
+                sys.exit(0)
         return
+
+    # --- Lógica común para comandos que requieren configuración (--newrepo, --configure-protection) ---
+    
+    # Verificar estado de la configuración ANTES de continuar con otros comandos
+    config_exists = project_meta_file.is_file()
+    def_exists = config_def_file_path.is_file()
+
+    if not config_exists and not def_exists and (args.newrepo or args.configure_protection):
+        questionary.print("✗ No se encontró configuración de proyecto (.toml ni .def).", style="fg:red")
+        questionary.print("  Se solicitará la información mínima para crear el repositorio.", style="fg:yellow")
+        
+        required_repo_info = prompt_for_required_repo_info({})
+        if required_repo_info is None:
+            questionary.print("Creación de configuración cancelada. Saliendo.", style="fg:red")
+            sys.exit(1)
+        
+        # Construir project_data mínimo
+        project_data_min = get_default_structure()
+        # Actualizar solo la sección del repositorio con la info capturada
+        # No sobreescribir init_options por defecto con un diccionario vacío si no se capturaron
+        for key, value in required_repo_info.items():
+            if key in project_data_min["repository"]:
+                 project_data_min["repository"][key] = value
+            # Considerar si 'platform_url' etc. deben crearse si no están en defaults, 
+            # pero prompt_for_required_repo_info los incluye en su retorno. 
+            # El .update() directo es más simple si las claves coinciden.
+            # Sin embargo, para ser explícito y mantener estructura:
+            # project_data_min["repository"]["name"] = required_repo_info.get("name", "") etc.
+        
+        # Simplificación: prompt_for_required_repo_info devuelve claves que son un subconjunto
+        # o coinciden con las de la sección [repository] de get_default_structure.
+        # Las init_options y otros campos no retornados por prompt_for_required_repo_info
+        # mantendrán sus valores por defecto de get_default_structure.
+        project_data_min["repository"].update(required_repo_info)
+
+        questionary.print("Guardando configuración mínima inicial...", style="fg:cyan")
+        save_project_data(project_data_min, project_meta_file, project_base_path)
+        questionary.print(f"✓ Configuración mínima guardada en {project_meta_file} y {config_def_file_path}.", style="fg:green")
+        # Ahora los archivos existen, permitir que el flujo continúe.
+    elif not project_meta_file.is_file() and def_exists and (args.newrepo or args.configure_protection):
+        # Si .toml no existe PERO .def SÍ existe, para --newrepo y --configure-protection,
+        # debemos crear el .toml a partir del .def antes de proceder.
+        questionary.print(f"ℹ️ Archivo {project_meta_file.name} no encontrado. Creándolo desde {config_def_file_path.name}...", style="fg:cyan")
+        try:
+            initial_data_from_def = load_project_data(config_def_file_path)
+            # Validar que el .def tenga un nombre de repositorio válido antes de guardarlo como .toml
+            if not initial_data_from_def.get("repository", {}).get("name", "").strip():
+                questionary.print(f"✗ Error: {config_def_file_path.name} no tiene un nombre de repositorio válido.", style="fg:red")
+                questionary.print(f"  Edite {config_def_file_path.name} o use 'promanager.py --project' para configurarlo.", style="fg:yellow")
+                sys.exit(1)
+            save_project_data(initial_data_from_def, project_meta_file, project_base_path)
+            questionary.print(f"✓ {project_meta_file.name} creado desde {config_def_file_path.name}.", style="fg:green")
+        except Exception as e_copy:
+            questionary.print(f"✗ Error al crear {project_meta_file.name} desde {config_def_file_path.name}: {e_copy}", style="fg:red")
+            sys.exit(1)
+    elif not project_meta_file.is_file() and (args.newrepo or args.configure_protection):
+        # Este caso (ni .toml ni .def) ya debería estar cubierto arriba, pero por seguridad.
+        questionary.print(f"✗ Error: No se encontró el archivo de metadatos del proyecto ({project_meta_file.name}).", style="fg:red")
+        questionary.print(f"  Por favor, ejecute 'promanager.py --project' primero para crear y guardar la configuración.", style="fg:yellow")
+        sys.exit(1)
+
+    questionary.print(f"Operando en el directorio del proyecto: {project_base_path}")
+    # El mensaje de "Operando en..." ahora se muestra DESPUÉS de la posible creación de config.
 
     # --- Manejar comando --newrepo ---
     if args.newrepo:
@@ -1166,9 +1377,11 @@ Puede proporcionarse con --token o mediante la variable de entorno <PLATFORM>_TO
         return
 
 if __name__ == "__main__":
-    # Pequeño ajuste para mejor manejo de interrupciones globales
     try:
         main()
     except KeyboardInterrupt:
-        print("Operación interrumpida por el usuario. Saliendo.")
-        sys.exit(1) 
+        print("\nOperación interrumpida por el usuario. Saliendo.")
+        try:
+            sys.exit(130) # Código de salida estándar para Ctrl+C
+        except SystemExit:
+            os._exit(130) 
