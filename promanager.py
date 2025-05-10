@@ -31,6 +31,56 @@ import base64
 import subprocess
 from typing import Optional, Dict, Any, Tuple, List
 import fnmatch
+import shutil # <--- AÑADIDO IMPORT
+
+# --- Importaciones y Configuración de Colorama ---
+try:
+    from colorama import Fore, Style, init as colorama_init
+    COLORAMA_AVAILABLE = True
+except ImportError:
+    COLORAMA_AVAILABLE = False
+    # Crear Clases Dummy si Colorama no está disponible
+    class DummyColorama:
+        def __getattr__(self, name):
+            # Para Fore.GREEN, Style.RESET_ALL, etc., retorna una cadena vacía
+            # de modo que la concatenación de cadenas no falle.
+            return ""
+    Fore = DummyColorama()
+    Style = DummyColorama()
+    # Back no se usa actualmente, pero podría añadirse aquí si fuera necesario.
+
+if COLORAMA_AVAILABLE:
+    colorama_init(autoreset=True) # Inicializar con autoreset
+
+# --- Comprobación e Importaciones de PyGithub ---
+PYGITHUB_INSTALLED_CORRECTLY = False
+GITHUB_IMPORT_ERROR_MESSAGE = ""
+NotSet = object() # Inicializar con un valor dummy default
+
+try:
+    # Importar MainClass primero para acceder a NotSet
+    from github import MainClass
+    NotSet = MainClass.NotSet # Definir NotSet globalmente
+
+    # Luego importar el resto de los componentes necesarios de PyGithub
+    from github import Github, GithubException, UnknownObjectException, BadCredentialsException
+    # No necesitamos importar MainClass de nuevo aquí si solo se usó para NotSet globalmente.
+    # Si GitHubConfigurator u otros necesitan MainClass explícitamente, se puede añadir aquí.
+    
+    PYGITHUB_INSTALLED_CORRECTLY = True
+
+except ImportError as e_pygithub:
+    # Captura si 'github' o alguno de sus componentes principales no se pueden importar
+    GITHUB_IMPORT_ERROR_MESSAGE = f"Error importando PyGithub o sus componentes esenciales (ej. MainClass, Github): {e_pygithub}"
+    PYGITHUB_INSTALLED_CORRECTLY = False
+    # NotSet permanece como el objeto dummy
+    pass
+except AttributeError as e_attr:
+    # Captura si MainClass existe pero MainClass.NotSet no (muy improbable si ImportError no saltó)
+    GITHUB_IMPORT_ERROR_MESSAGE = f"PyGithub importado pero falta MainClass.NotSet: {e_attr}. Revisar la instalación de PyGithub."
+    PYGITHUB_INSTALLED_CORRECTLY = False
+    # NotSet permanece como el objeto dummy
+    pass
 
 # --- Constantes para Protección de Ramas ---
 BRANCH_TYPES = {
@@ -81,18 +131,21 @@ BRANCH_TYPES = {
 MAIN_BRANCHES = {
     "main": {
         "protection_level": "strict",
-        "allow_direct_push": False,
-        "allowed_pr_from": ["hotfix/*", "staging"]
+        "allow_direct_push": False, # Para no-admins
+        "allowed_pr_from": ["hotfix/*", "staging", "develop"], 
+        "enforce_admins": False # Admins exentos por defecto para main
     },
     "develop": {
         "protection_level": "strict",
-        "allow_direct_push": False,
-        "allowed_pr_from": ["feature/*", "fix/*", "docs/*", "refactor/*", "test/*", "chore/*"]
+        "allow_direct_push": False, # Para no-admins (y admins porque enforce_admins será True)
+        "allowed_pr_from": ["feature/*", "fix/*", "docs/*", "refactor/*", "test/*", "chore/*"],
+        "enforce_admins": True # Admins DEBEN seguir PRs para develop
     },
     "staging": {
         "protection_level": "strict",
-        "allow_direct_push": False,
-        "allowed_pr_from": ["develop"]
+        "allow_direct_push": False, # Para no-admins (y admins porque enforce_admins será True)
+        "allowed_pr_from": ["develop"],
+        "enforce_admins": True # Admins DEBEN seguir PRs para staging también
     }
 }
 
@@ -130,12 +183,20 @@ class GitHubConfigurator(GitServerConfigurator):
     
     def __init__(self, project_data: Dict[str, Any], token: str):
         super().__init__(project_data, token)
+        
+        if not PYGITHUB_INSTALLED_CORRECTLY:
+            # Lanzar un error o manejarlo de forma que la clase no se pueda usar si PyGithub no está.
+            # Esto es un re-check por si la importación global falló silenciosamente (aunque el try-except arriba debería salir).
+            raise ImportError("PyGithub no está instalado o no se pudo importar correctamente. Por favor, verifica la instalación.")
+
         try:
             # Decodificar el token si viene en base64
             try:
                 decoded_token = base64.b64decode(token).decode('utf-8')
             except Exception:
                 decoded_token = token  # Si no es base64, usar el token tal cual
+            
+            # Las clases de PyGithub ahora se usan directamente desde las importaciones de nivel de módulo
             
             self.github = Github(decoded_token)
             
@@ -150,7 +211,7 @@ class GitHubConfigurator(GitServerConfigurator):
             
             try:
                 self.repo = self.github.get_repo(f"{owner}/{repo_name}")
-            except GithubException as e:
+            except GithubException as e: # Usar la clase importada directamente
                 if e.status == 404:
                     raise ValueError(f"El repositorio {owner}/{repo_name} no existe en GitHub")
                 raise
@@ -158,44 +219,222 @@ class GitHubConfigurator(GitServerConfigurator):
         except Exception as e:
             raise ValueError(f"Error inicializando GitHub: {str(e)}")
     
-    def configure_branch_protection(self, branch: str, rules: Dict[str, Any]) -> Tuple[bool, str]:
+    def configure_branch_protection(self, branch_name: str, rules: Dict[str, Any]) -> Tuple[bool, str]:
+        if not PYGITHUB_INSTALLED_CORRECTLY:
+            return False, "Error crítico: PyGithub no está disponible para configurar la protección."
         try:
-            # Verificar si la rama existe
+            branch_obj = None
             try:
-                self.repo.get_branch(branch)
-            except GithubException as e:
-                if e.status == 404:
-                    return False, f"La rama {branch} no existe en el repositorio"
-                raise
+                branch_obj = self.repo.get_branch(branch_name)
+            except UnknownObjectException:
+                if branch_name == "staging" and self.project_data.get("project_details", {}).get("project_type") != "solo":
+                    print(f"{Fore.YELLOW}Advertencia: La rama de protección '{branch_name}' no existe en el repositorio remoto. Debería crearla primero para aplicar protecciones.{Style.RESET_ALL}")
+                elif branch_name != "staging": # No advertir si staging no existe y es solo_dev
+                    print(f"{Fore.YELLOW}Advertencia: La rama de protección '{branch_name}' no existe en el repositorio remoto. Se omitirá.{Style.RESET_ALL}")
+                return False, f"Error: La rama '{branch_name}' no existe en el repositorio remoto. Se omitirá su protección."
+
+            print(f"{Fore.CYAN}Configurando protecciones para la rama: {branch_name}{Style.RESET_ALL}")
+
+            # --- Configuración General de Protección (edit_protection) ---
+            enforce_admins_value = rules.get("enforce_admins", False) # False por defecto
             
-            # Configurar protección según las reglas
-            protection = {
-                "enforce_admins": True,
-                "required_pull_request_reviews": {
-                    "required_approving_review_count": 1,
-                    "dismiss_stale_reviews": True,
-                    "require_code_owner_reviews": False
-                } if not rules.get("allow_direct_push") else None,
-                "restrictions": None if rules.get("allow_direct_push") else {
-                    "users": [],
-                    "teams": []
-                }
+            # Parámetros para edit_protection
+            protection_args = {
+                "enforce_admins": enforce_admins_value if isinstance(enforce_admins_value, bool) else NotSet,
+                "required_linear_history": rules.get("required_linear_history", NotSet),
+                "allow_force_pushes": rules.get("allow_force_pushes", NotSet),
+                "allow_deletions": rules.get("allow_deletions", NotSet),
+                "required_conversation_resolution": rules.get("required_conversation_resolution", NotSet),
+                "lock_branch": rules.get("lock_branch", NotSet),
+                "allow_fork_syncing": rules.get("allow_fork_syncing", NotSet),
             }
+            # Restricciones de push para apps (si existen)
+            app_restrictions = rules.get("restrictions", {}).get("apps", NotSet)
+            if app_restrictions is not NotSet and app_restrictions: # Solo añadir si no es NotSet y no está vacío
+                protection_args["app_push_restrictions"] = app_restrictions
             
-            # Aplicar la protección
-            self.repo.get_branch(branch).edit_protection(**protection)
-            return True, f"Protección configurada para rama {branch}"
+            # Filtrar NotSet para no enviarlos si son el valor por defecto de PyGithub
+            # (Aunque PyGithub debería manejarlos, es más limpio no enviarlos si no son necesarios)
+            final_protection_args = {k: v for k, v in protection_args.items() if v is not NotSet}
+
+            if final_protection_args: # Solo llamar si hay algo que configurar
+                print(f"  Aplicando protecciones generales: {final_protection_args}")
+                branch_obj.edit_protection(**final_protection_args)
+
+
+            # --- Revisiones de Pull Request Requeridas ---
+            pr_reviews_config = rules.get("required_pull_request_reviews", {})
+            if pr_reviews_config: # Solo si hay configuración de PR reviews
+                pr_args = {
+                    "dismiss_stale_reviews": pr_reviews_config.get("dismiss_stale_reviews", NotSet),
+                    "require_code_owner_reviews": pr_reviews_config.get("require_code_owner_reviews", NotSet),
+                    "required_approving_review_count": pr_reviews_config.get("required_approving_review_count", NotSet),
+                    "require_last_push_approval": pr_reviews_config.get("require_last_push_approval", NotSet),
+                }
+                dismissal_restrictions_config = pr_reviews_config.get("dismissal_restrictions", {})
+                pr_args["dismissal_users"] = dismissal_restrictions_config.get("users", NotSet)
+                pr_args["dismissal_teams"] = dismissal_restrictions_config.get("teams", NotSet)
+                pr_args["dismissal_apps"] = dismissal_restrictions_config.get("apps", NotSet)
+                
+                final_pr_args = {k: v for k, v in pr_args.items() if v is not NotSet}
+                if final_pr_args:
+                    print(f"  Aplicando configuración de revisión de PRs: {final_pr_args}")
+                    branch_obj.edit_required_pull_request_reviews(**final_pr_args)
+                elif not branch_obj.get_protection().required_pull_request_reviews and not final_pr_args and pr_reviews_config:
+                    # Si no hay config de PRs y la configuración está vacía pero existía, intentar removerla
+                    try:
+                        branch_obj.remove_required_pull_request_reviews()
+                        print("  Removiendo configuración de revisión de PRs existente.")
+                    except GithubException as e:
+                        print(f"{Fore.YELLOW}  No se pudo remover la configuración de revisión de PRs: {e}{Style.RESET_ALL}")
+
+
+            # --- Verificaciones de Estado Requeridas ---
+            status_checks_config = rules.get("required_status_checks", {})
+            should_process_status_checks = bool(status_checks_config)
+            if not should_process_status_checks:
+                try:
+                    current_status_protection_obj = branch_obj.get_required_status_checks()
+                    if current_status_protection_obj and (current_status_protection_obj.strict or current_status_protection_obj.contexts or (hasattr(current_status_protection_obj, 'checks') and current_status_protection_obj.checks)):
+                        should_process_status_checks = True # Hay algo que remover
+                except GithubException as e:
+                    if e.status != 404: should_process_status_checks = True
+
+            if should_process_status_checks:
+                status_args = {
+                    "strict": status_checks_config.get("strict", NotSet),
+                }
+                
+                contexts_from_config = status_checks_config.get("contexts", []) # Lista de strings
+                checks_in_config = status_checks_config.get("checks", [])     # Puede ser lista de strings o lista de dicts {"context": str, "app_id": int | None}
+
+                # Listas para PyGithub
+                pygithub_contexts_list = [] # Debe ser list[str]
+                pygithub_checks_list = []   # Debe ser list[tuple[str, int]]
+
+                # Procesar 'contexts_from_config' primero
+                for item in contexts_from_config:
+                    if isinstance(item, str) and item not in pygithub_contexts_list:
+                        pygithub_contexts_list.append(item)
+
+                # Procesar 'checks_in_config'
+                for item in checks_in_config:
+                    if isinstance(item, str):
+                        # Si es un string, tratar como context si no está ya
+                        if item not in pygithub_contexts_list:
+                            pygithub_contexts_list.append(item)
+                    elif isinstance(item, dict) and "context" in item:
+                        context_name = item["context"]
+                        app_id = item.get("app_id")
+                        if app_id is not None:
+                            # Si tiene app_id, va a pygithub_checks_list como tupla
+                            if (context_name, app_id) not in pygithub_checks_list:
+                                pygithub_checks_list.append((context_name, app_id))
+                        else:
+                            # Si no tiene app_id, tratar como context si no está ya
+                            if context_name not in pygithub_contexts_list:
+                                pygithub_contexts_list.append(context_name)
+                
+                if pygithub_contexts_list: # Solo añadir si no está vacía
+                    status_args["contexts"] = pygithub_contexts_list
+                
+                if pygithub_checks_list: # Solo añadir si no está vacía
+                    status_args["checks"] = pygithub_checks_list
+                
+                final_status_args = {k: v for k, v in status_args.items() if v is not NotSet}
+
+                if final_status_args and (final_status_args.get("contexts") or final_status_args.get("checks")):
+                    print(f"  Aplicando configuración de status checks: {final_status_args}")
+                    branch_obj.edit_required_status_checks(**final_status_args)
+                elif status_checks_config: # Si la config original no estaba vacía, pero no hay args finales válidos
+                    try:
+                        branch_obj.remove_required_status_checks()
+                        print("  Removiendo configuración de status checks existente (configuración vacía/default provista).")
+                    except GithubException as e:
+                        if e.status != 404:
+                            print(f"{Fore.YELLOW}  Advertencia: No se pudo remover la configuración de status checks: {e}. Puede que no existiera.{Style.RESET_ALL}")
+
+
+            # --- Restricciones de Push (Usuarios y Equipos) ---
+            restrictions_config = rules.get("restrictions", {})
+            user_push_restrictions_from_config = restrictions_config.get("users", []) 
+            team_push_restrictions_from_config = restrictions_config.get("teams", [])
+
+            current_user_restrictions = []
+            try:
+                current_user_restrictions = [user.login for user in branch_obj.get_user_push_restrictions()]
+            except GithubException as e:
+                if e.status == 404: # Push restrictions not enabled
+                    # Es normal si nunca se han configurado antes
+                    print(f"  {Fore.BLUE}Info: No hay restricciones de push de usuario preexistentes para '{branch_name}'.{Style.RESET_ALL}")
+                else:
+                    # Si es otro error, relanzar para que se maneje más arriba o se muestre
+                    print(f"  {Fore.YELLOW}Advertencia: Error inesperado al obtener restricciones de usuario: {e}{Style.RESET_ALL}")
+                    # Continuar podría ser arriesgado, pero por ahora seguiremos el flujo anterior
+                    # Considerar relanzar (raise) en futuras mejoras si este caso se vuelve problemático
+                    pass 
+
+            current_team_restrictions = []
+            try:
+                current_team_restrictions = [team.slug for team in branch_obj.get_team_push_restrictions()]
+            except GithubException as e:
+                if e.status == 404: # Push restrictions not enabled
+                    print(f"  {Fore.BLUE}Info: No hay restricciones de push de equipo preexistentes para '{branch_name}'.{Style.RESET_ALL}")
+                else:
+                    print(f"  {Fore.YELLOW}Advertencia: Error inesperado al obtener restricciones de equipo: {e}{Style.RESET_ALL}")
+                    pass
+
+            # Lógica para reemplazar/remover basada en las listas _from_config y current_
+            if user_push_restrictions_from_config:
+                print(f"  Estableciendo restricciones de push para usuarios: {user_push_restrictions_from_config}")
+                branch_obj.replace_user_push_restrictions(*user_push_restrictions_from_config)
+            elif not user_push_restrictions_from_config and current_user_restrictions: 
+                print(f"  Removiendo todas las restricciones de push para usuarios (configuración vacía y existían previas).")
+                branch_obj.replace_user_push_restrictions() 
+            # Si user_push_restrictions_from_config está vacío Y current_user_restrictions está vacío, no hacer nada.
+
+            if team_push_restrictions_from_config:
+                print(f"  Estableciendo restricciones de push para equipos: {team_push_restrictions_from_config}")
+                branch_obj.replace_team_push_restrictions(*team_push_restrictions_from_config)
+            elif not team_push_restrictions_from_config and current_team_restrictions: 
+                print(f"  Removiendo todas las restricciones de push para equipos (configuración vacía y existían previas).")
+                branch_obj.replace_team_push_restrictions() 
+            # Si team_push_restrictions_from_config está vacío Y current_team_restrictions está vacío, no hacer nada.
+            
+            # --- Requerir Firmas de Commits ---
+            require_signatures = rules.get("require_signed_commits", NotSet)
+            if require_signatures is True:
+                print("  Habilitando requerimiento de firmas de commits.")
+                branch_obj.add_required_signatures()
+            elif require_signatures is False: # Explícitamente False para remover
+                print("  Deshabilitando requerimiento de firmas de commits.")
+                branch_obj.remove_required_signatures()
+            # Si es NotSet, no hacer nada (dejar como esté)
+
+            return True, f"Protección configurada para rama '{branch_name}'"
+            
+        except GithubException as ge: # Usar la clase importada directamente
+            if ge.status == 422 and isinstance(ge.data, dict) and "errors" in ge.data:
+                error_messages = []
+                for err in ge.data["errors"]:
+                    message = f"Recurso: {err.get('resource')}, Campo: {err.get('field')}, Código: {err.get('code')}, Mensaje: {err.get('message')}"
+                    error_messages.append(message)
+                detailed_error = "; ".join(error_messages)
+                return False, f"Error configurando protección para '{branch_name}' (422 Unprocessable Entity): {detailed_error}. Revise la configuración y permisos."
+            return False, f"Error de GitHub API configurando protección para '{branch_name}': {str(ge)} (Status: {ge.status}, Data: {ge.data})"
         except Exception as e:
-            return False, f"Error configurando protección para {branch}: {str(e)}"
+            return False, f"Error inesperado configurando protección para '{branch_name}': {str(e)}"
     
     def configure_review_leadership(self, reviewers: List[str], branch_leaders: List[str]) -> Tuple[bool, str]:
+        if not PYGITHUB_INSTALLED_CORRECTLY:
+            return False, "Error crítico: PyGithub no está disponible para configurar liderazgo."
         try:
             # Configurar revisores
             if reviewers:
                 for reviewer in reviewers:
                     try:
                         self.repo.add_to_collaborators(reviewer, "push")
-                    except GithubException as e:
+                    except GithubException as e: # Usar la clase importada directamente
                         if e.status == 404:
                             return False, f"Usuario o equipo {reviewer} no encontrado en GitHub"
                         raise
@@ -205,7 +444,7 @@ class GitHubConfigurator(GitServerConfigurator):
                 for leader in branch_leaders:
                     try:
                         self.repo.add_to_collaborators(leader, "admin")
-                    except GithubException as e:
+                    except GithubException as e: # Usar la clase importada directamente
                         if e.status == 404:
                             return False, f"Usuario o equipo {leader} no encontrado en GitHub"
                         raise
@@ -215,37 +454,74 @@ class GitHubConfigurator(GitServerConfigurator):
             return False, f"Error configurando liderazgo: {str(e)}"
 
 def check_and_install_pygithub() -> bool:
-    """Verifica si PyGithub está instalado y lo instala si es necesario."""
-    try:
-        import github
+    """Verifica si PyGithub está disponible; si no, intenta instalarlo/reinstalarlo."""
+    global PYGITHUB_INSTALLED_CORRECTLY, GITHUB_IMPORT_ERROR_MESSAGE
+
+    if PYGITHUB_INSTALLED_CORRECTLY: # Si ya se importó bien al inicio.
         return True
-    except ImportError:
-        # Verificar si estamos en un entorno virtual
-        in_venv = sys.prefix != sys.base_prefix
+
+    # Si llegamos aquí, la importación inicial falló.
+    questionary.print(f"Advertencia: No se pudo cargar PyGithub inicialmente (Error: {GITHUB_IMPORT_ERROR_MESSAGE}).", style="fg:yellow")
+    
+    in_venv = sys.prefix != sys.base_prefix
+    if not in_venv:
+        questionary.print("Error: No se detectó un entorno virtual Python activo.", style="fg:red")
+        questionary.print("Para usar esta funcionalidad, necesitas crear y activar un entorno virtual y luego instalar PyGithub:", style="fg:yellow")
+        questionary.print("  1. python -m venv .venv (o similar)", style="fg:yellow")
+        questionary.print("  2. source .venv/bin/activate (Linux/macOS) o .venv\\Scripts\\activate (Windows)", style="fg:yellow")
+        questionary.print("  3. pip install PyGithub", style="fg:yellow")
+        return False
+    
+    confirm_install = questionary.confirm(
+        "La biblioteca PyGithub es necesaria pero no está instalada o no se pudo cargar. ¿Intentar instalarla/reinstalarla ahora?"
+    ).ask()
+
+    if not confirm_install:
+        questionary.print("Instalación/reinstalación de PyGithub omitida.", style="fg:yellow")
+        # Mantener PYGITHUB_INSTALLED_CORRECTLY como False
+        return False
+
+    questionary.print("Instalando/Reinstalando PyGithub...", style="fg:cyan")
+    try:
+        # Usar --upgrade para asegurar que se reinstale o actualice si ya existe pero está corrupta.
+        subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "PyGithub"], 
+                     check=True, capture_output=True, text=True)
         
-        if not in_venv:
-            questionary.print("Error: No se detectó un entorno virtual Python activo.", style="fg:red")
-            questionary.print("Para usar esta funcionalidad, necesitas crear y activar un entorno virtual:", style="fg:yellow")
-            questionary.print("  1. Crear entorno: pymanager --create", style="fg:yellow")
-            questionary.print("  2. Activar entorno: source .venv/bin/activate", style="fg:yellow")
-            return False
+        # Reintentar la importación DESPUÉS de la instalación/actualización
+        from github import MainClass # Importar MainClass directamente
         
-        # Si estamos en un entorno virtual, intentar instalar PyGithub
-        questionary.print("Instalando PyGithub...", style="fg:cyan")
-        try:
-            subprocess.run([sys.executable, "-m", "pip", "install", "PyGithub"], 
-                         check=True, capture_output=True, text=True)
-            return True
-        except subprocess.CalledProcessError as e:
-            questionary.print(f"Error al instalar PyGithub: {e.stderr}", style="fg:red")
-            return False
+        global NotSet # Indicar que estamos modificando la variable global NotSet
+        NotSet = MainClass.NotSet # Reasignar desde el módulo recién importado/actualizado
+
+        from github import Github, GithubException, UnknownObjectException, BadCredentialsException
+        # No es necesario importar MainClass de nuevo aquí si GitHubConfigurator no la necesita directamente
+        
+        PYGITHUB_INSTALLED_CORRECTLY = True
+        GITHUB_IMPORT_ERROR_MESSAGE = "" # Limpiar error previo porque la importación tuvo éxito
+        questionary.print("PyGithub instalado/actualizado y cargado correctamente.", style="fg:green")
+        return True
+    except subprocess.CalledProcessError as e_install:
+        questionary.print(f"Error al instalar/actualizar PyGithub: {e_install.stderr}", style="fg:red")
+        PYGITHUB_INSTALLED_CORRECTLY = False 
+        return False
+    except ImportError as e_reimport:
+        questionary.print(f"Error: PyGithub se instaló/actualizó pero no se pudo cargar ({e_reimport}). Intenta ejecutar el script de nuevo.", style="fg:red")
+        PYGITHUB_INSTALLED_CORRECTLY = False 
+        GITHUB_IMPORT_ERROR_MESSAGE = str(e_reimport) 
+        return False
+    except AttributeError as e_attr_re: # Capturar si MainClass.NotSet no existe tras la reinstalación
+        questionary.print(f"Error: PyGithub se instaló/actualizó pero MainClass.NotSet sigue sin estar disponible. Revisa la versión de PyGithub: {e_attr_re}", style="fg:red")
+        PYGITHUB_INSTALLED_CORRECTLY = False
+        return False
 
 # Dependencias para GitHub
-if not check_and_install_pygithub():
-    sys.exit(1)
+# La lógica de check_and_install_pygithub() se ejecutará bajo demanda o al inicio
+# if not check_and_install_pygithub():
+#     # Decidir si salir o continuar con funcionalidad limitada.
+#     # Por ahora, el script podría fallar más tarde si PYGITHUB_INSTALLED_CORRECTLY es False
+#     # y se intenta usar una función que lo requiera (como GitHubConfigurator).
+#     pass 
 
-from github import Github
-from github.GithubException import GithubException
 
 # --- Constantes para el Banner ---
 APP_NAME = "Gestor de Poryectos de Desarrollo"  # Anteriormente APP_NAME_BANNER
@@ -566,35 +842,64 @@ def edit_project_details(details_data):
     return True
 
 def edit_additional_metadata(metadata_data, meta_file_path: Path): # Añadido argumento
-     """Abre el archivo TOML en el editor para metadatos adicionales."""
-     editor = os.environ.get('EDITOR', 'vim')
-     project_dir = meta_file_path.parent # Obtener directorio padre
-     questionary.print(f"Abriendo {meta_file_path} en {editor} para editar la sección [additional_metadata].", style="fg:cyan")
-     questionary.print("Guarda el archivo en el editor y luego pulsa Enter aquí para recargar.")
-     try:
-         project_dir.mkdir(parents=True, exist_ok=True)
-         # --- Ejecutar editor ---
-         status_code = os.system(f"{editor} '{meta_file_path}'") # Añadir comillas por si la ruta tiene espacios
-         if status_code != 0:
-              questionary.print(f"Comando del editor finalizó con estado {status_code}.", style="fg:cyan")
+    """Abre el archivo TOML en el editor para metadatos adicionales."""
+    
+    editor_to_use = os.environ.get('EDITOR')
+    editor_found = False
 
-         # --- Recargar ---
-         # Usamos la función de carga global pasándole la ruta
-         # Usar try-except básico aquí por si el archivo está mal editado
-         try:
-             # Pausa breve antes de intentar leer, puede ayudar en algunos sistemas
-             import time
-             time.sleep(0.2)
-             reloaded_data = load_project_data(meta_file_path)
-             return reloaded_data.get("additional_metadata", {})
-         except Exception as load_err:
-             questionary.print(f"Error recargando tras edición: {load_err}", style="fg:red")
-             questionary.print("Ediciones manuales podrían ser inválidas. Manteniendo metadatos previos.")
-             return metadata_data # Devolver la versión anterior
+    if editor_to_use:
+        # Si EDITOR está configurado, verificar si existe en el PATH
+        if shutil.which(editor_to_use):
+            editor_found = True
+        else:
+            questionary.print(f"{Fore.YELLOW}Advertencia: El editor configurado en $EDITOR ('{editor_to_use}') no se encontró en el PATH.{Style.RESET_ALL}")
+            editor_to_use = None # Forzar búsqueda de predeterminados
+    
+    if not editor_to_use: # Si $EDITOR no estaba configurado o el especificado no se encontró
+        default_editors = ['nano', 'vim', 'vi'] # Lista de editores a probar
+        for editor_candidate in default_editors:
+            if shutil.which(editor_candidate):
+                editor_to_use = editor_candidate
+                editor_found = True
+                print(f"{Fore.BLUE}Info: Usando editor predeterminado encontrado: '{editor_to_use}' (ya que $EDITOR no está configurado o el especificado no se encontró).{Style.RESET_ALL}")
+                break # Usar el primer editor encontrado de la lista de predeterminados
+    
+    if not editor_found or not editor_to_use:
+        questionary.print(f"{Fore.RED}Error: No se encontró un editor de texto adecuado (probados: $EDITOR, nano, vim, vi).{Style.RESET_ALL}")
+        questionary.print(f"{Fore.YELLOW}Por favor, instale uno de estos editores o configure la variable de entorno $EDITOR con la ruta a su editor preferido.{Style.RESET_ALL}")
+        return metadata_data # Devolver sin cambios si no se encuentra ningún editor
 
-     except Exception as e:
-         questionary.print(f"Error abriendo editor o recargando: {e}", style="fg:red")
-         return metadata_data # Devolver sin cambios
+    # --- Proceder con la edición ---
+    project_dir = meta_file_path.parent 
+    questionary.print(f"Abriendo {meta_file_path} en {editor_to_use} para editar la sección [additional_metadata].", style="fg:cyan")
+    questionary.print("Guarda el archivo en el editor y luego pulsa Enter aquí para recargar.")
+    try:
+        project_dir.mkdir(parents=True, exist_ok=True)
+        # --- Ejecutar editor ---
+        # Asegurar comillas alrededor del editor y la ruta del archivo por si contienen espacios.
+        # subprocess.run es más robusto, pero os.system es más simple y ya se usaba.
+        cmd_str = f'"{editor_to_use}" "{meta_file_path}"'
+        status_code = os.system(cmd_str)
+
+        if status_code != 0:
+            # Un código de salida distinto de cero no siempre es un error fatal si el usuario guardó,
+            # pero es bueno informarlo.
+            questionary.print(f"{Fore.CYAN}Comando del editor ('{editor_to_use}') finalizó con estado {status_code}.{Style.RESET_ALL}")
+
+        # --- Recargar ---
+        try:
+            import time
+            time.sleep(0.2) # Pausa breve antes de intentar leer, puede ayudar en algunos sistemas
+            reloaded_data = load_project_data(meta_file_path)
+            return reloaded_data.get("additional_metadata", {})
+        except Exception as load_err:
+            questionary.print(f"{Fore.RED}Error recargando tras edición manual: {load_err}{Style.RESET_ALL}")
+            questionary.print(f"{Fore.YELLOW}Las ediciones manuales podrían ser inválidas. Se mantienen los metadatos previos.{Style.RESET_ALL}")
+            return metadata_data # Devolver la versión anterior si la recarga falla
+
+    except Exception as e:
+        questionary.print(f"{Fore.RED}Error abriendo editor o procesando después de la edición: {e}{Style.RESET_ALL}")
+        return metadata_data # Devolver sin cambios en caso de otros errores
 
 
 # --- Funciones de Utilidad para Banner y Limpieza ---
@@ -740,6 +1045,80 @@ def push_branches_to_remote(project_base_path: Path) -> Tuple[bool, str]:
     except Exception as e:
         return False, f"Error inesperado al hacer push: {str(e)}"
 
+def verify_repository_info(project_data: Dict[str, Any], project_base_path: Path) -> Tuple[bool, str]:
+    """Verifica que la información del repo en TOML coincida con el repo local, ofreciendo actualizar el TOML."""
+    repo_data = project_data["repository"] # Obtener la sección del repo para modificarla si es necesario
+    try:
+        # 1. Verificar que es un repositorio git
+        result_is_repo = subprocess.run(['git', 'rev-parse', '--is-inside-work-tree'], 
+                                      cwd=project_base_path,
+                                      capture_output=True, text=True, check=False)
+        if result_is_repo.returncode != 0:
+            return False, "El directorio no es un repositorio git"
+        
+        # 2. Verificar el remote origin y obtener su URL
+        result_remote_url = subprocess.run(['git', 'remote', 'get-url', 'origin'],
+                                         cwd=project_base_path,
+                                         capture_output=True, text=True, check=False)
+        if result_remote_url.returncode != 0:
+            return False, "No hay un remote 'origin' configurado"
+        
+        remote_url_from_git = result_remote_url.stdout.strip()
+        
+        # 3. Obtener URL del TOML y comparar/actualizar
+        toml_url = repo_data.get("url", "").strip()
+
+        if not toml_url or toml_url != remote_url_from_git:
+            message = (
+                f"La URL del repositorio en project_meta.toml (actual: '{toml_url if toml_url else 'No establecida'}') "
+                f"no coincide con la URL del remote 'origin' en Git (esperada: '{remote_url_from_git}') o está vacía."
+            )
+            questionary.print(message, style="fg:yellow")
+            
+            confirm_update = questionary.confirm(
+                "¿Desea actualizar la URL en project_meta.toml para que coincida con la del remote 'origin' de Git?", 
+                default=True
+            ).ask()
+            
+            if confirm_update:
+                repo_data["url"] = remote_url_from_git
+                project_meta_file = project_base_path / ".project" / "project_meta.toml"
+                save_project_data(project_data, project_meta_file, project_base_path)
+                questionary.print(f"✓ URL en project_meta.toml actualizada a: {remote_url_from_git}", style="fg:green")
+                toml_url = remote_url_from_git 
+            else:
+                return False, f"Discrepancia de URL no resuelta. TOML: '{toml_url}', Git remote: '{remote_url_from_git}'"
+        
+        # 4. Verificar el nombre del repositorio (esta verificación puede ser menos crítica si la URL ya coincide)
+        repo_name_toml = repo_data.get("name", "").strip()
+        if not repo_name_toml:
+            # Si el nombre en TOML está vacío, podríamos intentar derivarlo de la URL remota como un fallback.
+            # Por ejemplo, de 'git@github.com:user/repo-name.git' o 'https://host.com/user/repo-name'
+            # Esto es opcional y puede añadir complejidad.
+            # Por ahora, si la URL coincide, asumimos que el nombre también debería ser consistente o no es crítico para esta verificación.
+            pass # Opcionalmente, podríamos añadir una validación más estricta aquí si es necesario.
+
+        # 5. Verificar que estamos en la rama main (o la rama por defecto del repo si es configurable)
+        # Esta verificación puede ser específica del flujo de 'configure_branch_protection'
+        result_branch = subprocess.run(['git', 'branch', '--show-current'],
+                                   cwd=project_base_path,
+                                   capture_output=True, text=True, check=False)
+        if result_branch.returncode != 0:
+            # Podría ser un repo sin commits o en estado detached HEAD
+            questionary.print("Advertencia: No se pudo determinar la rama actual.", style="fg:yellow")
+        else:
+            current_branch = result_branch.stdout.strip()
+            # Idealmente, la rama por defecto (ej. 'main') debería ser configurable o detectada.
+            # Por ahora, se asume 'main' para la protección, pero esta función solo verifica.
+            # if current_branch != "main":
+            #     return False, f"Debes estar en la rama 'main' para configurar la protección (actual: {current_branch})"
+            pass # La lógica de la rama específica se maneja mejor en la función que llama a esta verificación
+
+        return True, f"Información del repositorio verificada. URL Git y TOML: '{toml_url}'"
+        
+    except Exception as e:
+        return False, f"Error inesperado al verificar el repositorio: {str(e)}"
+
 def create_github_repository(project_data: Dict[str, Any], token: str, use_https: bool = True, project_base_path: Path = Path(".")) -> Tuple[bool, str]:
     """Crea un repositorio en GitHub usando la API y hace commit/push inicial del proyecto completo."""
     try:
@@ -777,25 +1156,22 @@ def create_github_repository(project_data: Dict[str, Any], token: str, use_https
         )
         questionary.print(f"✓ Repositorio '{repo.full_name}' creado en GitHub.", style="fg:green")
         
-        remote_url_to_add = repo.clone_url
-        if use_https and token:
-            remote_url_to_add = remote_url_to_add.replace("https://", f"https://{token}@")
-        elif not use_https:
-            remote_url_to_add = repo.ssh_url
-
-        questionary.print(f"Configurando remote 'origin' a: {remote_url_to_add.replace(token, '<TOKEN>') if token and use_https else remote_url_to_add}", style="fg:cyan")
-        subprocess.run(['git', 'remote', 'add', 'origin', remote_url_to_add], check=True, cwd=project_base_path)
+        actual_remote_url_used = repo.ssh_url 
+        if use_https:
+            actual_remote_url_used = repo.clone_url 
+            if token:
+                actual_remote_url_used = actual_remote_url_used.replace("https://", f"https://{token}@")
+        
+        questionary.print(f"Configurando remote 'origin' a: {actual_remote_url_used.replace(token, '<TOKEN>') if token and use_https else actual_remote_url_used}", style="fg:cyan")
+        subprocess.run(['git', 'remote', 'add', 'origin', actual_remote_url_used], check=True, cwd=project_base_path)
         questionary.print("✓ Remote 'origin' configurado.", style="fg:green")
 
-        # Añadir todo el contenido del proyecto y hacer commit inicial
         questionary.print("Añadiendo todos los archivos del proyecto al staging (git add .)...", style="fg:cyan")
         subprocess.run(['git', 'add', '.'], check=True, cwd=project_base_path)
         
-        # Verificar si hay cambios en el staging para commitear
-        # `git diff --staged --quiet` devuelve 0 si no hay cambios, 1 si hay cambios.
         result_staged = subprocess.run(['git', 'diff', '--staged', '--quiet'], check=False, cwd=project_base_path)
         
-        if result_staged.returncode == 1: # Hay cambios en el staging
+        if result_staged.returncode == 1:
             commit_message = "[CHORE] Commit inicial del proyecto"
             questionary.print(f"Realizando commit inicial: {commit_message}", style="fg:cyan")
             subprocess.run(['git', 'commit', '-m', commit_message], check=True, cwd=project_base_path)
@@ -803,19 +1179,17 @@ def create_github_repository(project_data: Dict[str, Any], token: str, use_https
         else:
             questionary.print("No se detectaron nuevos cambios en el proyecto para el commit inicial.", style="fg:yellow")
 
-        # Actualizar el campo URL en los datos del proyecto y guardarlo
         project_meta_file_rel_path = Path(".project") / "project_meta.toml"
-        repo_data["url"] = repo.html_url
+        repo_data["url"] = actual_remote_url_used 
         repo_data["created_flag"] = True
         save_project_data(project_data, project_base_path / project_meta_file_rel_path, project_base_path)
-        questionary.print(f"URL del repositorio ({repo.html_url}) guardada en la configuración.", style="fg:green")
+        questionary.print(f"URL del repositorio ({actual_remote_url_used.replace(token, '<TOKEN>') if token and use_https else actual_remote_url_used}) guardada en la configuración.", style="fg:green")
 
-        # Hacer push de las ramas
         push_success, push_msg = push_branches_to_remote(project_base_path)
         if not push_success:
             return False, push_msg
         
-        display_url = remote_url_to_add.replace(token, '<TOKEN>') if token and use_https else remote_url_to_add
+        display_url = actual_remote_url_used.replace(token, '<TOKEN>') if token and use_https else actual_remote_url_used
         return True, f"Repositorio creado y configurado exitosamente en {display_url}"
         
     except GithubException as ge:
@@ -825,7 +1199,9 @@ def create_github_repository(project_data: Dict[str, Any], token: str, use_https
                 return False, f"Error: El repositorio '{repo_name}' ya existe en GitHub para el propietario especificado."
         return False, f"Error de GitHub API: {str(ge)} (Status: {ge.status}, Data: {ge.data})"
     except subprocess.CalledProcessError as cpe:
-        return False, f"Error ejecutando comando git: {cpe.cmd} falló con salida: {cpe.stderr or cpe.stdout}"
+        error_output = cpe.stderr.strip() if cpe.stderr else cpe.stdout.strip()
+        cmd_str = " ".join(cpe.cmd)
+        return False, f"Error ejecutando comando git '{cmd_str}': {error_output}"
     except Exception as e:
         return False, f"Error inesperado al crear el repositorio: {str(e)}"
 
@@ -906,100 +1282,47 @@ def create_remote_repo(project_base_path: Path, args: argparse.Namespace) -> Non
         questionary.print(f"Error: {msg}", style="fg:red")
         sys.exit(1)
 
-def verify_repository_info(repo_data: Dict[str, Any], project_base_path: Path) -> Tuple[bool, str]:
-    """Verifica que la información del repositorio en el TOML coincida con el repositorio local.
-    
-    Args:
-        repo_data: Diccionario con la información del repositorio del TOML
-        project_base_path: Ruta base del proyecto
-    
-    Returns:
-        Tuple[bool, str]: (éxito, mensaje)
-    """
-    try:
-        # 1. Verificar que es un repositorio git
-        result = subprocess.run(['git', 'rev-parse', '--is-inside-work-tree'], 
-                              cwd=project_base_path,
-                              capture_output=True, text=True)
-        if result.returncode != 0:
-            return False, "El directorio no es un repositorio git"
-        
-        # 2. Verificar el remote origin
-        result = subprocess.run(['git', 'remote', 'get-url', 'origin'],
-                              cwd=project_base_path,
-                              capture_output=True, text=True)
-        if result.returncode != 0:
-            return False, "No hay un remote 'origin' configurado"
-        
-        remote_url = result.stdout.strip()
-        
-        # 3. Verificar que la URL coincide con la del TOML
-        toml_url = repo_data.get("url", "")
-        if toml_url and toml_url != remote_url:
-            return False, f"La URL del repositorio en el TOML ({toml_url}) no coincide con el remote origin ({remote_url})"
-        
-        # 4. Verificar el nombre del repositorio
-        repo_name = repo_data.get("name", "")
-        if not repo_name:
-            return False, "No se especificó el nombre del repositorio en el TOML"
-        
-        # 5. Verificar que estamos en la rama main
-        result = subprocess.run(['git', 'branch', '--show-current'],
-                              cwd=project_base_path,
-                              capture_output=True, text=True)
-        if result.returncode != 0:
-            return False, "Error al obtener la rama actual"
-        
-        current_branch = result.stdout.strip()
-        if current_branch != "main":
-            return False, f"Debes estar en la rama 'main' para configurar la protección (actual: {current_branch})"
-        
-        return True, "Información del repositorio verificada correctamente"
-        
-    except Exception as e:
-        return False, f"Error al verificar el repositorio: {str(e)}"
-
 def configure_branch_protection(project_base_path: Path, args: argparse.Namespace) -> None:
     """Configura las reglas de protección de ramas según el tipo de proyecto."""
-    project_meta_file = project_base_path / ".project" / "project_meta.toml" # Definir aquí
+    project_meta_file = project_base_path / ".project" / "project_meta.toml"
 
-    # Verificar explícitamente que project_meta.toml exista
     if not project_meta_file.is_file():
         questionary.print(f"✗ Error: El archivo de metadatos del proyecto ({project_meta_file.name}) no existe.", style="fg:red")
         questionary.print(f"  Por favor, ejecute 'promanager.py --project' primero para crear y guardar la configuración.", style="fg:yellow")
         sys.exit(1)
         
-    # 1. Verificar metadatos
     project_data = load_project_data(project_meta_file)
-    repo_data = project_data.get("repository", {})
+    # No extraer repo_data aquí para pasar a verify_repository_info, 
+    # ya que verify_repository_info espera el project_data completo para poder modificarlo y guardarlo.
+    # repo_data = project_data.get("repository", {})
     
-    # 2. Verificar que es un repositorio Git válido
-    is_repo, msg = check_git_repo()
+    is_repo, msg_check_repo = check_git_repo() # check_git_repo no necesita project_data
     if not is_repo:
-        questionary.print(f"Error: {msg}", style="fg:red")
+        questionary.print(f"Error: {msg_check_repo}", style="fg:red")
         sys.exit(1)
     
-    # 3. Verificar si existe el repositorio remoto
-    has_remote, msg = check_git_remote()
+    has_remote, msg_check_remote = check_git_remote() # check_git_remote no necesita project_data
     if not has_remote:
         questionary.print("Error: No hay un repositorio remoto configurado.", style="fg:red")
         questionary.print("Ejecuta '--newrepo' para crear y configurar el repositorio remoto.", style="fg:yellow")
         sys.exit(1)
     
-    # 4. Verificar información del repositorio
-    success, msg = verify_repository_info(repo_data, project_base_path)
-    if not success:
-        questionary.print(f"Error: {msg}", style="fg:red")
+    # Pasar project_data completo a verify_repository_info
+    success_verify, msg_verify = verify_repository_info(project_data, project_base_path)
+    if not success_verify:
+        questionary.print(f"Error en la verificación del repositorio: {msg_verify}", style="fg:red")
         sys.exit(1)
-    questionary.print(msg, style="fg:green")
+    questionary.print(f"✓ {msg_verify}", style="fg:green") # Mensaje de éxito de la verificación
     
-    # 5. Obtener plataforma del TOML
+    # Ahora que project_data puede haber sido actualizado por verify_repository_info (si el usuario aceptó cambiar la URL),
+    # podemos obtener la sección repo_data actualizada.
+    repo_data = project_data.get("repository", {})
+
     platform = repo_data.get("platform", "").lower()
     if not platform:
         questionary.print("Error: No se especificó la plataforma en el archivo TOML.", style="fg:red")
         sys.exit(1)
     
-    # 6. Obtener token (ahora obligatorio)
     if not args.token and not os.environ.get(f"{platform.upper()}_TOKEN"):
         questionary.print(f"Error: Se requiere un token para {platform}.", style="fg:red")
         questionary.print("Debes proporcionar el token de una de estas formas:", style="fg:yellow")
@@ -1012,73 +1335,109 @@ def configure_branch_protection(project_base_path: Path, args: argparse.Namespac
     if not token:
         sys.exit(1)
     
-    # 7. Actualizar configuración en el TOML
     if "protection_config" not in repo_data:
         repo_data["protection_config"] = {}
     
-    # Determinar si es proyecto de equipo
     is_team_project = args.team if args.team is not None else not repo_data["protection_config"].get("single_developer", True)
     
-    # Obtener revisores y líderes
     reviewers = args.reviewers.split(",") if args.reviewers else repo_data["protection_config"].get("reviewers", [])
     branch_leaders = args.branch_leaders.split(",") if args.branch_leaders else repo_data["protection_config"].get("branch_leaders", [])
     
-    # Actualizar configuración en el TOML
     repo_data["protection_config"].update({
         "single_developer": not is_team_project,
         "reviewers": reviewers,
         "branch_leaders": branch_leaders,
-        "branches": MAIN_BRANCHES,
-        "work_branches": BRANCH_TYPES
+        "branches": MAIN_BRANCHES, # Usar las constantes globales definidas en el script
+        "work_branches": BRANCH_TYPES # Usar las constantes globales definidas en el script
     })
     
-    # Guardar cambios en el TOML
+    # project_data ya ha sido modificado en memoria, ahora lo guardamos.
     save_project_data(project_data, project_meta_file, project_base_path)
-    questionary.print("✓ Configuración de protección guardada en project_meta.toml", style="fg:green")
+    questionary.print("✓ Configuración de protección actualizada y guardada en project_meta.toml (y .def)", style="fg:green")
     
-    # 8. Aplicar la configuración en el repositorio
+    # ... (resto de la lógica para aplicar la configuración con el configurador de la plataforma)
     try:
         if platform == "github":
+            if not PYGITHUB_INSTALLED_CORRECTLY and not check_and_install_pygithub():
+                 questionary.print("PyGithub es necesario para esta operación y no pudo ser cargado o instalado.", style="fg:red")
+                 sys.exit(1)
             configurator = GitHubConfigurator(project_data, token)
-        elif platform == "gitlab.com" or platform == "gitlab (auto-alojado)":
-            # TODO: Implementar GitLabConfigurator
-            questionary.print("Soporte para GitLab aún no implementado", style="fg:yellow")
-            sys.exit(1)
-        elif platform == "gitea":
-            # TODO: Implementar GiteaConfigurator
-            questionary.print("Soporte para Gitea aún no implementado", style="fg:yellow")
-            sys.exit(1)
+        # ... (otros elif para GitLab, Gitea) ...
         else:
             questionary.print(f"Error: La plataforma '{platform}' no está soportada actualmente.", style="fg:red")
             sys.exit(1)
     except ValueError as e:
-        questionary.print(f"Error: {str(e)}", style="fg:red")
+        questionary.print(f"Error inicializando el configurador para {platform}: {str(e)}", style="fg:red")
         sys.exit(1)
     except Exception as e:
-        questionary.print(f"Error inesperado: {str(e)}", style="fg:red")
+        questionary.print(f"Error inesperado al inicializar el configurador: {str(e)}", style="fg:red")
         sys.exit(1)
     
-    # 9. Configurar protección de ramas principales
-    for branch, rules in MAIN_BRANCHES.items():
-        # Ajustar reglas según si es proyecto de equipo o no
-        branch_rules = rules.copy()
-        if not is_team_project:
-            branch_rules["allow_direct_push"] = True
-            branch_rules["required_pull_request_reviews"] = None
-        
-        success, msg = configurator.configure_branch_protection(branch, branch_rules)
-        if success:
-            questionary.print(f"✓ {msg}", style="fg:green")
+    # Definir nombres clave de ramas
+    main_branch_key = "main"
+    develop_branch_key = "develop"
+    staging_branch_key = "staging" # Usado como clave en MAIN_BRANCHES
+
+    protection_targets = []
+    config_branches = repo_data.get("protection_config", {}).get("branches", {})
+
+    # Procesar rama principal (main)
+    main_rules = config_branches.get(main_branch_key, {}).copy()
+    if not main_rules:
+        questionary.print(f"Advertencia: No se encontraron reglas de configuración para la rama '{main_branch_key}'. Se omitirá.", style="fg:yellow")
+    else:
+        # if not is_team_project: # Modo monodesarrollador  <-- LÍNEA ELIMINADA
+        #     main_rules["allow_direct_push"] = True          <-- LÍNEA ELIMINADA
+        protection_targets.append({"name": main_branch_key, "rules": main_rules})
+
+    # Procesar rama de desarrollo (develop)
+    develop_rules = config_branches.get(develop_branch_key, {}).copy()
+    if not develop_rules:
+        questionary.print(f"Advertencia: No se encontraron reglas de configuración para la rama '{develop_branch_key}'. Se omitirá.", style="fg:yellow")
+    else:
+        # if not is_team_project: # Modo monodesarrollador  <-- LÍNEA ELIMINADA
+        #     develop_rules["allow_direct_push"] = True       <-- LÍNEA ELIMINADA
+        protection_targets.append({"name": develop_branch_key, "rules": develop_rules})
+
+    # Procesar rama de staging (solo si es proyecto de equipo)
+    if is_team_project:
+        staging_rules = config_branches.get(staging_branch_key, {}).copy()
+        if not staging_rules:
+            questionary.print(f"Advertencia: No se encontraron reglas de configuración para la rama '{staging_branch_key}' (modo equipo). Se omitirá.", style="fg:yellow")
         else:
-            questionary.print(f"✗ {msg}", style="fg:red")
+            # Para staging en modo equipo, las reglas de MAIN_BRANCHES aplican directamente (allow_direct_push=False)
+            protection_targets.append({"name": staging_branch_key, "rules": staging_rules})
     
-    # 10. Configurar revisores y líderes si se especificaron
-    if reviewers or branch_leaders:
-        success, msg = configurator.configure_review_leadership(reviewers, branch_leaders)
-        if success:
-            questionary.print(f"✓ {msg}", style="fg:green")
+    if not protection_targets:
+        questionary.print("No hay ramas configuradas para protección. Finalizando.", style="fg:yellow")
+        return
+
+    questionary.print(f"Aplicando protección de ramas (Modo: {'Equipo' if is_team_project else 'Monodesarrollador'})...", style="fg:cyan")
+    for target in protection_targets:
+        branch_name_to_protect = target["name"]
+        rules_to_apply = target["rules"]
+        
+        questionary.print(f"  Configurando protección para: '{branch_name_to_protect}'...", style="fg:blue")
+        success_protect, msg_protect = configurator.configure_branch_protection(branch_name_to_protect, rules_to_apply)
+        if success_protect:
+            questionary.print(f"  ✓ {msg_protect}", style="fg:green")
         else:
-            questionary.print(f"✗ {msg}", style="fg:red")
+            questionary.print(f"  ✗ {msg_protect}", style="fg:red")
+            # Considerar si se debe continuar con otras ramas o detener en caso de error
+    
+    # Configuración de liderazgo de revisión (sin cambios en esta lógica)
+    if reviewers or branch_leaders:
+        # Asegurarse de que los revisores/líderes no estén vacíos antes de intentar configurar
+        valid_reviewers = [r for r in reviewers if r.strip()]
+        valid_branch_leaders = [bl for bl in branch_leaders if bl.strip()]
+        if valid_reviewers or valid_branch_leaders:
+            success_review, msg_review = configurator.configure_review_leadership(valid_reviewers, valid_branch_leaders)
+            if success_review:
+                questionary.print(f"✓ {msg_review}", style="fg:green")
+            else:
+                questionary.print(f"✗ {msg_review}", style="fg:red")
+        else:
+            questionary.print("No se especificaron revisores o líderes de rama válidos para configurar.", style="fg:yellow")
 
 def initialize_project_structure(project_base_path: Path) -> Tuple[bool, str]:
     """Verifica la existencia de archivos de configuración. No crea ni copia archivos."""

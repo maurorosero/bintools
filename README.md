@@ -145,7 +145,7 @@ Para uso y licencias comerciales, por favor contactar al autor.
 | Script   | Autor                | Role/Notes                 |
 | :------------ | :-------------------- | :------------------------- |
 | Autor Principal  | Mauro Rosero P. <mauro@rosero.one> | Líder del proyecto y autor principal |
-| Asistente IA | Cursor | Asistente de desarrollo para todas las aplicaciones escritas por Mauro Rosero P.|
+| Asistente IA | Cursor (https://www.cursor.com/) | Asistente de desarrollo para todas las aplicaciones escritas por Mauro Rosero P.|
 | `binsetup.sh` | Mauro Rosero P. | Script de configuración del entorno |
 | `hexroute`    | Karl McMurdo | Utilidad de conversión de rutas (integración) |
 | `packages.sh` | Mauro Rosero P. | Gestor de paquetes del sistema |

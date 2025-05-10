@@ -8,8 +8,8 @@ visibility = "public"
 platform = "GitHub"
 platform_url = ""
 description = "🚀 Mi arsenal de scripts y utilidades (Python, Bash, TS) para turbo-cargar tu desarrollo y gestión ofimática. Con un cerebro de IA para la automatización inteligente. ¡Todo consolidado en un monorepo listo para la acción!"
-created_flag = false
-url = ""
+created_flag = true
+url = "git@github.com:maurorosero/bintools.git"
 
 [repository.init_options]
 add_readme = false
@@ -18,9 +18,90 @@ gitignore_template = "Python"
 add_license = false
 license_template = "mit"
 
+[repository.protection_config]
+single_developer = true
+reviewers = []
+branch_leaders = []
+
+[repository.protection_config.branches.main]
+protection_level = "strict"
+allow_direct_push = false
+allowed_pr_from = [
+    "hotfix/*",
+    "staging",
+    "develop",
+]
+enforce_admins = false
+
+[repository.protection_config.branches.develop]
+protection_level = "strict"
+allow_direct_push = false
+allowed_pr_from = [
+    "feature/*",
+    "fix/*",
+    "docs/*",
+    "refactor/*",
+    "test/*",
+    "chore/*",
+]
+enforce_admins = true
+
+[repository.protection_config.branches.staging]
+protection_level = "strict"
+allow_direct_push = false
+allowed_pr_from = [
+    "develop",
+]
+enforce_admins = true
+
+[repository.protection_config.work_branches.feature]
+pattern = "feature/*"
+description = "Nuevas características"
+target_branch = "develop"
+allow_direct_push = true
+
+[repository.protection_config.work_branches.fix]
+pattern = "fix/*"
+description = "Correcciones de errores"
+target_branch = "develop"
+allow_direct_push = true
+
+[repository.protection_config.work_branches.hotfix]
+pattern = "hotfix/*"
+description = "Correcciones urgentes"
+target_branch = [
+    "main",
+    "develop",
+]
+allow_direct_push = true
+
+[repository.protection_config.work_branches.docs]
+pattern = "docs/*"
+description = "Documentación"
+target_branch = "develop"
+allow_direct_push = true
+
+[repository.protection_config.work_branches.refactor]
+pattern = "refactor/*"
+description = "Refactorización"
+target_branch = "develop"
+allow_direct_push = true
+
+[repository.protection_config.work_branches.test]
+pattern = "test/*"
+description = "Tests"
+target_branch = "develop"
+allow_direct_push = true
+
+[repository.protection_config.work_branches.chore]
+pattern = "chore/*"
+description = "Mantenimiento"
+target_branch = "develop"
+allow_direct_push = true
+
 [project_details]
-title = "✨ Automatización Inteligente: Mi Caja de Herramientas IA para Developers."
-purpose = "Optimizar y automatizar tareas de desarrollo y gestión ofimática mediante scripts inteligentes y asistencia por IA."
+title = "✨ Automatización Inteligente: Mi Caja de Herramientas IA para Developers"
+purpose = "Optimizar y automatizar tareas de desarrollo y gestión ofimática mediante scripts inteligentes y asistencia por IA"
 status = "active"
 lead = "Mauro Rosero Pérez"
 objectives = []
