@@ -431,11 +431,11 @@ __pycache__/" > .gitignore # Añade lo que no quieras subir
     *   Se despliega la rama `staging` a un entorno de pruebas (QA, UAT) que sea lo más parecido posible a producción.
     *   El equipo de QA (o el propio equipo de desarrollo) realiza pruebas exhaustivas.
     *   **Si se encuentran BUGS:**
-       *   Se corrigen creando una rama `fix/staging-ajuste-X` DESDE `staging`.
-       *   Se hace un PR de esa `fix/*` hacia `staging`.
-       *   Se fusiona en `staging`.
-       *   Se vuelve a probar.
-       *   **¡IMPORTANTE!** Estos arreglos hechos en `staging` DEBEN volver a `develop` eventualmente (ver Paso 4).
+        *   Se corrigen creando una rama `fix/staging-ajuste-X` DESDE `staging`.
+        *   Se hace un PR de esa `fix/*` hacia `staging`.
+        *   Se fusiona en `staging`.
+        *   Se vuelve a probar.
+        *   **¡IMPORTANTE!** Estos arreglos hechos en `staging` DEBEN volver a `develop` eventualmente (ver Paso 4).
 
 *   **Paso 3: ¡Lanzamiento! (Merge a `main` y Tag)**
     *   Cuando `staging` está APROBADA y lista:
