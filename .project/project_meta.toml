@@ -1,0 +1,41 @@
+schema_version = "1.5"
+
+[repository]
+name = "bintools"
+owner_name = ""
+owner_type = "user"
+visibility = "public"
+platform = "GitHub"
+platform_url = ""
+description = "Colección personal de utilidades y scripts para desarrollo y gestión ofimática. Incluye herramientas de automatización, gestión de proyectos, utilidades CLI y scripts de productividad. Organizado como monorepo con componentes independientes versionados como un todo (Unified Custom Release). Diseñado para optimizar el flujo de trabajo diario."
+created_flag = false
+url = ""
+
+[repository.init_options]
+add_readme = false
+add_gitignore = false
+gitignore_template = "Python"
+add_license = false
+license_template = "mit"
+
+[project_details]
+title = "Kit de Herramientas para Desarrollo y Ofimática"
+purpose = "Este proyecto tiene como objetivo centralizar y organizar mis herramientas de desarrollo y ofimática en un único repositorio, facilitando su mantenimiento, versionado y reutilización. Busca optimizar mi flujo de trabajo diario mediante la automatización de tareas comunes, la estandarización de procesos y la disponibilidad inmediata de utilidades probadas y confiables. Al mantener todo en un monorepo, permite una gestión unificada de versiones y dependencias, mientras que la estructura modular permite que cada componente funcione de manera independiente."
+status = "planning"
+lead = ""
+objectives = []
+stakeholders = []
+technology_stack = []
+risks = []
+assumptions = []
+
+[project_details.pm_tool_info]
+tool_name = ""
+project_link = ""
+project_key = ""
+
+[project_details.constraints]
+budget = "TBD"
+timeline = "TBD"
+
+[additional_metadata]
