@@ -15,7 +15,7 @@ try:
 except ImportError:
     # Fallback para Python < 3.11
     try:
-        import tomli as tomllib
+        import tomli as tomllib # pylint: disable=import-error
     except ImportError:
         print("Error: Se necesita la biblioteca 'tomli' para versiones de Python < 3.11.")
         print("Por favor, instálala con: pip install tomli")
