@@ -7,9 +7,9 @@ owner_type = "user"
 visibility = "public"
 platform = "GitHub"
 platform_url = ""
-description = "Colección personal de utilidades y scripts para desarrollo y gestión ofimática. Incluye herramientas de automatización, gestión de proyectos, utilidades CLI y scripts de productividad. Organizado como monorepo con componentes independientes versionados como un todo (Unified Custom Release). Diseñado para optimizar el flujo de trabajo diario."
-created_flag = false
-url = ""
+description = "🚀 Mi arsenal de scripts y utilidades (Python, Bash, TS) para turbo-cargar tu desarrollo y gestión ofimática. Con un cerebro de IA para la automatización inteligente. ¡Todo consolidado en un monorepo listo para la acción!"
+created_flag = true
+url = "git@github.com:maurorosero/bintools.git"
 
 [repository.init_options]
 add_readme = false
@@ -19,10 +19,11 @@ add_license = false
 license_template = "mit"
 
 [project_details]
-title = "Kit de Herramientas para Desarrollo y Ofimática"
-purpose = "Este proyecto tiene como objetivo centralizar y organizar mis herramientas de desarrollo y ofimática en un único repositorio, facilitando su mantenimiento, versionado y reutilización. Busca optimizar mi flujo de trabajo diario mediante la automatización de tareas comunes, la estandarización de procesos y la disponibilidad inmediata de utilidades probadas y confiables. Al mantener todo en un monorepo, permite una gestión unificada de versiones y dependencias, mientras que la estructura modular permite que cada componente funcione de manera independiente."
-status = "planning"
-lead = ""
+title = "✨ Automatización Inteligente: Mi Caja de Herramientas IA para Developers"
+purpose = "Optimizar y automatizar tareas de desarrollo y gestión ofimática mediante scripts inteligentes y asistencia por IA"
+status = "active"
+lead = "Mauro Rosero Pérez"
+lead_email = "mauro@rosero.one"
 objectives = []
 stakeholders = []
 technology_stack = []
@@ -37,5 +38,88 @@ project_key = ""
 [project_details.constraints]
 budget = "TBD"
 timeline = "TBD"
+
+[additional_metadata]
+
+[repository.protection_config]
+single_developer = true
+reviewers = []
+branch_leaders = []
+
+[repository.protection_config.branches.main]
+protection_level = "strict"
+allow_direct_push = false
+allowed_pr_from = [
+    "hotfix/*",
+    "staging",
+    "develop",
+]
+enforce_admins = false
+
+[repository.protection_config.branches.develop]
+protection_level = "strict"
+allow_direct_push = false
+allowed_pr_from = [
+    "feature/*",
+    "fix/*",
+    "docs/*",
+    "refactor/*",
+    "test/*",
+    "chore/*",
+]
+enforce_admins = true
+
+[repository.protection_config.branches.staging]
+protection_level = "strict"
+allow_direct_push = false
+allowed_pr_from = [
+    "develop",
+]
+enforce_admins = true
+
+[repository.protection_config.work_branches.feature]
+pattern = "feature/*"
+description = "Nuevas características"
+target_branch = "develop"
+allow_direct_push = true
+
+[repository.protection_config.work_branches.fix]
+pattern = "fix/*"
+description = "Correcciones de errores"
+target_branch = "develop"
+allow_direct_push = true
+
+[repository.protection_config.work_branches.hotfix]
+pattern = "hotfix/*"
+description = "Correcciones urgentes"
+target_branch = [
+    "main",
+    "develop",
+]
+allow_direct_push = true
+
+[repository.protection_config.work_branches.docs]
+pattern = "docs/*"
+description = "Documentación"
+target_branch = "develop"
+allow_direct_push = true
+
+[repository.protection_config.work_branches.refactor]
+pattern = "refactor/*"
+description = "Refactorización"
+target_branch = "develop"
+allow_direct_push = true
+
+[repository.protection_config.work_branches.test]
+pattern = "test/*"
+description = "Tests"
+target_branch = "develop"
+allow_direct_push = true
+
+[repository.protection_config.work_branches.chore]
+pattern = "chore/*"
+description = "Mantenimiento"
+target_branch = "develop"
+allow_direct_push = true
 
 [additional_metadata]
