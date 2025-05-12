@@ -328,7 +328,7 @@ def handle_new_task(args: argparse.Namespace):
         print(f"{Fore.GREEN}Rama '{full_new_branch_name}' creada y seleccionada exitosamente.{Style.RESET_ALL}")
 
     # Push opcional de la nueva rama
-    if args.push:
+    if not args.no_push: # Hacer push si --no-push NO está presente
         print(f"\n{Fore.BLUE}Paso 3: Empujando nueva rama '{full_new_branch_name}' al remoto '{args.remote}'{Style.RESET_ALL}")
         success_push_new, _, err_push_new = run_git_command(["git", "push", "-u", args.remote, full_new_branch_name], cwd=repo_path)
         if not success_push_new:
