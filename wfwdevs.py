@@ -87,6 +87,83 @@ def run_git_command(command: list[str], cwd: Path = Path("."), check: bool = Tru
     except Exception as e_gen:
         return False, "", str(e_gen)
 
+def check_for_uncommitted_changes(repo_path: Path, branch_name_for_message: str = "la rama actual") -> bool:
+    """
+    Verifica si hay cambios sin confirmar en el repositorio (en la rama actual de trabajo).
+    Devuelve True si hay cambios problemáticos que persisten, False si no hay cambios o si fueron stasheados exitosamente.
+    Imprime un mensaje de error si se detectan cambios.
+    """
+    success, out_status, err_status = run_git_command(
+        ["git", "status", "--porcelain"], 
+        cwd=repo_path, 
+        check=True, 
+        suppress_output=True
+    )
+
+    if not success:
+        print(f"{Fore.RED}Error inesperado al verificar el estado de Git: {err_status}{Style.RESET_ALL}")
+        return True # Asumir que hay un problema y detenerse
+
+    if out_status: # Si hay salida en --porcelain, hay cambios
+        print(f"{Fore.RED}Error: Se detectaron cambios sin confirmar en '{branch_name_for_message}'.{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}Por favor, guarde estos cambios (commit o stash) antes de continuar.{Style.RESET_ALL}")
+        print(f"{Fore.BLUE}Puede usar 'git status' en '{repo_path}' para ver los detalles.{Style.RESET_ALL}")
+
+        if QUESTIONARY_AVAILABLE:
+            do_stash = questionary.confirm(
+                f"¿Desea que wfwdevs intente guardar estos cambios en '{branch_name_for_message}' temporalmente (stash) y continuar?", 
+                default=False
+            ).ask()
+            
+            if do_stash is None: # El usuario presionó Ctrl+C en la pregunta
+                print(f"{Fore.YELLOW}Operación cancelada por el usuario. No se realizó stash.{Style.RESET_ALL}")
+                return True # Problema persiste
+
+            if do_stash:
+                stash_msg = f"WFWDEVS: Stash automático en '{branch_name_for_message}' antes de operación."
+                print(f"{Fore.CYAN}Intentando: git stash push -u -m \"{stash_msg}\"...{Style.RESET_ALL}")
+                # Usamos check=False aquí porque stash puede devolver un código de salida no cero
+                # si no hay nada que guardar (ej. solo archivos untracked sin -u, aunque -u debería cubrirlos)
+                # o si falla por otra razón. Lo manejaremos basándonos en la salida.
+                success_stash, out_stash, err_stash = run_git_command(
+                    ["git", "stash", "push", "-u", "-m", stash_msg],
+                    cwd=repo_path,
+                    check=False 
+                )
+                if success_stash:
+                    # "No local changes to save" indica que el stash no guardó nada nuevo.
+                    # Esto puede ocurrir si los únicos cambios eran untracked y el stash ya los tenía 
+                    # o si el estado estaba limpio a pesar de la salida de --porcelain (menos probable).
+                    if "No local changes to save" in out_stash or "No hay cambios locales para guardar" in out_stash or not out_stash.strip():
+                        print(f"{Fore.GREEN}No se encontraron cambios nuevos para guardar en el stash o el stash no modificó el estado.{Style.RESET_ALL}")
+                        # Verificar de nuevo si el árbol sigue sucio después del intento de stash
+                        # Esto es para cubrir el caso donde `git stash push -u` no limpia todo (raro pero posible)
+                        # o si el `out_status` original era por algo que `stash` no maneja.
+                        final_check_success, final_out_status, _ = run_git_command(["git", "status", "--porcelain"], cwd=repo_path, check=True, suppress_output=True)
+                        if final_check_success and final_out_status:
+                            print(f"{Fore.YELLOW}Advertencia: A pesar del intento de stash, aún se detectan cambios pendientes.{Style.RESET_ALL}")
+                            return True # Problema persiste
+                        print(f"{Fore.GREEN}El estado del repositorio parece estar limpio ahora. Continuando...{Style.RESET_ALL}")
+                        return False # No había nada que impidiera la operación o el stash lo resolvió.
+                    
+                    print(f"{Fore.GREEN}Cambios guardados temporalmente en el stash. Continuando...{Style.RESET_ALL}")
+                    # Se podría almacenar el nombre del stash aquí si quisiéramos intentar un pop automático más tarde.
+                    # ejemplo: last_stash_ref = run_git_command(["git", "rev-parse", "refs/stash"], ...)[1]
+                    return False # Indicar que el problema está "resuelto" para que el flujo principal continúe.
+                else:
+                    print(f"{Fore.RED}Error al intentar guardar los cambios con 'git stash': {err_stash or out_stash}{Style.RESET_ALL}")
+                    print(f"{Fore.YELLOW}Por favor, maneje los cambios manualmente.{Style.RESET_ALL}")
+                    return True # Indicar que el problema persiste.
+            else: # Usuario no quiso stash automático (respondió No)
+                print(f"{Fore.YELLOW}Operación no continuada. Por favor, maneje los cambios pendientes manualmente.{Style.RESET_ALL}")
+                return True # Problema persiste.
+        else: # No QUESTIONARY_AVAILABLE
+            print(f"{Fore.YELLOW}Módulo 'questionary' no disponible. No se puede ofrecer stash automático.{Style.RESET_ALL}")
+            return True # Comportamiento actual: detener si hay cambios y no hay forma de preguntar.
+    
+    # No hay salida en --porcelain, o el stash fue exitoso y limpió el árbol.
+    return False
+
 def clean_branch_name_suffix(suffix: str) -> str:
     """Limpia el sufijo del nombre de la rama."""
     s = suffix.lower()
@@ -139,9 +216,19 @@ def sync_target_from_source_branch(
 
     # Guardar rama original para poder volver
     current_branch_success, original_branch_on_sync_start, _ = run_git_command(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_path, suppress_output=True)
+    if not current_branch_success: # Fallo al obtener la rama, abortar
+        print(f"{Fore.RED}No se pudo determinar la rama actual. Abortando sincronización.{Style.RESET_ALL}")
+        return False
+
+    # --- NUEVA VERIFICACIÓN: Cambios en la rama actual ANTES de cambiar a target_branch ---
+    if original_branch_on_sync_start != target_branch:
+        if check_for_uncommitted_changes(repo_path, branch_name_for_message=original_branch_on_sync_start):
+            # Mensaje ya impreso por check_for_uncommitted_changes
+            return False 
+    # -----------------------------------------------------------------------------------
 
     # 1. Checkout target_branch (si no estamos ya en ella)
-    if not current_branch_success or original_branch_on_sync_start != target_branch:
+    if original_branch_on_sync_start != target_branch:
         print(f"{Fore.CYAN}Cambiando a '{target_branch}'...{Style.RESET_ALL}")
         success_co_target, _, err_co_target = run_git_command(["git", "checkout", target_branch], cwd=repo_path)
         if not success_co_target:
@@ -150,19 +237,24 @@ def sync_target_from_source_branch(
     else:
         print(f"{Fore.CYAN}Ya se encuentra en la rama '{target_branch}'.{Style.RESET_ALL}")
 
+    # --- NUEVA VERIFICACIÓN: Cambios en target_branch ANTES de 'git pull' ---
+    if check_for_uncommitted_changes(repo_path, branch_name_for_message=target_branch):
+        # Mensaje ya impreso. Si hubo un checkout, necesitamos volver a la rama original.
+        if original_branch_on_sync_start != target_branch and current_branch_success: # Asegurarse que original_branch_on_sync_start es válida
+             run_git_command(["git", "checkout", original_branch_on_sync_start], cwd=repo_path, suppress_output=True)
+        return False
+    # --------------------------------------------------------------------------
+
     # 2. Pull target_branch (actualizar desde su propio remoto)
     print(f"{Fore.CYAN}Actualizando '{target_branch}' desde '{remote_name}/{target_branch}'...{Style.RESET_ALL}")
     success_pull_target, out_pull_target, err_pull_target = run_git_command(["git", "pull", remote_name, target_branch], cwd=repo_path)
     if not success_pull_target:
         print(f"{Fore.RED}Error al actualizar '{target_branch}' desde el remoto: {err_pull_target}{Style.RESET_ALL}")
-        if QUESTIONARY_AVAILABLE:
-            if not questionary.confirm(f"Falló 'git pull {remote_name} {target_branch}'. ¿Continuar con el merge de '{source_branch}' de todas formas?", default=False).ask():
-                if current_branch_success and original_branch_on_sync_start != target_branch : run_git_command(["git", "checkout", original_branch_on_sync_start], cwd=repo_path, suppress_output=True)
-                return False
-        else: # No interactivo, asumir que no se debe continuar si el pull falla.
-            print(f"{Fore.YELLOW}Operación abortada debido a fallo en 'git pull'.{Style.RESET_ALL}")
-            if current_branch_success and original_branch_on_sync_start != target_branch : run_git_command(["git", "checkout", original_branch_on_sync_start], cwd=repo_path, suppress_output=True)
-            return False
+        # El pre-chequeo debería haber manejado el caso de "cambios locales sin confirmar".
+        # Si el pull falla por otra razón (ej. conflicto de merge durante el pull), es un problema diferente.
+        print(f"{Fore.YELLOW}Operación abortada debido a fallo en 'git pull'.{Style.RESET_ALL}")
+        if current_branch_success and original_branch_on_sync_start != target_branch : run_git_command(["git", "checkout", original_branch_on_sync_start], cwd=repo_path, suppress_output=True)
+        return False
     elif "Already up to date" not in out_pull_target and "Ya está actualizado" not in out_pull_target and out_pull_target:
         print(out_pull_target) # Mostrar salida del pull si hubo cambios
 
@@ -227,6 +319,17 @@ def handle_new_task(args: argparse.Namespace):
         print(f"{Fore.RED}Error: La ruta '{repo_path}' no parece ser un repositorio Git válido.{Style.RESET_ALL}")
         sys.exit(1)
 
+    # Guardar rama actual al inicio del script para poder volver al final si es necesario
+    script_initial_branch_success, script_initial_branch, _ = run_git_command(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_path, suppress_output=True)
+    if not script_initial_branch_success:
+        print(f"{Fore.RED}No se pudo determinar la rama actual. Abortando.{Style.RESET_ALL}")
+        sys.exit(1)
+
+    # --- NUEVA VERIFICACIÓN INICIAL: Cambios en la rama desde la que se ejecuta el script ---
+    if check_for_uncommitted_changes(repo_path, branch_name_for_message=script_initial_branch):
+        sys.exit(1) # Mensaje ya impreso por la función
+    # -----------------------------------------------------------------------------------
+
     branch_type = args.type.lower()
     branch_name_suffix_raw = args.name
     branch_name_suffix = clean_branch_name_suffix(branch_name_suffix_raw)
@@ -241,9 +344,6 @@ def handle_new_task(args: argparse.Namespace):
         
     full_new_branch_name = f"{branch_type}/{branch_name_suffix}"
     print(f"Nombre completo de la nueva rama: {Fore.YELLOW}{full_new_branch_name}{Style.RESET_ALL}")
-
-    # Guardar rama actual al inicio del script para poder volver al final si es necesario
-    script_initial_branch_success, script_initial_branch, _ = run_git_command(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_path, suppress_output=True)
 
     # --- Sincronización de develop desde main (si no es hotfix) ---
     base_for_new_task = DEVELOP_BRANCH
@@ -273,26 +373,44 @@ def handle_new_task(args: argparse.Namespace):
 
     # Asegurarse de estar en la base_for_new_task ANTES de crear la nueva rama
     current_branch_before_new_task_success, current_branch_name_before_new_task, _ = run_git_command(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_path, suppress_output=True)
-    if not current_branch_before_new_task_success or current_branch_name_before_new_task != base_for_new_task:
+    if not current_branch_before_new_task_success: # Fallo al obtener la rama, abortar
+        print(f"{Fore.RED}No se pudo determinar la rama actual antes de crear la nueva tarea. Abortando.{Style.RESET_ALL}")
+        if script_initial_branch_success : run_git_command(["git", "checkout", script_initial_branch], cwd=repo_path, suppress_output=True)
+        sys.exit(1)
+        
+    if current_branch_name_before_new_task != base_for_new_task:
         print(f"{Fore.CYAN}Cambiando a la rama base '{base_for_new_task}' para crear la rama de trabajo...{Style.RESET_ALL}")
+        # --- NUEVA VERIFICACIÓN: Antes de cambiar a base_for_new_task (si es diferente de la actual) ---
+        # Esto ya se cubrió con la verificación inicial en script_initial_branch si esta es la primera vez que se cambia de rama.
+        # Si sync_target_from_source_branch se ejecutó y cambió de rama, esa función ya verificó.
+        # Sin embargo, una verificación aquí para la *rama actual* antes de cambiar a base_for_new_task es prudente.
+        if check_for_uncommitted_changes(repo_path, branch_name_for_message=current_branch_name_before_new_task):
+             if script_initial_branch_success : run_git_command(["git", "checkout", script_initial_branch], cwd=repo_path, suppress_output=True)
+             sys.exit(1)
+        # ------------------------------------------------------------------------------------------------
         success_co_base, _, err_co_base = run_git_command(["git", "checkout", base_for_new_task], cwd=repo_path)
         if not success_co_base:
             print(f"{Fore.RED}Error crítico al cambiar a '{base_for_new_task}': {err_co_base}{Style.RESET_ALL}")
             if script_initial_branch_success : run_git_command(["git", "checkout", script_initial_branch], cwd=repo_path, suppress_output=True)
             sys.exit(1)
+        current_branch_name_before_new_task = base_for_new_task # Actualizar el nombre después del checkout exitoso
+    
+    # --- NUEVA VERIFICACIÓN: Antes del pull final en base_for_new_task ---
+    # current_branch_name_before_new_task ahora DEBERÍA ser base_for_new_task
+    if check_for_uncommitted_changes(repo_path, branch_name_for_message=current_branch_name_before_new_task): 
+        if script_initial_branch_success : run_git_command(["git", "checkout", script_initial_branch], cwd=repo_path, suppress_output=True)
+        sys.exit(1)
+    # --------------------------------------------------------------------------
     
     # Pull final en la rama base (especialmente importante para hotfix que no pasó por sync_target_from_source_branch)
     print(f"{Fore.CYAN}Asegurando la última versión de '{base_for_new_task}' desde el remoto ('{args.remote}')...{Style.RESET_ALL}")
     success_pull_base, out_pull_base, err_pull_base = run_git_command(["git", "pull", args.remote, base_for_new_task], cwd=repo_path)
     if not success_pull_base:
         print(f"{Fore.RED}Error al actualizar '{base_for_new_task}' local desde el remoto: {err_pull_base}{Style.RESET_ALL}")
-        # Preguntar si continuar es una opción, o abortar.
-        if QUESTIONARY_AVAILABLE:
-            if not questionary.confirm(f"No se pudo hacer 'git pull' en '{base_for_new_task}'. ¿Continuar creando la rama de todas formas?", default=False).ask():
-                if script_initial_branch_success : run_git_command(["git", "checkout", script_initial_branch], cwd=repo_path, suppress_output=True)
-                sys.exit(1)
-        else:
-            print(f"{Fore.YELLOW}Continuando a pesar del fallo en 'git pull' de '{base_for_new_task}'.{Style.RESET_ALL}")
+        # Ya no necesitamos la pregunta interactiva aquí.
+        print(f"{Fore.YELLOW}Operación abortada debido a fallo en 'git pull'.{Style.RESET_ALL}")
+        if script_initial_branch_success : run_git_command(["git", "checkout", script_initial_branch], cwd=repo_path, suppress_output=True)
+        sys.exit(1)
             
     elif "Already up to date" not in out_pull_base and "Ya está actualizado" not in out_pull_base and out_pull_base:
         print(out_pull_base) # Mostrar salida si hubo cambios
@@ -345,54 +463,93 @@ def handle_new_task(args: argparse.Namespace):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="wfwdevs.py - Herramienta para automatizar flujos de trabajo de desarrollo Git.",
-        formatter_class=argparse.RawTextHelpFormatter # Para mejor visualización de choices en help
+        description="Script para gestionar flujos de trabajo de desarrollo Git.",
+        epilog="Ejemplo: wfwdevs.py --task new --type feature --name mi-nueva-funcionalidad"
     )
-    parser.add_argument('-p', '--path', type=Path, default=Path("."),
-                        help='Ruta al directorio raíz del repositorio Git (default: directorio actual)')
-    parser.add_argument('--remote', default=REMOTE_DEFAULT,
-                        help=f'Nombre del remoto Git (default: {REMOTE_DEFAULT})')
-
-    # Grupo de tareas principales
-    task_subparsers = parser.add_subparsers(dest='task', title='Tareas disponibles',
-                                            description='Seleccione una tarea a realizar.',
-                                            required=True, metavar='TASK')
-
-    # --- Subcomando para --task new ---
-    new_task_parser = task_subparsers.add_parser(
-        'new',
-        help='Inicia una nueva tarea de desarrollo (crea una nueva rama de trabajo).',
-        description='Crea una nueva rama de trabajo (feature, fix, etc.) asegurando que \'develop\' (o la rama base) esté sincronizada con \'main\'.'
+    parser.add_argument(
+        "-p", "--path",
+        type=Path,
+        default=Path("."),
+        help="Ruta al directorio del repositorio Git (defecto: directorio actual)."
     )
-    new_task_parser.add_argument('--type', required=True, choices=list(BRANCH_TYPES_CONFIG.keys()),
-                                 help='Tipo de rama/tarea a crear (ej: feature, fix, hotfix).')
-    new_task_parser.add_argument('--name', required=True,
-                                 help='Nombre descriptivo para la tarea/rama (sin el prefijo, ej: mi-nueva-interfaz).')
-    new_task_parser.add_argument('--no-push', action='store_false', dest='push', default=True,
-                                 help='Evita empujar la nueva rama creada al repositorio remoto automáticamente.')
-    new_task_parser.set_defaults(func=handle_new_task)
-    # --- Fin Subcomando new ---
+    parser.add_argument(
+        "--remote",
+        default=REMOTE_DEFAULT,
+        help=f"Nombre del repositorio remoto (defecto: {REMOTE_DEFAULT})."
+    )
+    parser.add_argument(
+        "--task",
+        required=True,
+        choices=['new'], # Se pueden añadir más tareas aquí en el futuro
+        help="Tarea a realizar (ej: new)."
+    )
+    # Argumentos específicos para --task new, ahora en el parser principal
+    parser.add_argument(
+        "--type",
+        # required=False, # Su obligatoriedad se valida dentro de la lógica de la tarea
+        choices=list(BRANCH_TYPES_CONFIG.keys()),
+        help="Tipo de rama a crear (solo para --task new)."
+    )
+    parser.add_argument(
+        "--name",
+        # required=False, # Su obligatoriedad se valida dentro de la lógica de la tarea
+        help="Nombre descriptivo para la tarea/rama (se limpiará para formar el nombre de la rama; solo para --task new)."
+    )
+    parser.add_argument(
+        "--no-push",
+        action="store_true",
+        help="Evita hacer push de la nueva rama y de develop al remoto (solo para --task new)."
+    )
+    # Eliminada la sección de subparsers
+    # subparsers = parser.add_subparsers(
+    #     title="TASK",
+    #     description="Tarea a realizar",
+    #     dest="task_name",
+    #     required=True,
+    #     help="Utiliza 'wfwdevs.py <TASK> --help' para más información sobre una tarea."
+    # )
+
+    # --- Subparser para la tarea 'new' ---
+    # new_parser = subparsers.add_parser(
+    #     "new",
+    #     help="Crea una nueva rama de trabajo (feature, fix, etc.)",
+    #     description="Crea una nueva rama de trabajo estandarizada (feature, fix, hotfix, etc.), asegurando la sincronización adecuada con las ramas principales."
+    # )
+    # new_parser.add_argument(
+    #     "--type",
+    #     required=True,
+    #     choices=list(BRANCH_TYPES_CONFIG.keys()),
+    #     help="Tipo de rama a crear."
+    # )
+    # new_parser.add_argument(
+    #     "--name",
+    #     required=True,
+    #     help="Nombre descriptivo para la tarea/rama (se limpiará para formar el nombre de la rama)."
+    # )
+    # new_parser.add_argument(
+    #     "--no-push",
+    #     action="store_true",
+    #     help="Evita hacer push de la nueva rama y de develop al remoto."
+    # )
     
-    # Aquí se podrían añadir más subparsers para otras tareas en el futuro:
-    # ej. integrate_task_parser = task_subparsers.add_parser('integrate', help='Integra la rama actual en develop/main.')
-    # ej. cleanup_task_parser = task_subparsers.add_parser('cleanup', help='Limpia ramas fusionadas.')
-
     args = parser.parse_args()
 
-    # Validar que la ruta del repositorio (path) exista y sea un directorio
-    if not args.path.is_dir():
-        print(f"{Fore.RED}Error: La ruta especificada para el repositorio '{args.path}' no es un directorio válido.{Style.RESET_ALL}")
-        sys.exit(1)
-        
-    # El script espera ser ejecutado desde cualquier lugar, y las operaciones Git
-    # se realizan en `args.path` usando el argumento `cwd` de `run_git_command`.
-    # No es necesario cambiar el directorio global del script con os.chdir().
-
-    if hasattr(args, 'func'):
-        args.func(args) # Llama a la función manejadora asociada con el subcomando (ej. handle_new_task)
+    # --- Selección de la acción basada en el argumento --task ---
+    if args.task == "new":
+        # Validar que --type y --name se proporcionaron para --task new
+        if not args.type or not args.name:
+            parser.error("Los argumentos --type y --name son obligatorios para --task new.")
+        handle_new_task(args)
+    # elif args.task == "otra_tarea_futura":
+    #     handle_otra_tarea_futura(args)
     else:
-        # Esto no debería ocurrir si 'required=True' está en add_subparsers y no hay un comando por defecto.
-        parser.print_help() 
+        # Si se añaden más tareas a choices=['new', 'otra'], este else podría necesitar
+        # un manejo más específico o simplemente dejar que argparse falle si --task no es reconocido.
+        # Por ahora, con solo 'new' como opción, esto no se alcanzaría si --task es 'new'.
+        # Si --task no es 'new' (y es la única opción), argparse fallará antes.
+        # Si se expanden las choices, aquí se podría tener un error más genérico o un print_help().
+        print(f"Tarea '{args.task}' no reconocida o no implementada.", file=sys.stderr)
+        parser.print_help()
         sys.exit(1)
 
 if __name__ == "__main__":
