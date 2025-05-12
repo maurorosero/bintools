@@ -147,8 +147,10 @@ def check_for_uncommitted_changes(repo_path: Path, branch_name_for_message: str 
                         return False # No había nada que impidiera la operación o el stash lo resolvió.
                     
                     print(f"{Fore.GREEN}Cambios guardados temporalmente en el stash. Continuando...{Style.RESET_ALL}")
-                    # Se podría almacenar el nombre del stash aquí si quisiéramos intentar un pop automático más tarde.
-                    # ejemplo: last_stash_ref = run_git_command(["git", "rev-parse", "refs/stash"], ...)[1]
+                    print(f"{Fore.CYAN}NOTA: Para recuperar estos cambios más tarde en la rama '{branch_name_for_message}', puedes usar:{Style.RESET_ALL}")
+                    print(f"{Fore.CYAN}  1. Cambia a la rama: git checkout {branch_name_for_message}{Style.RESET_ALL}")
+                    print(f"{Fore.CYAN}  2. Aplica el stash: git stash pop{Style.RESET_ALL}")
+                    print(f"{Fore.CYAN}(El stash se guardó con el mensaje: \"{stash_msg}\"){Style.RESET_ALL}")
                     return False # Indicar que el problema está "resuelto" para que el flujo principal continúe.
                 else:
                     print(f"{Fore.RED}Error al intentar guardar los cambios con 'git stash': {err_stash or out_stash}{Style.RESET_ALL}")
@@ -538,18 +540,32 @@ def handle_sync_develop_task(args: argparse.Namespace):
     if integration_strategy == "rebase":
         print(f"\n{Fore.CYAN}Intentando rebase de '{dev_branch_to_sync}' sobre '{remote_name}/{dev_branch_to_sync}'...{Style.RESET_ALL}")
         success_rebase, out_rebase, err_rebase = run_git_command(["git", "rebase", f"{remote_name}/{dev_branch_to_sync}"], cwd=repo_path, check=False)
-        if success_rebase:
-            if "Successfully rebased and updated" in out_rebase or "Current branch is up to date" in out_rebase or "La rama actual está actualizada" in out_rebase: # Esto puede variar por idioma
-                print(f"{Fore.GREEN}Rebase completado exitosamente.{Style.RESET_ALL}")
-                if out_rebase and "Current branch is up to date" not in out_rebase and "La rama actual está actualizada" not in out_rebase : print(out_rebase)
+        
+        if success_rebase: # success_rebase es True si el comando tuvo exit code 0
+            no_change_messages = [
+                "Successfully rebased and updated", 
+                "Current branch is up to date", 
+                "La rama actual está actualizada", # Español
+                "Current branch develop is up to date.", # Variación
+                "Current branch main is up to date." # Variación para main u otra rama
+            ]
+            # Construir un mensaje específico de rama para la comprobación "up to date"
+            specific_up_to_date_msg = f"Current branch {dev_branch_to_sync} is up to date."
+            if specific_up_to_date_msg not in no_change_messages:
+                no_change_messages.append(specific_up_to_date_msg)
+
+            if any(msg in out_rebase for msg in no_change_messages):
+                print(f"{Fore.GREEN}Rebase indica que la rama ya está actualizada o el rebase fue trivialmente exitoso.{Style.RESET_ALL}")
+                # Opcionalmente, imprimir la salida solo si no es uno de los mensajes de "ya actualizado" más comunes
+                # para evitar redundancia, o si es el mensaje de "Successfully rebased..."
+                if "Successfully rebased and updated" in out_rebase or not any(up_to_date_msg in out_rebase for up_to_date_msg in no_change_messages if up_to_date_msg != "Successfully rebased and updated"):
+                    if out_rebase.strip(): print(out_rebase)
                 integration_successful = True
-            else: # Rebase puede ser exitoso (código 0) pero con conflictos o necesidad de continuar
+            else:
+                # Lógica existente para cuando el rebase podría tener conflictos o necesitar continuación
                 print(f"{Fore.YELLOW}El comando 'git rebase' terminó. Salida: {out_rebase or err_rebase}{Style.RESET_ALL}")
                 print(f"{Fore.YELLOW}Si hay conflictos, resuélvelos y luego ejecuta 'git add .' seguido de 'git rebase --continue'.{Style.RESET_ALL}")
-                print(f"{Fore.YELLOW}Si el rebase ya se completó (ej. 'No changes a'), puedes proceder al push.{Style.RESET_ALL}")
-                # No podemos asumir automáticamente que integration_successful es True aquí.
-                # El usuario debe confirmar/manejar el estado del rebase.
-                # Para un flujo simple, le pedimos que haga push manual si el script no puede confirmarlo.
+                print(f"{Fore.YELLOW}Si el rebase ya se completó (ej. la salida indica que no hay cambios o está actualizado), puedes proceder al push.{Style.RESET_ALL}")
                 print(f"{Fore.YELLOW}Una vez que el rebase esté completamente resuelto y finalizado, puedes intentar el push manualmente:{Style.RESET_ALL}")
                 print(f"  git push {remote_name} {dev_branch_to_sync}")
                 sys.exit(0) # Salir para que el usuario maneje el rebase
