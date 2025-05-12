@@ -461,94 +461,210 @@ def handle_new_task(args: argparse.Namespace):
     print(f"\n{Fore.MAGENTA}--- ¡Listo! Ya puede empezar a trabajar en la rama '{full_new_branch_name}' ---{Style.RESET_ALL}")
 
 
+def handle_sync_develop_task(args: argparse.Namespace):
+    """Manejador para --task sync-develop"""
+    print(f"{Fore.MAGENTA}--- Iniciando Sincronización de Rama de Desarrollo ---{Style.RESET_ALL}")
+
+    repo_path = args.path.resolve()
+    remote_name = args.remote
+    dev_branch_to_sync = args.develop_branch_name # Este argumento vendrá del subparser
+
+    if not (repo_path / ".git").is_dir() and not (repo_path / ".git").is_file():
+        print(f"{Fore.RED}Error: La ruta '{repo_path}' no parece ser un repositorio Git válido.{Style.RESET_ALL}")
+        sys.exit(1)
+
+    # 1. Verificar y/o cambiar a la rama de desarrollo a sincronizar
+    current_branch_success, current_branch, _ = run_git_command(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_path, suppress_output=True)
+    if not current_branch_success:
+        print(f"{Fore.RED}Error: No se pudo determinar la rama actual en '{repo_path}'. Abortando.{Style.RESET_ALL}")
+        sys.exit(1)
+
+    if current_branch != dev_branch_to_sync:
+        print(f"{Fore.YELLOW}Actualmente estás en la rama '{current_branch}'. Esta operación sincronizará '{dev_branch_to_sync}'.{Style.RESET_ALL}")
+        if QUESTIONARY_AVAILABLE:
+            if not questionary.confirm(f"¿Deseas cambiar a la rama '{dev_branch_to_sync}' para continuar?", default=True).ask():
+                print(f"{Fore.YELLOW}Operación cancelada por el usuario.{Style.RESET_ALL}")
+                sys.exit(0)
+        else:
+            print(f"{Fore.YELLOW}Módulo 'questionary' no disponible. No se puede cambiar de rama interactivamente. Abortando.{Style.RESET_ALL}")
+            sys.exit(1)
+        
+        # Antes de cambiar, verificar cambios en la rama actual
+        if check_for_uncommitted_changes(repo_path, branch_name_for_message=current_branch):
+            print(f"{Fore.RED}Por favor, maneja los cambios en '{current_branch}' antes de cambiar de rama. Abortando.{Style.RESET_ALL}")
+            sys.exit(1)
+
+        print(f"{Fore.CYAN}Cambiando a la rama '{dev_branch_to_sync}'...{Style.RESET_ALL}")
+        success_checkout, _, err_checkout = run_git_command(["git", "checkout", dev_branch_to_sync], cwd=repo_path)
+        if not success_checkout:
+            print(f"{Fore.RED}Error al cambiar a la rama '{dev_branch_to_sync}': {err_checkout}{Style.RESET_ALL}")
+            sys.exit(1)
+        print(f"{Fore.GREEN}Cambiado exitosamente a la rama '{dev_branch_to_sync}'.{Style.RESET_ALL}")
+    else:
+        print(f"{Fore.CYAN}Ya te encuentras en la rama '{dev_branch_to_sync}'.{Style.RESET_ALL}")
+
+    # 2. Verificar cambios sin confirmar en la rama de desarrollo
+    if check_for_uncommitted_changes(repo_path, branch_name_for_message=dev_branch_to_sync):
+        # Mensaje ya impreso por la función. El usuario debe manejarlo.
+        sys.exit(1)
+
+    # 3. Actualizar información del remoto (fetch)
+    print(f"\n{Fore.CYAN}Actualizando información de '{remote_name}/{dev_branch_to_sync}' desde el remoto...{Style.RESET_ALL}")
+    success_fetch, out_fetch, err_fetch = run_git_command(["git", "fetch", remote_name, dev_branch_to_sync], cwd=repo_path)
+    if not success_fetch:
+        print(f"{Fore.RED}Error al ejecutar 'git fetch {remote_name} {dev_branch_to_sync}': {err_fetch or out_fetch}{Style.RESET_ALL}")
+        sys.exit(1)
+    if out_fetch: print(out_fetch) # Mostrar si fetch trajo algo
+
+    # 4. Elegir estrategia de integración y ejecutar
+    integration_strategy = "rebase" # Default
+    if QUESTIONARY_AVAILABLE:
+        choice = questionary.select(
+            f"¿Cómo deseas integrar los cambios de '{remote_name}/{dev_branch_to_sync}' en tu rama '{dev_branch_to_sync}' local?",
+            choices=[
+                questionary.Choice("rebase (mantiene historial lineal, recomendado)", value="rebase"),
+                questionary.Choice("merge (crea un commit de fusión)", value="merge"),
+            ],
+            default=None # Forzar elección
+        ).ask()
+        if choice is None: # Usuario canceló
+            print(f"{Fore.YELLOW}Operación cancelada por el usuario.{Style.RESET_ALL}")
+            sys.exit(0)
+        integration_strategy = choice
+    else:
+        print(f"{Fore.YELLOW}Módulo 'questionary' no disponible. Usando 'rebase' por defecto.{Style.RESET_ALL}")
+
+    integration_successful = False
+    if integration_strategy == "rebase":
+        print(f"\n{Fore.CYAN}Intentando rebase de '{dev_branch_to_sync}' sobre '{remote_name}/{dev_branch_to_sync}'...{Style.RESET_ALL}")
+        success_rebase, out_rebase, err_rebase = run_git_command(["git", "rebase", f"{remote_name}/{dev_branch_to_sync}"], cwd=repo_path, check=False)
+        if success_rebase:
+            if "Successfully rebased and updated" in out_rebase or "Current branch is up to date" in out_rebase or "La rama actual está actualizada" in out_rebase: # Esto puede variar por idioma
+                print(f"{Fore.GREEN}Rebase completado exitosamente.{Style.RESET_ALL}")
+                if out_rebase and "Current branch is up to date" not in out_rebase and "La rama actual está actualizada" not in out_rebase : print(out_rebase)
+                integration_successful = True
+            else: # Rebase puede ser exitoso (código 0) pero con conflictos o necesidad de continuar
+                print(f"{Fore.YELLOW}El comando 'git rebase' terminó. Salida: {out_rebase or err_rebase}{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}Si hay conflictos, resuélvelos y luego ejecuta 'git add .' seguido de 'git rebase --continue'.{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}Si el rebase ya se completó (ej. 'No changes a'), puedes proceder al push.{Style.RESET_ALL}")
+                # No podemos asumir automáticamente que integration_successful es True aquí.
+                # El usuario debe confirmar/manejar el estado del rebase.
+                # Para un flujo simple, le pedimos que haga push manual si el script no puede confirmarlo.
+                print(f"{Fore.YELLOW}Una vez que el rebase esté completamente resuelto y finalizado, puedes intentar el push manualmente:{Style.RESET_ALL}")
+                print(f"  git push {remote_name} {dev_branch_to_sync}")
+                sys.exit(0) # Salir para que el usuario maneje el rebase
+        else:
+            print(f"{Fore.RED}Error durante el 'git rebase': {err_rebase or out_rebase}{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}Por favor, resuelve los problemas (ej. conflictos) y completa o aborta el rebase manualmente.{Style.RESET_ALL}")
+            print(f"  Para abortar: git rebase --abort")
+            sys.exit(1)
+
+    elif integration_strategy == "merge":
+        print(f"\n{Fore.CYAN}Intentando merge de '{remote_name}/{dev_branch_to_sync}' en '{dev_branch_to_sync}' local...{Style.RESET_ALL}")
+        # Usamos --no-ff para crear un commit de merge si es posible
+        success_merge, out_merge, err_merge = run_git_command(["git", "merge", f"{remote_name}/{dev_branch_to_sync}", "--no-ff", "--no-edit"], cwd=repo_path, check=False)
+        if success_merge:
+            print(f"{Fore.GREEN}Merge completado exitosamente.{Style.RESET_ALL}")
+            if out_merge and "Already up to date" not in out_merge and "Ya está actualizado" not in out_merge: print(out_merge)
+            integration_successful = True
+        else:
+            if "conflict" in (out_merge + err_merge).lower():
+                print(f"{Fore.RED}¡CONFLICTO! Se encontraron conflictos durante el merge.{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}Por favor, resuelva los conflictos manualmente, luego ejecute 'git add .' y 'git commit'.{Style.RESET_ALL}")
+            else:
+                print(f"{Fore.RED}Error durante el 'git merge': {err_merge or out_merge}{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}Una vez que el merge esté completamente resuelto y confirmado, puedes intentar el push manualmente:{Style.RESET_ALL}")
+            print(f"  git push {remote_name} {dev_branch_to_sync}")
+            sys.exit(1) # Salir para que el usuario maneje el merge
+
+    # 5. Empujar cambios (Push) si la integración fue exitosa y sin intervención manual pendiente
+    if integration_successful:
+        print(f"\n{Fore.CYAN}Intentando empujar (push) la rama '{dev_branch_to_sync}' a '{remote_name}'...{Style.RESET_ALL}")
+        success_push, out_push, err_push = run_git_command(["git", "push", remote_name, dev_branch_to_sync], cwd=repo_path)
+        if success_push:
+            if "Everything up-to-date" in out_push or "Todo actualizado" in out_push:
+                 print(f"{Fore.GREEN}La rama '{dev_branch_to_sync}' en '{remote_name}' ya estaba actualizada.{Style.RESET_ALL}")
+            else:
+                print(f"{Fore.GREEN}Push de '{dev_branch_to_sync}' a '{remote_name}' completado exitosamente.{Style.RESET_ALL}")
+                if out_push: print(out_push)
+            print(f"\n{Fore.MAGENTA}--- Sincronización de '{dev_branch_to_sync}' finalizada ---{Style.RESET_ALL}")
+        else:
+            print(f"{Fore.RED}Error al empujar la rama '{dev_branch_to_sync}' a '{remote_name}': {err_push or out_push}{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}La integración local (rebase/merge) pudo haber sido exitosa, pero el push falló.{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}Por favor, intenta el push manualmente: git push {remote_name} {dev_branch_to_sync}{Style.RESET_ALL}")
+            sys.exit(1)
+    else:
+        # Esto no debería alcanzarse si las ramas de rebase/merge con problemas salen antes.
+        # Pero es un seguro en caso de que integration_successful no se ponga a True.
+        print(f"{Fore.YELLOW}La integración no se completó automáticamente. No se intentará el push.{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}Por favor, asegúrate de que tu rama '{dev_branch_to_sync}' esté como la deseas y luego haz push manualmente.{Style.RESET_ALL}")
+
 def main():
     parser = argparse.ArgumentParser(
-        description="Script para gestionar flujos de trabajo de desarrollo Git.",
-        epilog="Ejemplo: wfwdevs.py --task new --type feature --name mi-nueva-funcionalidad"
+        description="wfwdevs.py - Herramienta para automatizar flujos de trabajo de desarrollo Git.",
+        formatter_class=argparse.RawTextHelpFormatter,
+        epilog="""Ejemplos de uso:
+  wfwdevs.py --task-new --type feature --name mi-nueva-funcionalidad
+  wfwdevs.py --sync-develop --develop-branch-name develop_alternativa
+"""
     )
-    parser.add_argument(
-        "-p", "--path",
-        type=Path,
-        default=Path("."),
-        help="Ruta al directorio del repositorio Git (defecto: directorio actual)."
+    parser.add_argument('-p', '--path', type=Path, default=Path("."),
+                        help='Ruta al directorio raíz del repositorio Git (default: directorio actual)')
+    parser.add_argument('--remote', default=REMOTE_DEFAULT,
+                        help=f'Nombre del remoto Git (default: {REMOTE_DEFAULT})')
+
+    # Grupo para las tareas principales mutuamente excluyentes
+    task_action_group = parser.add_mutually_exclusive_group(required=True)
+    task_action_group.add_argument(
+        '--task-new',
+        action='store_true',
+        help="Indica la creación de una nueva rama de trabajo. Requiere --type y --name."
     )
-    parser.add_argument(
-        "--remote",
-        default=REMOTE_DEFAULT,
-        help=f"Nombre del repositorio remoto (defecto: {REMOTE_DEFAULT})."
+    task_action_group.add_argument(
+        '--sync-develop',
+        action='store_true',
+        help="Indica la sincronización de la rama de desarrollo."
     )
-    parser.add_argument(
-        "--task",
-        required=True,
-        choices=['new'], # Se pueden añadir más tareas aquí en el futuro
-        help="Tarea a realizar (ej: new)."
-    )
-    # Argumentos específicos para --task new, ahora en el parser principal
+    
+    # Argumentos para --task-new
     parser.add_argument(
         "--type",
-        # required=False, # Su obligatoriedad se valida dentro de la lógica de la tarea
         choices=list(BRANCH_TYPES_CONFIG.keys()),
-        help="Tipo de rama a crear (solo para --task new)."
+        help="Tipo de rama a crear (usado con --task-new)."
     )
     parser.add_argument(
         "--name",
-        # required=False, # Su obligatoriedad se valida dentro de la lógica de la tarea
-        help="Nombre descriptivo para la tarea/rama (se limpiará para formar el nombre de la rama; solo para --task new)."
+        help="Nombre descriptivo para la tarea/rama (usado con --task-new)."
     )
     parser.add_argument(
         "--no-push",
         action="store_true",
-        help="Evita hacer push de la nueva rama y de develop al remoto (solo para --task new)."
+        help="Evita hacer push de la nueva rama (usado con --task-new)."
     )
-    # Eliminada la sección de subparsers
-    # subparsers = parser.add_subparsers(
-    #     title="TASK",
-    #     description="Tarea a realizar",
-    #     dest="task_name",
-    #     required=True,
-    #     help="Utiliza 'wfwdevs.py <TASK> --help' para más información sobre una tarea."
-    # )
 
-    # --- Subparser para la tarea 'new' ---
-    # new_parser = subparsers.add_parser(
-    #     "new",
-    #     help="Crea una nueva rama de trabajo (feature, fix, etc.)",
-    #     description="Crea una nueva rama de trabajo estandarizada (feature, fix, hotfix, etc.), asegurando la sincronización adecuada con las ramas principales."
-    # )
-    # new_parser.add_argument(
-    #     "--type",
-    #     required=True,
-    #     choices=list(BRANCH_TYPES_CONFIG.keys()),
-    #     help="Tipo de rama a crear."
-    # )
-    # new_parser.add_argument(
-    #     "--name",
-    #     required=True,
-    #     help="Nombre descriptivo para la tarea/rama (se limpiará para formar el nombre de la rama)."
-    # )
-    # new_parser.add_argument(
-    #     "--no-push",
-    #     action="store_true",
-    #     help="Evita hacer push de la nueva rama y de develop al remoto."
-    # )
-    
+    # Argumentos para --sync-develop
+    parser.add_argument(
+        "--develop-branch-name",
+        default=DEVELOP_BRANCH,
+        help=f"Nombre de la rama de desarrollo a sincronizar (usado con --sync-develop; defecto: {DEVELOP_BRANCH})."
+    )
+
     args = parser.parse_args()
 
-    # --- Selección de la acción basada en el argumento --task ---
-    if args.task == "new":
-        # Validar que --type y --name se proporcionaron para --task new
+    # Validar que la ruta del repositorio (path) exista y sea un directorio
+    if not args.path.is_dir():
+        print(f"{Fore.RED}Error: La ruta especificada para el repositorio '{args.path}' no es un directorio válido.{Style.RESET_ALL}")
+        sys.exit(1)
+
+    # --- Lógica de despacho basada en la acción seleccionada ---
+    if args.task_new:
         if not args.type or not args.name:
-            parser.error("Los argumentos --type y --name son obligatorios para --task new.")
+            parser.error("Para --task-new, los argumentos --type y --name son obligatorios.")
         handle_new_task(args)
-    # elif args.task == "otra_tarea_futura":
-    #     handle_otra_tarea_futura(args)
+    elif args.sync_develop:
+        handle_sync_develop_task(args)
     else:
-        # Si se añaden más tareas a choices=['new', 'otra'], este else podría necesitar
-        # un manejo más específico o simplemente dejar que argparse falle si --task no es reconocido.
-        # Por ahora, con solo 'new' como opción, esto no se alcanzaría si --task es 'new'.
-        # Si --task no es 'new' (y es la única opción), argparse fallará antes.
-        # Si se expanden las choices, aquí se podría tener un error más genérico o un print_help().
-        print(f"Tarea '{args.task}' no reconocida o no implementada.", file=sys.stderr)
+        # Este caso no debería ser alcanzado si el grupo mutuamente excluyente es required=True
         parser.print_help()
         sys.exit(1)
 
