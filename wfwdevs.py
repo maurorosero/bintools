@@ -465,155 +465,195 @@ def handle_new_task(args: argparse.Namespace):
 
 def handle_sync_develop_task(args: argparse.Namespace):
     """Manejador para --task sync-develop"""
-    print(f"{Fore.MAGENTA}--- Iniciando Sincronización de Rama de Desarrollo ---{Style.RESET_ALL}")
+    if not QUESTIONARY_AVAILABLE:
+        print(f"{Fore.RED}La biblioteca 'questionary' no está instalada. Esta función requiere 'questionary' para la interacción.{Style.RESET_ALL}")
+        print(f"{Fore.RED}Por favor, instálala con 'pip install questionary' e inténtalo de nuevo.{Style.RESET_ALL}")
+        # No salir aquí directamente, permitir la restauración de la rama si es posible.
+        # La función debería terminar si QUESTIONARY_AVAILABLE es False y se intenta usar.
+        return
+
+    print(f"{Fore.MAGENTA}--- Iniciando Sincronización de Rama '{args.develop_branch_name}' ---{Style.RESET_ALL}")
 
     repo_path = args.path.resolve()
     remote_name = args.remote
-    dev_branch_to_sync = args.develop_branch_name # Este argumento vendrá del subparser
+    dev_branch_to_sync = args.develop_branch_name
 
     if not (repo_path / ".git").is_dir() and not (repo_path / ".git").is_file():
         print(f"{Fore.RED}Error: La ruta '{repo_path}' no parece ser un repositorio Git válido.{Style.RESET_ALL}")
-        sys.exit(1)
+        return
 
-    # 1. Verificar y/o cambiar a la rama de desarrollo a sincronizar
-    current_branch_success, current_branch, _ = run_git_command(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_path, suppress_output=True)
-    if not current_branch_success:
+    success_orig_branch, original_branch, _ = run_git_command(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_path, suppress_output=True)
+    if not success_orig_branch:
         print(f"{Fore.RED}Error: No se pudo determinar la rama actual en '{repo_path}'. Abortando.{Style.RESET_ALL}")
-        sys.exit(1)
+        return
 
-    if current_branch != dev_branch_to_sync:
-        print(f"{Fore.YELLOW}Actualmente estás en la rama '{current_branch}'. Esta operación sincronizará '{dev_branch_to_sync}'.{Style.RESET_ALL}")
-        if QUESTIONARY_AVAILABLE:
-            if not questionary.confirm(f"¿Deseas cambiar a la rama '{dev_branch_to_sync}' para continuar?", default=True).ask():
-                print(f"{Fore.YELLOW}Operación cancelada por el usuario.{Style.RESET_ALL}")
-                sys.exit(0)
-        else:
-            print(f"{Fore.YELLOW}Módulo 'questionary' no disponible. No se puede cambiar de rama interactivamente. Abortando.{Style.RESET_ALL}")
-            sys.exit(1)
-        
-        # Antes de cambiar, verificar cambios en la rama actual
-        if check_for_uncommitted_changes(repo_path, branch_name_for_message=current_branch):
-            print(f"{Fore.RED}Por favor, maneja los cambios en '{current_branch}' antes de cambiar de rama. Abortando.{Style.RESET_ALL}")
-            sys.exit(1)
+    # 1. Cambiar a la rama de desarrollo si no es la actual
+    if original_branch != dev_branch_to_sync:
+        print(f"{Fore.YELLOW}Actualmente estás en la rama '{original_branch}'.{Style.RESET_ALL}")
+        # Verificar cambios en la rama original ANTES de cambiar
+        if check_for_uncommitted_changes(repo_path, branch_name_for_message=original_branch):
+            # check_for_uncommitted_changes ya pregunta y puede salir o hacer stash.
+            # Si devuelve True (problema persiste), abortamos la sincronización.
+            print(f"{Fore.YELLOW}Operación de sincronización abortada debido a cambios sin gestionar en '{original_branch}'.{Style.RESET_ALL}")
+            return
 
         print(f"{Fore.CYAN}Cambiando a la rama '{dev_branch_to_sync}'...{Style.RESET_ALL}")
         success_checkout, _, err_checkout = run_git_command(["git", "checkout", dev_branch_to_sync], cwd=repo_path)
         if not success_checkout:
             print(f"{Fore.RED}Error al cambiar a la rama '{dev_branch_to_sync}': {err_checkout}{Style.RESET_ALL}")
-            sys.exit(1)
+            # No intentar restaurar aquí, ya que no se cambió con éxito de la original.
+            return
         print(f"{Fore.GREEN}Cambiado exitosamente a la rama '{dev_branch_to_sync}'.{Style.RESET_ALL}")
     else:
-        print(f"{Fore.CYAN}Ya te encuentras en la rama '{dev_branch_to_sync}'.{Style.RESET_ALL}")
+        print(f"{Fore.GREEN}Ya te encuentras en la rama '{dev_branch_to_sync}'.{Style.RESET_ALL}")
 
-    # 2. Verificar cambios sin confirmar en la rama de desarrollo
+    # 2. Verificar cambios sin confirmar en la rama de desarrollo (ahora la actual)
     if check_for_uncommitted_changes(repo_path, branch_name_for_message=dev_branch_to_sync):
-        # Mensaje ya impreso por la función. El usuario debe manejarlo.
-        sys.exit(1)
+        # Mensaje ya impreso por la función. El usuario debe manejarlo o se hizo stash.
+        # Si check_for_uncommitted_changes devuelve True, significa que hay un problema y debemos detenernos.
+        if original_branch != dev_branch_to_sync: # Solo intentar restaurar si se cambió de rama
+            print(f"{Fore.YELLOW}Restaurando rama original '{original_branch}'...{Style.RESET_ALL}")
+            run_git_command(["git", "checkout", original_branch], cwd=repo_path, suppress_output=True)
+        return
 
     # 3. Actualizar información del remoto (fetch)
-    print(f"\n{Fore.CYAN}Actualizando información de '{remote_name}/{dev_branch_to_sync}' desde el remoto...{Style.RESET_ALL}")
-    success_fetch, out_fetch, err_fetch = run_git_command(["git", "fetch", remote_name, dev_branch_to_sync], cwd=repo_path)
+    print(f"\n{Fore.CYAN}Actualizando información de '{remote_name}' para la rama '{dev_branch_to_sync}'...{Style.RESET_ALL}")
+    # Fetch general del remoto es suficiente, no solo de la rama.
+    success_fetch, out_fetch, err_fetch = run_git_command(["git", "fetch", remote_name], cwd=repo_path)
     if not success_fetch:
-        print(f"{Fore.RED}Error al ejecutar 'git fetch {remote_name} {dev_branch_to_sync}': {err_fetch or out_fetch}{Style.RESET_ALL}")
-        sys.exit(1)
-    if out_fetch: print(out_fetch) # Mostrar si fetch trajo algo
+        print(f"{Fore.RED}Error al ejecutar 'git fetch {remote_name}': {err_fetch or out_fetch}{Style.RESET_ALL}")
+        if original_branch != dev_branch_to_sync:
+            run_git_command(["git", "checkout", original_branch], cwd=repo_path, suppress_output=True)
+        return
+    if out_fetch and not ("Fetching" in out_fetch and len(out_fetch.splitlines()) == 1 and not err_fetch) : # Mostrar si fetch trajo algo significativo
+        print(out_fetch)
 
-    # 4. Elegir estrategia de integración y ejecutar
-    integration_strategy = "rebase" # Default
-    if QUESTIONARY_AVAILABLE:
-        choice = questionary.select(
-            f"¿Cómo deseas integrar los cambios de '{remote_name}/{dev_branch_to_sync}' en tu rama '{dev_branch_to_sync}' local?",
-            choices=[
-                questionary.Choice("rebase (mantiene historial lineal, recomendado)", value="rebase"),
-                questionary.Choice("merge (crea un commit de fusión)", value="merge"),
-            ],
-            default=None # Forzar elección
-        ).ask()
-        if choice is None: # Usuario canceló
-            print(f"{Fore.YELLOW}Operación cancelada por el usuario.{Style.RESET_ALL}")
-            sys.exit(0)
-        integration_strategy = choice
-    else:
-        print(f"{Fore.YELLOW}Módulo 'questionary' no disponible. Usando 'rebase' por defecto.{Style.RESET_ALL}")
+
+    # 4. Preguntar estrategia de sincronización
+    if not QUESTIONARY_AVAILABLE: # Comprobación redundante por si acaso, ya que se hizo al inicio
+        print(f"{Fore.RED}Error: 'questionary' no está disponible. No se puede continuar con la selección interactiva.{Style.RESET_ALL}")
+        if original_branch != dev_branch_to_sync:
+            run_git_command(["git", "checkout", original_branch], cwd=repo_path, suppress_output=True)
+        return
+        
+    choices = [
+        questionary.Choice("Sincronizar localmente con 'rebase' y luego intentar Push directo al remoto", value="rebase_push"),
+        questionary.Choice("Sincronizar localmente con 'merge' y luego intentar Push directo al remoto", value="merge_push"),
+        questionary.Choice("Solo Sincronizar localmente con 'rebase' (no se contactará al remoto)", value="rebase_only"),
+        questionary.Choice("Solo Sincronizar localmente con 'merge' (no se contactará al remoto)", value="merge_only"),
+        questionary.Choice("No hacer nada (gestión manual)", value="manual")
+    ]
+    chosen_strategy = questionary.select(
+        f"¿Cómo deseas sincronizar '{dev_branch_to_sync}' con '{remote_name}/{dev_branch_to_sync}'?",
+        choices=choices,
+        default=choices[0] # Default a rebase_push
+    ).ask()
+
+    if chosen_strategy is None or chosen_strategy == "manual": # Usuario canceló con Ctrl+C o eligió manual
+        print(f"{Fore.YELLOW}Gestión manual seleccionada o cancelada. No se realizará ninguna acción automática.{Style.RESET_ALL}")
+        if original_branch != dev_branch_to_sync:
+            print(f"{Fore.YELLOW}Restaurando rama original '{original_branch}'...{Style.RESET_ALL}")
+            run_git_command(["git", "checkout", original_branch], cwd=repo_path, suppress_output=True)
+        return
+
+    local_op = None
+    if "rebase" in chosen_strategy:
+        local_op = "rebase"
+    elif "merge" in chosen_strategy:
+        local_op = "merge"
 
     integration_successful = False
-    if integration_strategy == "rebase":
-        print(f"\n{Fore.CYAN}Intentando rebase de '{dev_branch_to_sync}' sobre '{remote_name}/{dev_branch_to_sync}'...{Style.RESET_ALL}")
-        success_rebase, out_rebase, err_rebase = run_git_command(["git", "rebase", f"{remote_name}/{dev_branch_to_sync}"], cwd=repo_path, check=False)
-        
-        if success_rebase: # success_rebase es True si el comando tuvo exit code 0
-            no_change_messages = [
-                "Successfully rebased and updated", 
-                "Current branch is up to date", 
-                "La rama actual está actualizada", # Español
-                "Current branch develop is up to date.", # Variación
-                "Current branch main is up to date." # Variación para main u otra rama
-            ]
-            # Construir un mensaje específico de rama para la comprobación "up to date"
-            specific_up_to_date_msg = f"Current branch {dev_branch_to_sync} is up to date."
-            if specific_up_to_date_msg not in no_change_messages:
-                no_change_messages.append(specific_up_to_date_msg)
+    if local_op:
+        print(f"\n{Fore.CYAN}Ejecutando '{local_op}' local de '{dev_branch_to_sync}' con '{remote_name}/{dev_branch_to_sync}'...{Style.RESET_ALL}")
+        integration_command_list = ["git", local_op, f"{remote_name}/{dev_branch_to_sync}"]
+        # Para merge, podríamos añadir --no-ff, --no-edit si queremos forzar un commit de merge.
+        # if local_op == "merge":
+        # integration_command_list.extend(["--no-ff", "--no-edit"]) # Opcional
+            
+        success_integration, out_integration, err_integration = run_git_command(integration_command_list, cwd=repo_path, check=False)
 
-            if any(msg in out_rebase for msg in no_change_messages):
-                print(f"{Fore.GREEN}Rebase indica que la rama ya está actualizada o el rebase fue trivialmente exitoso.{Style.RESET_ALL}")
-                # Opcionalmente, imprimir la salida solo si no es uno de los mensajes de "ya actualizado" más comunes
-                # para evitar redundancia, o si es el mensaje de "Successfully rebased..."
-                if "Successfully rebased and updated" in out_rebase or not any(up_to_date_msg in out_rebase for up_to_date_msg in no_change_messages if up_to_date_msg != "Successfully rebased and updated"):
-                    if out_rebase.strip(): print(out_rebase)
-                integration_successful = True
-            else:
-                # Lógica existente para cuando el rebase podría tener conflictos o necesitar continuación
-                print(f"{Fore.YELLOW}El comando 'git rebase' terminó. Salida: {out_rebase or err_rebase}{Style.RESET_ALL}")
-                print(f"{Fore.YELLOW}Si hay conflictos, resuélvelos y luego ejecuta 'git add .' seguido de 'git rebase --continue'.{Style.RESET_ALL}")
-                print(f"{Fore.YELLOW}Si el rebase ya se completó (ej. la salida indica que no hay cambios o está actualizado), puedes proceder al push.{Style.RESET_ALL}")
-                print(f"{Fore.YELLOW}Una vez que el rebase esté completamente resuelto y finalizado, puedes intentar el push manualmente:{Style.RESET_ALL}")
-                print(f"  git push {remote_name} {dev_branch_to_sync}")
-                sys.exit(0) # Salir para que el usuario maneje el rebase
+        if not success_integration:
+            print(f"{Fore.RED}La operación de '{local_op}' local falló. Revisa la salida.{Style.RESET_ALL}")
+            if out_integration: print(f"{Fore.WHITE}{out_integration}{Style.RESET_ALL}")
+            if err_integration: print(f"{Fore.RED}{err_integration}{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}Puede que necesites resolver conflictos manualmente (ej. 'git {local_op} --abort' o resolver y 'git {local_op} --continue').{Style.RESET_ALL}")
+            integration_successful = False
         else:
-            print(f"{Fore.RED}Error durante el 'git rebase': {err_rebase or out_rebase}{Style.RESET_ALL}")
-            print(f"{Fore.YELLOW}Por favor, resuelve los problemas (ej. conflictos) y completa o aborta el rebase manualmente.{Style.RESET_ALL}")
-            print(f"  Para abortar: git rebase --abort")
-            sys.exit(1)
-
-    elif integration_strategy == "merge":
-        print(f"\n{Fore.CYAN}Intentando merge de '{remote_name}/{dev_branch_to_sync}' en '{dev_branch_to_sync}' local...{Style.RESET_ALL}")
-        # Usamos --no-ff para crear un commit de merge si es posible
-        success_merge, out_merge, err_merge = run_git_command(["git", "merge", f"{remote_name}/{dev_branch_to_sync}", "--no-ff", "--no-edit"], cwd=repo_path, check=False)
-        if success_merge:
-            print(f"{Fore.GREEN}Merge completado exitosamente.{Style.RESET_ALL}")
-            if out_merge and "Already up to date" not in out_merge and "Ya está actualizado" not in out_merge: print(out_merge)
+            print(f"{Fore.GREEN}Operación '{local_op}' local completada con éxito.{Style.RESET_ALL}")
+            if out_integration and (("Current branch" in out_integration and "is up to date" in out_integration) or "Already up to date" in out_integration or "ya está actualizado" in out_integration.lower()):
+                print(f"{Fore.GREEN}La rama local '{dev_branch_to_sync}' ya estaba actualizada con '{remote_name}/{dev_branch_to_sync}'.{Style.RESET_ALL}")
+            elif out_integration and out_integration.strip(): # Mostrar salida si la hubo y no es solo "ya actualizado"
+                print(out_integration)
             integration_successful = True
-        else:
-            if "conflict" in (out_merge + err_merge).lower():
-                print(f"{Fore.RED}¡CONFLICTO! Se encontraron conflictos durante el merge.{Style.RESET_ALL}")
-                print(f"{Fore.YELLOW}Por favor, resuelva los conflictos manualmente, luego ejecute 'git add .' y 'git commit'.{Style.RESET_ALL}")
-            else:
-                print(f"{Fore.RED}Error durante el 'git merge': {err_merge or out_merge}{Style.RESET_ALL}")
-            print(f"{Fore.YELLOW}Una vez que el merge esté completamente resuelto y confirmado, puedes intentar el push manualmente:{Style.RESET_ALL}")
-            print(f"  git push {remote_name} {dev_branch_to_sync}")
-            sys.exit(1) # Salir para que el usuario maneje el merge
+    else: # No es _push, _only, ni _manual, esto no debería pasar con las opciones definidas.
+          # Este bloque es para el caso en que no haya 'rebase' ni 'merge' en chosen_strategy.
+          # Las opciones _only y _push sí contienen 'rebase' o 'merge'.
+        print(f"{Fore.RED}No se especificó operación local válida para la estrategia '{chosen_strategy}'.{Style.RESET_ALL}")
+        integration_successful = False # Asegurar que no continúe
 
-    # 5. Empujar cambios (Push) si la integración fue exitosa y sin intervención manual pendiente
+    # 5. Empujar cambios (Push) si la integración fue exitosa y la estrategia lo indica
     if integration_successful:
-        print(f"\n{Fore.CYAN}Intentando empujar (push) la rama '{dev_branch_to_sync}' a '{remote_name}'...{Style.RESET_ALL}")
-        success_push, out_push, err_push = run_git_command(["git", "push", remote_name, dev_branch_to_sync], cwd=repo_path)
-        if success_push:
-            if "Everything up-to-date" in out_push or "Todo actualizado" in out_push:
-                 print(f"{Fore.GREEN}La rama '{dev_branch_to_sync}' en '{remote_name}' ya estaba actualizada.{Style.RESET_ALL}")
-            else:
-                print(f"{Fore.GREEN}Push de '{dev_branch_to_sync}' a '{remote_name}' completado exitosamente.{Style.RESET_ALL}")
-                if out_push: print(out_push)
-            print(f"\n{Fore.MAGENTA}--- Sincronización de '{dev_branch_to_sync}' finalizada ---{Style.RESET_ALL}")
-        else:
-            print(f"{Fore.RED}Error al empujar la rama '{dev_branch_to_sync}' a '{remote_name}': {err_push or out_push}{Style.RESET_ALL}")
-            print(f"{Fore.YELLOW}La integración local (rebase/merge) pudo haber sido exitosa, pero el push falló.{Style.RESET_ALL}")
-            print(f"{Fore.YELLOW}Por favor, intenta el push manualmente: git push {remote_name} {dev_branch_to_sync}{Style.RESET_ALL}")
-            sys.exit(1)
-    else:
-        # Esto no debería alcanzarse si las ramas de rebase/merge con problemas salen antes.
-        # Pero es un seguro en caso de que integration_successful no se ponga a True.
-        print(f"{Fore.YELLOW}La integración no se completó automáticamente. No se intentará el push.{Style.RESET_ALL}")
-        print(f"{Fore.YELLOW}Por favor, asegúrate de que tu rama '{dev_branch_to_sync}' esté como la deseas y luego haz push manualmente.{Style.RESET_ALL}")
+        if chosen_strategy.endswith("_push"):
+            print(f"\n{Fore.CYAN}Intentando empujar (push) la rama '{dev_branch_to_sync}' a '{remote_name}'...{Style.RESET_ALL}")
+            success_push, out_push, err_push = run_git_command(["git", "push", remote_name, dev_branch_to_sync], cwd=repo_path, check=False) # check=False para analizar error
+            
+            if success_push:
+                if "Everything up-to-date" in out_push or "Todo actualizado" in out_push.lower():
+                     print(f"{Fore.GREEN}La rama '{dev_branch_to_sync}' en '{remote_name}' ya estaba actualizada.{Style.RESET_ALL}")
+                else:
+                    print(f"{Fore.GREEN}Push de '{dev_branch_to_sync}' a '{remote_name}' completado exitosamente.{Style.RESET_ALL}")
+                    if out_push: print(out_push) # Mostrar salida del push si la hubo
+            else: # Push falló
+                error_message_lc = err_push.lower() if err_push else ""
+                
+                # Heurística para identificar rechazo por protección/permisos
+                is_protection_error = (
+                    ("protected branch" in error_message_lc or
+                     "permission denied" in error_message_lc or
+                     "hook declined" in error_message_lc or
+                     ( # Caso genérico de "rejected" que no es por otras causas comunes
+                         "rejected" in error_message_lc and
+                         "non-fast-forward" not in error_message_lc and
+                         "tip of your current branch is behind" not in error_message_lc and
+                         "updates were rejected because the remote contains work that you do" not in error_message_lc
+                     )
+                    ) and
+                    ( # Asegurar que es un fallo de push y no, por ejemplo, un problema de conexión si el error es vago
+                        "failed to push some refs to" in error_message_lc or
+                        not ("remote end hung up unexpectedly" in error_message_lc and not error_message_lc.strip() == "remote end hung up unexpectedly")
+                    )
+                )
+
+                is_non_fast_forward_error = (
+                    "non-fast-forward" in error_message_lc or
+                    "tip of your current branch is behind" in error_message_lc or
+                    "updates were rejected because the remote contains work that you do" in error_message_lc
+                )
+
+                if is_protection_error:
+                    print(f"{Fore.RED}El push directo falló debido a las reglas de protección de la rama o falta de permisos. {Style.BRIGHT}Es requerida la actualización vía Pull Request (PR).{Style.RESET_ALL}")
+                elif is_non_fast_forward_error:
+                    print(f"{Fore.RED}No se pudo realizar el push porque la rama remota tiene cambios que no tienes localmente.{Style.RESET_ALL}")
+                    print(f"{Fore.YELLOW}Intenta ejecutar 'git pull --rebase {remote_name} {dev_branch_to_sync}' (o 'git pull') para integrar los cambios remotos y luego intenta el push de nuevo, o crea un PR manualmente.{Style.RESET_ALL}")
+                else:
+                    print(f"{Fore.RED}No se pudo realizar el push.{Style.RESET_ALL}")
+                    print(f"{Fore.YELLOW}Razón (según Git):{Style.RESET_ALL}")
+                    if out_push: print(f"{Fore.WHITE}{out_push}{Style.RESET_ALL}")
+                    if err_push: print(f"{Fore.WHITE}{err_push}{Style.RESET_ALL}") # Mostrar stderr original
+
+        elif chosen_strategy.endswith("_only"):
+            print(f"\n{Fore.GREEN}No se seleccionó ninguna acción remota. La rama local '{dev_branch_to_sync}' está actualizada (o como resultó de la operación local).{Style.RESET_ALL}")
+    
+    # else: Si la integración no fue exitosa, no se intenta nada más. Los mensajes de error ya se mostraron.
+
+    # Restaurar rama original si se cambió
+    if original_branch != dev_branch_to_sync:
+        print(f"\n{Fore.CYAN}Restaurando rama original '{original_branch}'...{Style.RESET_ALL}")
+        success_checkout_orig, _, err_checkout_orig = run_git_command(["git", "checkout", original_branch], cwd=repo_path, suppress_output=True)
+        if not success_checkout_orig:
+            print(f"{Fore.RED}Error al restaurar la rama original '{original_branch}': {err_checkout_orig}{Style.RESET_ALL}")
+
+    print(f"\n{Fore.MAGENTA}--- Sincronización de Rama '{args.develop_branch_name}' Finalizada ---{Style.RESET_ALL}")
 
 def main():
     parser = argparse.ArgumentParser(
