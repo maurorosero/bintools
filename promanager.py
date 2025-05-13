@@ -249,7 +249,7 @@ from github.GithubException import GithubException
 
 # --- Constantes para el Banner ---
 APP_NAME = "Gestor de Poryectos de Desarrollo"  # Anteriormente APP_NAME_BANNER
-VERSION = "2.0.0"  # Anteriormente SCRIPT_VERSION
+VERSION = "3.0.0"  # Anteriormente SCRIPT_VERSION
 AUTHOR = "Mauro Rosero P."  # Anteriormente SCRIPT_AUTHOR
 BANNER_WIDTH = 70 # Ancho ajustado para el nombre más largo
 
