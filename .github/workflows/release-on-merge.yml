@@ -17,8 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     # Permisos necesarios para el workflow
     permissions:
-      contents: write       # Para pushear commits, tags
-      releases: write       # Para crear releases
+      contents: write       # Para pushear commits, tags y crear releases
       pull-requests: read   # Para leer etiquetas y nombres de rama del PR
 
     steps:
