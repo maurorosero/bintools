@@ -14,8 +14,10 @@ concurrency:
 
 jobs:
   release:
-    # Ejecutar solo si el PR fue fusionado
-    if: github.event.pull_request.merged == true
+    # Ejecutar solo si el PR fue fusionado O si es un push directo a main
+    if: |
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true) ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     # Permisos necesarios para el workflow (Comentado para prueba)
     # permissions:
