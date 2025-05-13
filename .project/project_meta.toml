@@ -121,3 +121,9 @@ pattern = "chore/*"
 description = "Mantenimiento"
 target_branch = "develop"
 allow_direct_push = true
+
+[repository.protection_config.work_branches.ci]
+pattern = "ci/*"
+description = "Cambios en CI/CD"
+target_branch = "main"
+allow_direct_push = false

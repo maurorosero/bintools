@@ -75,6 +75,12 @@ BRANCH_TYPES = {
         "description": "Mantenimiento",
         "target_branch": "develop",
         "allow_direct_push": True
+    },
+    "ci": {
+        "pattern": "ci/*",
+        "description": "Cambios en CI/CD",
+        "target_branch": "main",
+        "allow_direct_push": False
     }
 }
 

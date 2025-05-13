@@ -63,6 +63,7 @@ BRANCH_TYPES_CONFIG = {
     "test": {"description": "Añadir o mejorar tests"},
     "chore": {"description": "Mantenimiento, tareas de build, etc."},
     "hotfix": {"description": "Correcciones urgentes en producción"},
+    "ci": {"description": "Cambios en CI/CD (directo a main vía PR)"}
 }
 # ---------------------------------------
 
