@@ -121,5 +121,3 @@ pattern = "chore/*"
 description = "Mantenimiento"
 target_branch = "develop"
 allow_direct_push = true
-
-[additional_metadata]

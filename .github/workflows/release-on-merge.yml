@@ -1,0 +1,160 @@
+name: Create Release on Merge to Main
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [ main ]
+
+# Prevenir ejecuciones concurrentes para el mismo workflow en main
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    # Ejecutar solo si el PR fue fusionado
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    # Permisos necesarios para el workflow
+    permissions:
+      contents: write       # Para pushear commits, tags
+      releases: write       # Para crear releases
+      pull-requests: read   # Para leer etiquetas y nombres de rama del PR
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Necesitamos historial completo y tags para calcular versiones
+          fetch-depth: 0
+          # Asegurarnos de estar en main después del merge
+          ref: 'main'
+          # Usar el token por defecto que tiene permisos de escritura (contents: write)
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x' # Ajustar si se necesita una versión específica
+
+      # Añadir setup de Node.js aquí si scripts/ci/update_file_versions.py lo requiere
+
+      - name: Set up GitHub CLI
+        run: |
+          # Verificar si gh está instalado, si no, instalarlo (aunque suele estar en runners ubuntu)
+          if ! type -p gh > /dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y gh
+          fi
+        # El token ya debería estar disponible para gh CLI a través de GITHUB_TOKEN
+
+      - name: Determine Increment Type
+        id: determine_increment
+        run: |
+          # Obtener nombre de la rama origen del PR
+          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
+          # Obtener etiquetas del PR (en formato JSON array de strings)
+          LABELS_JSON='${{ toJson(github.event.pull_request.labels.*.name) }}'
+          
+          # Instalar jq si no está disponible
+          if ! type -p jq > /dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y jq
+          fi
+
+          # Usar jq para buscar la etiqueta 'release-major'
+          HAS_MAJOR_LABEL=$(echo "$LABELS_JSON" | jq 'any(. == "release-major")')
+
+          INCREMENT_TYPE="minor" # Tipo por defecto
+
+          if [[ "$BRANCH_NAME" == hotfix/* ]]; then
+            INCREMENT_TYPE="patch"
+            echo "INFO: Detectada rama hotfix: $BRANCH_NAME. Incremento será PATCH."
+          elif [[ "$HAS_MAJOR_LABEL" == "true" ]]; then
+            INCREMENT_TYPE="major"
+            echo "INFO: Detectada etiqueta 'release-major'. Incremento será MAJOR."
+          else
+            echo "INFO: No es hotfix ni major label. Incremento será MINOR (rama origen: $BRANCH_NAME)."
+          fi
+          
+          # Exportar para usar en pasos siguientes
+          echo "INCREMENT_TYPE=${INCREMENT_TYPE}" >> $GITHUB_OUTPUT
+
+      - name: Make scripts executable
+        run: |
+          chmod +x scripts/ci/calculate_next_version.py
+          chmod +x scripts/ci/update_file_versions.py
+
+      - name: Calculate Next Global Version
+        id: calc_version
+        env:
+          # Pasar el token para que gh funcione dentro del script
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Ejecutar el script y capturar su salida (stdout)
+          NEXT_VERSION=$(python scripts/ci/calculate_next_version.py ${{ steps.determine_increment.outputs.INCREMENT_TYPE }})
+          echo "INFO: Salida del script calculate_next_version: $NEXT_VERSION"
+          # Exportar la versión calculada (o "NONE")
+          echo "NEXT_VERSION=${NEXT_VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Check if new version was calculated
+        if: steps.calc_version.outputs.NEXT_VERSION == 'NONE'
+        run: |
+          echo "INFO: No se calculó una nueva versión. Finalizando el workflow."
+          exit 0 # Mantener en línea separada para claridad, YAML multiline
+
+      - name: Update Individual File Versions
+        id: update_individual
+        run: python scripts/ci/update_file_versions.py
+        # Este script puede imprimir información sobre archivos actualizados
+
+      - name: Check for modified files (individual versions)
+        id: git_status
+        run: |
+          # Revisar si el script anterior modificó archivos
+          if [[ -n $(git status --porcelain) ]]; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+            echo "INFO: Detectados cambios en versiones individuales para comitear."
+          else
+            echo "changes=false" >> $GITHUB_OUTPUT
+            echo "INFO: No hubo cambios en versiones individuales."
+          fi
+
+      - name: Commit updated individual versions
+        if: steps.git_status.outputs.changes == 'true'
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          # Añadir todos los cambios (asume que solo son los de versión)
+          git add .
+          # Usar [skip ci] para evitar bucles de workflow
+          git commit -m "[CI] Auto-update individual file versions [skip ci]"
+          echo "INFO: Commit de versiones individuales realizado."
+        # No se hace push aquí, se hará junto con el tag
+
+      - name: Create Git Tag
+        id: create_tag
+        run: |
+          NEW_TAG="v${{ steps.calc_version.outputs.NEXT_VERSION }}"
+          echo "INFO: Creando tag Git: $NEW_TAG"
+          git tag "$NEW_TAG"
+          # Exportar el tag para el paso de release
+          echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_OUTPUT
+          
+      - name: Push changes and tag
+        run: |
+          # Empujar los commits (si los hubo) y el tag creado
+          # --follow-tags empuja tags que apunten a commits que se están empujando
+          git push origin main --follow-tags
+          echo "INFO: Push de commits (si los hubo) y tag ${{ steps.create_tag.outputs.NEW_TAG }} a main realizado."
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEXT_VERSION_TAG: ${{ steps.create_tag.outputs.NEW_TAG }}
+        run: |
+          echo "INFO: Creando GitHub release para tag $NEXT_VERSION_TAG"
+          gh release create "$NEXT_VERSION_TAG" \
+            --generate-notes \
+            --title "Release $NEXT_VERSION_TAG"
+          echo "INFO: GitHub release creado exitosamente." 

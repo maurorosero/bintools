@@ -10,7 +10,7 @@ on:
         required: false
         type: choice
         options: # Opciones para la UI de GitHub Actions
-          - '' # Opción por defecto (vacío = auto)
+          - auto # Opción por defecto (auto-detectar)
           - major
           - minor
           - patch
@@ -179,11 +179,13 @@ jobs:
           # Genera solo las notas para el cuerpo de la release (usando preset 'conventionalcommits')
           NOTES=$(conventional-changelog -p conventionalcommits -r 0 --commit-path .)
           # Escapar para usar como output (manejo básico)
+          # Define newline and carriage return characters to avoid YAML parsing issues with $'\n'
+          NL=$'\n'
+          CR=$'\r'
+          # Escape characters for GitHub Actions output: % -> %25, \r -> %0D, \n -> %0A
           NOTES="${NOTES//'%'/'%25'}"
-          NOTES="${NOTES//$'
-'/'%0A'}"
-          NOTES="${NOTES//$'
-'/'%0D'}"
+          NOTES="${NOTES//$CR/'%0D'}"
+          NOTES="${NOTES//$NL/'%0A'}"
           echo "::set-output name=notes::$NOTES"
           echo "--- Changelog Notes Generated ---"
           # Si quieres commitear CHANGELOG.md, añade lógica aquí similar al README
