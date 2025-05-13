@@ -4,6 +4,8 @@ on:
   pull_request:
     types: [closed]
     branches: [ main ]
+  push:
+    branches: [ main ]
 
 # Prevenir ejecuciones concurrentes para el mismo workflow en main
 concurrency:
@@ -50,33 +52,37 @@ jobs:
       - name: Determine Increment Type
         id: determine_increment
         run: |
-          # Obtener nombre de la rama origen del PR
-          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
-          # Obtener etiquetas del PR (en formato JSON array de strings)
-          LABELS_JSON='${{ toJson(github.event.pull_request.labels.*.name) }}'
-          
-          # Instalar jq si no está disponible
-          if ! type -p jq > /dev/null; then
-            sudo apt-get update
-            sudo apt-get install -y jq
-          fi
+          INCREMENT_TYPE=""
+          EVENT_NAME="${{ github.event_name }}"
+          echo "INFO: Evento detectado: $EVENT_NAME"
 
-          # Usar jq para buscar la etiqueta 'release-major'
-          HAS_MAJOR_LABEL=$(echo "$LABELS_JSON" | jq 'any(. == "release-major")')
-
-          INCREMENT_TYPE="minor" # Tipo por defecto
-
-          if [[ "$BRANCH_NAME" == hotfix/* ]]; then
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            # Push directo a main se considera PATCH (hotfix)
             INCREMENT_TYPE="patch"
-            echo "INFO: Detectada rama hotfix: $BRANCH_NAME. Incremento será PATCH."
-          elif [[ "$HAS_MAJOR_LABEL" == "true" ]]; then
-            INCREMENT_TYPE="major"
-            echo "INFO: Detectada etiqueta 'release-major'. Incremento será MAJOR."
+            echo "INFO: Push directo a main. Incremento será PATCH."
+          elif [[ "$EVENT_NAME" == "pull_request" ]]; then
+            # Lógica existente para Pull Requests
+            BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
+            LABELS_JSON='${{ toJson(github.event.pull_request.labels.*.name) }}'
+            
+            if ! type -p jq > /dev/null; then sudo apt-get update && sudo apt-get install -y jq; fi
+            HAS_MAJOR_LABEL=$(echo "$LABELS_JSON" | jq 'any(. == "release-major")')
+
+            if [[ "$BRANCH_NAME" == hotfix/* ]]; then
+              INCREMENT_TYPE="patch"
+              echo "INFO: Detectada rama hotfix en PR: $BRANCH_NAME. Incremento será PATCH."
+            elif [[ "$HAS_MAJOR_LABEL" == "true" ]]; then
+              INCREMENT_TYPE="major"
+              echo "INFO: Detectada etiqueta 'release-major' en PR. Incremento será MAJOR."
+            else
+              INCREMENT_TYPE="minor"
+              echo "INFO: PR desde $BRANCH_NAME sin etiqueta major. Incremento será MINOR."
+            fi
           else
-            echo "INFO: No es hotfix ni major label. Incremento será MINOR (rama origen: $BRANCH_NAME)."
+            echo "ERROR: Evento no soportado: $EVENT_NAME. No se determinará incremento."
+            INCREMENT_TYPE="none"
           fi
           
-          # Exportar para usar en pasos siguientes
           echo "INCREMENT_TYPE=${INCREMENT_TYPE}" >> $GITHUB_OUTPUT
 
       - name: Make scripts executable

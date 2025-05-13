@@ -117,18 +117,24 @@ def main():
     if current_version_tuple == (0, 0, 0) and last_tag_name:
          print(f"Warning: No se pudo parsear la versión del último tag '{last_tag_name}'. Tratando como 0.0.0.", file=sys.stderr)
 
-
-    # Caso especial: Si no hay releases previos, el primer release siempre es 0.1.0
-    # independientemente del tipo de incremento (a menos que sea 'none')
-    if not last_tag_name:
-         print("Primer release detectado. Estableciendo versión a 0.1.0.", file=sys.stderr)
-         next_version_tuple = (0, 1, 0)
-    else:
+    # Determinar la siguiente versión
+    next_version_tuple = None
+    if not last_tag_name: # Caso: No hay releases previos
+        if args.increment_type == 'patch':
+            print("Primer release detectado (tipo patch). Estableciendo versión a 0.0.1.", file=sys.stderr)
+            next_version_tuple = (0, 0, 1)
+        else: # minor o major
+            print(f"Primer release detectado (tipo {args.increment_type}). Estableciendo versión a 0.1.0.", file=sys.stderr)
+            next_version_tuple = (0, 1, 0)
+    else: # Caso: Hay releases previos
         next_version_tuple = calculate_next_version(current_version_tuple, args.increment_type, last_tag_name)
 
     if next_version_tuple is None:
-         print("Error interno: Se esperaba un incremento pero calculate_next_version devolvió None.", file=sys.stderr)
-         sys.exit(1)
+        # Esto podría pasar si calculate_next_version devuelve None (ej. increment_type inválido)
+        # O si el tipo era 'none' y no se manejó antes (aunque el if al principio debería atraparlo)
+        print(f"No se pudo calcular la siguiente versión para el tipo de incremento '{args.increment_type}'.", file=sys.stderr)
+        print("NONE") # Indicar que no hay nueva versión
+        sys.exit(0)
          
     # Comprobar si la versión calculada es realmente nueva
     if next_version_tuple == current_version_tuple:
