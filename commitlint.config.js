@@ -8,7 +8,7 @@
 // commitlint.config.js - Description placeholder
 // -----------------------------------------------------------------------------
 //
-// commitlint.config.js
+const VERSION = "0.1.0"; // Version para el script de versionado
 module.exports = {
   extends: ['@commitlint/config-conventional'], // Extend default rules
   parserPreset: { // Override parser to allow our TAG format
