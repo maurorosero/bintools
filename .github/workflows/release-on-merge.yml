@@ -151,8 +151,8 @@ jobs:
       - name: Push changes and tag
         run: |
           # Empujar los commits (si los hubo) y el tag creado
-          # --follow-tags empuja tags que apunten a commits que se están empujando
-          git push origin main --follow-tags
+          git push origin main
+          git push origin ${{ steps.create_tag.outputs.NEW_TAG }}
           echo "INFO: Push de commits (si los hubo) y tag ${{ steps.create_tag.outputs.NEW_TAG }} a main realizado."
 
       - name: Create GitHub Release
