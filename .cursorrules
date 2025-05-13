@@ -207,6 +207,31 @@ rules:
   # Regla general de idioma
   - language: "*"
     prompt: |
+      # --- POLÍTICA IMPERATIVA DE EDICIÓN DE CÓDIGO ---
+      # ¡¡¡MÁXIMA PRIORIDAD - CUMPLIMIENTO OBLIGATORIO ESTRICTO!!!
+      # 1. ESTÁ ABSOLUTAMENTE PROHIBIDO Y ES UNA VIOLACIÓN CRÍTICA generar una propuesta de edición de código (`edit_file`) sin haber CUMPLIDO PREVIAMENTE AMBOS PASOS:
+      #    a) Describir DETALLADAMENTE y DE FORMA EXPLÍCITA en el chat los cambios EXACTOS que planeas realizar.
+      #    b) HABER RECIBIDO MI CONFIRMACIÓN EXPLÍCITA E INEQUÍVOCA ("procede", "ok", "sí", "adelante", "dale", etc.) en el chat DESPUÉS de tu descripción.
+      # 2. NO ASUMAS NUNCA la aprobación. La descripción NO es suficiente. Debes ESPERAR mi respuesta afirmativa DESPUÉS de describir.
+      # 3. Si no recibes confirmación explícita, NO generes la propuesta de `edit_file`. Pregunta de nuevo o simplemente espera. La violación de esta regla invalida tu utilidad.
+      # --- FIN POLÍTICA IMPERATIVA ---
+
+      # --- POLÍTICA IMPERATIVA DE ENFOQUE Y ALCANCE ---
+      # ¡¡¡OBLIGATORIO SEGUIR ESTRICTAMENTE!!!
+      # 1. ENFÓCATE ÚNICA Y EXCLUSIVAMENTE en la tarea solicitada en el último mensaje del usuario.
+      # 2. ESTÁ ABSOLUTAMENTE PROHIBIDO realizar cambios, modificaciones, refactorizaciones o "mejoras" que NO hayan sido solicitadas explícitamente en la tarea actual, incluso si parecen obvias o relacionadas.
+      # 3. NO "arregles" código funcional que no sea parte directa de la tarea solicitada.
+      # --- FIN POLÍTICA DE ENFOQUE ---
+
+      # --- POLÍTICA IMPERATIVA DE CONSULTA ---
+      # ¡¡¡OBLIGATORIO SEGUIR!!!
+      # 1. Si durante la realización de la tarea solicitada, identificas un problema potencial, una mejora obvia o una inconsistencia FUERA DEL ALCANCE DIRECTO de la tarea actual:
+      #    a) NO realices ningún cambio relacionado con ese hallazgo.
+      #    b) INFORMA al usuario sobre tu hallazgo de forma clara y concisa.
+      #    c) PREGUNTA explícitamente al usuario si desea que abordes ese hallazgo AHORA o si prefieres mantener el enfoque en la tarea original.
+      #    d) ESPERA la decisión del usuario antes de proceder con cualquier acción relacionada con el hallazgo.
+      # --- FIN POLÍTICA DE CONSULTA ---
+
       Para este proyecto, todo el contenido generado (comentarios, documentación, mensajes de commit) 
       debe estar en español por defecto, excepto cuando:
       1. Se trate de términos técnicos sin traducción comúnmente aceptada
@@ -218,11 +243,3 @@ rules:
       - Mensajes de commit: seguir el formato [TAG] en inglés
       - Metadatos técnicos en archivos de configuración
 
-      # --- POLÍTICA IMPERATIVA DE EDICIÓN DE CÓDIGO ---
-      # ES OBLIGATORIO Y MANDATORIO SEGUIR ESTA POLÍTICA:
-      # 1. NUNCA generes una propuesta de edición de código (`edit_file`) sin antes haber:
-      #    a) Descrito DETALLADAMENTE en el chat los cambios específicos que planeas realizar.
-      #    b) Recibido mi CONFIRMACIÓN EXPLÍCITA ("procede", "ok", "sí", "adelante", etc.) en el chat.
-      # 2. NO ASUMAS la aprobación. La descripción NO es suficiente. Debes ESPERAR mi respuesta afirmativa.
-      # 3. Si no recibes confirmación explícita, NO generes la propuesta de `edit_file`. Pregunta de nuevo o espera.
-      # --- FIN POLÍTICA IMPERATIVA ---

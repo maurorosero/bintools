@@ -11,3 +11,11 @@ repos:
         args: []
         # If you want to ensure it runs even if the script itself didn't change:
         # always_run: true 
+  # Entry for commitlint using the wrapper hook
+  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+    rev: v9.22.0 # Use the latest tag from alessandrojcm repo
+    hooks:
+      - id: commitlint
+        name: Validate commit message format ([TAG] ...)
+        stage: commit-msg
+        additional_dependencies: ['@commitlint/config-conventional'] 
