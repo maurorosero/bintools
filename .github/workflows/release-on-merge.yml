@@ -19,10 +19,10 @@ jobs:
       (github.event_name == 'pull_request' && github.event.pull_request.merged == true) ||
       (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
-    # Permisos necesarios para el workflow (Comentado para prueba)
-    # permissions:
-    #   contents: write       # Para pushear commits, tags y crear releases
-    #   pull-requests: read   # Para leer etiquetas y nombres de rama del PR
+    # Permisos necesarios para el workflow
+    permissions:
+      contents: write       # Para pushear commits, tags y crear releases
+      pull-requests: read   # Para leer etiquetas y nombres de rama del PR
 
     steps:
       - name: Checkout code
