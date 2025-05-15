@@ -1568,23 +1568,17 @@ module.exports = {
         
     else:
         # Para otros formatos, usar archivos de configuración predefinidos
-        if os.path.exists(commitlint_js):
-            if commit_format != "conventional":
-                source_file = os.path.join(config_dir, f"commitlint.config.{commit_format}.js.def")
-                if os.path.exists(source_file):
-                    shutil.copy2(source_file, commitlint_js)
-                    print(f"{Fore.GREEN}Actualizado commitlint.config.js para formato {commit_format}{Style.RESET_ALL}")
-                else:
-                    print(f"{Fore.YELLOW}No se encontró configuración para el formato {commit_format}{Style.RESET_ALL}")
-                    success = False
+        valid_formats = ["conventional", "angular", "simple", "minimal"]
+        if commit_format not in valid_formats:
+            commit_format = "minimal"  # Usar minimal como fallback
+            
+        source_file = os.path.join(config_dir, f"commitlint.config.{commit_format}.js.def")
+        if os.path.exists(source_file):
+            shutil.copy2(source_file, commitlint_js)
+            print(f"{Fore.GREEN}Actualizado commitlint.config.js para formato {commit_format}{Style.RESET_ALL}")
         else:
-            source_file = os.path.join(config_dir, f"commitlint.config.{commit_format}.js.def")
-            if os.path.exists(source_file):
-                shutil.copy2(source_file, commitlint_js)
-                print(f"{Fore.GREEN}Creado commitlint.config.js para formato {commit_format}{Style.RESET_ALL}")
-            else:
-                print(f"{Fore.YELLOW}No se encontró configuración para el formato {commit_format}{Style.RESET_ALL}")
-                success = False
+            print(f"{Fore.YELLOW}No se encontró configuración para el formato {commit_format}{Style.RESET_ALL}")
+            success = False
     
     return success
 
