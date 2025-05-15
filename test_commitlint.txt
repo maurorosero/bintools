@@ -1,1 +1,1 @@
-Este es un archivo de prueba para verificar el funcionamiento de commitlint. 
+Este es un archivo de prueba para verificar el funcionamiento de commitlint. Línea adicional
