@@ -358,7 +358,7 @@ if __name__ == "__main__":
             else:
                 print(f"Skipping non-file: {filename}")
 
-        sys.exit(0)
+        sys.exit(0) # Fin normal del script si todo va bien
 
     except Exception as e:
         # Mensaje de error mejorado
@@ -371,4 +371,4 @@ if __name__ == "__main__":
         print(f"------------------------------------------") 
         print(f"El script header_manage.py falló debido a un error interno.") 
         print(f"Esto probablemente interrumpirá el proceso de pre-commit.") 
-        sys.exit(1) # <--- AÑADIDO para asegurar que el hook falle 
+        sys.exit(1) # Asegurar que el hook falle 

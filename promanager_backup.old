@@ -284,18 +284,16 @@ def load_project_data(meta_file_path: Path) -> dict:
     if not meta_file_path.exists():
         # Esta es tu lógica de mensaje existente, se mantiene.
         print(f"Advertencia: El archivo de metadatos '{meta_file_path}' no existe.", file=sys.stderr)
-        return {} 
-    
-    # Si el archivo existe, procedemos a intentar leerlo (código existente)
+        return {}
     try:
         with open(meta_file_path, "rb") as f:
-            data = tomllib.load(f)
-        return data
-    except tomllib.TOMLDecodeError as e:
+            return tomli.load(f)
+    except tomli.TOMLDecodeError as e:
         print(f"Error al parsear el archivo TOML '{meta_file_path}': {e}", file=sys.stderr)
         return {}
     except IOError as e:
         print(f"Error al leer el archivo '{meta_file_path}': {e}", file=sys.stderr)
+        return {}
         return {}
 
 def save_project_data(data: dict, meta_file_path: Path) -> bool:
@@ -374,7 +372,7 @@ def load_project_statuses(debug_mode: bool = False) -> list[str]:
                 elif debug_mode:
                     print(f"  [DEBUG] Estados cargados desde archivo: {statuses}")
                 return statuses
-            else:
+        else:
                 if COLORAMA_AVAILABLE and debug_mode:
                     print(f"  {Style.DIM}[DEBUG] Archivo de estados vacío, usando predeterminados.{Style.RESET_ALL}")
                 elif debug_mode:
@@ -542,7 +540,7 @@ def _print_node(data, indent_level, section_key_original: Optional[str] = None):
                     print() 
                     for line_part in value.splitlines():
                         print(f"{current_indent}{INDENT_STRING}{val_color}{line_part}{Style.RESET_ALL}")
-                else:
+    else:
                     print(f"{val_color}{val_str}{Style.RESET_ALL}")
                 item_processed_in_this_level_was_value_only_str = False
         
@@ -569,7 +567,7 @@ def _print_node(data, indent_level, section_key_original: Optional[str] = None):
                     print() 
                     for line_part in item.splitlines():
                         print(f"{current_indent}{INDENT_STRING}{val_color}{line_part}{Style.RESET_ALL}")
-                else:
+        else:
                     print(f"{val_color}{val_str}{Style.RESET_ALL}")
     else: # Para data que no es ni dict ni list (escalar)
         print(f"{current_indent}{Fore.GREEN}{str(data)}{Style.RESET_ALL}")
@@ -824,7 +822,7 @@ def handle_show_config(args: argparse.Namespace, project_data: dict):
     # --- Fin del bucle interactivo del menú ---
 
     # Fallback si questionary no está disponible
-    else:
+        else:
         print(f"  {Style.DIM}(Librería 'questionary' no disponible. Mostrando todas las secciones restantes.){Style.RESET_ALL}")
         for name_es, data in sorted(sections_for_menu.items()):
             original_key_fallback = ES_TO_KEY_MAP.get(name_es)
@@ -1018,7 +1016,7 @@ def handle_edit_config(args: argparse.Namespace, project_data: dict):
             meta_file_path = get_meta_file_path(args.path.resolve()) # Usar args.path de main
             if save_project_data(project_data, meta_file_path):
                 print(f"  {Style.BRIGHT}{Fore.GREEN}Cambios guardados exitosamente en '{meta_file_path}'.{Style.RESET_ALL}")
-            else:
+    else:
                 print(f"  {Style.BRIGHT}{Fore.RED}Error al guardar los cambios.{Style.RESET_ALL}")
             break 
         elif selected_choice_section_to_edit in sections_for_menu:
@@ -1330,7 +1328,7 @@ def handle_edit_config(args: argparse.Namespace, project_data: dict):
                                 f"Nuevo valor para '{field_label_for_prompt_init_opt}' (actual: {'Sí' if current_value_init_opt else 'No'}):",
                                 default=current_value_init_opt
                             ).ask()
-                        else: 
+        else:
                             print(f"  {Style.DIM}La edición para el tipo de este campo de init_options ({type(current_value_init_opt)}) no está implementada.{Style.RESET_ALL}")
                             new_value_init_opt = current_value_init_opt
                             input(f"{Style.DIM}Presione Enter para continuar...{Style.RESET_ALL}")
@@ -1363,7 +1361,7 @@ def handle_edit_config(args: argparse.Namespace, project_data: dict):
                     if original_pm_sub_key == "tool_name":
                         if pm_tool_created_for_logic and current_tool_name_for_logic != "Ninguna" and current_tool_name_for_logic is not None and current_tool_name_for_logic != "":
                             print(f"  {Style.DIM}🔒 El nombre de la herramienta no se puede cambiar porque el proyecto ya está marcado como creado.{Style.RESET_ALL}")
-                        else:
+        else:
                             choices_for_pm_tool = editable_predefined_choices.get("tool_name", DEFAULT_PM_APPS)[:] 
                             current_default_for_q = current_pm_sub_value
                             if current_default_for_q is None or current_default_for_q == "": current_default_for_q = "Ninguna"
@@ -1486,7 +1484,7 @@ def handle_edit_config(args: argparse.Namespace, project_data: dict):
                                     try: new_value = float(ans_text_generic)
                                     except ValueError: new_value = ans_text_generic
                                 else: new_value = ans_text_generic
-                        else:
+        else:
                             print(f"  {Style.DIM}Tipo de campo '{type(current_value)}' no manejado directamente para edición.{Style.RESET_ALL}")
                     if new_value is not None:
                         if new_value == current_value:
@@ -1499,89 +1497,99 @@ def handle_edit_config(args: argparse.Namespace, project_data: dict):
         else:
             print(f"{Fore.RED}Opción desconocida: {selected_choice_section_to_edit}{Style.RESET_ALL}")
 
-def setup_pre_commit_and_deps(config_dir, root_dir, workflow_config):
-    """Configura pre-commit y sus dependencias.
+def setup_commit_format(commit_format: str, config_dir: str, root_dir: str) -> bool:
+    """
+    Configura el formato de commits según el formato especificado.
     
     Args:
-        config_dir: Directorio de configuración
+        commit_format: El formato de commit a configurar (conventional, angular, semantic, simple, minimal)
+        config_dir: Directorio donde están los archivos de configuración
         root_dir: Directorio raíz del proyecto
-        workflow_config: Configuración del flujo de trabajo
+        
+    Returns:
+        bool: True si la configuración fue exitosa, False en caso contrario
     """
-    print("\nConfigurando pre-commit y dependencias...")
+    success = True
     
-    # Ya no se necesita el intento inicial de desconfigurar core.hooksPath si no usamos Husky.
+    # Manejar commitlint.config.js
+    commitlint_js = os.path.join(root_dir, "commitlint.config.js")
+    
+    # Lista de formatos válidos
+    valid_formats = ["conventional", "angular", "semantic", "simple", "minimal"]
+    
+    # Si el formato no es válido, usar minimal como fallback
+    if commit_format not in valid_formats:
+        commit_format = "minimal"
+        print(f"{Fore.YELLOW}Formato de commit no válido. Usando formato minimal como fallback.{Style.RESET_ALL}")
+    
+    # Copiar el archivo de configuración correspondiente
+    source_file = os.path.join(config_dir, f"commitlint.config.{commit_format}.js.def")
+    if os.path.exists(source_file):
+        shutil.copy2(source_file, commitlint_js)
+        print(f"{Fore.GREEN}Actualizado commitlint.config.js para formato {commit_format}{Style.RESET_ALL}")
+    else:
+        print(f"{Fore.YELLOW}No se encontró configuración para el formato {commit_format}{Style.RESET_ALL}")
+        success = False
+    
+    return success
 
-    # 1. Verificar entorno Python
-    if not os.path.exists(os.path.join(root_dir, ".venv")):
-        print("[ERROR] No se encontró el entorno virtual Python (.venv)")
-        return False
+def setup_pre_commit_and_deps(config_dir, root_dir):
+    """Configura pre-commit y sus dependencias."""
+    success = True
     
-    # 2. Verificar dependencias Python requeridas
-    try:
-        import pre_commit
-    except ImportError:
-        print("[ERROR] pre-commit no está instalado. Instalando...")
-        subprocess.run([sys.executable, "-m", "pip", "install", "pre-commit"], check=True)
+    # 1. Copiar configuración de pre-commit
+    pre_commit_config = os.path.join(root_dir, ".pre-commit-config.yaml")
+    pre_commit_config_def = os.path.join(config_dir, "pre-commit-config.yaml.def")
     
-    # 3. Copiar configuración de pre-commit
-    pre_commit_config_src = os.path.join(config_dir, "pre-commit-config.yaml.def")
-    pre_commit_config_dst = os.path.join(root_dir, ".pre-commit-config.yaml")
-    shutil.copy2(pre_commit_config_src, pre_commit_config_dst)
-    print("[OK] Configuración de pre-commit copiada")
+    if os.path.exists(pre_commit_config_def):
+        shutil.copy2(pre_commit_config_def, pre_commit_config)
+        print("[OK] Configuración de pre-commit copiada")
+    else:
+        print(f"[ERROR] No se encontró {pre_commit_config_def}")
+        success = False
     
-    # 4. Copiar script wrapper de commitlint
-    wrapper_src = os.path.join(config_dir, "commitlint-wrapper.sh.def")
-    wrapper_dst = os.path.join(root_dir, "commitlint-wrapper.sh")
-    shutil.copy2(wrapper_src, wrapper_dst)
-    os.chmod(wrapper_dst, 0o755)  # Dar permisos de ejecución
-    print("[OK] Script wrapper de commitlint copiado")
+    # 2. Copiar script wrapper de commitlint
+    commitlint_wrapper = os.path.join(root_dir, "commitlint-wrapper.sh")
+    commitlint_wrapper_def = os.path.join(config_dir, "commitlint-wrapper.sh.def")
     
-    # 5. Instalar pre-commit (hooks generales)
+    if os.path.exists(commitlint_wrapper_def):
+        shutil.copy2(commitlint_wrapper_def, commitlint_wrapper)
+        os.chmod(commitlint_wrapper, 0o755)  # Hacer ejecutable
+        print("[OK] Script wrapper de commitlint copiado")
+    else:
+        print(f"[ERROR] No se encontró {commitlint_wrapper_def}")
+        success = False
+    
+    # 3. Instalar pre-commit
     try:
         subprocess.run(["pre-commit", "install"], check=True)
         print("[OK] pre-commit instalado")
     except subprocess.CalledProcessError as e:
         print(f"[ERROR] No se pudo instalar pre-commit: {e}")
-        # Si esto falla, podría ser por un core.hooksPath preexistente de otra fuente.
-        # El usuario tendría que limpiarlo manualmente.
-        print(f"Hint: Si el error menciona 'core.hooksPath', verifícalo con 'git config core.hooksPath' y elimínalo si es necesario.")
-        return False
+        success = False
     
-    # 6. Instalar @commitlint/cli (necesario para el wrapper)
+    # 4. Instalar solo las dependencias oficiales de commitlint
     try:
-        subprocess.run(["npm", "install", "--save-dev", "@commitlint/cli"], check=True)
-        print("[OK] @commitlint/cli instalado")
+        subprocess.run([
+            "npm", "install", "--save-dev",
+            "@commitlint/cli",
+            "@commitlint/config-conventional",
+            "@commitlint/config-angular"
+        ], check=True)
+        print("[OK] Dependencias de commitlint instaladas")
     except subprocess.CalledProcessError as e:
-        print(f"[ERROR] No se pudo instalar @commitlint/cli: {e}")
-        return False
+        print(f"[ERROR] No se pudieron instalar las dependencias de commitlint: {e}")
+        success = False
     
-    # Los pasos 7 (Instalar Husky) y 8 (Configurar Husky) se eliminan.
-    # El bloque "NUEVO" para desconfigurar core.hooksPath también se elimina.
-
-    # 7. Copiar configuración de commitlint (anteriormente paso 9)
-    commit_format = workflow_config.get("commit_format", "conventional")
-    source_file = os.path.join(config_dir, f"commitlint.config.{commit_format}.js.def")
-    destination_file = os.path.join(root_dir, "commitlint.config.js")
-    
-    if os.path.exists(source_file):
-        shutil.copy2(source_file, destination_file)
-        print(f"[OK] Configuración de commitlint copiada para formato {commit_format}")
-    else:
-        print(f"[ERROR] No se encontró configuración para el formato {commit_format}: {source_file}")
-        return False
-   
-    # 8. Instalar hook commit-msg (anteriormente parte del paso 9)
+    # 5. Instalar hook commit-msg
     try:
         subprocess.run(["pre-commit", "install", "--hook-type", "commit-msg"], check=True)
         print("[OK] Hook commit-msg instalado")
     except subprocess.CalledProcessError as e:
-        print(f"[ERROR] No se pudo instalar el hook commit-msg: {e}")
-        # Si esto falla, podría ser por un core.hooksPath preexistente de otra fuente.
-        print(f"Hint: Si el error menciona 'core.hooksPath', verifícalo con 'git config core.hooksPath' y elimínalo si es necesario.")
-        return False
+        print(f"[ERROR] No se pudo instalar hook commit-msg: {e}")
+        success = False
     
-    print("\n[OK] Configuración de pre-commit y dependencias completada")
-    return True
+    return success
 
 def handle_setup_ci(args: argparse.Namespace, project_data: dict):
     """Configura las herramientas de CI y pre-commit según la configuración del proyecto."""
@@ -1595,8 +1603,12 @@ def handle_setup_ci(args: argparse.Namespace, project_data: dict):
     config_dir = os.path.join(os.path.dirname(__file__), "config")
     root_dir = os.getcwd()
     
+    # Configurar formato de commits
+    if not setup_commit_format(commit_format, config_dir, root_dir):
+        print(f"{Fore.YELLOW}Advertencia: La configuración del formato de commits no fue completamente exitosa{Style.RESET_ALL}")
+    
     # Configurar pre-commit y dependencias
-    if not setup_pre_commit_and_deps(config_dir, root_dir, workflow_config):
+    if not setup_pre_commit_and_deps(config_dir, root_dir):
         print(f"{Fore.YELLOW}Advertencia: La configuración de pre-commit y dependencias no fue completamente exitosa{Style.RESET_ALL}")
         return False
 
@@ -1613,7 +1625,7 @@ def handle_setup_ci(args: argparse.Namespace, project_data: dict):
             elif commit_format == "angular":
                 commit_msg = "ci(setup): configura flujos y hooks de commit\n\nAutomatiza la configuración de pre-commit, commitlint y archivos auxiliares para el flujo CI."
             elif commit_format == "simple":
-                commit_msg = "CI: configura flujos y hooks de commit" # Cambiado de "ci:..." a "CI:..."
+                commit_msg = "ci: configura flujos y hooks de commit"
             elif commit_format == "minimal":
                 commit_msg = "configura flujos y hooks de commit"
             else:  # conventional por defecto
@@ -1625,7 +1637,7 @@ def handle_setup_ci(args: argparse.Namespace, project_data: dict):
             except subprocess.CalledProcessError as e:
                 print(f"{Fore.YELLOW}Advertencia: Error al realizar el commit automático: {e}{Style.RESET_ALL}")
                 print(f"{Style.DIM}Por favor, revisa el estado del repositorio y realiza el commit manualmente.{Style.RESET_ALL}")
-        else:
+            else:
             print(f"{Style.DIM}No hay cambios para commitear.{Style.RESET_ALL}")
     except subprocess.CalledProcessError as e:
         print(f"{Fore.YELLOW}Advertencia: Error al verificar el estado de git: {e}{Style.RESET_ALL}")
@@ -1717,4 +1729,4 @@ def main():
         sys.exit(1)
 
 if __name__ == "__main__":
-    main()
+        main()

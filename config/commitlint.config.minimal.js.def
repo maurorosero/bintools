@@ -9,14 +9,35 @@
 // -----------------------------------------------------------------------------
 
 module.exports = {
-  extends: ['@commitlint/config-minimal'],
+  extends: ['@commitlint/config-conventional'],
+  parserPreset: {
+    parserOpts: {
+      headerPattern: /^(.+?)(?:\s\(#(\d+)\))?\s(.+)$/,
+      headerCorrespondence: ['type', 'scope', 'subject']
+    }
+  },
   rules: {
-    'subject-empty': [2, 'never'],
-    'subject-case': [
-      2,
-      'always',
-      ['sentence-case', 'lower-case']
-    ],
-    'header-max-length': [2, 'always', 100]
+    'type-enum': [0], // No restricción en tipos
+    'type-case': [0], // No restricción en mayúsculas/minúsculas
+    'type-empty': [0], // Permite commits sin tipo
+    'scope-empty': [0], // Permite commits sin scope
+    'scope-case': [0], // No restricción en mayúsculas/minúsculas del scope
+    'subject-empty': [2, 'never'], // Solo requiere que haya una descripción
+    'subject-case': [0], // No restricción en mayúsculas/minúsculas
+    'header-max-length': [2, 'always', 100], // Solo limita la longitud total
+    'scope-enum': [0], // No restricción en valores de scope
+    'scope-format': [0], // No restricción en formato de scope
+    'scope-min-length': [0], // No restricción en longitud mínima
+    'scope-max-length': [0], // No restricción en longitud máxima
+    'subject-min-length': [0], // No restricción en longitud mínima
+    'subject-max-length': [0], // No restricción en longitud máxima
+    'subject-full-stop': [0], // No restricción en punto final
+    'subject-exclamation-mark': [0], // No restricción en signos de exclamación
+    'subject-pattern': [0], // No restricción en patrón
+    'body-leading-blank': [0], // No restricción en línea en blanco inicial
+    'body-max-line-length': [0], // No restricción en longitud de línea
+    'footer-leading-blank': [0], // No restricción en línea en blanco inicial
+    'footer-max-line-length': [0], // No restricción en longitud de línea
+    'references-empty': [0] // No restricción en referencias vacías
   }
 }; 
