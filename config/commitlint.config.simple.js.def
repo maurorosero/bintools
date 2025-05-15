@@ -10,26 +10,25 @@
 //
 const VERSION = "0.1.0"; // Version para el script de versionado
 module.exports = {
-  extends: ['@commitlint/config-conventional'],
+  extends: ['@commitlint/config-simple'],
   rules: {
     'type-enum': [
       2,
       'always',
       [
-        'feat',     // Nueva característica
-        'fix',      // Corrección de bug
-        'docs',     // Cambios en documentación
-        'style',    // Cambios que no afectan el significado del código
-        'refactor', // Refactorización de código
-        'perf',     // Cambios que mejoran el rendimiento
-        'test',     // Añadir o corregir tests
-        'build',    // Cambios que afectan el sistema de build
-        'ci',       // Cambios en archivos y scripts de CI
-        'chore',    // Otros cambios que no modifican src o test
-        'revert'    // Revertir un commit
+        'IMPROVE',  // Mejoras generales
+        'FIX',      // Correcciones
+        'DOCS',     // Documentación
+        'STYLE',    // Estilo de código
+        'REFACTOR', // Refactorización
+        'PERF',     // Rendimiento
+        'TEST',     // Tests
+        'BUILD',    // Build
+        'CI',       // CI/CD
+        'CHORE'     // Mantenimiento
       ]
     ],
-    'type-case': [2, 'always', 'lower-case'],
+    'type-case': [2, 'always', 'upper-case'],
     'type-empty': [2, 'never'],
     'scope-empty': [2, 'always'],
     'scope-case': [0],

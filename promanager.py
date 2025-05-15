@@ -1516,69 +1516,22 @@ def setup_commit_format(commit_format: str, config_dir: str, root_dir: str) -> b
     # Manejar commitlint.config.js
     commitlint_js = os.path.join(root_dir, "commitlint.config.js")
     
-    if commit_format == "semantic":
-        # Configuración específica para formato semántico
-        commitlint_config = """// -----------------------------------------------------------------------------
-// Copyright (c) 2025, MAURO ROSERO PÉREZ
-// License: GPLV3
-// Author: Mauro Rosero P. (mauro.rosero@gmail.com)
-// Created: 2025-05-12 21:56:33
-// Version: 0.1.0
-//
-// commitlint.config.js - Configuración de commitlint para formato semántico
-// -----------------------------------------------------------------------------
-//
-const VERSION = "0.1.0"; // Version para el script de versionado
-module.exports = {
-  extends: ['@commitlint/config-conventional'],
-  rules: {
-    'type-enum': [
-      2,
-      'always',
-      [
-        'feat',     // Nueva característica
-        'fix',      // Corrección de bug
-        'docs',     // Cambios en documentación
-        'style',    // Cambios que no afectan el significado del código
-        'refactor', // Refactorización de código
-        'perf',     // Cambios que mejoran el rendimiento
-        'test',     // Añadir o corregir tests
-        'build',    // Cambios que afectan el sistema de build
-        'ci',       // Cambios en archivos y scripts de CI
-        'chore',    // Otros cambios que no modifican src o test
-        'revert'    // Revertir un commit
-      ]
-    ],
-    'type-case': [2, 'always', 'lower-case'],
-    'type-empty': [2, 'never'],
-    'scope-case': [2, 'always', 'lower-case'],
-    'subject-empty': [2, 'never'],
-    'subject-case': [
-      2,
-      'always',
-      ['sentence-case', 'lower-case']
-    ],
-    'header-max-length': [2, 'always', 100]
-  }
-};"""
-        
-        with open(commitlint_js, "w") as f:
-            f.write(commitlint_config)
-        print(f"{Fore.GREEN}Configurado commitlint para formato semántico{Style.RESET_ALL}")
-        
+    # Lista de formatos válidos
+    valid_formats = ["conventional", "angular", "semantic", "simple", "minimal"]
+    
+    # Si el formato no es válido, usar minimal como fallback
+    if commit_format not in valid_formats:
+        commit_format = "minimal"
+        print(f"{Fore.YELLOW}Formato de commit no válido. Usando formato minimal como fallback.{Style.RESET_ALL}")
+    
+    # Copiar el archivo de configuración correspondiente
+    source_file = os.path.join(config_dir, f"commitlint.config.{commit_format}.js.def")
+    if os.path.exists(source_file):
+        shutil.copy2(source_file, commitlint_js)
+        print(f"{Fore.GREEN}Actualizado commitlint.config.js para formato {commit_format}{Style.RESET_ALL}")
     else:
-        # Para otros formatos, usar archivos de configuración predefinidos
-        valid_formats = ["conventional", "angular", "simple", "minimal"]
-        if commit_format not in valid_formats:
-            commit_format = "minimal"  # Usar minimal como fallback
-            
-        source_file = os.path.join(config_dir, f"commitlint.config.{commit_format}.js.def")
-        if os.path.exists(source_file):
-            shutil.copy2(source_file, commitlint_js)
-            print(f"{Fore.GREEN}Actualizado commitlint.config.js para formato {commit_format}{Style.RESET_ALL}")
-        else:
-            print(f"{Fore.YELLOW}No se encontró configuración para el formato {commit_format}{Style.RESET_ALL}")
-            success = False
+        print(f"{Fore.YELLOW}No se encontró configuración para el formato {commit_format}{Style.RESET_ALL}")
+        success = False
     
     return success
 
