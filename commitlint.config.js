@@ -5,13 +5,14 @@
 // Created: 2025-05-12 21:56:33
 // Version: 0.1.0
 //
-// commitlint.config.js - Minimal commit format configuration
+// commitlint.config.js - Configuración de commitlint para formato simple
 // -----------------------------------------------------------------------------
-
+//
 const requireIssueFromMeta = process.env.REQUIRE_ISSUE_FROM_META === 'true';
+const VERSION = "0.1.0"; // Version para el script de versionado
 
 module.exports = {
-  // extends: ['@commitlint/config-conventional'], // Eliminado para control total con el parserPreset personalizado
+  // extends: ['@commitlint/config-conventional'], // Eliminado para usar nuestro parserPreset
   parserPreset: {
     parserOpts: {
       // Captura: [TAG] (#IssueNumber opcional) Descripción
@@ -24,38 +25,33 @@ module.exports = {
   },
   rules: {
     // --- Reglas para TYPE (el TAG) ---
-    'type-empty': [2, 'never'], // El TAG es obligatorio
-    'type-case': [2, 'always', 'upper-case'], // El TAG debe ser en mayúsculas
-    // 'type-enum': [0], // Para minimal, sin restricción de enum de TAGs por defecto
+    'type-enum': [
+      2,
+      'always',
+      [
+        'FIX',    // Correcciones y bugs
+        'FEAT',   // Nuevas características
+        'DOCS',   // Documentación
+        'CHORE',  // Mantenimiento y tareas generales
+        'CI'      // Para cambios en configuración/scripts de CI/CD
+      ]
+    ],
+    'type-case': [2, 'always', 'upper-case'],
+    'type-empty': [2, 'never'],
 
     // --- Reglas para SCOPE (el #IssueNumber) ---
     'scope-empty': [requireIssueFromMeta ? 2 : 0, 'never'], // Condicionalmente obligatorio
-    // 'scope-pattern': [2, 'always', /^#\d+$/], // Eliminada: El headerPattern del parserPreset ya fuerza el formato #numero
-    'scope-case': [2, 'always', 'lower-case'], // Estándar para commitlint, aunque #numero no varía por case
+    'scope-case': [2, 'always', 'lower-case'],
 
     // --- Reglas para SUBJECT (la descripción) ---
-    'subject-empty': [2, 'never'], // El subject (mensaje principal) es obligatorio
-    'subject-case': [0], // No restricción en mayúsculas/minúsculas del subject para minimal
-    'subject-min-length': [2, 'always', 5], // Un mínimo pequeño para el subject
-    
-    // --- Reglas generales del HEADER ---
-    'header-max-length': [2, 'always', 100], // Limita la longitud total
+    'subject-empty': [2, 'never'],
+    'subject-case': [0], // Sin restricciones de mayúsculas/minúsculas para 'simple'
+    // 'subject-min-length': [2, 'always', 5], // Opcional: puedes añadir si lo deseas
 
-    // --- Desactivar otras reglas para asegurar "minimal" ---
-    // Si no hay 'extends', estas reglas no se aplican a menos que se definan.
-    // Se dejan algunas comunes con [0] por claridad si se quisiera extender en el futuro.
-    'body-leading-blank': [0],
-    'footer-leading-blank': [0],
-    'scope-enum': [0],
-    'scope-min-length': [0],
-    'scope-max-length': [0],
-    'subject-max-length': [0],
-    'subject-full-stop': [0],
-    'subject-exclamation-mark': [0],
-    'body-max-line-length': [0],
-    'footer-max-line-length': [0],
-    'references-empty': [0]
-    // Añade más reglas con [0] aquí si es necesario para anular comportamientos por defecto
-    // si decides reintroducir algún 'extends' en el futuro.
+    // --- Reglas generales del HEADER ---
+    'header-max-length': [2, 'always', 100]
+    
+    // Otras reglas de config-conventional que quisieras replicar tendrían que añadirse aquí.
+    // Por ahora, solo se aplican las definidas explícitamente.
   }
 }; 

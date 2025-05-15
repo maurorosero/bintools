@@ -41,7 +41,6 @@ module.exports = {
 
     // --- Reglas para SCOPE (el #IssueNumber) ---
     'scope-empty': [requireIssueFromMeta ? 2 : 0, 'never'], // Condicionalmente obligatorio
-    'scope-pattern': [2, 'always', /^#\d+$/], // Si hay scope, debe ser #numero
     'scope-case': [2, 'always', 'lower-case'],
 
     // --- Reglas para SUBJECT (la descripción) ---
