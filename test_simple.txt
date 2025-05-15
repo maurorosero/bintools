@@ -1,4 +1,0 @@
-Este es un archivo de prueba para el formato simple
-Línea adicional para probar el cuerpo del mensaje
-Otra línea de prueba
-Otra línea de prueba
