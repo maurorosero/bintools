@@ -1,0 +1,40 @@
+# Python requirements.txt para entornos virtuales (bintools - mrosero)
+# Formato: pip install -r requirements.txt
+# Última actualización: 2025-04-29 11:30:15
+
+# --- Utilidades básicas y herramientas de consola ---
+colorama>=0.4.4          # Colores y formato en terminal para mejor visualización de salidas
+dnspython>=2.2.0         # Librería para consultas y manipulación de DNS
+
+# --- Procesamiento de HTML y web scraping ---
+beautifulsoup4>=4.11.0   # Parser de HTML/XML para extracción de datos y web scraping
+html2text>=2020.1.16     # Conversión de HTML a texto plano (útil para extracción de contenido)
+requests>=2.28.0         # Cliente HTTP para hacer peticiones a APIs y sitios web (AÑADIDO PARA DESCARGAS CON PROGRESO)
+
+# --- Análisis de datos y manejo de fechas ---
+pandas>=1.5.0            # Análisis y manipulación de datos estructurados en DataFrames
+python-dateutil>=2.8.2   # Extensiones útiles para el módulo datetime de Python
+
+# --- Formatos de datos y configuración ---
+pyyaml>=6.0              # Manejo de archivos YAML para configuración y almacenamiento de datos
+
+# --- Servidores web y APIs ---
+uvicorn>=0.15.0          # Servidor ASGI de alto rendimiento (usado con FastAPI/Starlette)
+
+# --- Entorno de Consola ---
+rich>=13.0.0             # Formateo de texto enriquecido en la terminal (colores, estilos, tablas, spinners, etc.)
+questionary>=2.0.0       # Prompts interactivos y bonitos (selecciones, confirmaciones, entradas)
+textual>=0.1.10          # Librería para crear interfaces de usuario con Rich
+
+# --- Herramientas de Desarrollo y Calidad de Código ---
+pre-commit>=2.17.0       # Framework para gestionar y mantener hooks de pre-commit
+
+# --- Herramientas para manejo de GPG ---
+python-gnupg>=0.5.0      # Librería para manejar GPG (GnuPG)
+
+# --- Interacción con APIs de Github ---
+PyGithub>=2.6.1          # Cliente Python para la API REST de GitHub v3
+
+# --- TOML Parsing/Writing ---
+tomli; python_version < '3.11'   # Parser para archivos TOML (necesario para Python < 3.11)
+tomli-w                          # Librería para escribir archivos TOML

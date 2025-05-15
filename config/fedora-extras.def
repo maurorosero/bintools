@@ -1,0 +1,269 @@
+# Archivo de paquetes extras para Fedora
+# Cada línea debe contener el nombre de un paquete para instalar
+# Las líneas que comienzan con # son comentarios y serán ignoradas
+# Nota: Los siguientes paquetes se supone que ya están instalados:
+# - curl
+# - git
+# - wget
+# - python3
+# - python3-pip
+# - jq
+# - dialog
+
+# Herramientas de desarrollo
+# @development-tools   # Grupo de herramientas de desarrollo
+# gcc                 # Compilador GNU C
+# g++                 # Compilador GNU C++
+# make                # Herramienta de construcción GNU Make
+# cmake               # Sistema de construcción multiplataforma
+# clang               # Compilador LLVM C/C++
+# llvm                # Herramientas y librerías Low Level Virtual Machine
+# autoconf            # Herramienta para generar scripts de configuración
+# automake            # Herramienta para generar Makefiles
+# pkg-config          # Gestor de configuración para compilación
+# gh                  # GitHub CLI
+
+# Utilidades del sistema
+# htop                # Monitor de procesos interactivo
+# neofetch            # Herramienta de información del sistema
+# lsof                # Lista archivos abiertos
+# ncdu                # Analizador de uso de disco
+# iotop               # Monitor de uso de I/O por procesos
+# baobab              # Analizador gráfico de uso de disco
+# gparted             # Editor de particiones GUI
+# btrfs-progs         # Herramientas para el sistema de archivos Btrfs
+# xfsprogs            # Herramientas para el sistema de archivos XFS
+# dosfstools          # Herramientas para el sistema de archivos FAT
+# ntfs-3g             # Soporte para sistemas de archivos NTFS
+# exfat-utils         # Herramientas para el sistema de archivos exFAT
+# trash-cli           # Comandos para la papelera de reciclaje
+# usbutils            # Herramientas para trabajar con dispositivos USB
+# dmidecode           # Herramienta para mostrar información del hardware del sistema
+# inxi                # Herramienta para mostrar información del sistema
+# coreutils           # Utilidades básicas GNU
+# util-linux          # Colección de utilidades básicas del sistema
+# findutils           # Herramientas de búsqueda GNU
+
+# Editores
+# vim                 # Editor de texto avanzado
+# vim-enhanced        # Versión mejorada de vim
+# nano                # Editor de texto simple
+# neovim              # Versión moderna de vim
+# emacs               # Editor de texto extensible
+# code                # Visual Studio Code
+# gedit               # Editor de texto para GNOME
+# kate                # Editor de texto para KDE
+# mousepad            # Editor de texto para XFCE
+
+# Herramientas de red y seguridad
+# nmap                # Escáner de puertos
+# iptables            # Firewall basado en reglas
+# ufw                 # Firewall simplificado (Uncomplicated Firewall)
+# firewalld           # Firewall dinámico con soporte para zonas de red
+# fail2ban            # Protección contra ataques de fuerza bruta
+# tcpdump             # Analizador de paquetes de red
+# wireshark           # Analizador de protocolos de red
+# wireshark-cli       # Analizador de protocolos de red (CLI)
+# mtr                 # Combinación de traceroute y ping
+# bind-utils          # Herramientas DNS, incluye dig, host, nslookup
+# whois               # Cliente para consultar información WHOIS
+# net-tools           # Herramientas de red tradicionales (ifconfig, netstat, etc.)
+# iproute             # Herramientas modernas de red (ip, ss, etc.)
+# iw                  # Herramienta para configurar dispositivos inalámbricos
+# ethtool             # Herramienta para configurar interfaces Ethernet
+# openvpn             # Cliente y servidor VPN
+# wireguard-tools     # Herramientas para el protocolo VPN WireGuard
+# nftables            # Subsistema de filtrado de paquetes del kernel
+# netcat              # Utilidad de red versátil
+# openssl             # Implementación de SSL y TLS
+# openssh             # Implementación de SSH
+# sshuttle            # VPN transparente sobre SSH
+
+# Otras utilidades
+# unzip               # Descompresor de archivos ZIP
+# p7zip               # Implementación del compresor 7z
+# tree                # Muestra directorios en forma de árbol
+# tldr                # Páginas de ayuda simplificadas
+# rsync               # Herramienta de sincronización remota
+# tmux                # Multiplexor de terminal
+# zsh                 # Shell alternativa
+# fish                # Shell alternativa amigable e interactiva
+# bash-completion     # Autocompletado para Bash
+# colordiff           # Versión de diff con salida en color
+# bat                 # Alternativa a cat con resaltado de sintaxis
+# fd-find             # Alternativa simple y rápida a find
+# fzf                 # Buscador difuso en línea de comandos
+# ripgrep             # Alternativa rápida a grep
+# the_silver_searcher # Herramienta de búsqueda de código muy rápida (ag)
+# jq                  # Procesador de JSON en línea de comandos
+# python3-pyyaml      # Procesador de YAML en línea de comandos
+# xclip               # Acceso a portapapeles X11 desde línea de comandos
+# xsel                # Manipulación del portapapeles X
+# wl-clipboard        # Utilidades de portapapeles para Wayland
+
+# Herramientas para Markdown
+# pandoc              # Conversor universal de documentos
+# discount            # Implementación de Markdown en C
+# python3-grip        # Renderizador de Markdown con estilo GitHub
+# mdbook              # Crea libros con Markdown (similar a GitBook)
+# ruby-kramdown       # Procesador de Markdown escrito en Ruby
+
+# Herramientas para desarrollo nodejs
+# nodejs              # Plataforma JavaScript del lado del servidor
+# npm                 # Gestor de paquetes de Node.js
+# yarn                # Gestor de paquetes alternativo para Node.js
+
+# Herramientas ofimáticas
+# libreoffice         # Suite ofimática completa
+# hunspell            # Corrector ortográfico
+# hunspell-es         # Diccionario español para Hunspell
+# hunspell-en         # Diccionario inglés para Hunspell
+# aspell              # Corrector ortográfico alternativo
+# aspell-es           # Diccionario español para Aspell
+# aspell-en           # Diccionario inglés para Aspell
+# pdfgrep             # Buscar texto en archivos PDF
+# pdfarranger         # Herramienta para organizar páginas PDF
+# poppler-utils       # Utilidades para manipular PDF
+# ghostscript         # Intérprete para PostScript y PDF
+# calibre             # Gestor de libros electrónicos
+# evince              # Visor de documentos para GNOME
+# okular              # Visor de documentos para KDE
+# xreader             # Visor de documentos para Cinnamon
+# atril               # Visor de documentos para MATE
+# zathura             # Visor de PDF minimalista
+# zathura-pdf-poppler # Plugin para zathura
+# texlive             # Sistema TeX/LaTeX
+# texlive-latex       # Paquetes LaTeX adicionales
+# scribus             # Publicación de escritorio profesional
+# inkscape            # Editor de gráficos vectoriales
+# gimp                # Editor de imágenes rasterizadas
+
+# Herramientas para conexión remota y compartición de archivos
+# filezilla           # Cliente FTP/SFTP con interfaz gráfica
+# lftp                # Cliente FTP avanzado para línea de comandos
+# ncftp               # Cliente FTP mejorado para línea de comandos
+# ftp                 # Cliente FTP tradicional para línea de comandos
+# samba               # Suite de herramientas SMB/CIFS
+# samba-client        # Cliente para acceder a recursos SMB/CIFS
+# cifs-utils          # Herramientas para montar comparticiones CIFS
+# fuse                # Sistema de archivos en espacio de usuario
+# fuse3               # Sistema de archivos en espacio de usuario (versión 3)
+# sshfs               # Montar sistemas de archivos a través de SSH
+# davfs2              # Montar sistemas de archivos WebDAV
+# rclone              # Sincronización de archivos con servicios cloud
+# nextcloud-client    # Cliente de Nextcloud para sincronización de archivos
+# gvfs                # Sistema de archivos virtual para GNOME
+# gvfs-smb            # Soporte para SMB/CIFS para GVFS
+# gvfs-mtp            # Soporte para MTP para GVFS
+# gvfs-fuse           # Acceso FUSE a volúmenes virtuales GNOME
+
+# Herramientas de visualización y exploración de datos/archivos
+# visidata            # Herramienta TUI para explorar y analizar datos
+# ranger              # Gestor de archivos en modo texto
+# mc                  # Midnight Commander, gestor de archivos con interfaz de texto
+# nnn                 # Gestor de archivos en terminal
+# vifm                # Gestor de archivos en terminal estilo vi
+# pcmanfm             # Gestor de archivos ligero para X
+# thunar              # Gestor de archivos para XFCE
+# nautilus            # Gestor de archivos para GNOME
+# dolphin             # Gestor de archivos para KDE
+# hexyl               # Visor de archivos hexadecimal moderno y colorido
+# xxd                 # Herramienta para crear volcados hexadecimales
+# hexedit             # Editor hexadecimal para archivos binarios
+# jless               # Paginador para JSON
+# miller              # Procesador de datos tipo CSV/TSV/JSON
+# pv                  # Pipe Viewer - para monitorear progreso de datos en pipes
+# glow                # Renderizador de markdown en terminal
+# mdcat               # Renderizador de markdown para la terminal
+# csvkit              # Suite de utilidades para trabajar con CSV
+# sqlite              # Base de datos SQL ligera
+# sqlitebrowser       # Interfaz gráfica para SQLite
+
+# Desarrollo con Arduino
+# arduino             # IDE Arduino
+# arduino-cli         # CLI para Arduino
+# avrdude             # Software para programar microcontroladores Atmel AVR
+# avr-gcc             # Compilador GCC para microcontroladores AVR
+# avr-libc            # Biblioteca C estándar para AVR
+# picocom             # Monitor serial minimalista para comunicación
+# screen              # Multiplexor de terminal (útil para monitoreo serial)
+# python3-pyserial    # Módulo Python para comunicación serial
+# platformio          # Framework de desarrollo para IoT
+# stm32flash          # Herramienta para flashear MCUs STM32
+# esptool             # Herramienta para programar chips ESP8266/ESP32
+# openocd             # Depurador on-chip para programación y depuración
+# usbutils            # Herramientas para trabajar con USB (incluye lsusb)
+
+# Python y entorno de desarrollo
+# python3-virtualenv  # Soporte para entornos virtuales en Python
+# python3-venv        # Módulo venv de Python (incluido en Python 3)
+# pyenv               # Gestor de versiones de Python
+# python3-pipx        # Ejecutar aplicaciones Python en entornos aislados
+# python3-mypy        # Verificador de tipos estáticos para Python
+# python3-black       # Formateador de código para Python
+# python3-flake8      # Linter para código Python
+# python3-ipython     # Shell interactiva mejorada para Python
+# jupyter-notebook    # Cuadernos interactivos para Python
+# python3-cython      # Compilador que convierte Python a C
+# python3-pytest      # Framework para testing en Python
+# python3-tox         # Automatización de testing en Python
+# python3-setuptools  # Herramientas para instalación de paquetes Python
+# python3-wheel       # Formato de distribución de paquetes Python
+# python3-pip         # Gestor de paquetes de Python
+# pipenv              # Gestor de entornos y dependencias para Python
+# poetry              # Gestor de dependencias y empaquetado para Python
+# python3-numpy       # Biblioteca para computación científica
+# python3-matplotlib  # Biblioteca para visualización de datos
+# python3-pandas      # Biblioteca para análisis de datos
+# python3-scipy       # Biblioteca para matemáticas, ciencia e ingeniería
+# python3-pillow      # Biblioteca para procesamiento de imágenes
+# python3-requests    # Biblioteca HTTP para humanos
+# python3-psutil      # Biblioteca para información del sistema y procesos
+# python3-pyyaml      # Biblioteca para trabajar con YAML
+# python3-pygments    # Resaltador de sintaxis para código
+# python3-sphinx      # Generador de documentación
+
+# Herramientas para compilación de Python a ejecutables
+# python3-pyinstaller # Empaqueta Python en ejecutable
+
+# Herramientas SSH
+# openssh             # Implementación de SSH
+# openssh-server      # Servidor SSH
+# sshpass             # Automatización de contraseñas SSH (usar con precaución)
+# keychain            # Gestor de llaves SSH basado en ssh-agent
+# autossh             # Mantiene y restaura automáticamente conexiones SSH
+# mosh                # Alternativa a SSH resiliente a conexiones intermitentes
+# x11-ssh-askpass     # Diálogo gráfico para solicitar contraseñas SSH
+# pssh                # Ejecución en paralelo de SSH para múltiples servidores
+# asciinema           # Graba y comparte sesiones de terminal
+# ttyd                # Comparte terminal vía navegador web
+
+# Herramientas para DevOps
+# terraform           # Herramienta de infraestructura como código
+# ansible             # Plataforma de automatización IT
+# awscli              # CLI para Amazon Web Services
+# azure-cli           # CLI para Microsoft Azure
+# google-cloud-sdk    # SDK para Google Cloud Platform
+# httpie              # Cliente HTTP amigable para CLI
+# bind-utils          # Herramientas para diagnóstico DNS
+# tcpdump             # Analizador de paquetes de red
+# wireshark           # Analizador de protocolos de red
+# mtr                 # Combinación de traceroute y ping
+# iotop               # Monitor de uso de I/O por procesos
+# netcat              # Utilidad de red versátil
+# git-lfs             # Extensión de Git para archivos grandes
+# jq                  # Procesador de JSON en línea de comandos
+# python3-pyyaml      # Procesador de YAML en línea de comandos
+
+# Herramientas para contenedores
+# podman              # Alternativa a Docker sin demonio
+# podman-compose      # Alternativa a docker-compose para Podman
+# buildah             # Herramienta para construir imágenes OCI
+# skopeo              # Utilidad para trabajar con imágenes de contenedores
+# kubectl             # Cliente para Kubernetes
+# minikube            # Ejecuta Kubernetes localmente
+# helm                # Gestor de paquetes para Kubernetes
+# cri-o               # Motor de ejecución de contenedores ligero para Kubernetes
+# cri-tools           # Herramientas CLI para CRI compatible con Kubernetes
+# docker-ce           # Plataforma de contenedores Docker
+# docker-compose      # Herramienta para definir aplicaciones multi-contenedor 

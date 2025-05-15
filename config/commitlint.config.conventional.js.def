@@ -1,0 +1,32 @@
+// -----------------------------------------------------------------------------
+// Copyright (c) 2025, MAURO ROSERO PÉREZ
+// License: GPLV3
+// Author: Mauro Rosero P. (mauro.rosero@gmail.com)
+// Created: 2025-05-12 21:56:33
+// Version: 0.1.0
+//
+// commitlint.config.js - Conventional commit format configuration
+// -----------------------------------------------------------------------------
+
+module.exports = {
+  extends: ['@commitlint/config-conventional'],
+  parserPreset: {
+    parserOpts: {
+      headerPattern: /^\[([A-Z]+)\](?:\s\(#(\d+)\))?\s(.*)$/,
+      headerCorrespondence: ['type', 'scope', 'subject']
+    }
+  },
+  rules: {
+    'type-enum': [0],
+    'type-case': [0],
+    'type-empty': [2, 'never'],
+    'scope-case': [0],
+    'subject-empty': [2, 'never'],
+    'subject-case': [
+      2,
+      'always',
+      ['sentence-case', 'lower-case']
+    ],
+    'header-max-length': [2, 'always', 100]
+  }
+}; 

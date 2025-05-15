@@ -1,0 +1,63 @@
+{
+	"Python Header": {
+	  "scope": "python",
+	  "prefix": "header",
+	  "body": [
+		"# -*- coding: utf-8 -*-",
+		"#!/usr/bin/env python3",
+		"# -----------------------------------------------------------------------------",
+		"# Copyright (c) $CURRENT_YEAR, MAURO ROSERO PÉREZ",
+		"# License: ${1:Licencia para este programa}",
+		"# Author: Mauro Rosero P. (mauro.rosero@gmail.com)",
+		"# Assistant: Cursor AI (https://cursor.com)",
+		"# Created: $CURRENT_YEAR-$CURRENT_MONTH-$CURRENT_DATE $CURRENT_HOUR:$CURRENT_MINUTE:$CURRENT_SECOND",
+		"# Version: __INITIAL_VERSION__",
+		"#",
+		"# $TM_FILENAME - ${2:Descripción breve del archivo.}",
+		"# -----------------------------------------------------------------------------",
+		"",
+		"${3:}"
+	  ],
+	  "description": "Insert standard header for Python/Bash files"
+	},
+	"Bash Header": {
+		"scope": "shellscript",
+		"prefix": "header",
+		"body": [
+		  "# -*- coding: utf-8 -*-",
+		  "#!/usr/bin/env bash",
+		  "# -----------------------------------------------------------------------------",
+		  "# Copyright (c) $CURRENT_YEAR, MAURO ROSERO PÉREZ",
+		  "# License: ${1:Licencia para este programa}",
+		  "# Author: Mauro Rosero P. (mauro.rosero@gmail.com)",
+		  "# Assistant: Cursor AI (https://cursor.com)",
+		  "# Created: $CURRENT_YEAR-$CURRENT_MONTH-$CURRENT_DATE $CURRENT_HOUR:$CURRENT_MINUTE:$CURRENT_SECOND",
+		  "# Version: __INITIAL_VERSION__",
+		  "#",
+		  "# $TM_FILENAME - ${2:Descripción breve del archivo.}",
+		  "# -----------------------------------------------------------------------------",
+		  "",
+		  "${3:}"
+		],
+		"description": "Insert standard header for Bash files"
+	  },
+	"TypeScript/JavaScript Header": {
+	  "scope": "typescript,javascript",
+	  "prefix": "header",
+	  "body": [
+		"// -----------------------------------------------------------------------------",
+		"// Copyright (c) $CURRENT_YEAR, MAURO ROSERO PÉREZ",
+		"# License: ${1:Licencia para este programa}",
+		"// Author: Mauro Rosero P. (mauro.rosero@gmail.com)",
+		"// Assistant: Cursor AI (https://cursor.com)",
+		"// Created: $CURRENT_YEAR-$CURRENT_MONTH-$CURRENT_DATE $CURRENT_HOUR:$CURRENT_MINUTE:$CURRENT_SECOND",
+		"// Version: __INITIAL_VERSION__",
+		"//",
+		"// $TM_FILENAME - ${2:Descripción breve del archivo.}",
+		"// -----------------------------------------------------------------------------",
+		"",
+		"${3:}"
+	  ],
+	  "description": "Insert standard header for TS/JS files"
+	}
+  }  

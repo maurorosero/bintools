@@ -1,0 +1,3 @@
+---
+  git_token:  base64_provider_token
+  git_server: server_url

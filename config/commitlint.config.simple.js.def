@@ -1,0 +1,41 @@
+// -----------------------------------------------------------------------------
+// Copyright (c) 2025, MAURO ROSERO PÉREZ
+// License: GPLV3
+// Author: Mauro Rosero P. (mauro.rosero@gmail.com)
+// Created: 2025-05-12 21:56:33
+// Version: 0.1.0
+//
+// commitlint.config.js - Simple commit format configuration
+// -----------------------------------------------------------------------------
+
+module.exports = {
+  extends: ['@commitlint/config-simple'],
+  rules: {
+    'type-enum': [
+      2,
+      'always',
+      [
+        'feat',
+        'fix',
+        'docs',
+        'style',
+        'refactor',
+        'perf',
+        'test',
+        'build',
+        'ci',
+        'chore',
+        'revert'
+      ]
+    ],
+    'type-case': [2, 'always', 'lower-case'],
+    'type-empty': [2, 'never'],
+    'subject-empty': [2, 'never'],
+    'subject-case': [
+      2,
+      'always',
+      ['sentence-case', 'lower-case']
+    ],
+    'header-max-length': [2, 'always', 100]
+  }
+}; 

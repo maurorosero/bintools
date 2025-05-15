@@ -1,0 +1,4 @@
+servers:
+  - name: "GitHub MCP"
+    type: "node"
+    cmd: ["npx", "@mcp/github"]

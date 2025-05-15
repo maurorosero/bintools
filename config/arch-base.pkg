@@ -1,0 +1,10 @@
+curl
+git
+wget
+python
+python-pip
+jq
+yq
+gnupg
+dialog 
+tee

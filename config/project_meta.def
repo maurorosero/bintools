@@ -1,0 +1,46 @@
+schema_version = "1.5"
+
+[repository]
+name = "bintools"
+owner_name = ""
+owner_type = "user"
+visibility = "public"
+platform = "GitHub"
+platform_url = ""
+description = "🚀 Mi arsenal de scripts y utilidades (Python, Bash, TS) para turbo-cargar tu desarrollo y gestión ofimática. Con un cerebro de IA para la automatización inteligente. ¡Todo consolidado en un monorepo listo para la acción!"
+created_flag = false
+url = "git@github.com:maurorosero/bintools.git"
+
+[repository.init_options]
+add_readme = false
+add_gitignore = false
+gitignore_template = "None"
+add_license = false
+license_template = "Other"
+
+[repository.workflow_config]
+commit_format = "conventional"
+require_issue = false
+require_issue_format = false
+require_component_docs = true
+require_parseable_metadata = true
+require_version_placeholder = true
+require_tests_new_features = false
+require_linting = true
+require_type_hints = false
+release_process = "unified_custom"
+require_versioning = false
+require_changelog = true
+
+[project_details]
+title = "✨ Automatización Inteligente: Mi Caja de Herramientas IA para Developers"
+purpose = "Optimizar y automatizar tareas de desarrollo y gestión ofimática mediante scripts inteligentes y asistencia por IA"
+status = "Activo"
+lead = "Mauro Rosero Pérez"
+lead_email = "mauro@rosero.one"
+
+[project_details.pm_tool_info]
+pm_tool_created_flag = false
+tool_name = "Ninguna"
+project_link = ""
+project_key = ""

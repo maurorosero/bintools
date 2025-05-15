@@ -1,0 +1,11 @@
+curl
+git
+wget
+python3
+py39-pip # Ajusta la versión de pip si es necesario
+jq
+yq
+gnupg
+gum
+dialog4ports 
+tee
