@@ -1,1 +1,2 @@
-Este es un archivo de prueba para verificar el funcionamiento de commitlint con la nueva configuración semántica. 
+Este es un archivo de prueba para verificar el funcionamiento de commitlint con la nueva configuración semántica.
+Línea adicional para probar el nuevo formato de commit. 
