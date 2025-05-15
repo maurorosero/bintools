@@ -5,28 +5,37 @@
 // Created: 2025-05-12 21:56:33
 // Version: 0.1.0
 //
-// commitlint.config.js - Configuración de commitlint para formato simple
+// commitlint.config.js - Minimal commit format configuration
 // -----------------------------------------------------------------------------
-//
-const VERSION = "0.1.0"; // Version para el script de versionado
+
 module.exports = {
   extends: ['@commitlint/config-conventional'],
+  parserPreset: {
+    parserOpts: {
+      headerPattern: /^(.+?)(?:\s\(#(\d+)\))?\s(.+)$/,
+      headerCorrespondence: ['type', 'scope', 'subject']
+    }
+  },
   rules: {
-    'type-enum': [
-      2,
-      'always',
-      [
-        'FIX',    // Correcciones y bugs
-        'FEAT',   // Nuevas características
-        'DOCS',   // Documentación
-        'CHORE',  // Mantenimiento y tareas generales
-        'CI'      // Para cambios en configuración/scripts de CI/CD
-      ]
-    ],
-    'type-case': [2, 'always', 'upper-case'],
-    'type-empty': [2, 'never'],
-    'subject-empty': [2, 'never'],
-    'subject-case': [0],
-    'header-max-length': [2, 'always', 100]
+    'type-enum': [0], // No restricción en tipos
+    'type-case': [0], // No restricción en mayúsculas/minúsculas
+    'type-empty': [0], // Permite commits sin tipo
+    'scope-empty': [0], // Permite commits sin scope
+    'scope-case': [0], // No restricción en mayúsculas/minúsculas del scope
+    'subject-empty': [2, 'never'], // Solo requiere que haya una descripción
+    'subject-case': [0], // No restricción en mayúsculas/minúsculas
+    'header-max-length': [2, 'always', 100], // Solo limita la longitud total
+    'scope-enum': [0], // No restricción en valores de scope
+    'scope-min-length': [0], // No restricción en longitud mínima
+    'scope-max-length': [0], // No restricción en longitud máxima
+    'subject-min-length': [0], // No restricción en longitud mínima
+    'subject-max-length': [0], // No restricción en longitud máxima
+    'subject-full-stop': [0], // No restricción en punto final
+    'subject-exclamation-mark': [0], // No restricción en signos de exclamación
+    'body-leading-blank': [0], // No restricción en línea en blanco inicial
+    'body-max-line-length': [0], // No restricción en longitud de línea
+    'footer-leading-blank': [0], // No restricción en línea en blanco inicial
+    'footer-max-line-length': [0], // No restricción en longitud de línea
+    'references-empty': [0] // No restricción en referencias vacías
   }
 }; 
