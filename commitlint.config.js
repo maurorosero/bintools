@@ -5,14 +5,13 @@
 // Created: 2025-05-12 21:56:33
 // Version: 0.1.0
 //
-// commitlint.config.js - Configuración de commitlint para formato simple
+// commitlint.config.js - Angular commit format configuration (Adaptado a [TAG] (#Issue) Descripcion)
 // -----------------------------------------------------------------------------
-//
+
 const requireIssueFromMeta = process.env.REQUIRE_ISSUE_FROM_META === 'true';
-const VERSION = "0.1.0"; // Version para el script de versionado
 
 module.exports = {
-  // extends: ['@commitlint/config-conventional'], // Eliminado para usar nuestro parserPreset
+  // extends: ['@commitlint/config-angular'], // Eliminado para control total con el parserPreset personalizado
   parserPreset: {
     parserOpts: {
       // Captura: [TAG] (#IssueNumber opcional) Descripción
@@ -28,30 +27,39 @@ module.exports = {
     'type-enum': [
       2,
       'always',
-      [
-        'FIX',    // Correcciones y bugs
-        'FEAT',   // Nuevas características
-        'DOCS',   // Documentación
-        'CHORE',  // Mantenimiento y tareas generales
-        'CI'      // Para cambios en configuración/scripts de CI/CD
+      [ // Valores en MAYÚSCULAS para coincidir con el TAG de nuestro parserPreset
+        'FEAT',
+        'FIX',
+        'DOCS',
+        'STYLE',
+        'REFACTOR',
+        'PERF',
+        'TEST',
+        'BUILD',
+        'CI',
+        'CHORE',
+        'REVERT'
       ]
     ],
-    'type-case': [2, 'always', 'upper-case'],
+    'type-case': [2, 'always', 'upper-case'], // Cambiado a upper-case
     'type-empty': [2, 'never'],
 
     // --- Reglas para SCOPE (el #IssueNumber) ---
-    'scope-empty': [requireIssueFromMeta ? 2 : 0, 'never'], // Condicionalmente obligatorio
-    'scope-case': [2, 'always', 'lower-case'],
+    'scope-empty': [requireIssueFromMeta ? 2 : 0, 'never'], 
+    'scope-case': [2, 'always', 'lower-case'], // Se mantiene, es compatible
+    // No se añade 'scope-pattern' ya que el headerPattern del parserPreset lo maneja.
 
     // --- Reglas para SUBJECT (la descripción) ---
     'subject-empty': [2, 'never'],
-    'subject-case': [0], // Sin restricciones de mayúsculas/minúsculas para 'simple'
-    // 'subject-min-length': [2, 'always', 5], // Opcional: puedes añadir si lo deseas
-
+    'subject-case': [
+      2,
+      'always',
+      ['sentence-case', 'lower-case'] // Se mantiene como estaba en la config original de angular
+    ],
+    
     // --- Reglas generales del HEADER ---
     'header-max-length': [2, 'always', 100]
     
-    // Otras reglas de config-conventional que quisieras replicar tendrían que añadirse aquí.
-    // Por ahora, solo se aplican las definidas explícitamente.
+    // Otras reglas de config-angular que se deseen replicar deberían añadirse explícitamente aquí.
   }
 }; 
