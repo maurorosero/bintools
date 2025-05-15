@@ -13,5 +13,4 @@ repos:
         name: Validate commit message format
         entry: ./commitlint-wrapper.sh
         language: script
-        stages: [commit-msg]
-        additional_dependencies: ['@commitlint/cli'] 
+        stages: [commit-msg] 

@@ -1543,6 +1543,7 @@ def setup_pre_commit_and_deps(config_dir, root_dir):
     - Copia el archivo de configuración de pre-commit desde config_dir a la raíz.
     - Instala pre-commit y commitlint.
     - Detecta y añade la dependencia @commitlint/config-* si es requerida por commitlint.config.js.
+    - Copia el script commitlint-wrapper.sh para limpieza automática de mensajes inválidos.
     """
     import sys
     import os
@@ -1580,7 +1581,19 @@ def setup_pre_commit_and_deps(config_dir, root_dir):
         print(f"[ERROR] No se pudo copiar el archivo de configuración de pre-commit: {e}")
         return False
     
-    # 4. Copiar commitlint.package.json.def a package.json si existe
+    # 4. Copiar commitlint-wrapper.sh.def a commitlint-wrapper.sh
+    wrapper_src = os.path.join(config_dir, "commitlint-wrapper.sh.def")
+    wrapper_dst = os.path.join(root_dir, "commitlint-wrapper.sh")
+    try:
+        shutil.copyfile(wrapper_src, wrapper_dst)
+        # Dar permisos de ejecución al script
+        os.chmod(wrapper_dst, 0o755)
+        print(f"[OK] Copiado {wrapper_src} a {wrapper_dst}")
+    except Exception as e:
+        print(f"[ERROR] No se pudo copiar el script commitlint-wrapper.sh: {e}")
+        return False
+    
+    # 5. Copiar commitlint.package.json.def a package.json si existe
     pkg_src = os.path.join(config_dir, "commitlint.package.json.def")
     pkg_dst = os.path.join(root_dir, "package.json")
     if os.path.exists(pkg_src):
@@ -1591,7 +1604,7 @@ def setup_pre_commit_and_deps(config_dir, root_dir):
             print(f"[ERROR] No se pudo copiar el package.json: {e}")
             return False
     
-    # 5. Instalar pre-commit (pip)
+    # 6. Instalar pre-commit (pip)
     try:
         subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "pre-commit"], check=True)
         print("[OK] pre-commit instalado/actualizado")
@@ -1599,14 +1612,14 @@ def setup_pre_commit_and_deps(config_dir, root_dir):
         print(f"[ERROR] No se pudo instalar pre-commit: {e}")
         return False
     
-    # 6. Verificar que npm esté instalado
+    # 7. Verificar que npm esté instalado
     try:
         subprocess.run(["npm", "--version"], check=True, capture_output=True)
     except Exception:
         print("[ERROR] npm no está instalado. Instálalo antes de continuar.")
         return False
     
-    # 7. Instalar commitlint/cli (npm)
+    # 8. Instalar commitlint/cli (npm)
     try:
         subprocess.run(["npm", "install", "--save-dev", "@commitlint/cli"], check=True)
         print("[OK] @commitlint/cli instalado")
@@ -1614,7 +1627,7 @@ def setup_pre_commit_and_deps(config_dir, root_dir):
         print(f"[ERROR] No se pudo instalar @commitlint/cli: {e}")
         return False
     
-    # 8. Detectar y añadir la dependencia @commitlint/config-*
+    # 9. Detectar y añadir la dependencia @commitlint/config-*
     configlint_path = os.path.join(root_dir, "commitlint.config.js")
     config_package = None
     if os.path.exists(configlint_path):
@@ -1656,9 +1669,10 @@ def setup_pre_commit_and_deps(config_dir, root_dir):
     else:
         print("[INFO] No se detectó extensión de @commitlint/config-* en commitlint.config.js. Si usas una configuración personalizada, asegúrate de instalar manualmente la dependencia correspondiente.")
     
-    # 9. Instalar hooks de pre-commit
+    # 10. Instalar hooks de pre-commit
     try:
         subprocess.run([sys.executable, "-m", "pre_commit", "install"], check=True)
+        subprocess.run([sys.executable, "-m", "pre_commit", "install", "--hook-type", "commit-msg"], check=True)
         print("[OK] Hooks de pre-commit instalados")
     except Exception as e:
         print(f"[ERROR] No se pudieron instalar los hooks de pre-commit: {e}")
