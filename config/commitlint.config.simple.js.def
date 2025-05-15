@@ -5,37 +5,36 @@
 // Created: 2025-05-12 21:56:33
 // Version: 0.1.0
 //
-// commitlint.config.js - Simple commit format configuration
+// commitlint.config.js - Configuración de commitlint para formato simple
 // -----------------------------------------------------------------------------
-
+//
+const VERSION = "0.1.0"; // Version para el script de versionado
 module.exports = {
-  extends: ['@commitlint/config-simple'],
+  extends: ['@commitlint/config-conventional'],
   rules: {
     'type-enum': [
       2,
       'always',
       [
-        'feat',
-        'fix',
-        'docs',
-        'style',
-        'refactor',
-        'perf',
-        'test',
-        'build',
-        'ci',
-        'chore',
-        'revert'
+        'feat',     // Nueva característica
+        'fix',      // Corrección de bug
+        'docs',     // Cambios en documentación
+        'style',    // Cambios que no afectan el significado del código
+        'refactor', // Refactorización de código
+        'perf',     // Cambios que mejoran el rendimiento
+        'test',     // Añadir o corregir tests
+        'build',    // Cambios que afectan el sistema de build
+        'ci',       // Cambios en archivos y scripts de CI
+        'chore',    // Otros cambios que no modifican src o test
+        'revert'    // Revertir un commit
       ]
     ],
     'type-case': [2, 'always', 'lower-case'],
     'type-empty': [2, 'never'],
+    'scope-empty': [2, 'always'],
+    'scope-case': [0],
     'subject-empty': [2, 'never'],
-    'subject-case': [
-      2,
-      'always',
-      ['sentence-case', 'lower-case']
-    ],
+    'subject-case': [0],
     'header-max-length': [2, 'always', 100]
   }
 }; 
