@@ -1515,169 +1515,195 @@ def setup_commit_format(commit_format: str, config_dir: str, root_dir: str) -> b
     
     # Manejar commitlint.config.js
     commitlint_js = os.path.join(root_dir, "commitlint.config.js")
-    if os.path.exists(commitlint_js):
-        if commit_format != "conventional":
-            # Si existe y el formato no es conventional, copiar el archivo correspondiente
+    
+    if commit_format == "semantic":
+        # Configuración específica para formato semántico
+        commitlint_config = """// -----------------------------------------------------------------------------
+// Copyright (c) 2025, MAURO ROSERO PÉREZ
+// License: GPLV3
+// Author: Mauro Rosero P. (mauro.rosero@gmail.com)
+// Created: 2025-05-12 21:56:33
+// Version: 0.1.0
+//
+// commitlint.config.js - Configuración de commitlint para formato semántico
+// -----------------------------------------------------------------------------
+//
+const VERSION = "0.1.0"; // Version para el script de versionado
+module.exports = {
+  extends: ['@commitlint/config-conventional'],
+  rules: {
+    'type-enum': [
+      2,
+      'always',
+      [
+        'feat',     // Nueva característica
+        'fix',      // Corrección de bug
+        'docs',     // Cambios en documentación
+        'style',    // Cambios que no afectan el significado del código
+        'refactor', // Refactorización de código
+        'perf',     // Cambios que mejoran el rendimiento
+        'test',     // Añadir o corregir tests
+        'build',    // Cambios que afectan el sistema de build
+        'ci',       // Cambios en archivos y scripts de CI
+        'chore',    // Otros cambios que no modifican src o test
+        'revert'    // Revertir un commit
+      ]
+    ],
+    'type-case': [2, 'always', 'lower-case'],
+    'type-empty': [2, 'never'],
+    'scope-case': [2, 'always', 'lower-case'],
+    'subject-empty': [2, 'never'],
+    'subject-case': [
+      2,
+      'always',
+      ['sentence-case', 'lower-case']
+    ],
+    'header-max-length': [2, 'always', 100]
+  }
+};"""
+        
+        with open(commitlint_js, "w") as f:
+            f.write(commitlint_config)
+        print(f"{Fore.GREEN}Configurado commitlint para formato semántico{Style.RESET_ALL}")
+        
+    else:
+        # Para otros formatos, usar archivos de configuración predefinidos
+        if os.path.exists(commitlint_js):
+            if commit_format != "conventional":
+                source_file = os.path.join(config_dir, f"commitlint.config.{commit_format}.js.def")
+                if os.path.exists(source_file):
+                    shutil.copy2(source_file, commitlint_js)
+                    print(f"{Fore.GREEN}Actualizado commitlint.config.js para formato {commit_format}{Style.RESET_ALL}")
+                else:
+                    print(f"{Fore.YELLOW}No se encontró configuración para el formato {commit_format}{Style.RESET_ALL}")
+                    success = False
+        else:
             source_file = os.path.join(config_dir, f"commitlint.config.{commit_format}.js.def")
             if os.path.exists(source_file):
                 shutil.copy2(source_file, commitlint_js)
-                print(f"{Fore.GREEN}Actualizado commitlint.config.js para formato {commit_format}{Style.RESET_ALL}")
+                print(f"{Fore.GREEN}Creado commitlint.config.js para formato {commit_format}{Style.RESET_ALL}")
             else:
                 print(f"{Fore.YELLOW}No se encontró configuración para el formato {commit_format}{Style.RESET_ALL}")
                 success = False
-    else:
-        # Si no existe, copiar el archivo correspondiente
-        source_file = os.path.join(config_dir, f"commitlint.config.{commit_format}.js.def")
-        if os.path.exists(source_file):
-            shutil.copy2(source_file, commitlint_js)
-            print(f"{Fore.GREEN}Creado commitlint.config.js para formato {commit_format}{Style.RESET_ALL}")
-        else:
-            print(f"{Fore.YELLOW}No se encontró configuración para el formato {commit_format}{Style.RESET_ALL}")
-            success = False
     
     return success
 
 def setup_pre_commit_and_deps(config_dir, root_dir):
+    """Configura pre-commit y sus dependencias.
+    
+    Args:
+        config_dir: Directorio de configuración
+        root_dir: Directorio raíz del proyecto
     """
-    Configura pre-commit y sus dependencias, incluyendo la instalación automática de la configuración necesaria para commitlint.
-    - Copia el archivo de configuración de pre-commit desde config_dir a la raíz.
-    - Instala pre-commit y commitlint.
-    - Detecta y añade la dependencia @commitlint/config-* si es requerida por commitlint.config.js.
-    - Copia el script commitlint-wrapper.sh para limpieza automática de mensajes inválidos.
-    """
-    import sys
-    import os
-    import shutil
-    import subprocess
-    import json
+    print("\nConfigurando pre-commit y dependencias...")
     
-    # 1. Verificar entorno virtual Python
-    if sys.prefix == sys.base_prefix:
-        print("\n[ADVERTENCIA] No hay un entorno virtual de Python activo.\n" \
-              "Actívalo antes de continuar para evitar instalaciones globales.\n" \
-              "Puedes crearlo con:\n" \
-              "  python -m venv .venv\n" \
-              "Y activarlo con:\n" \
-              "  source .venv/bin/activate  # Linux/macOS\n" \
-              "  .venv\\Scripts\\activate  # Windows\n")
+    # 1. Verificar entorno Python
+    if not os.path.exists(os.path.join(root_dir, ".venv")):
+        print("[ERROR] No se encontró el entorno virtual Python (.venv)")
         return False
     
-    # 2. Verificar dependencias Python necesarias
+    # 2. Verificar dependencias Python requeridas
     try:
-        import tomli_w
-        import colorama
-        import questionary
-    except ImportError as e:
-        print(f"[ERROR] Falta el módulo: {e.name}. Instálalo con:\n  pip install tomli-w colorama questionary")
-        return False
+        import pre_commit
+    except ImportError:
+        print("[ERROR] pre-commit no está instalado. Instalando...")
+        subprocess.run([sys.executable, "-m", "pip", "install", "pre-commit"], check=True)
     
-    # 3. Copiar pre-commit-config.yaml.def a .pre-commit-config.yaml
-    src = os.path.join(config_dir, "pre-commit-config.yaml.def")
-    dst = os.path.join(root_dir, ".pre-commit-config.yaml")
-    try:
-        shutil.copyfile(src, dst)
-        print(f"[OK] Copiado {src} a {dst}")
-    except Exception as e:
-        print(f"[ERROR] No se pudo copiar el archivo de configuración de pre-commit: {e}")
-        return False
+    # 3. Copiar configuración de pre-commit
+    pre_commit_config_src = os.path.join(config_dir, "pre-commit-config.yaml.def")
+    pre_commit_config_dst = os.path.join(root_dir, ".pre-commit-config.yaml")
+    shutil.copy2(pre_commit_config_src, pre_commit_config_dst)
+    print("[OK] Configuración de pre-commit copiada")
     
-    # 4. Copiar commitlint-wrapper.sh.def a commitlint-wrapper.sh
+    # 4. Copiar script wrapper de commitlint
     wrapper_src = os.path.join(config_dir, "commitlint-wrapper.sh.def")
     wrapper_dst = os.path.join(root_dir, "commitlint-wrapper.sh")
-    try:
-        shutil.copyfile(wrapper_src, wrapper_dst)
-        # Dar permisos de ejecución al script
-        os.chmod(wrapper_dst, 0o755)
-        print(f"[OK] Copiado {wrapper_src} a {wrapper_dst}")
-    except Exception as e:
-        print(f"[ERROR] No se pudo copiar el script commitlint-wrapper.sh: {e}")
-        return False
+    shutil.copy2(wrapper_src, wrapper_dst)
+    os.chmod(wrapper_dst, 0o755)  # Dar permisos de ejecución
+    print("[OK] Script wrapper de commitlint copiado")
     
-    # 5. Copiar commitlint.package.json.def a package.json si existe
-    pkg_src = os.path.join(config_dir, "commitlint.package.json.def")
-    pkg_dst = os.path.join(root_dir, "package.json")
-    if os.path.exists(pkg_src):
-        try:
-            shutil.copyfile(pkg_src, pkg_dst)
-            print(f"[OK] Copiado {pkg_src} a {pkg_dst}")
-        except Exception as e:
-            print(f"[ERROR] No se pudo copiar el package.json: {e}")
-            return False
-    
-    # 6. Instalar pre-commit (pip)
+    # 5. Instalar pre-commit
     try:
-        subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "pre-commit"], check=True)
-        print("[OK] pre-commit instalado/actualizado")
-    except Exception as e:
+        subprocess.run(["pre-commit", "install"], check=True)
+        print("[OK] pre-commit instalado")
+    except subprocess.CalledProcessError as e:
         print(f"[ERROR] No se pudo instalar pre-commit: {e}")
         return False
     
-    # 7. Verificar que npm esté instalado
-    try:
-        subprocess.run(["npm", "--version"], check=True, capture_output=True)
-    except Exception:
-        print("[ERROR] npm no está instalado. Instálalo antes de continuar.")
-        return False
-    
-    # 8. Instalar commitlint/cli (npm)
+    # 6. Instalar commitlint
     try:
         subprocess.run(["npm", "install", "--save-dev", "@commitlint/cli"], check=True)
         print("[OK] @commitlint/cli instalado")
-    except Exception as e:
+    except subprocess.CalledProcessError as e:
         print(f"[ERROR] No se pudo instalar @commitlint/cli: {e}")
         return False
     
-    # 9. Detectar y añadir la dependencia @commitlint/config-*
-    configlint_path = os.path.join(root_dir, "commitlint.config.js")
-    config_package = None
-    if os.path.exists(configlint_path):
-        try:
-            with open(configlint_path, "r", encoding="utf-8") as f:
-                for line in f:
-                    if "extends" in line and "@commitlint/config-" in line:
-                        # Extraer el nombre del paquete extendido
-                        import re
-                        match = re.search(r"@commitlint/config-[\w-]+", line)
-                        if match:
-                            config_package = match.group(0)
-                            break
-        except Exception as e:
-            print(f"[ADVERTENCIA] No se pudo analizar commitlint.config.js: {e}")
-    
-    if config_package:
-        # Verificar si ya está en package.json
-        pkg_json_path = os.path.join(root_dir, "package.json")
-        needs_install = True
-        if os.path.exists(pkg_json_path):
-            try:
-                with open(pkg_json_path, "r", encoding="utf-8") as f:
-                    pkg_data = json.load(f)
-                dev_deps = pkg_data.get("devDependencies", {})
-                if config_package in dev_deps:
-                    needs_install = False
-            except Exception as e:
-                print(f"[ADVERTENCIA] No se pudo leer package.json: {e}")
-        if needs_install:
-            try:
-                subprocess.run(["npm", "install", "--save-dev", config_package], check=True)
-                print(f"[OK] {config_package} instalado como dependencia de desarrollo")
-            except Exception as e:
-                print(f"[ERROR] No se pudo instalar {config_package}: {e}")
-                return False
-        else:
-            print(f"[OK] {config_package} ya está presente en devDependencies")
-    else:
-        print("[INFO] No se detectó extensión de @commitlint/config-* en commitlint.config.js. Si usas una configuración personalizada, asegúrate de instalar manualmente la dependencia correspondiente.")
-    
-    # 10. Instalar hooks de pre-commit
+    # 7. Instalar configuración semántica de commitlint
     try:
-        subprocess.run([sys.executable, "-m", "pre_commit", "install"], check=True)
-        subprocess.run([sys.executable, "-m", "pre_commit", "install", "--hook-type", "commit-msg"], check=True)
-        print("[OK] Hooks de pre-commit instalados")
-    except Exception as e:
-        print(f"[ERROR] No se pudieron instalar los hooks de pre-commit: {e}")
+        subprocess.run(["npm", "install", "--save-dev", "@commitlint/config-conventional"], check=True)
+        print("[OK] @commitlint/config-conventional instalado")
+    except subprocess.CalledProcessError as e:
+        print(f"[ERROR] No se pudo instalar @commitlint/config-conventional: {e}")
         return False
     
+    # 8. Crear configuración de commitlint
+    commitlint_config = """// -----------------------------------------------------------------------------
+// Copyright (c) 2025, MAURO ROSERO PÉREZ
+// License: GPLV3
+// Author: Mauro Rosero P. (mauro.rosero@gmail.com)
+// Created: 2025-05-12 21:56:33
+// Version: 0.1.0
+//
+// commitlint.config.js - Configuración de commitlint para formato semántico
+// -----------------------------------------------------------------------------
+//
+const VERSION = "0.1.0"; // Version para el script de versionado
+module.exports = {
+  extends: ['@commitlint/config-conventional'],
+  rules: {
+    'type-enum': [
+      2,
+      'always',
+      [
+        'feat',     // Nueva característica
+        'fix',      // Corrección de bug
+        'docs',     // Cambios en documentación
+        'style',    // Cambios que no afectan el significado del código
+        'refactor', // Refactorización de código
+        'perf',     // Cambios que mejoran el rendimiento
+        'test',     // Añadir o corregir tests
+        'build',    // Cambios que afectan el sistema de build
+        'ci',       // Cambios en archivos y scripts de CI
+        'chore',    // Otros cambios que no modifican src o test
+        'revert'    // Revertir un commit
+      ]
+    ],
+    'type-case': [2, 'always', 'lower-case'],
+    'type-empty': [2, 'never'],
+    'scope-case': [2, 'always', 'lower-case'],
+    'subject-empty': [2, 'never'],
+    'subject-case': [
+      2,
+      'always',
+      ['sentence-case', 'lower-case']
+    ],
+    'header-max-length': [2, 'always', 100]
+  }
+};"""
+    
+    with open(os.path.join(root_dir, "commitlint.config.js"), "w") as f:
+        f.write(commitlint_config)
+    print("[OK] Configuración de commitlint creada")
+    
+    # 9. Instalar hook commit-msg
+    try:
+        subprocess.run(["pre-commit", "install", "--hook-type", "commit-msg"], check=True)
+        print("[OK] Hook commit-msg instalado")
+    except subprocess.CalledProcessError as e:
+        print(f"[ERROR] No se pudo instalar el hook commit-msg: {e}")
+        return False
+    
+    print("\n[OK] Configuración de pre-commit y dependencias completada")
     return True
 
 def handle_setup_ci(args: argparse.Namespace, project_data: dict):
@@ -1707,7 +1733,19 @@ def handle_setup_ci(args: argparse.Namespace, project_data: dict):
         if result.stdout.strip():
             # Hay cambios, proceder con el commit automático
             subprocess.run(['git', 'add', '.'], check=True)
-            commit_msg = "[CI] configura flujos y hooks de commit (setup-ci)\n\nAutomatiza la configuración de pre-commit, commitlint y archivos auxiliares para el flujo CI."
+            
+            # Ajustar el mensaje del commit según el formato configurado
+            if commit_format == "semantic":
+                commit_msg = "ci: configura flujos y hooks de commit (setup-ci)\n\nAutomatiza la configuración de pre-commit, commitlint y archivos auxiliares para el flujo CI."
+            elif commit_format == "angular":
+                commit_msg = "ci(setup): configura flujos y hooks de commit\n\nAutomatiza la configuración de pre-commit, commitlint y archivos auxiliares para el flujo CI."
+            elif commit_format == "simple":
+                commit_msg = "ci: configura flujos y hooks de commit"
+            elif commit_format == "minimal":
+                commit_msg = "configura flujos y hooks de commit"
+            else:  # conventional por defecto
+                commit_msg = "[CI] configura flujos y hooks de commit (setup-ci)\n\nAutomatiza la configuración de pre-commit, commitlint y archivos auxiliares para el flujo CI."
+            
             try:
                 subprocess.run(['git', 'commit', '-m', commit_msg], check=True)
                 print(f"{Fore.GREEN}✓ Commit automático realizado correctamente.{Style.RESET_ALL}")
