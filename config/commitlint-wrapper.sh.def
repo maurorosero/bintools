@@ -1,0 +1,24 @@
+#!/bin/bash
+# -----------------------------------------------------------------------------
+# Copyright (c) 2025, MAURO ROSERO PÉREZ
+# License: GPLV3
+# Author: Mauro Rosero P. (mauro.rosero@gmail.com)
+# Created: 2025-05-12 22:30:00
+# Version: 0.1.0
+#
+# commitlint-wrapper.sh - Wrapper para commitlint que limpia automáticamente el mensaje temporal en caso de error
+# -----------------------------------------------------------------------------
+
+# Ejecutar commitlint con el mensaje de commit
+npx commitlint -E HUSKY_GIT_PARAMS
+status=$?
+
+# Si falla, limpiar el mensaje temporal y mostrar mensaje claro
+if [ $status -ne 0 ]; then
+    echo "❌ Commit message inválido. Limpiando mensaje temporal..."
+    rm -f .git/COMMIT_EDITMSG
+    echo "💡 Sugerencia: Usa el formato [TAG] Descripción"
+    echo "   Ejemplo: [FIX] Corrige error en validación de datos"
+fi
+
+exit $status 

@@ -162,4 +162,4 @@ Para uso y licencias comerciales, por favor contactar al autor.
 
 ## Contacto
 
-Para sugerencias o problemas, contacta a Mauro Rosero P. en <mauro.rosero.one>.
+Para sugerencias o problemas, contacta a Mauro Rosero P. en <mauro.rosero.one>.# Test
