@@ -1699,6 +1699,28 @@ def handle_setup_ci(args: argparse.Namespace, project_data: dict):
     # Configurar pre-commit y dependencias
     if not setup_pre_commit_and_deps(config_dir, root_dir):
         print(f"{Fore.YELLOW}Advertencia: La configuración de pre-commit y dependencias no fue completamente exitosa{Style.RESET_ALL}")
+        return False
+
+    # Verificar si hay cambios para commitear
+    try:
+        result = subprocess.run(['git', 'status', '--porcelain'], capture_output=True, text=True, check=True)
+        if result.stdout.strip():
+            # Hay cambios, proceder con el commit automático
+            subprocess.run(['git', 'add', '.'], check=True)
+            commit_msg = "[CI] configura flujos y hooks de commit (setup-ci)\n\nAutomatiza la configuración de pre-commit, commitlint y archivos auxiliares para el flujo CI."
+            try:
+                subprocess.run(['git', 'commit', '-m', commit_msg], check=True)
+                print(f"{Fore.GREEN}✓ Commit automático realizado correctamente.{Style.RESET_ALL}")
+            except subprocess.CalledProcessError as e:
+                print(f"{Fore.YELLOW}Advertencia: Error al realizar el commit automático: {e}{Style.RESET_ALL}")
+                print(f"{Style.DIM}Por favor, revisa el estado del repositorio y realiza el commit manualmente.{Style.RESET_ALL}")
+        else:
+            print(f"{Style.DIM}No hay cambios para commitear.{Style.RESET_ALL}")
+    except subprocess.CalledProcessError as e:
+        print(f"{Fore.YELLOW}Advertencia: Error al verificar el estado de git: {e}{Style.RESET_ALL}")
+        return False
+
+    return True
 
 def main():
     # 1. Crear parser base con argumento --path
