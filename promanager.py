@@ -1607,17 +1607,17 @@ def handle_setup_ci(args: argparse.Namespace, project_data: dict):
             # Hay cambios, proceder con el commit automático
             subprocess.run(['git', 'add', '.'], check=True)
             
-            # Ajustar el mensaje del commit según el formato configurado
-            if commit_format == "semantic":
-                commit_msg = "ci: configura flujos y hooks de commit (setup-ci)\n\nAutomatiza la configuración de pre-commit, commitlint y archivos auxiliares para el flujo CI."
-            elif commit_format == "angular":
-                commit_msg = "ci(setup): configura flujos y hooks de commit\n\nAutomatiza la configuración de pre-commit, commitlint y archivos auxiliares para el flujo CI."
-            elif commit_format == "simple":
-                commit_msg = "CI: configura flujos y hooks de commit" # Cambiado de "ci:..." a "CI:..."
-            elif commit_format == "minimal":
-                commit_msg = "configura flujos y hooks de commit"
-            else:  # conventional por defecto
-                commit_msg = "[CI] configura flujos y hooks de commit (setup-ci)\n\nAutomatiza la configuración de pre-commit, commitlint y archivos auxiliares para el flujo CI."
+            # --- INICIO DE CAMBIOS ---
+            require_issue_flag = workflow_config.get("require_issue", False)
+            issue_ref = " (#0)" if require_issue_flag else "" # Espacio inicial importante si hay issue
+
+            commit_subject = "configura flujos y hooks de commit (setup-ci)"
+            commit_body = "\n\nAutomatiza la configuración de pre-commit, commitlint y archivos auxiliares para el flujo CI."
+            
+            # Mensaje de commit estandarizado para promanager.py al configurar CI
+            # Siempre usará [CI] como TAG y el formato [TAG](issue_ref_opcional) subject
+            commit_msg = f"[CI]{issue_ref} {commit_subject}{commit_body}"
+            # --- FIN DE CAMBIOS ---
             
             try:
                 subprocess.run(['git', 'commit', '-m', commit_msg], check=True)

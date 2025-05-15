@@ -8,10 +8,23 @@
 // commitlint.config.js - Configuración de commitlint para formato simple
 // -----------------------------------------------------------------------------
 //
+const requireIssueFromMeta = process.env.REQUIRE_ISSUE_FROM_META === 'true';
 const VERSION = "0.1.0"; // Version para el script de versionado
+
 module.exports = {
-  extends: ['@commitlint/config-conventional'],
+  // extends: ['@commitlint/config-conventional'], // Eliminado para usar nuestro parserPreset
+  parserPreset: {
+    parserOpts: {
+      // Captura: [TAG] (#IssueNumber opcional) Descripción
+      // 1: TAG (type)
+      // 2: #IssueNumber (scope) - opcional
+      // 3: Descripción (subject)
+      headerPattern: /^\[([A-Z]+)\](?: \((#\d+)\))? (.*)$/,
+      headerCorrespondence: ['type', 'scope', 'subject'],
+    },
+  },
   rules: {
+    // --- Reglas para TYPE (el TAG) ---
     'type-enum': [
       2,
       'always',
@@ -25,8 +38,21 @@ module.exports = {
     ],
     'type-case': [2, 'always', 'upper-case'],
     'type-empty': [2, 'never'],
+
+    // --- Reglas para SCOPE (el #IssueNumber) ---
+    'scope-empty': [requireIssueFromMeta ? 2 : 0, 'never'], // Condicionalmente obligatorio
+    'scope-pattern': [2, 'always', /^#\d+$/], // Si hay scope, debe ser #numero
+    'scope-case': [2, 'always', 'lower-case'],
+
+    // --- Reglas para SUBJECT (la descripción) ---
     'subject-empty': [2, 'never'],
-    'subject-case': [0],
+    'subject-case': [0], // Sin restricciones de mayúsculas/minúsculas para 'simple'
+    // 'subject-min-length': [2, 'always', 5], // Opcional: puedes añadir si lo deseas
+
+    // --- Reglas generales del HEADER ---
     'header-max-length': [2, 'always', 100]
+    
+    // Otras reglas de config-conventional que quisieras replicar tendrían que añadirse aquí.
+    // Por ahora, solo se aplican las definidas explícitamente.
   }
 }; 

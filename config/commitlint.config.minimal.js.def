@@ -8,34 +8,54 @@
 // commitlint.config.js - Minimal commit format configuration
 // -----------------------------------------------------------------------------
 
+const requireIssueFromMeta = process.env.REQUIRE_ISSUE_FROM_META === 'true';
+
 module.exports = {
-  extends: ['@commitlint/config-conventional'],
+  // extends: ['@commitlint/config-conventional'], // Eliminado para control total con el parserPreset personalizado
   parserPreset: {
     parserOpts: {
-      headerPattern: /^(.*?)(?:\s\(#(\d+)\))?$/,
-      headerCorrespondence: ['subject', 'scope']
-    }
+      // Captura: [TAG] (#IssueNumber opcional) Descripción
+      // 1: TAG (type)
+      // 2: #IssueNumber (scope) - opcional
+      // 3: Descripción (subject)
+      headerPattern: /^\[([A-Z]+)\](?: \((#\d+)\))? (.*)$/,
+      headerCorrespondence: ['type', 'scope', 'subject'],
+    },
   },
   rules: {
-    'type-enum': [0], // No restricción en tipos
-    'type-case': [0], // No restricción en mayúsculas/minúsculas
-    'type-empty': [2, 'always'], // Forzar que el tipo (si el parser lo identifica) esté vacío
-    'scope-empty': [0], // Permite commits sin scope (issue)
-    'scope-case': [0], // No restricción en mayúsculas/minúsculas del scope (issue)
+    // --- Reglas para TYPE (el TAG) ---
+    'type-empty': [2, 'never'], // El TAG es obligatorio
+    'type-case': [2, 'always', 'upper-case'], // El TAG debe ser en mayúsculas
+    // 'type-enum': [0], // Para minimal, sin restricción de enum de TAGs por defecto
+
+    // --- Reglas para SCOPE (el #IssueNumber) ---
+    'scope-empty': [requireIssueFromMeta ? 2 : 0, 'never'], // Condicionalmente obligatorio
+    // 'scope-pattern': [2, 'always', /^#\d+$/], // Eliminada: El headerPattern del parserPreset ya fuerza el formato #numero
+    'scope-case': [2, 'always', 'lower-case'], // Estándar para commitlint, aunque #numero no varía por case
+
+    // --- Reglas para SUBJECT (la descripción) ---
     'subject-empty': [2, 'never'], // El subject (mensaje principal) es obligatorio
-    'subject-case': [0], // No restricción en mayúsculas/minúsculas del subject
-    'header-max-length': [2, 'always', 100], // Solo limita la longitud total
-    'scope-enum': [0], // No restricción en valores de scope (issue)
-    'scope-min-length': [0], // No restricción en longitud mínima del scope (issue)
-    'scope-max-length': [0], // No restricción en longitud máxima del scope (issue)
-    'subject-min-length': [0], // No restricción en longitud mínima del subject
-    'subject-max-length': [0], // No restricción en longitud máxima del subject
-    'subject-full-stop': [0], // No restricción en punto final
-    'subject-exclamation-mark': [0], // No restricción en signos de exclamación
-    'body-leading-blank': [0], // No restricción en línea en blanco inicial
-    'body-max-line-length': [0], // No restricción en longitud de línea
-    'footer-leading-blank': [0], // No restricción en línea en blanco inicial
-    'footer-max-line-length': [0], // No restricción en longitud de línea
-    'references-empty': [0] // No restricción en referencias vacías
+    'subject-case': [0], // No restricción en mayúsculas/minúsculas del subject para minimal
+    'subject-min-length': [2, 'always', 5], // Un mínimo pequeño para el subject
+    
+    // --- Reglas generales del HEADER ---
+    'header-max-length': [2, 'always', 100], // Limita la longitud total
+
+    // --- Desactivar otras reglas para asegurar "minimal" ---
+    // Si no hay 'extends', estas reglas no se aplican a menos que se definan.
+    // Se dejan algunas comunes con [0] por claridad si se quisiera extender en el futuro.
+    'body-leading-blank': [0],
+    'footer-leading-blank': [0],
+    'scope-enum': [0],
+    'scope-min-length': [0],
+    'scope-max-length': [0],
+    'subject-max-length': [0],
+    'subject-full-stop': [0],
+    'subject-exclamation-mark': [0],
+    'body-max-line-length': [0],
+    'footer-max-line-length': [0],
+    'references-empty': [0]
+    // Añade más reglas con [0] aquí si es necesario para anular comportamientos por defecto
+    // si decides reintroducir algún 'extends' en el futuro.
   }
 }; 
