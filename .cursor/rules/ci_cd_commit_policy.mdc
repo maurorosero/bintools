@@ -1,0 +1,45 @@
+# Commit Policy for CI/CD and Configuration Files
+
+This rule defines commit message standards when modifying files critical for Continuous Integration (CI), Continuous Delivery (CD), and Cursor's own configuration.
+
+## 1. Affected Files
+
+This policy applies automatically when you modify files matching the following patterns (defined in `globs`):
+- `**/.cursorrules`
+- `.github/workflows/*.yml`
+- `ci/*`
+- `scripts/ci_utils/*.sh`
+
+## 2. Allowed Commit TAGS (Specific to these files)
+
+When committing changes for the mentioned files, you must use **exclusively** one of the following TAGS:
+
+*   **`[CHORE]`**: For general maintenance or configurations that do not alter CI/CD logic.
+    *   *Example*: Updating this very rule, reorganizing configuration files without changing their effect.
+*   **`[CI]`**: For changes that modify the behavior, logic, or structure of CI/CD flows.
+    *   *Example*: Modifying workflows, adding new jobs, changing how CI scripts are executed.
+*   **`[FIX]`**: For corrections of functional errors within CI/CD scripts or configurations that caused incorrect pipeline behavior.
+    *   *Example*: Correcting an incorrect path in a deployment script.
+*   **`[DOCS]`**: For adding or updating internal technical documentation specifically related to these files.
+    *   *Example*: Documenting the purpose of a new workflow.
+
+## 3. Commit Message Structure
+
+Follow the general project format, which is also detailed in `commit_standards.mdc`:
+
+`[TAG] (#IssueNumber optional) Specific description in present tense [Component]`
+
+*   The `[Component]` should reflect the specific file or area affected.
+
+**Example Commit Messages for these files:**
+
+```
+[CHORE] update linting rules for Bash scripts [.cursorrules]
+[CI] (#45) optimize dependency cache [Workflow Tests]
+[FIX] correct installation path in CI script [ci_utils/install.sh]
+[DOCS] add pipeline flow diagram [docs/ci.md]
+```
+
+## 4. Importance
+
+This rule specializes the general guidance from `commit_standards.mdc` to ensure that changes to critical CI/CD infrastructure and project configuration are clear and follow a strict convention. CURSOR will assist you in ensuring the correct tags and format are used when working on these files. 

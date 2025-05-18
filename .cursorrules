@@ -1,144 +1,28 @@
-# Instrucciones Generales para Asistentes de IA (Conservadas como comentario)
-# ==========================================================================
-# ## Contexto del Proyecto
-# - Este repositorio contiene una colección de scripts y utilidades personales (principalmente Python, Bash, Node.js/TypeScript) para desarrollo y gestión ofimática, con un enfoque en asistencia por IA.
-# - Es un monorepo donde los componentes son lógicamente independientes pero se versionan y liberan como un todo, usando un workflow manual (`Unified Custom Release`).
-#
-# ## Mensajes de Commit (¡MUY IMPORTANTE!)
-# - Formato Estricto: `[TAG] (#IssueNumber opcional) Descripción corta en presente`
-# - TAGS: [IMPROVE], [FIX], [DOCS], [STYLE], [REFACTOR], [PERF], [TEST], [BUILD], [CI], [CHORE]
-# - Consulta CONTRIBUTING.md para más detalles.
-# - Ayuda en la creación de mensajes de commit que sigan este formato.
-#
-# ## Desarrollo
-# - Documentación: Actualiza `docs/[componente].md` si modificas un componente.
-# - Pruebas: Fomenta tests para nuevas funcionalidades/correcciones.
-# - Estilo: Sigue estilo existente y linters.
-#
-# ## Generación de README
-# - README raíz: Incluir `<!-- CURRENT_VERSION_PLACEHOLDER -->`.
-# - READMEs de componentes (`docs/`): Enfócate en ese componente.
-#
-# ## Releases
-# - Unificadas, manuales ("Unified Custom Release" Action). Versionado en CONTRIBUTING.md.
-# ==========================================================================
+# Este archivo .cursorrules ha sido simplificado.
+# La mayoría de las directrices generales y políticas de commit
+# han sido migradas a archivos .mdc en el directorio .cursor/rules/
+# para una gestión más moderna y granular, acorde con las recomendaciones de Cursor.
 
-# Reglas específicas de Cursor
 rules:
-  # Regla para configuraciones CI/CD y .cursorrules
-  - path_patterns: 
-      - "**/.cursorrules"
-      - ".github/workflows/*.yml"
-      - "ci/*"
-      - "scripts/ci_utils/*.sh"
-    prompt: |
-      POLÍTICA DE COMMITS:
-      --------------------
-      1. Tags permitidos:
-         - [CHORE]: Mantenimiento/configuraciones (ej: actualizar reglas, reorganizar archivos)
-         - [CI]: Cambios en comportamiento de CI/CD (ej: modificar workflows, añadir jobs)
-         - [FIX]: Corrección de errores funcionales
-         - [DOCS]: Documentación técnica interna
-
-      2. Estructura del mensaje:
-         [TAG] (#Issue) Descripción específica [Componente]
-         Ej: [CI] (#45) Optimiza caché de dependencias [Workflow Tests]
-
-      3. Ejemplos:
-         ✓ [CHORE] Actualiza reglas de linting para scripts Bash [.cursorrules]
-         ✓ [CI] Agrega ejecución paralela de tests [Workflow Python]
-         ✓ [FIX] Corrige ruta de instalación en script CI [ci_utils/install.sh]
-         ✓ [DOCS] Añade diagrama de flujo del pipeline [docs/ci.md]
-
-  # Nueva regla para estandarizar banners en CLI Tools
-  - name: "StandardizeBannersCLITools"
-    languages:
-      - "python"
-      - "shellscript"
-      - "javascript"
-      - "typescript"
-    prompt: |
-      # Estándar para Banners en Herramientas de Consola Interactivas (CLI)
-
-      Esta guía se aplica **EXCLUSIVAMENTE** CUANDO:
-      1. Estás creando una **NUEVA herramienta de consola interactiva** (script o aplicación CLI).
-      2. El usuario te solicita **explícitamente** añadir o estandarizar un banner para una herramienta existente.
-      
-      Si **UNA** de estas condiciones se cumple, y estás trabajando en un archivo que es el punto de entrada principal o un módulo relevante para una CLI, implementa un banner de inicio siguiendo estas directrices:
-
-      ## Requisitos Funcionales Obligatorios:
-      1.  **Limpieza de Pantalla Previa**: Antes de mostrar el banner, la terminal DEBE ser limpiada.
-          *   Python: `import os; os.system('cls' if os.name == 'nt' else 'clear')`
-          *   Bash: `clear`
-          *   Node.js (JavaScript/TypeScript): `console.clear()` o `process.stdout.write('\x1Bc');` (prefiere `console.clear()` si está disponible en el entorno de ejecución).
-      2.  **Implementación Encapsulada**: La lógica para mostrar el banner DEBE estar en una función dedicada (ej. `show_banner()`, `display_header()`, `print_banner()`).
-      3.  **Llamada Temprana y Única**: Invoca esta función UNA SOLA VEZ, al inicio de la ejecución principal de la herramienta interactiva, antes de cualquier otra salida o lógica principal.
-
-      ## Contenido Mínimo Obligatorio del Banner:
-      El banner DEBE mostrar, como mínimo, la siguiente información, definida mediante constantes globales o de módulo:
-      1.  **Nombre de la Aplicación/Herramienta**:
-          *   Usa una constante denominada `APP_NAME`.
-          *   Ej: `APP_NAME = "Mi Super Herramienta"` (Python/JS), `readonly APP_NAME="Mi Super Herramienta"` (Bash).
-      2.  **Versión**:
-          *   Usa una constante denominada `VERSION`.
-          *   Ej: `VERSION = "0.1.0"` (Python/JS), `readonly VERSION="0.1.0"` (Bash).
-          *   **Fuente Única de Verdad (SSoT)**: Prioriza obtener esta información dinámicamente de metadatos del proyecto (ej. `pyproject.toml` en Python, `package.json` en Node.js, un archivo `VERSION` dedicado, o variables de entorno) antes que codificarla directamente si ya existe una fuente canónica. Si se obtiene dinámicamente, aún puedes asignarla a la constante `VERSION` para uso interno.
-      3.  **Autor**:
-          *   Usa una constante denominada `AUTHOR`.
-          *   Ej: `AUTHOR = "Tu Nombre/Organización"` (Python/JS), `readonly AUTHOR="Tu Nombre/Organización"` (Bash).
-          *   **SSoT**: Similar a la versión, intenta obtenerla de fuentes como `git config user.name`, archivos de proyecto, etc., si es apropiado y factible, para mantener la consistencia.
-
-      ## Estilo Visual y Formato (Recomendaciones):
-      *   **Consistencia Visual**: Intenta que el estilo del banner sea coherente con otras herramientas del proyecto (ej. el banner de `pymanager.sh` o `promanager.py`).
-      *   **Claridad y Legibilidad**: El banner debe ser claro, conciso y fácil de leer. Evita el exceso de información.
-      *   **Delimitadores**: Utiliza caracteres como `*`, `=`, `-` para enmarcar el texto del banner y separarlo visualmente del resto de la salida. Considera usar un ancho fijo (ej. `BANNER_WIDTH = 70` o `80`) para el banner y centrar el texto dentro de él.
-      *   **Centrado (Opcional pero Recomendado)**: Si es sencillo de implementar en el lenguaje destino y mejora la estética, centra las líneas de texto del banner.
-      *   **Espaciado**: Añade al menos una línea vacía (`print()` o `echo`) después del banner completo para separarlo limpiamente de la salida subsiguiente de la herramienta.
-
-      ## Ejemplo de Estructura de Banner (Conceptual):
-      \`\`\`
-      ======================================================================
-                       [APP_NAME] - Versión [VERSION]
-                            Autor: [AUTHOR]
-            (Opcional: breve eslogan o descripción de una línea)
-      ======================================================================
-      \`\`\`
-
-      ## Idioma:
-      *   El texto descriptivo del banner (eslóganes, etc.) debe estar en español, a menos que el contexto del proyecto indique otro idioma.
-      *   Los nombres de las constantes (`APP_NAME`, `VERSION`, `AUTHOR`, `BANNER_WIDTH`) deben ser en inglés como se especifica.
-
-      **IMPORTANTE**: Adapta la implementación (sintaxis de constantes, funciones, limpieza de pantalla, manejo de cadenas y formato) a las convenciones y características específicas del lenguaje de programación del archivo actual (Python, Bash, JavaScript, TypeScript, etc.).
-
-      # --- POLÍTICA IMPERATIVA DE EDICIÓN DE CÓDIGO ---
-      # ES OBLIGATORIO Y MANDATORIO SEGUIR ESTA POLÍTICA:
-      # 1. NUNCA generes una propuesta de edición de código (`edit_file`) sin antes haber:
-      #    a) Descrito DETALLADAMENTE en el chat los cambios específicos que planeas realizar.
-      #    b) Recibido mi CONFIRMACIÓN EXPLÍCITA ("procede", "ok", "sí", "adelante", etc.) en el chat.
-      # 2. NO ASUMAS la aprobación. La descripción NO es suficiente. Debes ESPERAR mi respuesta afirmativa.
-      # 3. Si no recibes confirmación explícita, NO generes la propuesta de `edit_file`. Pregunta de nuevo o espera.
-      # --- FIN POLÍTICA IMPERATIVA ---
-
-  # Reglas existentes de lenguaje
+  # Reglas existentes de lenguaje que aún no se han migrado a .mdc individuales
   - language: markdown
     prompt: |
       Al crear o modificar significativamente un archivo README.md, asegúrate de que sigue la estructura definida en `.github/readme-context-personal-global.md`. Esto incluye:
       1.  Las secciones obligatorias en el orden correcto (Título, Metadatos/Descripción, Placeholder de Versión, Badges, Tabla Contenidos (opc), Instalación, Uso, Contribución (opc), Licencia, Contacto (opc)).
       2.  El bloque EXACTO de metadatos parseables:
-          \`\`\`html
+          ```html
           <!-- PARSEABLE_METADATA_START
           purpose: [Descripción concisa y principal]
           technology: [Tecnologías principales]
           status: [Development/Beta/Stable/Archived]
           PARSEABLE_METADATA_END -->
-          \`\`\`
+          ```
           (Recuerda: claves en inglés minúsculas, valores en el idioma del README).
       3.  El placeholder de versión EXACTO: `<!-- CURRENT_VERSION_PLACEHOLDER -->`.
       4.  Si modificas la sección de Contribución o generas un mensaje de commit para cambios en el README, recuerda la importancia del formato de commits convencional (`[TAG] Descripción`) mencionado en el contexto.
       5.  Formula la sección de Licencia mencionando el archivo `LICENSE` (ej. "Distribuido bajo la Licencia MIT. Ver `LICENSE` para más información.").
       6.  Intenta aplicar las heurísticas de auto-relleno definidas en el contexto si estás creando un nuevo README (buscar `pyproject.toml`, archivos de licencia, `git config`, etc.).
 
-  # Nueva regla para placeholders de imagen en Markdown
   - language: markdown
     prompt: |
       # Instrucción para Placeholders de Imágenes en Markdown
@@ -165,119 +49,42 @@ rules:
       Cuando generes un nuevo archivo Python, asegúrate SIEMPRE de incluir un docstring a nivel de módulo inmediatamente después de las importaciones.
       La primera línea de este docstring DEBE ser un resumen conciso (una sola frase) del propósito principal del script.
       Ejemplo:
-      \`\`\`python
+      ```python
       import sys
       
-      """Este script procesa archivos de log para extraer errores."""
+      '''Este script procesa archivos de log para extraer errores.'''
 
       # ... resto del código ...
-      \`\`\`
+      ```
   - language: shellscript
     prompt: |
       Cuando generes un nuevo archivo Shell/Bash (.sh), por favor incluye un comentario `# Description: <resumen conciso>` cerca del inicio (después del shebang si existe) describiendo el propósito principal del script en una sola frase.
       Ejemplo:
-      \`\`\`bash
+      ```bash
       #!/bin/bash
       # Description: Este script automatiza las copias de seguridad diarias.
 
       # ... resto del código ...
-      \`\`\`
+      ```
   - language: javascript
     prompt: |
       Cuando generes un nuevo archivo JavaScript (.js), por favor incluye un comentario `// Description: <resumen conciso>` cerca del inicio (después de las importaciones si existen) describiendo el propósito principal del script/módulo en una sola frase.
       Ejemplo:
-      \`\`\`javascript
+      ```javascript
       import fs from 'fs';
       
       // Description: Esta utilidad valida los datos de entrada del formulario.
 
       // ... resto del código ...
-      \`\`\`
+      ```
   - language: typescript
     prompt: |
       Cuando generes un nuevo archivo TypeScript (.ts), por favor incluye un comentario `// Description: <resumen conciso>` cerca del inicio (después de las importaciones si existen) describiendo el propósito principal del script/módulo en una sola frase.
       Ejemplo:
-      \`\`\`typescript
+      ```typescript
       import { Request, Response } from 'express';
       
       // Description: Este controlador maneja las peticiones de autenticación de usuario.
 
       // ... resto del código ...
-      \`\`\`
-  # Regla general de idioma
-  - language: "*"
-    prompt: |
-      # POLÍTICA DE MENSAJES DE COMMIT (ADHESIÓN A commitlint)
-      # ========================================================
-      # Al generar CUALQUIER mensaje de commit, asegúrate de cumplir con lo siguiente,
-      # además de las políticas de commit específicas por path_patterns:
-      #
-      # 1. TAGS PERMITIDOS:
-      #    Utiliza exclusivamente uno de los siguientes tags: [IMPROVE], [FIX], [DOCS], [STYLE], [REFACTOR], [PERF], [TEST], [BUILD], [CI], [CHORE].
-      #
-      # 2. FORMATO DEL SUBJECT (DESCRIPCIÓN POST-TAG):
-      #    - El subject (la parte descriptiva después del TAG y el scope opcional) DEBE escribirse en minúsculas (lower-case).
-      #      Si se requiere una frase, esta debe seguir el formato de tipo oración (sentence-case), comenzando con minúscula.
-      #    - Ejemplo CORRECTO (lower-case): `[FIX] corrige cálculo de totales`
-      #    - Ejemplo CORRECTO (sentence-case): `[DOCS] actualiza la guía de contribución para incluir nuevos linters`
-      #    - Ejemplo INCORRECTO (Title Case): `[FIX] Corrige el Cálculo de Totales`
-      #    - Ejemplo INCORRECTO (PascalCase): `[REFACTOR] RefactorizaModuloAutenticacion`
-      #    - EXCEPCIONES PARA MAYÚSCULAS: Los nombres propios, acrónimos (ej. API, URL, JWT), y nombres de identificadores específicos (ej. nombre de una variable o clase si es relevante directamente en el mensaje) pueden y deben mantener su capitalización original.
-      #      Ej: `[FEAT] integra la API de GeoLocalización para validación de direcciones`
-      #
-      # 3. TIEMPO VERBAL DEL SUBJECT:
-      #    - El subject DEBE estar en tiempo presente y modo imperativo.
-      #    - Ejemplo CORRECTO: `[ADD] agrega funcionalidad de login`
-      #    - Ejemplo INCORRECTO (pasado): `[ADD] agregada funcionalidad de login`
-      #    - Ejemplo INCORRECTO (gerundio): `[ADD] agregando funcionalidad de login`
-      #
-      # 4. CONCISIÓN DEL SUBJECT:
-      #    - Intenta que el subject sea conciso y descriptivo. Una buena guía (no una regla estricta aquí) es mantenerse alrededor de 50-72 caracteres.
-      #
-      # 5. CUERPO DEL COMMIT (OPCIONAL):
-      #    - Si se necesita mayor detalle o contexto, sepáralo del subject con una línea en blanco.
-      #    - El cuerpo del commit puede tener múltiples párrafos y usar mayúsculas y puntuación estándar.
-      #
-      # ADHERENCIA GENERAL A LINTERS Y ESTILO DE CÓDIGO
-      # =================================================
-      # Además de las reglas de commit, al generar o modificar código o documentación:
-      # - ESTILO EXISTENTE: Observa y sigue el estilo de codificación y formato existente en los archivos del proyecto.
-      # - LINTERS Y FORMATEADORES: Si el proyecto utiliza herramientas como Black, Prettier, Flake8, ESLint, Pylint, etc. (ya sea configuradas en `pre-commit` o usadas externamente), el código generado debe esforzarse por cumplir con las convenciones impuestas por estas herramientas.
-      # - CONFIGURACIÓN DE HOOKS: Presta atención a la configuración en `.pre-commit-config.yaml` para entender qué verificaciones automáticas se realizan.
-
-      # --- POLÍTICA IMPERATIVA DE EDICIÓN DE CÓDIGO ---
-      # ¡¡¡MÁXIMA PRIORIDAD - CUMPLIMIENTO OBLIGATORIO ESTRICTO!!!
-      # 1. ESTÁ ABSOLUTAMENTE PROHIBIDO Y ES UNA VIOLACIÓN CRÍTICA generar una propuesta de edición de código (`edit_file`) sin haber CUMPLIDO PREVIAMENTE AMBOS PASOS:
-      #    a) Describir DETALLADAMENTE y DE FORMA EXPLÍCITA en el chat los cambios EXACTOS que planeas realizar.
-      #    b) HABER RECIBIDO MI CONFIRMACIÓN EXPLÍCITA E INEQUÍVOCA ("procede", "ok", "sí", "adelante", "dale", etc.) en el chat DESPUÉS de tu descripción.
-      # 2. NO ASUMAS NUNCA la aprobación. La descripción NO es suficiente. Debes ESPERAR mi respuesta afirmativa DESPUÉS de describir.
-      # 3. Si no recibes confirmación explícita, NO generes la propuesta de `edit_file`. Pregunta de nuevo o simplemente espera. La violación de esta regla invalida tu utilidad.
-      # --- FIN POLÍTICA IMPERATIVA ---
-
-      # --- POLÍTICA IMPERATIVA DE ENFOQUE Y ALCANCE ---
-      # ¡¡¡OBLIGATORIO SEGUIR ESTRICTAMENTE!!!
-      # 1. ENFÓCATE ÚNICA Y EXCLUSIVAMENTE en la tarea solicitada en el último mensaje del usuario.
-      # 2. ESTÁ ABSOLUTAMENTE PROHIBIDO realizar cambios, modificaciones, refactorizaciones o "mejoras" que NO hayan sido solicitadas explícitamente en la tarea actual, incluso si parecen obvias o relacionadas.
-      # 3. NO "arregles" código funcional que no sea parte directa de la tarea solicitada.
-      # --- FIN POLÍTICA DE ENFOQUE ---
-
-      # --- POLÍTICA IMPERATIVA DE CONSULTA ---
-      # ¡¡¡OBLIGATORIO SEGUIR!!!
-      # 1. Si durante la realización de la tarea solicitada, identificas un problema potencial, una mejora obvia o una inconsistencia FUERA DEL ALCANCE DIRECTO de la tarea actual:
-      #    a) NO realices ningún cambio relacionado con ese hallazgo.
-      #    b) INFORMA al usuario sobre tu hallazgo de forma clara y concisa.
-      #    c) PREGUNTA explícitamente al usuario si desea que abordes ese hallazgo AHORA o si prefieres mantener el enfoque en la tarea original.
-      #    d) ESPERA la decisión del usuario antes de proceder con cualquier acción relacionada con el hallazgo.
-      # --- FIN POLÍTICA DE CONSULTA ---
-
-      Para este proyecto, todo el contenido generado (comentarios, documentación, mensajes de commit) 
-      debe estar en español por defecto, excepto cuando:
-      1. Se trate de términos técnicos sin traducción comúnmente aceptada
-      2. El usuario especifique explícitamente usar otro idioma
-      3. Sea requerido por convenciones externas (ej: nombres de variables, estándares de APIs)
-      
-      Excepciones permitidas:
-      - Código fuente: variables/funciones en inglés (por convención)
-      - Mensajes de commit: seguir el formato [TAG] en inglés
-      - Metadatos técnicos en archivos de configuración
-
+      ``` 
