@@ -493,12 +493,85 @@ StartupWMClass=Cursor
     except Exception as e:
         print_error(f"No se pudo crear la entrada .desktop: {e}")
 
+def config_mdc():
+    """Configura los archivos de reglas de Cursor."""
+    print("\n🔄 Configurando reglas MDC para Cursor...\n")
+    
+    # Obtener la ruta del script actual
+    script_dir = Path(__file__).parent
+    config_dir = script_dir / "config"
+    
+    # Verificar que existe el directorio config
+    if not config_dir.exists():
+        print("❌ No se encontró el directorio de configuración")
+        return False
+    
+    # Usar el directorio actual como ruta del proyecto por defecto
+    project_dir = Path.cwd()
+    cursor_rules_dir = project_dir / ".cursor" / "rules"
+    cursor_rules_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Copiar archivos *.mdc.def a .cursor/rules
+    mdc_files = list(config_dir.glob("*.mdc.def"))
+    if not mdc_files:
+        print("❌ No se encontraron archivos .mdc.def en el directorio de configuración")
+        return False
+    
+    print("📁 Copiando archivos de reglas...")
+    for mdc_file in mdc_files:
+        target_file = cursor_rules_dir / mdc_file.stem.replace(".def", "")
+        try:
+            shutil.copy2(mdc_file, target_file)
+            print(f"  ✓ {mdc_file.name} → {target_file.name}")
+        except Exception as e:
+            print(f"  ✗ Error al copiar {mdc_file.name}: {e}")
+            return False
+    
+    # Copiar .cursorrules.def a .cursorrules en la raíz del proyecto
+    cursorrules_def = config_dir / ".cursorrules.def"
+    if not cursorrules_def.exists():
+        print("❌ No se encontró el archivo .cursorrules.def")
+        return False
+    
+    target_cursorrules = project_dir / ".cursorrules"
+    try:
+        shutil.copy2(cursorrules_def, target_cursorrules)
+        print(f"  ✓ .cursorrules.def → .cursorrules")
+    except Exception as e:
+        print(f"  ✗ Error al copiar .cursorrules.def: {e}")
+        return False
+    
+    # Leer y mostrar el contenido de cursor_identity.def
+    identity_file = config_dir / "cursor_identity.def"
+    if not identity_file.exists():
+        print("❌ No se encontró el archivo cursor_identity.def")
+        return False
+    
+    try:
+        identity_content = identity_file.read_text(encoding="utf-8")
+        print("\n📋 Configuración de identidad de Cursor:")
+        print("─" * 80)
+        for line in identity_content.splitlines():
+            print(line)
+        print("─" * 80)
+        
+        print("\n📝 Pasos para configurar:")
+        print("  1. Abre Cursor Settings (File/Preferences/Cursor Settings)")
+        print("  2. En Rules/User Rules, pega el contenido anterior")
+        print("  3. Guarda los cambios")
+    except Exception as e:
+        print(f"❌ Error al leer cursor_identity.def: {e}")
+        return False
+    
+    print("\n✨ Configuración completada exitosamente\n")
+    return True
+
 def main():
     show_banner() # Llamada al banner al inicio
 
     parser = argparse.ArgumentParser(
         description=f"{APP_NAME} (Versión {VERSION}) - {AUTHOR}\\nUtilidad para instalar o desinstalar Cursor AI.",
-        epilog=f"Ejemplos de uso:\\n  python micursor.py --install    (Para instalar {APP_NAME})\\n  python micursor.py --remove     (Para desinstalar {APP_NAME})",
+        epilog=f"Ejemplos de uso:\\n  python micursor.py --install    (Para instalar {APP_NAME})\\n  python micursor.py --remove     (Para desinstalar {APP_NAME})\\n  python micursor.py --config-mdc (Para configurar reglas MDC)",
         formatter_class=argparse.RawTextHelpFormatter
     )
     
@@ -506,6 +579,7 @@ def main():
     action_group.title = "Acciones requeridas (elegir una)"
     action_group.add_argument("--install", action="store_true", help=f"Realiza la instalación de {APP_NAME} en el sistema.\\nPara Linux, intentará una instalación automatizada.\\nPara macOS y Windows, proporcionará instrucciones detalladas.")
     action_group.add_argument("--remove", action="store_true", help=f"Realiza la desinstalación de {APP_NAME} del sistema.\\nPara Linux, intentará una desinstalación automatizada de los componentes instalados por este script.\\nPara macOS y Windows, proporcionará instrucciones detalladas.")
+    action_group.add_argument("--config-mdc", action="store_true", help="Configura los archivos de reglas MDC para Cursor.")
 
     if len(sys.argv) == 1: # Si no se pasan argumentos, muestra la ayuda y sale.
         parser.print_help(sys.stderr)
@@ -536,6 +610,10 @@ def main():
         else:
             print_error(f"Sistema operativo '{system}' no soportado directamente por este script para desinstalación automática.")
             print_info("Por favor, consulta la documentación de tu sistema o de Cursor para desinstalación manual.")
+            sys.exit(1)
+    
+    elif args.config_mdc:
+        if not config_mdc():
             sys.exit(1)
 
 if __name__ == "__main__":
