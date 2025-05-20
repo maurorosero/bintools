@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# Copyright (c) 2025, MAURO ROSERO PÉREZ
-# License: GPLV3
-# Author: Mauro Rosero P. (mauro.rosero@gmail.com)
-# Created: 2025-04-30 05:52:19
+# Packages - Script para instalar y actualizar paquetes del sistema en diferentes distribuciones Linux y macOS, incluyendo SOPS.
+#
+# Copyright (C) 2025 MAURO ROSERO PÉREZ
+# License: GPLv3
+#
+# File: packages.sh
 # Version: 0.1.0
+# Author: Mauro Rosero P. <mauro.rosero@gmail.com>
+# Assistant: Cursor AI (https://cursor.com)
+# Created: 2025-05-19 20:53:17
 #
-# packages.sh - Script para instalar y actualizar paquetes del sistema en diferentes distribuciones Linux y macOS, incluyendo SOPS.
-# -----------------------------------------------------------------------------
+# This file is managed by template_manager.py.
+# Any changes to this header will be overwritten on the next fix.
 #
+# HEADER_END_TAG - DO NOT REMOVE OR MODIFY THIS LINE
 
 set -uo pipefail
 

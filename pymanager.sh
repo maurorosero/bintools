@@ -1,16 +1,20 @@
 #!/usr/bin/env bash
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# Copyright (c) 2025, MAURO ROSERO PÉREZ
-# License: GPLV3
-# Author: Mauro Rosero P. (mauro.rosero@gmail.com)
-# Created: 2025-04-27 10:15:53
-# Version: 0.4.0
+# PyManager - Script para crear, activar, listar y eliminar entornos virtuales Python (.venv).
 #
-# pymanager.sh - Gestión simplificada de entornos virtuales Python
-# -----------------------------------------------------------------------------
+# Copyright (C) 2025 MAURO ROSERO PÉREZ
+# License: GPLv3
 #
-# Description: Script para crear, activar, listar y eliminar entornos virtuales Python (.venv)
+# File: pymanager.sh
+# Version: 0.1.0
+# Author: Mauro Rosero P. <mauro.rosero@gmail.com>
+# Assistant: Cursor AI (https://cursor.com)
+# Created: 2025-05-19 20:53:17
+#
+# This file is managed by template_manager.py.
+# Any changes to this header will be overwritten on the next fix.
+
+# HEADER_END_TAG - DO NOT REMOVE OR MODIFY THIS LINE
 
 # Configuración básica
 # ==================

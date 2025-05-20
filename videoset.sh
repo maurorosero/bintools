@@ -1,23 +1,19 @@
 #!/usr/bin/env bash
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# Copyright (c) 2025, MAURO ROSERO PÉREZ
-# License: GPLV3
-# Author: Mauro Rosero P. (mauro.rosero@gmail.com)
-# Created: 2025-04-30 05:52:19
+# Videoset - Establece la resolución de pantalla para monitores conectados usando `xrandr`.
+#
+# Copyright (C) 2025 MAURO ROSERO PÉREZ
+# License: GPLv3
+#
+# File: videoset.sh
 # Version: 0.1.0
+# Author: Mauro Rosero P. <mauro.rosero@gmail.com>
+# Created: 2025-05-19 20:53:17
 #
-# videoset.sh - Establece la resolución de pantalla para monitores conectados usando `xrandr`.
-# -----------------------------------------------------------------------------
+# This file is managed by template_manager.py.
+# Any changes to this header will be overwritten on the next fix.
 #
-#title           : videoset.sh
-#description     : Set resolution to second monitor
-#author		     : MRP/mrp - Mauro Rosero P.
-#personal email  : mauro.rosero@gmail.com
-#notes           :
-#==============================================================================
-#
-#==============================================================================
+# HEADER_END_TAG - DO NOT REMOVE OR MODIFY THIS LINE
 
 # Función para mostrar ayuda
 show_help() {

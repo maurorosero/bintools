@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# Copyright (c) 2025, MAURO ROSERO PÉREZ
-# License: GPLV3
-# Author: Mauro Rosero P. (mauro.rosero@gmail.com)
-# Created: 2025-04-30 05:52:19
-# Version: 0.1.0
-#
-# pritunl-vpn.py - Script multiplataforma para instalar o desinstalar el cliente VPN de Pritunl.
-# -----------------------------------------------------------------------------
-#
-# pritunl_vpn.py - Instalador/Desinstalador de Pritunl VPN Client
+"""PRITUNL VPN - Script multiplataforma para instalar o desinstalar el cliente VPN de Pritunl.
+
+Copyright (C) 2025 MAURO ROSERO PÉREZ
+License: GPLv3
+
+File: pritunl-vpn.py
+Version: 0.2.0
+Author: Mauro Rosero P. <mauro.rosero@gmail.com>
+Assistant: Cursor AI (https://cursor.com)
+Created: 2025-05-19 20:56:28
+
+This file is managed by template_manager.py.
+Any changes to this header will be overwritten on the next fix.
+"""
+
+# HEADER_END_TAG - DO NOT REMOVE OR MODIFY THIS LINE
+
+# Description: Script multiplataforma para instalar o desinstalar el cliente VPN de Pritunl.
 
 import argparse
 import os

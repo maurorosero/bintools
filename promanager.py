@@ -1,20 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# Copyright (c) 2024, MAURO ROSERO PÉREZ
-# License: GPLV3
-# Author: Mauro Rosero Pérez
-# Created: 2024-07-02
-# Version: 0.1.0
-#
-# promanager.py - Herramienta para gestionar metadatos de proyecto en .project/project_meta.toml
-# -----------------------------------------------------------------------------
+"""PROMANAGER - Gestor de Metadatos para Proyectos de Desarrollo.
 
+Copyright (C) 2025 MAURO ROSERO PÉREZ
+License: GPLv3
+
+File: promanager.py
+Version: 0.1.0
+Author: Mauro Rosero P. <mauro.rosero@gmail.com>
+Assistant: Cursor AI (https://cursor.com)
+Created: 2025-05-19 20:56:28
+
+This file is managed by template_manager.py.
+Any changes to this header will be overwritten on the next fix.
 """
-Gestiona la configuración del proyecto almacenada en el archivo .project/project_meta.toml.
-Proporciona funciones para cargar, guardar y acceder a los datos del proyecto,
-y una CLI para operaciones básicas sobre este archivo de configuración.
-"""
+
+# HEADER_END_TAG - DO NOT REMOVE OR MODIFY THIS LINE
+
+# Description: Gestor de Metadatos para Proyectos de Desarrollo.
 
 import sys
 import os # Para os.system y os.name
@@ -1633,6 +1636,64 @@ def handle_setup_ci(args: argparse.Namespace, project_data: dict):
 
     return True
 
+def setup_head_templates(script_dir: Path, target_dir: Path) -> bool:
+    """Copia la carpeta templates desde el directorio del script al directorio destino.
+    
+    Args:
+        script_dir: Directorio donde se encuentra el script y la carpeta templates
+        target_dir: Directorio destino donde se copiará la carpeta templates
+    
+    Returns:
+        bool: True si la operación fue exitosa, False en caso contrario
+    """
+    print("\nCopiando carpeta templates...")
+    
+    template_src = script_dir / "templates"
+    template_dst = target_dir / "templates"
+    
+    # Verificar que no se intente copiar sobre las carpetas de definición
+    if template_src.resolve() == template_dst.resolve():
+        print(f"[ERROR] No se puede copiar sobre las carpetas de definición en: {template_src}")
+        return False
+    
+    if not template_src.exists():
+        print(f"[ERROR] No se encontró la carpeta templates en: {template_src}")
+        return False
+    
+    # Si existe en destino, preguntar antes de actualizar
+    if template_dst.exists():
+        print(f"[INFO] Ya existe una carpeta templates en: {template_dst}")
+        if not questionary.confirm(
+            "¿Desea actualizar la carpeta templates existente?",
+            default=False
+        ).ask():
+            print("[INFO] Operación cancelada por el usuario.")
+            return False
+    
+    try:
+        # Copiar la carpeta, permitiendo que exista el destino
+        shutil.copytree(template_src, template_dst, dirs_exist_ok=True)
+        print(f"[OK] Carpeta templates copiada exitosamente a: {template_dst}")
+        return True
+    except Exception as e:
+        print(f"[ERROR] No se pudo copiar la carpeta templates: {e}")
+        return False
+
+def handle_setup_head(args: argparse.Namespace, project_data: dict):
+    """Configura la carpeta templates en el directorio destino."""
+    print(f"{Style.BRIGHT}Configurando carpeta templates...{Style.RESET_ALL}")
+    
+    # Definir rutas
+    script_dir = Path(__file__).parent
+    target_dir = args.path.resolve()
+    
+    # Copiar carpeta templates
+    if not setup_head_templates(script_dir, target_dir):
+        print(f"{Fore.YELLOW}Advertencia: La configuración de la carpeta templates no fue exitosa{Style.RESET_ALL}")
+        return False
+
+    return True
+
 def main():
     # 1. Crear parser base con argumento --path
     base_parser = argparse.ArgumentParser(add_help=False)
@@ -1688,6 +1749,14 @@ def main():
         parents=[base_parser]
     )
     parser_setup_ci.set_defaults(func=handle_setup_ci)
+    
+    # Subcomando 'setup-head'
+    parser_setup_head = subparsers.add_parser(
+        "setup-head",
+        help="Configura la carpeta templates en el directorio destino",
+        parents=[base_parser]
+    )
+    parser_setup_head.set_defaults(func=handle_setup_head)
     
     # 4. Parsear argumentos
     args = parser.parse_args()

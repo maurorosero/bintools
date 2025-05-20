@@ -1,19 +1,22 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# Copyright (c) 2025, MAURO ROSERO PÉREZ
-# License: GPLV3
-# Author: Mauro Rosero P. (mauro.rosero@gmail.com)
-# Created: 2025-04-30 05:52:19
+# Binsetup - Script para añadir o quitar el directorio `~/bin` del PATH, temporalmente o de forma persistente.
+#
+# Copyright (C) 2025 MAURO ROSERO PÉREZ
+# License: GPLv3
+#
+# File: binsetup.sh
 # Version: 0.1.0
+# Author: Mauro Rosero P. <mauro.rosero@gmail.com>
+# Assistant: Cursor AI (https://cursor.com)
+# Created: 2025-05-19 20:53:17
 #
-# binsetup.sh - Script para añadir o quitar el directorio `~/bin` del PATH, temporalmente o de forma persistente.
-# -----------------------------------------------------------------------------
+# This file is managed by template_manager.py.
+# Any changes to this header will be overwritten on the next fix.
 #
+# HEADER_END_TAG - DO NOT REMOVE OR MODIFY THIS LINE
 
-# Script to add/remove ~/bin to/from PATH temporarily or persistently
-# Author: Mauro Rosero P.
-
+# Función para añadir temporalmente al PATH
 add_to_path_temporary() {
     # Add ~/bin to PATH for current session
     export PATH="$HOME/bin:$PATH"

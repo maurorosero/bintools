@@ -1,18 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# Copyright (c) 2025, MAURO ROSERO PÉREZ
-# License: GPLV3
-# Author: Mauro Rosero P. (mauro.rosero@gmail.com)
-# Created: 2025-05-07 14:44:42
-# Version: 0.1.0
-#
-# git-tokens.py - Este script gestiona de forma segura los tokens de servidor Git usando SOPS.
-# -----------------------------------------------------------------------------
-#
-# -*- coding: utf-8 -*-
+"""GIT TOKENS - Este script gestiona de forma segura los tokens de servidor Git usando SOPS.
 
-"""Este script gestiona de forma segura los tokens de servidor Git usando SOPS."""
+Copyright (C) 2025 MAURO ROSERO PÉREZ
+License: GPLv3
+
+File: git-tokens.py
+Version: 0.1.0
+Author: Mauro Rosero P. <mauro.rosero@gmail.com>
+Assistant: Cursor AI (https://cursor.com)
+Created: 2025-05-19 20:56:28
+
+This file is managed by template_manager.py.
+Any changes to this header will be overwritten on the next fix.
+"""
+
+# HEADER_END_TAG - DO NOT REMOVE OR MODIFY THIS LINE
+
+# Description: Este script gestiona de forma segura los tokens de servidor Git usando SOPS.
 
 import os
 import subprocess

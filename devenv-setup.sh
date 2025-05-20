@@ -1,23 +1,20 @@
-#!/bin/bash
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# Copyright (c) 2025, MAURO ROSERO PÉREZ
-# License: GPLV3
-# Author: Mauro Rosero P. (mauro.rosero@gmail.com)
-# Created: 2025-04-30 05:52:19
-# Version: 0.1.0
-#
-# devenv-setup.sh - Script para configurar el entorno de desarrollo: instala dependencias de Python, hooks de pre-commit y snippets de VS Code.
-# -----------------------------------------------------------------------------
-#
-
-# Script para configurar el entorno de desarrollo básico para este proyecto.
-# Instala dependencias de Python y activa los hooks de pre-commit.
-
-# --- Obtener directorio del script y cargar baselib ---
-# Determinar el directorio donde reside el script de forma robusta
-
 #!/usr/bin/env bash
+# -*- coding: utf-8 -*-
+# Devenv Setup - Script para configurar el entorno de desarrollo: instala dependencias de Python, hooks de pre-commit y snippets de VS Code.
+#
+# Copyright (C) 2025 MAURO ROSERO PÉREZ
+# License: GPLv3
+#
+# File: devenv-setup.sh
+# Version: 0.1.0
+# Author: Mauro Rosero P. <mauro.rosero@gmail.com>
+# Assistant: Cursor AI (https://cursor.com)
+# Created: 2025-05-19 20:53:17
+#
+# This file is managed by template_manager.py.
+# Any changes to this header will be overwritten on the next fix.
+#
+# HEADER_END_TAG - DO NOT REMOVE OR MODIFY THIS LINE
 
 set -uo pipefail
 

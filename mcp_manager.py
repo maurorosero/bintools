@@ -1,18 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# Copyright (c) 2025, MAURO ROSERO PÉREZ
-# License: GPLV3
-# Author: Mauro Rosero P. (mauro.rosero@gmail.com)
-# Created: 2025-04-30 05:52:19
-# Version: 0.1.0
-#
-# mcp_manager.py - Sistema para cargar, configurar (validando y asignando puertos) y lanzar servidores MCP definidos en un archivo YAML.
-# -----------------------------------------------------------------------------
-#
+"""MCP Manager - Sistema para cargar, configurar y lanzar servidores MCP desde un archivo YAML.
+
+Copyright (C) 2025 MAURO ROSERO PÉREZ
+License: GPLv3
+
+File: mcp_manager.py
+Version: 0.1.0
+Author: Mauro Rosero P. <mauro.rosero@gmail.com>
+Assistant: Cursor AI (https://cursor.com)
+Created: 2025-05-19 20:56:28
+
+This file is managed by template_manager.py.
+Any changes to this header will be overwritten on the next fix.
 """
-MCP Manager - Sistema para cargar, configurar y lanzar servidores MCP desde un archivo YAML
-"""
+
+# HEADER_END_TAG - DO NOT REMOVE OR MODIFY THIS LINE
+
+# Description: Sistema para cargar, configurar y lanzar servidores MCP desde un archivo YAML.
 
 import yaml
 import socket

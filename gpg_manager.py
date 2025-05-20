@@ -1,23 +1,25 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# Copyright (c) 2025, MAURO ROSERO PÉREZ
-# License: GPLV3
-# Author: Mauro Rosero P. (mauro.rosero@gmail.com)
-# Created: 2025-05-02 10:51:06
-# Version: 0.1.0
-#
-# gpg_manager.py - Description placeholder
-# -----------------------------------------------------------------------------
-#
-import os
-# -*- coding: utf-8 -*-
+"""Textual GPG Manager - Interactive GPG Key Management Tool.
 
+Copyright (C) 2025 MAURO ROSERO PÉREZ
+License: GPLV3
+
+File: gpg_manager.py
+Version: 0.1.0
+Author: Mauro Rosero P. <mauro.rosero@gmail.com>
+Assistant: Cursor AI (https://cursor.com)
+Created: 2025-05-19 21:01:28
+
+This file is managed by template_manager.py.
+Any changes to this header will be overwritten on the next fix.
 """
-Textual GPG Manager - Interactive GPG Key Management Tool
-Refactored from the original Bash script by Mauro Rosero Pérez.
-Uses the Textual TUI framework.
-"""
+
+# HEADER_END_TAG - DO NOT REMOVE OR MODIFY THIS LINE
+
+# Description: Textual GPG Manager - Interactive GPG Key Management Tool
+# Refactored from the original Bash script by Mauro Rosero Pérez.
+# Uses the Textual TUI framework.
 
 import sys
 import argparse
@@ -575,7 +577,6 @@ class GPGWrapper:
         show_info("Attempting sign via GPG (may require interaction)...")
         gpg_commands = f"sign\n{trust_level}\ny\nsave\n"
         return self._run_gpg_edit_key(key_id, gpg_commands)
-
 
     def generate_revocation_certificate(self, key_id, reason_code="0", reason_string="", output_path=None):
         if not output_path: show_error("Output path required for revoke cert."); return False
@@ -1254,7 +1255,6 @@ class KeyListScreen(Screen):
         finally:
             loading_indicator.display = False # Hide loading indicator
 
-
     def action_refresh(self) -> None:
         """Reload the keys."""
         self.run_worker(self.load_keys, exclusive=True)
@@ -1425,7 +1425,6 @@ class KeyListScreen(Screen):
         # Note: The on_worker_state_changed for CreateKeyScreen handles its own worker.
         # This handler in KeyListScreen is primarily for workers started *by* KeyListScreen.
 
-
     def action_quit(self) -> None:
         self.app.exit()
 
@@ -1496,7 +1495,6 @@ class KeyDetailScreen(Screen):
 
     def action_back(self) -> None:
         self.app.pop_screen()
-
 
 class WipScreen(ModalScreen[bool]):
     """Modal screen indicating Work In Progress."""
@@ -1587,7 +1585,6 @@ class ConfirmDeleteDialog(ModalScreen):
              self.app.pop_screen()
 
 # --- Fin de ConfirmDeleteDialog ---
-
 
 # --- New Screen for Key Creation ---
 
@@ -1867,7 +1864,6 @@ class CreateKeyScreen(Screen):
         except NoMatches:
             self.log.warning("Screen dismissed before worker finished, buttons not found.")
             pass # Screen was dismissed before worker finished
-
 
 # --- Main Textual App ---
 

@@ -1,5 +1,46 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""Sin descripción disponible
+
+Copyright (C) 2025 {{copyright_holder}}
+License: {{license}}
+
+File: /home/mrosero/bin/wfwdevs_legacy.py
+Version: {{initial_version}}
+Author: {{author_name}} <{{author_email}}>
+{% if assistant %}Assistant: {{assistant}}{% endif %}
+Created: 2025-05-19 20:56:28
+"""
+
+// Description: Sin descripción disponible
+"""Sin descripción disponible
+
+Copyright (C) 2025 {{copyright_holder}}
+License: {{license}}
+
+File: /home/mrosero/bin/wfwdevs_legacy.py
+Version: {{initial_version}}
+Author: {{author_name}} <{{author_email}}>
+{% if assistant %}Assistant: {{assistant}}{% endif %}
+Created: 2025-05-19 20:53:17
+"""
+
+// Description: Sin descripción disponible
+"""Sin descripción disponible
+
+Copyright (C) 2025 {{copyright_holder}}
+License: {{license}}
+
+File: /home/mrosero/bin/wfwdevs_legacy.py
+Version: {{initial_version}}
+Author: {{author_name}} <{{author_email}}>
+{% if assistant %}Assistant: {{assistant}}{% endif %}
+Created: 2025-05-19 20:48:14
+"""
+
+// Description: Sin descripción disponible
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # Copyright (c) 2025, MAURO ROSERO PÉREZ
 # License: GPLV3

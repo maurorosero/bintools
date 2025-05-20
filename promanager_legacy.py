@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# Copyright (c) 2025, MAURO ROSERO PÉREZ
-# License: GPLV3
-# Author: Mauro Rosero P. (mauro.rosero@gmail.com)
-# Created: 2025-05-02 10:51:06
-# Version: 0.1.0
-#
-# promanager.py - Herramienta para gestionar metadatos de proyecto en un archivo TOML.
-# -----------------------------------------------------------------------------
-#
+"""Sin descripción disponible
+
+Copyright (C) 2025 {{copyright_holder}}
+License: {{license}}
+
+File: /home/mrosero/bin/promanager_legacy.py
+Version: {{initial_version}}
+Author: {{author_name}} <{{author_email}}>
+{% if assistant %}Assistant: {{assistant}}{% endif %}
+Created: 2025-05-19 20:46:03
+"""
+
+// Description: Sin descripción disponible
 try:
     import tomllib
 except ImportError:

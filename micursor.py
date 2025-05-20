@@ -1,20 +1,25 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# Copyright (c) 2025, MAURO ROSERO PÉREZ
-# License: GPLV3
-# Author: Mauro Rosero P. (mauro.rosero@gmail.com)
-# Created: 2025-05-17 13:31:50
-# Version: 0.1.0
-#
-# micursor.py - micursor.py: Un script para ayudar a instalar y desinstalar Cursor AI.
-# -----------------------------------------------------------------------------
-#
-# -*- coding: utf-8 -*-
+"""MICURSOR - Un script para ayudar a instalar y desinstalar Cursor AI.
+
+Copyright (C) 2025 MAURO ROSERO PÉREZ
+License: GPLv3
+
+File: micursor.py
+Version: 0.1.0
+Author: Mauro Rosero P. <mauro.rosero@gmail.com>
+Assistant: Cursor AI (https://cursor.com)
+Created: 2025-05-19 20:56:28
+
+This file is managed by template_manager.py.
+Any changes to this header will be overwritten on the next fix.
+"""
+
+# HEADER_END_TAG - DO NOT REMOVE OR MODIFY THIS LINE
+
+# Description: Un script para ayudar a instalar y desinstalar Cursor AI.
 
 """
-micursor.py: Un script para ayudar a instalar y desinstalar Cursor AI.
-
 Este script tiene como objetivo automatizar partes del proceso de instalación
 y desinstalación de Cursor AI en sistemas Linux, y proporcionar guía
 para macOS y Windows.

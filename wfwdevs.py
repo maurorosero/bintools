@@ -1,18 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# Copyright (c) 2025, MAURO ROSERO PÉREZ
-# License: GPLV3
-# Author: Mauro Rosero P. (mauro.rosero@gmail.com)
-# Created: 2025-05-11 14:20:08
-# Version: 0.1.0
-#
-# wfwdevs.py - Description placeholder
-# -----------------------------------------------------------------------------
-#
-# -*- coding: utf-8 -*-
+"""WFWDEVS - Script para gestionar flujos de trabajo de desarrollo Git.
 
-# wfwdevs.py - Script para gestionar flujos de trabajo de desarrollo Git.
+Copyright (C) 2025 MAURO ROSERO PÉREZ
+License: GPLv3
+
+File: wfwdevs.py
+Version: 0.1.0
+Author: Mauro Rosero P. <mauro.rosero@gmail.com>
+Assistant: Cursor AI (https://cursor.com)
+Created: 2025-05-19 20:56:28
+
+This file is managed by template_manager.py.
+Any changes to this header will be overwritten on the next fix.
+"""
+
+# HEADER_END_TAG - DO NOT REMOVE OR MODIFY THIS LINE
+
+# Description: Script para gestionar flujos de trabajo de desarrollo Git.
 
 import argparse
 import subprocess
@@ -22,8 +27,6 @@ import re
 import os
 
 """
-wfwdevs.py - Script para gestionar flujos de trabajo de desarrollo Git.
-
 Este script proporciona herramientas para automatizar tareas comunes del flujo de
 trabajo de desarrollo basado en Git, como la creación estandarizada de ramas
 de trabajo (features, fixes, hotfixes) asegurando la sincronización
