@@ -1,5 +1,0 @@
-# Add filenames or patterns (like src/vendor/* or tests/fixtures/) to ignore header checks.
-# Example:
-# my_legacy_script.sh
-# libs/external/
-# build/* 
