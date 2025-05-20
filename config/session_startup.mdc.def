@@ -1,0 +1,63 @@
+# Reglas de Inicio de Sesión
+
+Este archivo define las reglas que deben aplicarse automáticamente al inicio de cada sesión de Cursor.
+
+## Carga Obligatoria de Reglas
+
+Al iniciar una sesión, Cursor DEBE:
+
+1. **Cargar Archivos de Reglas**:
+   - Leer y aplicar `.cursorrules`
+   - Leer y aplicar todos los archivos `.mdc` en `.cursor/rules/`
+   - Cargar el estado actual de `learned-memories.mdc`
+
+2. **Verificar Estado del Proyecto**:
+   - Confirmar la existencia de archivos críticos (`.cursorrules`, `CONTRIBUTING.md`, etc.)
+   - Verificar la configuración de pre-commit hooks
+   - Comprobar la estructura básica del proyecto
+
+3. **Inicializar Políticas**:
+   - Activar políticas imperativas de interacción
+   - Cargar estándares de commit y CI/CD
+   - Preparar reglas de banners CLI para archivos relevantes
+
+## Comportamiento en Inicio
+
+1. **Saludo Inicial**:
+   - Saludar al usuario en español
+   - Confirmar que las reglas han sido cargadas
+   - Indicar disponibilidad para asistir
+
+2. **Estado de la Sesión**:
+   - No es necesario que el usuario recuerde las reglas
+   - Las reglas deben estar activas y aplicándose automáticamente
+   - Cualquier cambio en las reglas debe actualizarse en `learned-memories.mdc`
+
+3. **Verificación de Reglas**:
+   - Si el usuario pregunta por las reglas, referir a los archivos correspondientes
+   - No esperar que el usuario recuerde o mencione las reglas
+   - Aplicar las reglas de manera proactiva en cada interacción
+
+## Manejo de Errores
+
+1. **Si las Reglas No Se Cargan**:
+   - Informar al usuario del problema
+   - Intentar cargar las reglas manualmente
+   - Sugerir verificación de la estructura de archivos
+
+2. **Si Hay Conflictos en las Reglas**:
+   - Priorizar las reglas más específicas sobre las generales
+   - Informar al usuario de cualquier conflicto
+   - Mantener un registro de conflictos en `learned-memories.mdc`
+
+## Actualización de Reglas
+
+1. **Durante la Sesión**:
+   - Cualquier cambio en las reglas debe actualizarse inmediatamente
+   - Notificar al usuario de cambios significativos
+   - Mantener consistencia en la aplicación de reglas
+
+2. **Entre Sesiones**:
+   - Las reglas deben persistir en los archivos de configuración
+   - Los cambios deben reflejarse en `learned-memories.mdc`
+   - La próxima sesión debe cargar las reglas actualizadas 

@@ -3,7 +3,59 @@
 # han sido migradas a archivos .mdc en el directorio .cursor/rules/
 # para una gestión más moderna y granular, acorde con las recomendaciones de Cursor.
 
+# Reglas de Cursor para el manejo de headers en nuevos archivos
+# ========================================================
+
+# Cuando se solicite crear un nuevo archivo, Cursor DEBE:
+# 1. Usar el sistema de templates de headers
+# 2. Aplicar el header correspondiente según el tipo de archivo
+# 3. Incluir la descripción del archivo
+# 4. Usar las variables dinámicas definidas en templates/config.json
+
 rules:
+  - name: new_file_header
+    description: Aplicar header template al crear nuevos archivos
+    trigger: "new file creation"
+    action: |
+      Cuando el usuario solicite crear un nuevo archivo (ej. "crea un script que...", 
+      "escribe un programa para...", etc.), Cursor DEBE:
+      
+      1. Identificar el tipo de archivo por su extensión
+      2. Usar el template correspondiente de templates/
+      3. Obtener la descripción del propósito del archivo
+      4. Aplicar el header usando template_manager.py
+      5. Incluir la variable assistant solo cuando el archivo es creado por Cursor
+      
+      Tipos de archivo soportados:
+      - Python (.py): Usar templates/python/header.template
+      - Bash (.sh): Usar templates/bash/header.template
+      - JavaScript (.js): Usar templates/javascript/header.template
+      - TypeScript (.ts): Usar templates/typescript/header.template
+      - Markdown (.md): Usar templates/markdown/header.template
+      
+      Variables dinámicas disponibles:
+      - CURRENT_YEAR: Año actual
+      - CURRENT_DATE: Fecha actual (YYYY-MM-DD)
+      - CURRENT_TIME: Hora actual (HH:MM:SS)
+      - FILENAME: Nombre del archivo
+      - FILEPATH: Ruta del archivo
+      - author_name: Nombre del autor (desde git config)
+      - author_email: Email del autor (desde git config)
+      - assistant: Cursor AI (solo cuando es creado por Cursor)
+      
+      Ejemplo de uso:
+      Usuario: "Crea un script que limpie logs"
+      Cursor: 
+        1. Identifica que es un script Python/Bash
+        2. Obtiene la descripción "Script para limpiar archivos de log"
+        3. Aplica el header correspondiente
+        4. Continúa con la implementación
+
+    required: true
+    on_startup: true
+    cache: true
+    error_message: "No se pudo aplicar el header al nuevo archivo. Verificar templates/ y template_manager.py"
+
   # Reglas existentes de lenguaje que aún no se han migrado a .mdc individuales
   - language: markdown
     prompt: |
