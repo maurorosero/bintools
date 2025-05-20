@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# -*- coding: utf-8 -*-
+#
+# {{description}}
+#
+# Copyright (C) {{CURRENT_YEAR}} {{copyright_holder}}
+# License: {{license}}
+#
+# File: {{FILEPATH}}
+# Version: {{version}}
+# Author: {{author_name}} <{{author_email}}>
+{% if assistant %}# Assistant: {{assistant}}{% endif %}
+# Created: {{created}}
+#
+# This file is managed by template_manager.py.
+# Any changes to this header will be overwritten on the next fix.
+
+# HEADER_END_TAG - DO NOT REMOVE OR MODIFY THIS LINE
+{{content}} 

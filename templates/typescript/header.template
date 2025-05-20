@@ -1,0 +1,18 @@
+/**
+ * {{description}}
+ *
+ * Copyright (C) {{CURRENT_YEAR}} {{copyright_holder}}
+ * License: {{license}}
+ *
+ * @file {{FILEPATH}}
+ * @version {{version}}
+ * @author {{author_name}} <{{author_email}}>
+{% if assistant %} * @assistant {{assistant}}{% endif %}
+ * @created {{created}}
+ *
+ * This file is managed by template_manager.py.
+ * Any changes to this header will be overwritten on the next fix.
+ */
+
+// HEADER_END_TAG - DO NOT REMOVE OR MODIFY THIS LINE
+{{content}} 
