@@ -1,12 +1,23 @@
-// -----------------------------------------------------------------------------
-// Copyright (c) 2025, MAURO ROSERO PÉREZ
-// License: GPLV3
-// Author: Mauro Rosero P. (mauro.rosero@gmail.com)
-// Created: 2025-05-12 21:56:33
-// Version: 0.1.0
-//
-// commitlint.config.js - Conventional commit format configuration (Adaptado a [TAG] (#Issue) Descripcion)
-// -----------------------------------------------------------------------------
+/**
+ * Configuración de commitlint que implementa un formato de commits personalizado
+ * basado en el convencional pero adaptado al formato [TAG] (#Issue) Descripción.
+ * Define reglas para validar el formato de los mensajes de commit, incluyendo
+ * validación de tipos, scope (issue numbers) y descripción.
+ *
+ * Copyright (C) 2025 MAURO ROSERO PÉREZ
+ * License: GPLv3
+ *
+ * @file commitlint.config.js
+ * @version 0.1.0
+ * @author Mauro Rosero P. <mauro.rosero@gmail.com>
+ * @created 2025-05-19 20:56:28
+ *
+ * This file is managed by template_manager.py.
+ * Any changes to this header will be overwritten on the next fix.
+ *
+ * HEADER_END_TAG - DO NOT REMOVE OR MODIFY THIS LINE
+ */
+
 
 const requireIssueFromMeta = process.env.REQUIRE_ISSUE_FROM_META === 'true';
 

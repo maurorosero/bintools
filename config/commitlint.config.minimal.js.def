@@ -1,12 +1,22 @@
-// -----------------------------------------------------------------------------
-// Copyright (c) 2025, MAURO ROSERO PÉREZ
-// License: GPLV3
-// Author: Mauro Rosero P. (mauro.rosero@gmail.com)
-// Created: 2025-05-12 21:56:33
-// Version: 0.1.0
-//
-// commitlint.config.js - Minimal commit format configuration
-// -----------------------------------------------------------------------------
+/**
+ * Configuración de commitlint que implementa un formato de commits con reglas mínimas,
+ * permitiendo mayor flexibilidad en los tipos de commit mientras mantiene la estructura
+ * básica [TAG] (#Issue) Descripción. Ideal para proyectos que requieren validación
+ * básica sin restricciones estrictas en los tipos de commit.
+ *
+ * Copyright (C) 2025 MAURO ROSERO PÉREZ
+ * License: GPLv3
+ *
+ * @file commitlint.config.minimal.js.def
+ * @version 0.1.0
+ * @author Mauro Rosero P. <mauro.rosero@gmail.com>
+ * @created 2025-05-12 21:56:33
+ *
+ * This file is managed by template_manager.py.
+ * Any changes to this header will be overwritten on the next fix.
+ *
+ * HEADER_END_TAG - DO NOT REMOVE OR MODIFY THIS LINE
+ */
 
 const requireIssueFromMeta = process.env.REQUIRE_ISSUE_FROM_META === 'true';
 

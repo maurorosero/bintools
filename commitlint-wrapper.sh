@@ -1,14 +1,19 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# Copyright (c) 2025, MAURO ROSERO PÉREZ
-# License: GPLV3
-# Author: Mauro Rosero P. (mauro.rosero@gmail.com)
-# Created: 2025-05-12 22:30:00
-# Version: 0.1.0
+# Commitlint Wrapper - Script wrapper para ejecutar commitlint y validar mensajes de commit.
 #
-# commitlint-wrapper.sh - Wrapper para commitlint que limpia automáticamente el mensaje temporal en caso de error
-# -----------------------------------------------------------------------------
+# Copyright (C) 2025 MAURO ROSERO PÉREZ
+# License: GPLv3
+#
+# File: commitlint-wrapper.sh
+# Version: 0.1.0
+# Author: Mauro Rosero P. <mauro.rosero@gmail.com>
+# Created: 2025-05-19 20:48:14
+#
+# This file is managed by template_manager.py.
+# Any changes to this header will be overwritten on the next fix.
+#
+# HEADER_END_TAG - DO NOT REMOVE OR MODIFY THIS LINE
 
 # Instalar dependencias si no están instaladas
 if ! command -v npx &> /dev/null; then
