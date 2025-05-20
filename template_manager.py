@@ -27,12 +27,43 @@ from typing import Dict, Any, Optional, Tuple, List
 import argparse
 import logging
 
+# Constantes para el banner
+APP_NAME = "GESTOR DE HEADERS ESTANDARIZADOS"
+VERSION = "0.1.0"  # Se actualizará dinámicamente si existe project/version
+AUTHOR = "MAURO ROSERO PÉREZ"
+BANNER_WIDTH = 70
+
 # Configuración de logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+def clear_screen():
+    """Limpia la pantalla de la terminal."""
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+def show_banner():
+    """Muestra el banner de la aplicación."""
+    clear_screen()
+    
+    # Centrar el texto
+    def center_text(text: str, width: int = BANNER_WIDTH) -> str:
+        return text.center(width)
+    
+    # Construir el banner
+    banner = [
+        "=" * BANNER_WIDTH,
+        center_text(f"{APP_NAME} - Versión {VERSION}"),
+        center_text(f"Autor: {AUTHOR}"),
+        center_text("Gestor de headers estandarizados para archivos de código"),
+        "=" * BANNER_WIDTH,
+        ""  # Línea en blanco al final
+    ]
+    
+    # Imprimir el banner
+    print("\n".join(banner))
 
 # Definición de los tags de fin de header por tipo de archivo
 HEADER_END_TAGS = {
@@ -96,279 +127,6 @@ class CodeAnalyzer:
         
         return "Sin descripción disponible"
 
-class FileHeaderStandardizer:
-    """Clase para estandarizar headers de archivos existentes."""
-    
-    def __init__(self, template_manager: 'TemplateManager'):
-        """Inicializa el estandarizador con una referencia al TemplateManager."""
-        self.template_manager = template_manager
-        self.logger = logging.getLogger(__name__)
-        self.author_name = self.template_manager.config["default_variables"].get("author_name", "MAURO ROSERO PÉREZ")
-        
-        # Patrones para extraer metadatos específicos
-        self.metadata_patterns = {
-            'python': {
-                'version': r'Version:\s*(.*?)(?:\n|$)',
-                'author': r'Author:\s*(.*?)(?:\n|$)',
-                'created': r'Created:\s*(.*?)(?:\n|$)',
-                'description': r'"""(.*?)(?:\n|$)'
-            },
-            'bash': {
-                'version': r'#\s*Version:\s*(.*?)(?:\n|$)',
-                'author': r'#\s*Author:\s*(.*?)(?:\n|$)',
-                'created': r'#\s*Created:\s*(.*?)(?:\n|$)',
-                'description': r'#\s*Description:\s*(.*?)(?:\n|$)'
-            },
-            'javascript': {
-                'version': r'@version\s*(.*?)(?:\n|$)',
-                'author': r'@author\s*(.*?)(?:\n|$)',
-                'created': r'@created\s*(.*?)(?:\n|$)',
-                'description': r'\*\s*(.*?)(?:\n|$)'
-            },
-            'typescript': {
-                'version': r'@version\s*(.*?)(?:\n|$)',
-                'author': r'@author\s*(.*?)(?:\n|$)',
-                'created': r'@created\s*(.*?)(?:\n|$)',
-                'description': r'\*\s*(.*?)(?:\n|$)'
-            },
-            'markdown': {
-                'version': r'Version:\s*(.*?)(?:\n|$)',
-                'author': r'Author:\s*(.*?)(?:\n|$)',
-                'created': r'Created:\s*(.*?)(?:\n|$)',
-                'description': r'(?:Description|Purpose):\s*(.*?)(?:\n|$)'
-            }
-        }
-
-    def _has_header_tag(self, content: str, file_type: str) -> bool:
-        """
-        Verifica si el archivo tiene el HEADER_END_TAG correspondiente a su tipo.
-        
-        Args:
-            content: Contenido del archivo
-            file_type: Tipo de archivo (python, bash, etc.)
-            
-        Returns:
-            bool: True si el archivo tiene el tag y es susceptible a fix
-        """
-        if file_type not in HEADER_END_TAGS:
-            return False
-            
-        tag = HEADER_END_TAGS[file_type]
-        return tag in content
-
-    def _extract_existing_metadata(self, content: str, file_type: str) -> Dict[str, str]:
-        """
-        Extrae metadatos existentes del header del archivo.
-        Se enfoca en las variables críticas: author, created, version.
-        
-        Args:
-            content: Contenido del archivo
-            file_type: Tipo de archivo
-            
-        Returns:
-            Dict[str, str]: Diccionario con los metadatos extraídos
-        """
-        metadata = {}
-        
-        # Obtener patrones específicos para el tipo de archivo
-        patterns = self.metadata_patterns.get(file_type, {})
-        
-        # Extraer descripción usando el CodeAnalyzer
-        metadata['description'] = self.template_manager.analyzer.extract_description(content, file_type)
-        
-        # Extraer metadatos críticos
-        for key, pattern in patterns.items():
-            match = re.search(pattern, content, re.MULTILINE | re.IGNORECASE)
-            if match:
-                metadata[key] = match.group(1).strip()
-        
-        # Procesar el autor para separar nombre y email si es necesario
-        if 'author' in metadata:
-            author_parts = re.match(r'(.*?)\s*<([^>]+)>', metadata['author'])
-            if author_parts:
-                metadata['author_name'] = author_parts.group(1).strip()
-                metadata['author_email'] = author_parts.group(2).strip()
-            else:
-                metadata['author_name'] = metadata['author']
-                metadata['author_email'] = ''
-        
-        return metadata
-
-    def _remove_existing_header(self, content: str, file_type: str) -> str:
-        """
-        Elimina el header existente hasta el HEADER_END_TAG.
-        
-        Args:
-            content: Contenido del archivo
-            file_type: Tipo de archivo
-            
-        Returns:
-            str: Contenido del archivo sin el header
-        """
-        if not self._has_header_tag(content, file_type):
-            return content
-            
-        tag = HEADER_END_TAGS[file_type]
-        parts = content.split(tag, 1)
-        
-        if len(parts) > 1:
-            return parts[1].lstrip()
-        return content
-
-    def _generate_new_header(self, filepath: str, metadata: Dict[str, str], file_type: str) -> str:
-        """
-        Genera un nuevo header estandarizado usando el TemplateManager.
-        
-        Args:
-            filepath: Ruta del archivo
-            metadata: Metadatos extraídos del header actual
-            file_type: Tipo de archivo
-            
-        Returns:
-            str: Nuevo header generado
-        """
-        try:
-            # Cargar la plantilla
-            template = self.template_manager._load_template(file_type)
-            
-            # Preparar variables básicas
-            variables = {
-                "description": metadata.get('description', 'Sin descripción disponible'),
-                "content": "",  # El contenido se maneja por separado
-                "version": metadata.get('version', '0.1.0'),
-                "created": metadata.get('created', ''),
-                "author_name": metadata.get('author_name', self.author_name),
-                "author_email": metadata.get('author_email', '')
-            }
-            
-            # Obtener valores de todas las variables definidas en config
-            for var_name in self.template_manager.config["variables"]:
-                var_value = self.template_manager._get_variable_value(var_name, filepath)
-                variables[var_name] = var_value
-            
-            # Añadir variables por defecto
-            for var_name, var_value in self.template_manager.config["default_variables"].items():
-                if var_name not in variables:  # No sobrescribir valores extraídos
-                    variables[var_name] = var_value
-            
-            # Añadir variables opcionales si es necesario
-            for var_name, var_config in self.template_manager.config.get("optional_variables", {}).items():
-                if var_config.get("only_when_ai_generated", False):
-                    variables[var_name] = var_config.get("value", "")
-            
-            # Reemplazar variables en la plantilla
-            for var_name, var_value in variables.items():
-                # Reemplazar tanto {{var_name}} como {{ var_name }}
-                template = template.replace(f"{{{{{var_name}}}}}", str(var_value))
-                template = template.replace(f"{{{{ {var_name} }}}}", str(var_value))
-            
-            # Manejar condicionales (como {% if assistant %})
-            if "{% if assistant %}" in template:
-                if "assistant" in variables and variables["assistant"]:
-                    # Mantener el contenido dentro del if
-                    template = re.sub(r'{%\s*if\s+assistant\s*%}(.*?){%\s*endif\s*%}', r'\1', template, flags=re.DOTALL)
-                else:
-                    # Eliminar el contenido dentro del if
-                    template = re.sub(r'{%\s*if\s+assistant\s*%}.*?{%\s*endif\s*%}', '', template, flags=re.DOTALL)
-            
-            # Limpiar cualquier variable no reemplazada
-            template = re.sub(r'{{[^}]+}}', '', template)
-            template = re.sub(r'{%[^}]+%}', '', template)
-            
-            # Asegurar que el header termine con una línea en blanco
-            if not template.endswith('\n\n'):
-                template = template.rstrip() + '\n\n'
-            
-            return template
-            
-        except Exception as e:
-            self.logger.error(f"Error al generar header para {filepath}: {e}")
-            raise
-
-    def standardize_file(self, filepath: str) -> bool:
-        """
-        Estandariza el header de un archivo existente.
-        
-        Args:
-            filepath: Ruta del archivo a estandarizar
-            
-        Returns:
-            bool: True si se realizaron cambios, False en caso contrario
-        """
-        try:
-            # Verificar si el archivo existe
-            if not os.path.isfile(filepath):
-                self.logger.warning(f"El archivo {filepath} no existe")
-                return False
-                
-            # Obtener el tipo de archivo
-            file_type = self.template_manager._get_file_type(filepath)
-            if not file_type:
-                self.logger.warning(f"No se pudo determinar el tipo de archivo para {filepath}")
-                return False
-                
-            # Leer el contenido del archivo
-            with open(filepath, 'r', encoding='utf-8') as f:
-                content = f.read()
-                
-            # Verificar si el archivo es susceptible a fix
-            if not self._has_header_tag(content, file_type):
-                self.logger.info(f"El archivo {filepath} no tiene HEADER_END_TAG, ignorando")
-                return False
-                
-            # Extraer metadatos existentes
-            metadata = self._extract_existing_metadata(content, file_type)
-            
-            # Eliminar header existente
-            content_without_header = self._remove_existing_header(content, file_type)
-            
-            # Generar nuevo header
-            new_header = self._generate_new_header(filepath, metadata, file_type)
-            
-            # Combinar nuevo header con el contenido
-            new_content = new_header + content_without_header
-            
-            # Escribir el archivo solo si hay cambios
-            if new_content != content:
-                with open(filepath, 'w', encoding='utf-8') as f:
-                    f.write(new_content)
-                self.logger.info(f"Header estandarizado en {filepath}")
-                return True
-            else:
-                self.logger.info(f"No se requirieron cambios en {filepath}")
-                return False
-                
-        except Exception as e:
-            self.logger.error(f"Error al estandarizar {filepath}: {e}")
-            return False
-
-    def standardize_directory(self, directory: str, recursive: bool = True) -> Tuple[int, int]:
-        """
-        Estandariza los headers de todos los archivos en un directorio.
-        
-        Args:
-            directory: Ruta al directorio a procesar
-            recursive: Si es True, procesa subdirectorios recursivamente
-            
-        Returns:
-            Tuple[int, int]: (archivos procesados exitosamente, total de archivos)
-        """
-        processed = 0
-        total = 0
-        
-        for root, _, files in os.walk(directory):
-            if not recursive and root != directory:
-                continue
-                
-            for file in files:
-                filepath = os.path.join(root, file)
-                if self.template_manager._get_file_type(filepath):
-                    total += 1
-                    if self.standardize_file(filepath):
-                        processed += 1
-                        
-        return processed, total
-
 class TemplateManager:
     def __init__(self, config_path: str = "templates/config.json"):
         """Inicializa el gestor de plantillas."""
@@ -377,7 +135,6 @@ class TemplateManager:
         self.templates_dir = Path(self.config["templates_dir"])
         self.analyzer = CodeAnalyzer()
         self.project_version = self._load_project_version()
-        self.standardizer = FileHeaderStandardizer(self)  # Añadir el estandarizador
 
     def _load_config(self) -> Dict[str, Any]:
         """Carga la configuración desde el archivo JSON."""
@@ -436,6 +193,8 @@ class TemplateManager:
                         return Path(filepath).name
                     elif var_config["property"] == "path":
                         return str(Path(filepath).absolute())
+                elif var_config["type"] == "default":
+                    return var_config.get("value", "")
             
             # Variables con valores por defecto
             if var_name in self.config["default_variables"]:
@@ -452,7 +211,7 @@ class TemplateManager:
             return ""
             
         except Exception as e:
-            self.logger.error(f"Error al obtener valor para variable {var_name}: {e}")
+            logger.error(f"Error al obtener valor para variable {var_name}: {e}")
             return ""
 
     def create_file(self, filepath: str, content: str = "") -> bool:
@@ -472,18 +231,39 @@ class TemplateManager:
             # Cargar la plantilla
             template = self._load_template(file_type)
             
-            # Preparar las variables
+            # Preparar las variables básicas
             variables = {
                 "description": description,
                 "content": content,
                 "shebang": self.config["file_types"][file_type].get("shebang", "")
             }
 
-            # Reemplazar variables en la plantilla
+            # 1. Reemplazar variables dinámicas (CURRENT_YEAR, etc.)
             for var_name in self.config["variables"]:
                 var_value = self._get_variable_value(var_name, filepath)
                 template = template.replace(f"{{{{{var_name}}}}}", var_value)
 
+            # 2. Reemplazar variables por defecto
+            for var_name, var_value in self.config["default_variables"].items():
+                template = template.replace(f"{{{{{var_name}}}}}", var_value)
+
+            # 3. Reemplazar variables opcionales
+            for var_name, var_config in self.config.get("optional_variables", {}).items():
+                var_value = var_config.get("value", "")
+                if var_config.get("only_when_ai_generated", False):
+                    # Reemplazar el bloque condicional
+                    pattern = f"{{{{#if {var_name}}}}}(.*?){{{{/if}}}}"
+                    if var_value:
+                        template = re.sub(pattern, r"\1", template, flags=re.DOTALL)
+                        # También reemplazar la variable dentro del bloque
+                        template = template.replace(f"{{{{{var_name}}}}}", var_value)
+                    else:
+                        template = re.sub(pattern, "", template, flags=re.DOTALL)
+                else:
+                    # Si no es condicional, reemplazar directamente
+                    template = template.replace(f"{{{{{var_name}}}}}", var_value)
+
+            # 4. Reemplazar variables básicas (description, content, shebang)
             for var_name, var_value in variables.items():
                 template = template.replace(f"{{{{{var_name}}}}}", var_value)
 
@@ -498,42 +278,79 @@ class TemplateManager:
             logger.error(f"Error al crear el archivo {filepath}: {e}")
             return False
 
-    def standardize_headers(self, path: str, recursive: bool = True) -> Tuple[int, int]:
-        """
-        Estandariza los headers de los archivos en la ruta especificada.
-        
-        Args:
-            path: Ruta al archivo o directorio a procesar
-            recursive: Si es True y path es un directorio, procesa subdirectorios
-            
-        Returns:
-            Tuple[int, int]: (archivos procesados exitosamente, total de archivos)
-        """
-        path = Path(path)
-        if path.is_file():
-            success = self.standardizer.standardize_file(str(path))
-            return (1, 1) if success else (0, 1)
-        elif path.is_dir():
-            return self.standardizer.standardize_directory(str(path), recursive)
-        else:
-            logger.error(f"Ruta no válida: {path}")
-            return 0, 0
-
 def main():
-    parser = argparse.ArgumentParser(description="Gestor de headers estandarizados")
+    # Mostrar el banner al inicio
+    show_banner()
+    
+    parser = argparse.ArgumentParser(
+        description="""
+Gestor de headers estandarizados para archivos de código.
+
+Este script permite crear nuevos archivos con headers estandarizados según el tipo de archivo.
+Los headers incluyen metadatos como descripción, versión, autor, fecha de creación, etc.
+
+Tipos de archivo soportados:
+- Python (.py)
+- Bash/Shell (.sh)
+- JavaScript (.js)
+- TypeScript (.ts)
+- Markdown (.md)
+
+El script utiliza plantillas definidas en el directorio templates/ para generar
+los headers según el tipo de archivo. La configuración se carga desde
+templates/config.json por defecto.
+
+La descripción del archivo se extrae automáticamente:
+- Para Python: del docstring del módulo o del comentario # Description:
+- Para Bash: del comentario # Description:
+- Para JavaScript/TypeScript: del comentario // Description:
+
+Ejemplos de uso:
+  # Crear un nuevo archivo Python con contenido inicial
+  template_manager.py create script.py --content "print('Hola mundo')"
+
+  # Crear un nuevo archivo Bash vacío
+  template_manager.py create script.sh
+
+  # Usar una configuración personalizada
+  template_manager.py create script.py --config mi_config.json
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     subparsers = parser.add_subparsers(dest="command", help="Comandos disponibles")
     
     # Comando create
-    create_parser = subparsers.add_parser("create", help="Crear un nuevo archivo con header estandarizado")
-    create_parser.add_argument("filepath", help="Ruta del archivo a crear")
-    create_parser.add_argument("--content", "-c", default="", help="Contenido inicial del archivo")
-    create_parser.add_argument("--config", default="templates/config.json", help="Ruta al archivo de configuración")
-    
-    # Comando fix (antes standardize)
-    fix_parser = subparsers.add_parser("fix", help="Corregir headers de archivos existentes")
-    fix_parser.add_argument("path", help="Ruta al archivo o directorio a procesar")
-    fix_parser.add_argument("--recursive", "-r", action="store_true", help="Procesar subdirectorios recursivamente")
-    fix_parser.add_argument("--config", default="templates/config.json", help="Ruta al archivo de configuración")
+    create_parser = subparsers.add_parser(
+        "create",
+        help="Crear un nuevo archivo con header estandarizado",
+        description="""
+Crea un nuevo archivo con un header estandarizado según su tipo.
+
+El header incluirá:
+- Descripción del archivo (extraída automáticamente del contenido)
+- Versión (por defecto 0.1.0 o desde project/version)
+- Autor (desde git config o valor por defecto)
+- Fecha de creación
+- Copyright y licencia
+- Tags de gestión del header
+
+El archivo se creará en la ruta especificada, y si ya existe, será sobrescrito.
+"""
+    )
+    create_parser.add_argument(
+        "filepath",
+        help="Ruta donde se creará el archivo (ej: src/script.py, docs/README.md)"
+    )
+    create_parser.add_argument(
+        "--content", "-c",
+        default="",
+        help="Contenido inicial del archivo. La descripción se extraerá de este contenido"
+    )
+    create_parser.add_argument(
+        "--config",
+        default="templates/config.json",
+        help="Ruta al archivo de configuración JSON que define las plantillas y variables"
+    )
 
     args = parser.parse_args()
     
@@ -546,10 +363,6 @@ def main():
     if args.command == "create":
         success = manager.create_file(args.filepath, args.content)
         return 0 if success else 1
-    elif args.command == "fix":  # Cambiado de standardize a fix
-        processed, total = manager.standardize_headers(args.path, args.recursive)
-        logger.info(f"Corregidos {processed} de {total} archivos exitosamente")
-        return 0 if processed == total else 1
 
 if __name__ == "__main__":
     exit(main()) 
