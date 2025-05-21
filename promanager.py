@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""PROMANAGER - Gestor de Metadatos para Proyectos de Desarrollo.
+"""PROMANAGER - Gestor de Proyectos de Desarrollo.
 
 Copyright (C) 2025 MAURO ROSERO PÉREZ
 License: GPLv3
@@ -27,6 +27,7 @@ import copy # <--- AÑADIDO para deepcopy
 import shutil # <--- AÑADIDO para shutil
 import subprocess
 from pathlib import Path
+from datetime import datetime
 
 try:
     import tomllib
@@ -37,7 +38,7 @@ except ImportError as e:
     sys.exit(1)
 
 # --- Constantes de Aplicación (Según .cursorrules) ---
-APP_NAME = "Gestor de Metadatos para Proyectos de Desarrollo" # ACTUALIZADO
+APP_NAME = "Gestor de Proyectos de Desarrollo" # ACTUALIZADO
 VERSION = "0.1.0" # Versión inicial para este nuevo script
 AUTHOR = "Mauro Rosero Pérez" # Tomado de tus datos, ajustar si es necesario
 BANNER_WIDTH = 80 # Ancho sugerido para el banner
@@ -57,6 +58,10 @@ DEFAULT_PROJECT_STATUSES = [
 SCRIPT_DEBUG_MODE = os.getenv("PROMANAGER_DEBUG", "false").lower() == "true"
 NO_CHANGE_SENTINEL = object() # Mover a global si estaba local, o añadir si no existe
 
+# --- NUEVAS CONSTANTES para Scaffold ---
+DEFAULT_SCAFFOLD_TYPE = "No"
+SCAFFOLD_TYPES_FILE = "project_types.def"
+
 # --- NUEVAS CONSTANTES para Herramientas de Gestión de Proyectos ---
 PM_APPS_DEF_FILE_NAME = "pmapps.def"
 DEFAULT_PM_APPS = [
@@ -69,6 +74,7 @@ DEFAULT_PM_APPS = [
 # --- Constantes del Script ---
 META_FILE_NAME = ".project/project_meta.toml"
 INDENT_STRING = "  " # Dos espacios por nivel de indentación
+DEFAULT_SCAFFOLD_TYPE = "No"  # Valor por defecto para scaffold
 
 # --- Constantes Adicionales ---
 KNOWN_HOSTED_PLATFORMS = ["GitHub", "gitlab.com", "Bitbucket"] # Plataformas donde la URL es implícita
@@ -125,6 +131,8 @@ KEY_TRANSLATION_MAP_ES = {
         "gitignore_template": "Plantilla .gitignore",
         "add_license": "Añadir Licencia",
         "license_template": "Plantilla de Licencia",
+        "scaffold": "Estructura Inicial",  # AÑADIDO
+        "initialized": "Inicializado",  # AÑADIDO
         # 'name' y 'description' se manejan fuera de este scope para 'repository'
     },
     "project_details": { # ACTUALIZADO COMPLETAMENTE
@@ -245,8 +253,12 @@ def show_banner(schema_version_val: Optional[str] = None, config_file_name: Opti
         info_line_parts.append(f"{Style.BRIGHT}{Fore.BLUE}[{project_name_val}]{Style.RESET_ALL}")
     if schema_version_val:
         info_line_parts.append(f"{Style.DIM}Esquema: {Style.NORMAL}{Fore.YELLOW}{schema_version_val}{Style.RESET_ALL}")
+    
+    # Solo mostrar Config si el archivo existe en .project
     if config_file_name:
-        info_line_parts.append(f"{Style.DIM}Config: {Style.NORMAL}{Fore.YELLOW}{config_file_name}{Style.RESET_ALL}")
+        meta_file_path = Path(".") / ".project" / config_file_name
+        if meta_file_path.exists():
+            info_line_parts.append(f"{Style.DIM}Config: {Style.NORMAL}{Fore.YELLOW}{config_file_name}{Style.RESET_ALL}")
     
     if info_line_parts:
         print(f"  {"  ".join(info_line_parts)}") # Unir partes con doble espacio
@@ -310,7 +322,7 @@ def save_project_data(data: dict, meta_file_path: Path) -> bool:
         meta_file_path.parent.mkdir(parents=True, exist_ok=True)
         with open(meta_file_path, "wb") as f:
             tomli_w.dump(data, f)
-        print(f"Datos del proyecto guardados en '{meta_file_path}'")
+        # Eliminamos el mensaje redundante de aquí
         return True
     except IOError as e:
         print(f"Error al escribir en el archivo '{meta_file_path}': {e}", file=sys.stderr)
@@ -595,8 +607,24 @@ def _print_section_with_frame(section_name: str, section_data: dict):
 
 def handle_show_config(args: argparse.Namespace, project_data: dict):
     """Muestra la configuración actual del proyecto de forma estructurada."""
+    # Verificar si existe la carpeta .project
+    project_dir = args.path / ".project"
+    if not project_dir.exists() or not project_dir.is_dir():
+        print(f"{Fore.YELLOW}⚠️  Esta ruta no es un proyecto válido.{Style.RESET_ALL}")
+        print(f"   No se encontró la carpeta '.project' en: {args.path}")
+        print(f"\n   Use 'promanager.py init' para inicializar un nuevo proyecto.")
+        return
+
+    # Verificar si existe el archivo de metadatos
+    meta_file = get_meta_file_path(args.path)
+    if not meta_file.exists():
+        print(f"{Fore.YELLOW}⚠️  Esta ruta no es un proyecto válido.{Style.RESET_ALL}")
+        print(f"\n   Use 'promanager.py init' para inicializar un nuevo proyecto.")
+        return
+
     if not project_data:
-        print(f"{Fore.RED}No hay datos de configuración para mostrar. ¿Existe '.project/project_meta.toml'?{Style.RESET_ALL}", file=sys.stderr)
+        print(f"{Fore.RED}Error: No se pudieron cargar los datos de configuración.{Style.RESET_ALL}")
+        print(f"   Verifique que el archivo '{meta_file}' es válido.")
         return
     
     # La información del nombre del proyecto, esquema, config y descripción del repo ya se muestran antes.
@@ -671,7 +699,7 @@ def handle_show_config(args: argparse.Namespace, project_data: dict):
             show_banner(
                 project_name_val=project_name_for_banner_loop,
                 schema_version_val=schema_str,
-                config_file_name=META_FILE_NAME
+                config_file_name=meta_file.name
             )
             if repo_description_loop: # Usar la descripción recalculada
                 _print_repository_description(repo_description_loop)
@@ -733,7 +761,7 @@ def handle_show_config(args: argparse.Namespace, project_data: dict):
             show_banner(
                 project_name_val=project_name_for_banner_selected,
                 schema_version_val=schema_str,
-                config_file_name=META_FILE_NAME
+                config_file_name=meta_file.name
             )
             if repo_description_selected:
                 _print_repository_description(repo_description_selected)
@@ -753,29 +781,21 @@ def handle_show_config(args: argparse.Namespace, project_data: dict):
                 if platform_value and platform_value in KNOWN_HOSTED_PLATFORMS:
                     section_data_for_node.pop("platform_url", None)
                 
-                # NUEVO: Ocultar url si created_flag es False
-                created_flag_value = section_data_for_node.get("created_flag", False) # Default a False si no existe
+                # Ocultar url si created_flag es False
+                created_flag_value = section_data_for_node.get("created_flag", False)
                 if not created_flag_value:
                     section_data_for_node.pop("url", None)
 
-                # Filtrar init_options basado en add_license y add_gitignore
-                init_options_data = section_data_for_node.get("init_options")
-                if isinstance(init_options_data, dict):
-                    # Hacemos una copia de init_options para modificarla solo si es necesario
-                    init_options_copy = None
+                # Resaltar estado de scaffold
+                scaffold_value = section_data_for_node.get("scaffold", DEFAULT_SCAFFOLD_TYPE)
+                initialized_value = section_data_for_node.get("initialized", False)
+                if scaffold_value == DEFAULT_SCAFFOLD_TYPE:
+                    section_data_for_node["scaffold"] = f"{Style.DIM}{scaffold_value}{Style.RESET_ALL}"
+                elif initialized_value:
+                    section_data_for_node["scaffold"] = f"{Style.GREEN}{scaffold_value} (Inicializado){Style.RESET_ALL}"
+                else:
+                    section_data_for_node["scaffold"] = f"{Style.YELLOW}{scaffold_value} (Pendiente){Style.RESET_ALL}"
 
-                    if not init_options_data.get("add_license", True): # Default a True si no existe para no ocultar por error
-                        if init_options_copy is None: init_options_copy = dict(init_options_data)
-                        init_options_copy.pop("license_template", None)
-                    
-                    # NUEVO: Filtrar gitignore_template si add_gitignore es False
-                    if not init_options_data.get("add_gitignore", True): # Default a True
-                        if init_options_copy is None: init_options_copy = dict(init_options_data)
-                        init_options_copy.pop("gitignore_template", None)
-
-                    if init_options_copy is not None:
-                        section_data_for_node["init_options"] = init_options_copy
-            
             # NUEVO: Filtrar pm_tool_info si tool_name es "Ninguna"
             if original_section_key == "project_details":
                 pm_tool_info_data = section_data_for_node.get("pm_tool_info")
@@ -882,16 +902,147 @@ def handle_show_config(args: argparse.Namespace, project_data: dict):
 
             _print_node(data_to_print_fallback, indent_level=1, section_key_original=original_key_fallback)
 
-def handle_init_config(args: argparse.Namespace, meta_file: Path):
-    """(Platzhalter) Inicializa un nuevo archivo project_meta.toml si no existe."""
-    if meta_file.exists() and not args.force:
-        print(f"El archivo '{meta_file}' ya existe. Use --force para sobrescribir (no implementado aún).", file=sys.stderr)
-        return
-    print(f"Funcionalidad 'init' aún no implementada completamente. Se crearía/inicializaría '{meta_file}'.")
+def handle_init_config(args: argparse.Namespace, project_data: dict):
+    """
+    Etapa 1: Inicialización del workspace.
+    Habilita la funcionalidad de inicializar un workspace.
+    
+    Etapa 2: Configuración de reglas Cursor.
+    Crea .cursor/rules y copia los archivos .def a .mdc.
+    Si existen, no hace nada a menos que se use -f.
+    
+    Etapa 3: Creación del archivo .ws.
+    Crea el archivo .ws en el workspace si no existe.
+    Si existe, no hace nada a menos que se use -f.
+    
+    Args:
+        args: Argumentos parseados que incluyen:
+            - workspace: Ruta del workspace (opcional)
+            - force: Si se debe forzar la actualización del workspace existente
+        project_data: Datos del proyecto (no usado en esta etapa)
+    """
+    try:
+        # Etapa 1: Configuración del workspace
+        if args.workspace:
+            workspace_path = Path(args.workspace).expanduser().resolve()
+        else:
+            workspace_path = get_default_workspace()
+            
+        # Verificar si el workspace existe
+        if workspace_path.exists():
+            if not args.force:
+                print(f"El workspace ya existe en: {workspace_path}")
+                print("Use -f para forzar la actualización del workspace")
+                return
+            print(f"Actualizando workspace existente: {workspace_path}")
+        else:
+            print(f"Creando nuevo workspace en: {workspace_path}")
+            
+        # Crear el workspace si no existe o si se usa -f
+        workspace_path.mkdir(parents=True, exist_ok=True)
+        print(f"✅ Workspace configurado en: {workspace_path}")
 
-# --- Nueva función para manejar la edición de configuración ---
+        # Etapa 2: Configuración de reglas Cursor
+        script_dir = Path(__file__).parent
+        cursor_rules_dir = workspace_path / ".cursor" / "rules"
+        config_dir = script_dir / "config"
+
+        if not config_dir.exists():
+            print(f"❌ Error: No se encontró la carpeta config en: {config_dir}")
+            return
+
+        # Crear directorio .cursor/rules si no existe
+        cursor_rules_dir.mkdir(parents=True, exist_ok=True)
+
+        # Verificar si ya existen archivos .mdc
+        existing_mdc = list(cursor_rules_dir.glob("*.mdc"))
+        if existing_mdc and not args.force:
+            print(f"Ya existen archivos de reglas en: {cursor_rules_dir}")
+            print("Use -f para forzar la actualización de las reglas")
+            return
+
+        # Si se usa -f, eliminar archivos .mdc existentes
+        if args.force and existing_mdc:
+            print("Actualizando archivos de reglas existentes...")
+            for mdc_file in existing_mdc:
+                mdc_file.unlink()
+
+        # Buscar solo archivos .mdc.def
+        def_files = list(config_dir.glob("*.mdc.def"))
+        if not def_files:
+            print(f"❌ Error: No se encontraron archivos .mdc.def en: {config_dir}")
+            return
+
+        print("Copiando archivos de reglas...")
+        for def_file in def_files:
+            # Remover .def del nombre final
+            mdc_file = cursor_rules_dir / f"{def_file.stem[:-4]}.mdc"
+            shutil.copy2(def_file, mdc_file)
+            print(f"  ✓ {def_file.name} -> {mdc_file.name}")
+
+        print(f"✅ Reglas Cursor configuradas en: {cursor_rules_dir}")
+
+        # Copiar .cursorrules.def a .cursorrules en el workspace
+        cursorrules_src = config_dir / ".cursorrules.def"
+        cursorrules_dst = workspace_path / ".cursorrules"
+
+        if not cursorrules_src.exists():
+            print(f"❌ Error: No se encontró el archivo .cursorrules.def en: {config_dir}")
+            return
+
+        if cursorrules_dst.exists() and not args.force:
+            print(f"El archivo .cursorrules ya existe en: {workspace_path}")
+            print("Use -f para forzar la actualización del archivo")
+            return
+
+        if args.force and cursorrules_dst.exists():
+            print("Actualizando archivo .cursorrules existente...")
+            cursorrules_dst.unlink()
+
+        shutil.copy2(cursorrules_src, cursorrules_dst)
+        print(f"✅ Archivo .cursorrules copiado a: {workspace_path}")
+
+        # Etapa 3: Creación del archivo .ws
+        ws_file = workspace_path / ".ws"
+        
+        if ws_file.exists() and not args.force:
+            print(f"El archivo .ws ya existe en: {workspace_path}")
+            print("Use -f para forzar la actualización del archivo")
+            return
+
+        if args.force and ws_file.exists():
+            print("Actualizando archivo .ws existente...")
+            ws_file.unlink()
+
+        # Crear el archivo .ws con la fecha de creación/actualización
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        ws_content = f"""# Archivo de configuración del workspace
+# Creado/Actualizado: {current_time}
+# Workspace: {workspace_path}
+
+# Este archivo indica que este directorio es un workspace válido
+# y contiene la configuración básica del workspace.
+
+[workspace]
+path = "{workspace_path}"
+created_at = "{current_time}"
+"""
+        ws_file.write_text(ws_content, encoding='utf-8')
+        print(f"✅ Archivo .ws creado en: {workspace_path}")
+
+    except Exception as e:
+        print(f"❌ Error: {e}")
+
 def handle_edit_config(args: argparse.Namespace, project_data: dict):
     """Permite editar la configuración del proyecto de forma interactiva."""
+    # Verificar si existe la carpeta .project
+    project_dir = args.path / ".project"
+    if not project_dir.exists() or not project_dir.is_dir():
+        print(f"{Fore.YELLOW}⚠️  Esta ruta no es un proyecto válido.{Style.RESET_ALL}")
+        print(f"   No se encontró la carpeta '.project' en: {args.path}")
+        print(f"\n   Use 'promanager.py init' para inicializar un nuevo proyecto.")
+        return
+
     if not project_data:
         print(f"{Fore.RED}No hay datos de configuración para editar. ¿Existe '.project/project_meta.toml'?{Style.RESET_ALL}", file=sys.stderr)
         return
@@ -1089,418 +1240,120 @@ def handle_edit_config(args: argparse.Namespace, project_data: dict):
                 if original_section_key == "repository":
                     repo_created_for_current_section = section_data_to_edit.get("created_flag", False)
                     if repo_created_for_current_section:
-                        info_color_start = Fore.BLUE if COLORAMA_AVAILABLE else ""
-                        info_reset = Style.RESET_ALL if COLORAMA_AVAILABLE else ""
-                        print(f"  {info_color_start}ℹ️ Repositorio ya inicializado. Los campos marcados con 🔒 no son editables.{info_reset}\n")
-                
-                current_field_display_map = {}
-                processed_keys_in_order = [] 
+                        # Si el repositorio ya está creado, solo permitir editar ciertas claves
+                        editable_keys = EDITABLE_REPO_KEYS_WHEN_CREATED
+                    else:
+                        # Si no está creado, permitir editar todas las claves excepto las que dependen de la creación
+                        editable_keys = [k for k in section_data_to_edit.keys() if k not in ["url"]]
+                else:
+                    editable_keys = list(section_data_to_edit.keys())
 
-                if original_section_key == "repository":
-                    ordered_field_keys = ["name", "description", "owner_type", "owner_name"]
-                    for key_to_process in ordered_field_keys:
-                        if key_to_process in section_data_to_edit:
-                            value_field = section_data_to_edit[key_to_process]
-                            field_disabled_value_for_q = None 
-                            display_text_prefix = ""
-                            if repo_created_for_current_section:
-                                if key_to_process not in EDITABLE_REPO_KEYS_WHEN_CREATED:
-                                    field_disabled_value_for_q = True 
-                                    display_text_prefix = "🔒 "
-                            else: 
-                                if key_to_process == "owner_name":
-                                    if section_data_to_edit.get("owner_type") != "organization":
-                                        processed_keys_in_order.append(key_to_process)
-                                        continue
-                            translated_key_field = KEY_TRANSLATION_MAP_ES.get(original_section_key, {}).get(key_to_process, key_to_process)
-                            val_str_field = str(value_field)
-                            if isinstance(value_field, bool): val_str_field = "Sí" if value_field else "No"
-                            elif isinstance(value_field, (dict, list)):
-                                title_struct = f"{display_text_prefix}{translated_key_field}: (Estructura anidada)"
-                                final_disabled_value_struct = field_disabled_value_for_q if field_disabled_value_for_q is True else "Editar estructuras anidadas no implementado"
-                                field_choices.append(questionary.Choice(title=title_struct, value=key_to_process, disabled=final_disabled_value_struct))
-                                processed_keys_in_order.append(key_to_process)
-                                current_field_display_map[key_to_process] = translated_key_field
-                                continue 
-                            display_text = f"{display_text_prefix}{translated_key_field}: {val_str_field}"
-                            field_choices.append(questionary.Choice(title=display_text, value=key_to_process, disabled=field_disabled_value_for_q))
-                            processed_keys_in_order.append(key_to_process)
-                            current_field_display_map[key_to_process] = translated_key_field
-
-                for key_original_field, value_field in section_data_to_edit.items():
-                    if key_original_field in processed_keys_in_order: continue
-                    if original_section_key == "repository" and key_original_field == "protection_config": continue
-                    if original_section_key == "repository" and key_original_field == "workflow_config": continue
-                    if original_section_key == "repository" and not repo_created_for_current_section and key_original_field == "init_options": continue
-                    if original_section_key == "project_details" and key_original_field == "pm_tool_info": continue
-                    
-                    field_disabled_value_for_q = None 
-                    display_text_prefix = ""
-                    is_pm_tool_created = False
-                    if original_section_key == "project_details":
-                        current_pm_tool_info = section_data_to_edit.get("pm_tool_info", {})
-                        if isinstance(current_pm_tool_info, dict):
-                            is_pm_tool_created = current_pm_tool_info.get("pm_tool_created_flag", False)
-
-                    if original_section_key == "repository": 
-                        if repo_created_for_current_section:
-                            if key_original_field not in EDITABLE_REPO_KEYS_WHEN_CREATED:
-                                field_disabled_value_for_q = True 
-                                display_text_prefix = "🔒 "
-                        else:
-                            if key_original_field == "url": continue
-                            elif key_original_field == "created_flag":
-                                field_disabled_value_for_q = True
-                                display_text_prefix = "🔒 "
-                            elif key_original_field == "platform_url": 
-                                if section_data_to_edit.get("platform") in KNOWN_HOSTED_PLATFORMS:
-                                    continue
-                    elif original_section_key == "project_details" and is_pm_tool_created and key_original_field in PROJECT_DETAILS_READONLY_WHEN_PM_TOOL_CREATED:
-                        field_disabled_value_for_q = True
-                        display_text_prefix = "🔒 "
-                    
-                    if isinstance(value_field, (dict, list)):
-                        translated_key_field_struct = KEY_TRANSLATION_MAP_ES.get(original_section_key, {}).get(key_original_field, key_original_field)
-                        title_struct = f"{display_text_prefix}{translated_key_field_struct}: (Estructura anidada)"
-                        final_disabled_value_struct = field_disabled_value_for_q if field_disabled_value_for_q is True else "Editar estructuras anidadas no implementado"
-                        field_choices.append(questionary.Choice(title=title_struct, value=key_original_field, disabled=final_disabled_value_struct))
-                        continue
-                    translated_key_field = KEY_TRANSLATION_MAP_ES.get(original_section_key, {}).get(key_original_field, key_original_field)
-                    val_str_field = str(value_field)
-                    if isinstance(value_field, bool): val_str_field = "Sí" if value_field else "No"
-                    display_text = f"{display_text_prefix}{translated_key_field}: {val_str_field}"
-                    field_choices.append(questionary.Choice(title=display_text, value=key_original_field, disabled=field_disabled_value_for_q))
-                    current_field_display_map[key_original_field] = translated_key_field
-
-                if original_section_key == "repository" and not repo_created_for_current_section and "init_options" in section_data_to_edit:
-                    field_choices.append(questionary.Separator())
-                    init_options_data = section_data_to_edit.get("init_options", {})
-                    init_options_ordered_keys = ["add_readme", "add_gitignore", "gitignore_template", "add_license", "license_template"]
-                    for sub_key in init_options_ordered_keys:
-                        if sub_key not in init_options_data: continue
-                        if sub_key == "gitignore_template" and not init_options_data.get("add_gitignore", False): continue
-                        if sub_key == "license_template" and not init_options_data.get("add_license", False): continue
-                        sub_value = init_options_data[sub_key]
-                        composite_key_for_q = f"init_options.{sub_key}"
-                        translated_sub_key_display = KEY_TRANSLATION_MAP_ES.get("repository", {}).get(sub_key, sub_key.replace("_", " ").title())
-                        current_sub_val_str = str(sub_value)
-                        if isinstance(sub_value, bool): current_sub_val_str = "Sí" if sub_value else "No"
-                        choice_title = f"{translated_sub_key_display}: {current_sub_val_str}"
-                        disabled_reason_init_opt = None
-                        if sub_key == "gitignore_template":
-                            if not init_options_data.get("add_gitignore", False):
-                                disabled_reason_init_opt = f"Habilite '{KEY_TRANSLATION_MAP_ES.get('repository', {}).get('add_gitignore', 'Añadir .gitignore')}' primero"
-                        elif sub_key == "license_template":
-                            if not init_options_data.get("add_license", False):
-                                disabled_reason_init_opt = f"Habilite '{KEY_TRANSLATION_MAP_ES.get('repository', {}).get('add_license', 'Añadir Licencia')}' primero"
-                        field_choices.append(questionary.Choice(title=choice_title, value=composite_key_for_q, disabled=disabled_reason_init_opt))
-                        current_field_display_map[composite_key_for_q] = translated_sub_key_display
-                
-                if original_section_key == "project_details":
-                    field_choices.append(questionary.Separator("=== Herramienta de Gestión de Proyectos ==="))
-                    pm_tool_info_data = section_data_to_edit.setdefault("pm_tool_info", {})
-                    if "pm_tool_created_flag" not in pm_tool_info_data or not isinstance(pm_tool_info_data["pm_tool_created_flag"], bool):
-                        pm_tool_info_data["pm_tool_created_flag"] = False
-                    current_tool_name_value = pm_tool_info_data.get("tool_name")
-                    pm_tool_created_value = pm_tool_info_data.get("pm_tool_created_flag", False)
-                    
-                    sub_key_tool_name = "tool_name"
-                    composite_key_tool_name = f"pm_tool_info.{sub_key_tool_name}"
-                    translated_tool_name_display = KEY_TRANSLATION_MAP_ES.get("project_details", {}).get(sub_key_tool_name, sub_key_tool_name.replace("_", " ").title())
-                    current_tool_name_str_display = str(current_tool_name_value) if current_tool_name_value is not None and current_tool_name_value != "" else "Ninguna"
-                    disabled_tool_name = False
-                    prefix_tool_name = ""
-                    if pm_tool_created_value and current_tool_name_value != "Ninguna" and current_tool_name_value is not None and current_tool_name_value != "":
-                        disabled_tool_name = True
-                        prefix_tool_name = "🔒 "
-                    choice_title_tool_name = f"{prefix_tool_name}{translated_tool_name_display}: {current_tool_name_str_display}"
-                    field_choices.append(questionary.Choice(title=choice_title_tool_name, value=composite_key_tool_name, disabled=disabled_tool_name))
-                    current_field_display_map[composite_key_tool_name] = translated_tool_name_display
-                    
-                    sub_key_created_flag = "pm_tool_created_flag"
-                    composite_key_created_flag = f"pm_tool_info.{sub_key_created_flag}"
-                    translated_created_flag_display = KEY_TRANSLATION_MAP_ES.get("project_details", {}).get(sub_key_created_flag, sub_key_created_flag.replace("_", " ").title())
-                    current_created_flag_str_display = "Sí" if pm_tool_created_value else "No"
-                    choice_title_created_flag = f"🔒 {translated_created_flag_display}: {current_created_flag_str_display}"
-                    field_choices.append(questionary.Choice(title=choice_title_created_flag, value=composite_key_created_flag, disabled=True))
-                    current_field_display_map[composite_key_created_flag] = translated_created_flag_display
-
-                    if current_tool_name_value is not None and current_tool_name_value != "" and current_tool_name_value != "Ninguna":
-                        pm_tool_info_link_key = ["project_link", "project_key"]
-                        for sub_key_pm_detail in pm_tool_info_link_key:
-                            sub_value_pm_detail = pm_tool_info_data.get(sub_key_pm_detail)
-                            composite_key_for_q_pm_detail = f"pm_tool_info.{sub_key_pm_detail}"
-                            translated_sub_key_display_pm_detail = KEY_TRANSLATION_MAP_ES.get("project_details", {}).get(sub_key_pm_detail, sub_key_pm_detail.replace("_", " ").title())
-                            current_sub_val_str_pm_detail = str(sub_value_pm_detail) if sub_value_pm_detail is not None else "(No establecido)"
-                            disabled_link_key = False
-                            prefix_link_key = ""
-                            if pm_tool_created_value:
-                                disabled_link_key = True
-                                prefix_link_key = "🔒 "
-                            choice_title_pm_detail = f"{prefix_link_key}{translated_sub_key_display_pm_detail}: {current_sub_val_str_pm_detail}"
-                            field_choices.append(questionary.Choice(title=choice_title_pm_detail, value=composite_key_for_q_pm_detail, disabled=disabled_link_key))
-                            current_field_display_map[composite_key_for_q_pm_detail] = translated_sub_key_display_pm_detail
-                
-                elif original_section_key == "workflow_config":
-                    workflow_ordered_keys = [
-                        "commit_format", "require_issue", "require_issue_format",
-                        "require_component_docs", "require_parseable_metadata", "require_version_placeholder",
-                        "require_tests_new_features", "require_linting", "require_type_hints",
-                        "release_process", "require_versioning", "require_changelog"
-                    ]
-                    for key in workflow_ordered_keys:
-                        if key not in section_data_to_edit:
-                            if key in ["require_issue", "require_issue_format", "require_component_docs", 
-                                          "require_parseable_metadata", "require_version_placeholder", 
-                                          "require_tests_new_features", "require_linting", "require_type_hints", 
-                                          "require_versioning", "require_changelog"]:
-                                section_data_to_edit[key] = False 
-                            elif key == "commit_format":
-                                section_data_to_edit[key] = "conventional"
-                            elif key == "release_process":
-                                section_data_to_edit[key] = "unified_custom"
-                        value = section_data_to_edit.get(key)
-                        translated_key = KEY_TRANSLATION_MAP_ES.get("workflow_config", {}).get(key, key)
-                        val_str = str(value) if value is not None else "(No establecido)"
-                        if isinstance(value, bool): val_str = "Sí" if value else "No"
-                        field_choices.append(questionary.Choice(title=f"{translated_key}: {val_str}", value=key))
-                        current_field_display_map[key] = translated_key
+                for key in editable_keys:
+                    if key in VALUE_ONLY_KEYS and isinstance(section_data_to_edit[key], str):
+                        field_choices.append(f"{key} (texto)")
+                    elif key in editable_predefined_choices:
+                        field_choices.append(f"{key} (opciones)")
+                    elif isinstance(section_data_to_edit[key], bool):
+                        field_choices.append(f"{key} (sí/no)")
+                    elif isinstance(section_data_to_edit[key], (int, float)):
+                        field_choices.append(f"{key} (número)")
+                    elif isinstance(section_data_to_edit[key], str):
+                        field_choices.append(f"{key} (texto)")
+                    elif isinstance(section_data_to_edit[key], dict):
+                        field_choices.append(f"{key} (subsección)")
+                    elif isinstance(section_data_to_edit[key], list):
+                        field_choices.append(f"{key} (lista)")
+                    else:
+                        field_choices.append(f"{key} (tipo desconocido)")
 
                 field_choices.append(questionary.Separator())
-                field_choices.append(questionary.Choice(title="Volver al menú de secciones", value="__back__"))
+                field_choices.append("Volver al Menú Principal")
 
-                selected_key_to_edit = questionary.select(
-                    "Seleccione un campo para editar o 'Volver':",
+                selected_field = questionary.select(
+                    "Seleccione un campo para editar:",
                     choices=field_choices,
-                    use_shortcuts=False
+                    use_shortcuts=True
                 ).ask()
 
-                if selected_key_to_edit is None or selected_key_to_edit == "__back__":
-                    break 
+                if selected_field is None or selected_field == "Volver al Menú Principal":
+                    break
 
-                if original_section_key == "workflow_config" and selected_key_to_edit in section_data_to_edit:
-                    current_value = section_data_to_edit[selected_key_to_edit]
-                    field_label_for_prompt = current_field_display_map.get(selected_key_to_edit, selected_key_to_edit)
-                    new_value = None
-                    if isinstance(current_value, bool):
-                        new_value = questionary.confirm(
-                            f"Nuevo valor para '{field_label_for_prompt}' (actual: {'Sí' if current_value else 'No'}):",
-                            default=current_value
+                field_name = selected_field.split(" (")[0]
+                field_type = selected_field.split("(")[1].rstrip(")")
+
+                if field_type == "subsección":
+                    print(f"\n{Style.YELLOW}⚠️  La edición de subsecciones aún no está implementada.{Style.RESET_ALL}")
+                    input(f"{Style.DIM}Presione Enter para continuar...{Style.RESET_ALL}")
+                    continue
+                elif field_type == "lista":
+                    print(f"\n{Style.YELLOW}⚠️  La edición de listas aún no está implementada.{Style.RESET_ALL}")
+                    input(f"{Style.DIM}Presione Enter para continuar...{Style.RESET_ALL}")
+                    continue
+                elif field_type == "tipo desconocido":
+                    print(f"\n{Style.YELLOW}⚠️  No se puede editar este tipo de campo.{Style.RESET_ALL}")
+                    input(f"{Style.DIM}Presione Enter para continuar...{Style.RESET_ALL}")
+                    continue
+
+                current_value = section_data_to_edit.get(field_name)
+                if field_type == "opciones":
+                    if field_name in editable_predefined_choices:
+                        choices = editable_predefined_choices[field_name]
+                        if field_name == "tool_name" and current_value == "Ninguna":
+                            # Si tool_name es "Ninguna", no permitir editar project_link ni project_key
+                            if "project_details" in project_data and \
+                               isinstance(project_data["project_details"], dict) and \
+                               "pm_tool_info" in project_data["project_details"] and \
+                               isinstance(project_data["project_details"]["pm_tool_info"], dict):
+                                pm_tool_info_ref = project_data["project_details"]["pm_tool_info"]
+                                pm_tool_info_ref.pop("project_link", None)
+                                pm_tool_info_ref.pop("project_key", None)
+                        new_value = questionary.select(
+                            f"Seleccione un valor para '{field_name}':",
+                            choices=choices,
+                            default=current_value if current_value in choices else None
                         ).ask()
-                    elif selected_key_to_edit in editable_predefined_choices:
-                        choices_for_key = editable_predefined_choices[selected_key_to_edit][:]
-                        default_val = current_value if current_value in choices_for_key else None
-                        if default_val is None and choices_for_key: default_val = choices_for_key[0]
-                        choices_with_cancel = choices_for_key + [questionary.Separator(), questionary.Choice(title="(Cancelar edición de este campo)", value=NO_CHANGE_SENTINEL)]
-                        selected_option = questionary.select(
-                            f"Nuevo valor para '{field_label_for_prompt}' (actual: {current_value}):",
-                            choices=choices_with_cancel,
-                            default=default_val
-                        ).ask()
-                        if selected_option is NO_CHANGE_SENTINEL: new_value = current_value
-                        elif selected_option is not None: new_value = selected_option
-                    if new_value is not None:
-                        if new_value == current_value:
-                            print(f"  {Style.DIM}Valor de '{field_label_for_prompt}' no modificado.{Style.RESET_ALL}")
-                        else:
-                            section_data_to_edit[selected_key_to_edit] = new_value
-                            print(f"  {Fore.CYAN}Campo '{field_label_for_prompt}' actualizado.{Style.RESET_ALL}")
-                    else: 
-                        print(f"  {Style.DIM}Edición cancelada para '{field_label_for_prompt}'.{Style.RESET_ALL}")
-                    continue 
-                
-                elif selected_key_to_edit and selected_key_to_edit.startswith("init_options."):
-                    original_sub_key = selected_key_to_edit.split(".", 1)[1]
-                    if "init_options" in section_data_to_edit and original_sub_key in section_data_to_edit["init_options"]:
-                        current_value_init_opt = section_data_to_edit["init_options"][original_sub_key]
-                        field_label_for_prompt_init_opt = current_field_display_map.get(selected_key_to_edit, original_sub_key)
-                        new_value_init_opt = None
-                        if original_sub_key in editable_predefined_choices:
-                            choices_for_init_opt_key = editable_predefined_choices[original_sub_key][:]
-                            default_init_opt_val = current_value_init_opt
-                            if current_value_init_opt not in choices_for_init_opt_key: default_init_opt_val = None 
-                            choices_with_cancel_init_opt = choices_for_init_opt_key + [questionary.Separator(), questionary.Choice(title="(Cancelar edición de este campo)", value=NO_CHANGE_SENTINEL)]
-                            selected_option_value_init_opt = questionary.select(
-                                f"Nuevo valor para '{field_label_for_prompt_init_opt}' (actual: {current_value_init_opt}):",
-                                choices=choices_with_cancel_init_opt,
-                                default=default_init_opt_val
-                            ).ask()
-                            if selected_option_value_init_opt is NO_CHANGE_SENTINEL: new_value_init_opt = current_value_init_opt
-                            elif selected_option_value_init_opt is None: new_value_init_opt = None
-                            else: new_value_init_opt = selected_option_value_init_opt
-                        elif isinstance(current_value_init_opt, bool):
-                            new_value_init_opt = questionary.confirm(
-                                f"Nuevo valor para '{field_label_for_prompt_init_opt}' (actual: {'Sí' if current_value_init_opt else 'No'}):",
-                                default=current_value_init_opt
-                            ).ask()
-                        else: 
-                            print(f"  {Style.DIM}La edición para el tipo de este campo de init_options ({type(current_value_init_opt)}) no está implementada.{Style.RESET_ALL}")
-                            new_value_init_opt = current_value_init_opt
-                            input(f"{Style.DIM}Presione Enter para continuar...{Style.RESET_ALL}")
-                            continue 
-                        if new_value_init_opt is not None:
-                            if new_value_init_opt != current_value_init_opt:
-                                section_data_to_edit["init_options"][original_sub_key] = new_value_init_opt
-                                print(f"  {Fore.CYAN}Campo '{field_label_for_prompt_init_opt}' actualizado.{Style.RESET_ALL}")
-                            else:
-                                print(f"  {Style.DIM}Valor de '{field_label_for_prompt_init_opt}' no modificado.{Style.RESET_ALL}")
-                        else: 
-                            print(f"  {Style.DIM}Edición cancelada para '{field_label_for_prompt_init_opt}'.{Style.RESET_ALL}")
-                        continue 
+                        if new_value is None:
+                            continue
+                        section_data_to_edit[field_name] = new_value
                     else:
-                        print(f"{Fore.RED}Error: Clave de init_options '{selected_key_to_edit}' no encontrada.{Style.RESET_ALL}")
+                        print(f"\n{Style.YELLOW}⚠️  No hay opciones predefinidas para '{field_name}'.{Style.RESET_ALL}")
                         input(f"{Style.DIM}Presione Enter para continuar...{Style.RESET_ALL}")
                         continue
-                
-                elif selected_key_to_edit and selected_key_to_edit.startswith("pm_tool_info."):
-                    original_pm_sub_key = selected_key_to_edit.split(".", 1)[1]
-                    pm_tool_info_dict_ref = section_data_to_edit.setdefault("pm_tool_info", {})
-                    if "pm_tool_created_flag" not in pm_tool_info_dict_ref or not isinstance(pm_tool_info_dict_ref["pm_tool_created_flag"], bool):
-                        pm_tool_info_dict_ref["pm_tool_created_flag"] = False
-                    current_pm_sub_value = pm_tool_info_dict_ref.get(original_pm_sub_key)
-                    field_label_for_prompt_pm = current_field_display_map.get(selected_key_to_edit, original_pm_sub_key)
-                    made_change_in_pm_field = False
-                    current_tool_name_for_logic = pm_tool_info_dict_ref.get("tool_name")
-                    pm_tool_created_for_logic = pm_tool_info_dict_ref.get("pm_tool_created_flag", False)
+                elif field_type == "sí/no":
+                    new_value = questionary.confirm(
+                        f"¿Establecer '{field_name}' como 'Sí'?",
+                        default=current_value
+                    ).ask()
+                    if new_value is None:
+                        continue
+                    section_data_to_edit[field_name] = new_value
+                elif field_type == "número":
+                    try:
+                        new_value = questionary.text(
+                            f"Ingrese un número para '{field_name}':",
+                            default=str(current_value) if current_value is not None else None
+                        ).ask()
+                        if new_value is None:
+                            continue
+                        if isinstance(current_value, int):
+                            section_data_to_edit[field_name] = int(new_value)
+                        else:
+                            section_data_to_edit[field_name] = float(new_value)
+                    except ValueError:
+                        print(f"\n{Style.RED}Error: El valor ingresado no es un número válido.{Style.RESET_ALL}")
+                        input(f"{Style.DIM}Presione Enter para continuar...{Style.RESET_ALL}")
+                        continue
+                else: # texto
+                    new_value = questionary.text(
+                        f"Ingrese un texto para '{field_name}':",
+                        default=current_value if current_value is not None else None
+                    ).ask()
+                    if new_value is None:
+                        continue
+                    section_data_to_edit[field_name] = new_value
 
-                    if original_pm_sub_key == "tool_name":
-                        if pm_tool_created_for_logic and current_tool_name_for_logic != "Ninguna" and current_tool_name_for_logic is not None and current_tool_name_for_logic != "":
-                            print(f"  {Style.DIM}🔒 El nombre de la herramienta no se puede cambiar porque el proyecto ya está marcado como creado.{Style.RESET_ALL}")
-                        else:
-                            choices_for_pm_tool = editable_predefined_choices.get("tool_name", DEFAULT_PM_APPS)[:] 
-                            current_default_for_q = current_pm_sub_value
-                            if current_default_for_q is None or current_default_for_q == "": current_default_for_q = "Ninguna"
-                            if current_default_for_q not in choices_for_pm_tool:
-                                if "Ninguna" in choices_for_pm_tool: current_default_for_q = "Ninguna"
-                                else: current_default_for_q = None
-                            choices_with_cancel_pm_tool = choices_for_pm_tool + [questionary.Separator(), questionary.Choice(title="(Cancelar edición de este campo)", value=NO_CHANGE_SENTINEL)]
-                            selected_pm_tool_value_from_q = questionary.select(
-                                f"Nuevo valor para '{field_label_for_prompt_pm}' (actual: {current_pm_sub_value if (current_pm_sub_value is not None and current_pm_sub_value != "") else 'Ninguna'}):",
-                                choices=choices_with_cancel_pm_tool,
-                                default=current_default_for_q
-                            ).ask()
-                            if selected_pm_tool_value_from_q is NO_CHANGE_SENTINEL: pass 
-                            elif selected_pm_tool_value_from_q is not None: 
-                                new_tool_name_to_store = selected_pm_tool_value_from_q 
-                                normalized_current_pm_sub_value = current_pm_sub_value
-                                if normalized_current_pm_sub_value is None or normalized_current_pm_sub_value == "": normalized_current_pm_sub_value = "Ninguna"
-                                if new_tool_name_to_store != normalized_current_pm_sub_value:
-                                    pm_tool_info_dict_ref["tool_name"] = new_tool_name_to_store
-                                    made_change_in_pm_field = True
-                                    if new_tool_name_to_store == "Ninguna":
-                                        pm_tool_info_dict_ref["project_link"] = ""
-                                        pm_tool_info_dict_ref["project_key"] = ""
-                                        pm_tool_info_dict_ref["pm_tool_created_flag"] = False
-                                        if COLORAMA_AVAILABLE and SCRIPT_DEBUG_MODE: print(f"  {Style.DIM}[DEBUG] tool_name es 'Ninguna'. project_link, project_key establecidos a \"\". pm_tool_created_flag a False.{Style.RESET_ALL}")
-                                        elif SCRIPT_DEBUG_MODE: print(f"  [DEBUG] tool_name es 'Ninguna'. project_link, project_key establecidos a \"\". pm_tool_created_flag a False.")
-                    elif original_pm_sub_key == "pm_tool_created_flag": pass
-                    elif original_pm_sub_key in ["project_link", "project_key"]:
-                        if pm_tool_created_for_logic and current_tool_name_for_logic != "Ninguna" and current_tool_name_for_logic is not None and current_tool_name_for_logic != "":
-                            print(f"  {Style.DIM}🔒 '{field_label_for_prompt_pm}' no se puede cambiar porque el proyecto ya está marcado como creado.{Style.RESET_ALL}")
-                        elif current_tool_name_for_logic == "Ninguna" or current_tool_name_for_logic is None or current_tool_name_for_logic == "":
-                            print(f"  {Style.DIM}No se puede editar '{field_label_for_prompt_pm}' porque la herramienta es 'Ninguna'.{Style.RESET_ALL}")
-                        else:
-                            ans_text_pm_sub = questionary.text(
-                                message=f"Nuevo valor para '{field_label_for_prompt_pm}' (actual: '{current_pm_sub_value if current_pm_sub_value is not None else ""}'):",
-                                default=str(current_pm_sub_value) if current_pm_sub_value is not None else ""
-                            ).ask()
-                            if ans_text_pm_sub is not None: 
-                                new_link_key_to_store = ans_text_pm_sub.strip() 
-                                if new_link_key_to_store != (current_pm_sub_value if current_pm_sub_value is not None else ""):
-                                    pm_tool_info_dict_ref[original_pm_sub_key] = new_link_key_to_store
-                                    made_change_in_pm_field = True
-                    else: print(f"  {Style.DIM}Sub-clave de pm_tool_info '{original_pm_sub_key}' no manejada para edición directa.{Style.RESET_ALL}")
-                    if made_change_in_pm_field: print(f"  {Fore.CYAN}Campo '{field_label_for_prompt_pm}' actualizado.{Style.RESET_ALL}")
-                    else:
-                        if not (original_pm_sub_key == "tool_name" and pm_tool_created_for_logic) and \
-                           not (original_pm_sub_key == "pm_tool_created_flag" and (current_tool_name_for_logic == "Ninguna" or pm_tool_created_for_logic)) and \
-                           not (original_pm_sub_key in ["project_link", "project_key"] and (pm_tool_created_for_logic or current_tool_name_for_logic == "Ninguna")):
-                              print(f"  {Style.DIM}Edición cancelada o valor de '{field_label_for_prompt_pm}' no modificado.{Style.RESET_ALL}")
-                    continue 
-                
-                elif selected_key_to_edit and selected_key_to_edit in section_data_to_edit:
-                    current_value = section_data_to_edit[selected_key_to_edit]
-                    field_label_for_prompt = current_field_display_map.get(selected_key_to_edit, selected_key_to_edit)
-                    new_value = None 
-                    PROJECT_DETAILS_LIST_OF_STRINGS_KEYS = ["tags"]
-                    PROJECT_DETAILS_MULTILINE_KEYS = ["purpose", "description"]
-                    if original_section_key == "project_details":
-                        if selected_key_to_edit == "status":
-                            choices_for_status = editable_predefined_choices.get("status", DEFAULT_PROJECT_STATUSES)[:]
-                            default_status_val = current_value
-                            if current_value not in choices_for_status: default_status_val = None
-                            choices_with_cancel_status = choices_for_status + [questionary.Separator(), questionary.Choice(title="(Cancelar edición de este campo)", value=NO_CHANGE_SENTINEL)]
-                            selected_status = questionary.select(
-                                f"Nuevo valor para '{field_label_for_prompt}' (actual: {current_value}):",
-                                choices=choices_with_cancel_status,
-                                default=default_status_val
-                            ).ask()
-                            if selected_status is NO_CHANGE_SENTINEL: new_value = current_value
-                            elif selected_status is not None: new_value = selected_status
-                        elif selected_key_to_edit in PROJECT_DETAILS_LIST_OF_STRINGS_KEYS:
-                            current_list_str = ", ".join(current_value) if isinstance(current_value, list) else str(current_value)
-                            ans_text_list = questionary.text(
-                                message=f"Editar '{field_label_for_prompt}' (actual: [{current_list_str}]). Ingrese valores separados por coma:",
-                                default=current_list_str
-                            ).ask()
-                            if ans_text_list is not None: new_value = [item.strip() for item in ans_text_list.split(',') if item.strip()]
-                        elif selected_key_to_edit in PROJECT_DETAILS_MULTILINE_KEYS:
-                            ans_text_multi = questionary.text(
-                                message=f"Nuevo valor para '{field_label_for_prompt}' (actual: '''{current_value}'''):",
-                                default=str(current_value) if current_value is not None else "",
-                                multiline=True
-                            ).ask()
-                            if ans_text_multi is not None: new_value = ans_text_multi
-                        else: pass 
-                    if new_value is None and not (original_section_key == "project_details" and 
-                                                  (selected_key_to_edit == "status" or 
-                                                   selected_key_to_edit in PROJECT_DETAILS_LIST_OF_STRINGS_KEYS or 
-                                                   selected_key_to_edit in PROJECT_DETAILS_MULTILINE_KEYS)):
-                        if isinstance(current_value, bool):
-                            new_value = questionary.confirm(
-                                f"Nuevo valor para '{field_label_for_prompt}' (actual: {'Sí' if current_value else 'No'}):",
-                                default=current_value
-                            ).ask()
-                        elif selected_key_to_edit in editable_predefined_choices:
-                            choices_for_key = editable_predefined_choices[selected_key_to_edit][:]
-                            default_val_generic = current_value
-                            if current_value not in choices_for_key: default_val_generic = None
-                            choices_with_cancel_generic = choices_for_key + [questionary.Separator(), questionary.Choice(title="(Cancelar edición de este campo)", value=NO_CHANGE_SENTINEL)]
-                            selected_option_generic = questionary.select(
-                                f"Nuevo valor para '{field_label_for_prompt}' (actual: {current_value}):",
-                                choices=choices_with_cancel_generic,
-                                default=default_val_generic
-                            ).ask()
-                            if selected_option_generic is NO_CHANGE_SENTINEL: new_value = current_value
-                            elif selected_option_generic is not None: new_value = selected_option_generic
-                        elif isinstance(current_value, (str, int, float)) or current_value is None:
-                            is_multiline_generic = selected_key_to_edit in PROJECT_DETAILS_MULTILINE_KEYS or \
-                                                   (original_section_key == "repository" and selected_key_to_edit == "description")
-                            ans_text_generic = questionary.text(
-                                message=f"Nuevo valor para '{field_label_for_prompt}' (actual: '{current_value if current_value is not None else ""}'):",
-                                default=str(current_value) if current_value is not None else "",
-                                multiline=is_multiline_generic
-                            ).ask()
-                            if ans_text_generic is not None:
-                                if isinstance(current_value, int):
-                                    try: new_value = int(ans_text_generic)
-                                    except ValueError: new_value = ans_text_generic
-                                elif isinstance(current_value, float):
-                                    try: new_value = float(ans_text_generic)
-                                    except ValueError: new_value = ans_text_generic
-                                else: new_value = ans_text_generic
-                        else:
-                            print(f"  {Style.DIM}Tipo de campo '{type(current_value)}' no manejado directamente para edición.{Style.RESET_ALL}")
-                    if new_value is not None:
-                        if new_value == current_value:
-                            print(f"  {Style.DIM}Valor de '{field_label_for_prompt}' no modificado.{Style.RESET_ALL}")
-                        else:
-                            section_data_to_edit[selected_key_to_edit] = new_value
-                            print(f"  {Fore.CYAN}Campo '{field_label_for_prompt}' actualizado.{Style.RESET_ALL}")
-                    else: 
-                        print(f"  {Style.DIM}Edición cancelada para '{field_label_for_prompt}'.{Style.RESET_ALL}")
-        else:
-            print(f"{Fore.RED}Opción desconocida: {selected_choice_section_to_edit}{Style.RESET_ALL}")
+                print(f"\n{Style.GREEN}✓ Campo '{field_name}' actualizado.{Style.RESET_ALL}")
+                input(f"{Style.DIM}Presione Enter para continuar...{Style.RESET_ALL}")
 
 def setup_pre_commit_and_deps(config_dir, root_dir, workflow_config):
     """Configura pre-commit y sus dependencias.
@@ -1588,6 +1441,14 @@ def setup_pre_commit_and_deps(config_dir, root_dir, workflow_config):
 
 def handle_setup_ci(args: argparse.Namespace, project_data: dict):
     """Configura las herramientas de CI y pre-commit según la configuración del proyecto."""
+    # Verificar si existe la carpeta .project
+    project_dir = args.path / ".project"
+    if not project_dir.exists() or not project_dir.is_dir():
+        print(f"{Fore.YELLOW}⚠️  Esta ruta no es un proyecto válido.{Style.RESET_ALL}")
+        print(f"   No se encontró la carpeta '.project' en: {args.path}")
+        print(f"\n   Use 'promanager.py init' para inicializar un nuevo proyecto.")
+        return
+
     print(f"{Style.BRIGHT}Configurando herramientas de CI y pre-commit...{Style.RESET_ALL}")
     
     # Obtener la configuración de workflow
@@ -1636,63 +1497,176 @@ def handle_setup_ci(args: argparse.Namespace, project_data: dict):
 
     return True
 
-def setup_head_templates(script_dir: Path, target_dir: Path) -> bool:
-    """Copia la carpeta templates desde el directorio del script al directorio destino.
+def load_scaffold_types(debug_mode: bool = False) -> list:
+    """Carga los tipos de scaffold disponibles desde project_types.def.
     
     Args:
-        script_dir: Directorio donde se encuentra el script y la carpeta templates
-        target_dir: Directorio destino donde se copiará la carpeta templates
-    
+        debug_mode (bool): Si es True, muestra mensajes de depuración.
+        
     Returns:
-        bool: True si la operación fue exitosa, False en caso contrario
+        list: Lista ordenada alfabéticamente de tipos de scaffold disponibles, o lista vacía si hay error.
     """
-    print("\nCopiando carpeta templates...")
+    config_dir = get_config_dir_path()
+    scaffold_types_file = config_dir / SCAFFOLD_TYPES_FILE
     
-    template_src = script_dir / "templates"
-    template_dst = target_dir / "templates"
-    
-    # Verificar que no se intente copiar sobre las carpetas de definición
-    if template_src.resolve() == template_dst.resolve():
-        print(f"[ERROR] No se puede copiar sobre las carpetas de definición en: {template_src}")
-        return False
-    
-    if not template_src.exists():
-        print(f"[ERROR] No se encontró la carpeta templates en: {template_src}")
-        return False
-    
-    # Si existe en destino, preguntar antes de actualizar
-    if template_dst.exists():
-        print(f"[INFO] Ya existe una carpeta templates en: {template_dst}")
-        if not questionary.confirm(
-            "¿Desea actualizar la carpeta templates existente?",
-            default=False
-        ).ask():
-            print("[INFO] Operación cancelada por el usuario.")
-            return False
+    if not scaffold_types_file.exists():
+        if debug_mode:
+            print(f"[DEBUG] Archivo de tipos de scaffold no encontrado: {scaffold_types_file}", file=sys.stderr)
+        return []
     
     try:
-        # Copiar la carpeta, permitiendo que exista el destino
-        shutil.copytree(template_src, template_dst, dirs_exist_ok=True)
-        print(f"[OK] Carpeta templates copiada exitosamente a: {template_dst}")
-        return True
+        scaffold_types = []
+        current_type = None
+        
+        with open(scaffold_types_file, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                
+                # Ignorar líneas vacías y comentarios
+                if not line or line.startswith("#"):
+                    continue
+                
+                # Detectar inicio de sección [types]
+                if line == "[types]":
+                    continue
+                
+                # Detectar definición de tipo (termina con = {)
+                if line.endswith("= {"):
+                    current_type = line[:-3].strip()
+                    scaffold_types.append(current_type)
+                    continue
+                
+                # Ignorar líneas dentro de la definición del tipo
+                if current_type and line.startswith("}"):
+                    current_type = None
+        
+        # Ordenar la lista alfabéticamente
+        scaffold_types.sort()
+        
+        if debug_mode:
+            print(f"[DEBUG] Tipos de scaffold cargados (ordenados): {scaffold_types}", file=sys.stderr)
+            
+        return scaffold_types
+        
     except Exception as e:
-        print(f"[ERROR] No se pudo copiar la carpeta templates: {e}")
-        return False
+        if debug_mode:
+            print(f"[DEBUG] Error al cargar tipos de scaffold: {e}", file=sys.stderr)
+        return []
 
-def handle_setup_head(args: argparse.Namespace, project_data: dict):
-    """Configura la carpeta templates en el directorio destino."""
-    print(f"{Style.BRIGHT}Configurando carpeta templates...{Style.RESET_ALL}")
-    
-    # Definir rutas
-    script_dir = Path(__file__).parent
-    target_dir = args.path.resolve()
-    
-    # Copiar carpeta templates
-    if not setup_head_templates(script_dir, target_dir):
-        print(f"{Fore.YELLOW}Advertencia: La configuración de la carpeta templates no fue exitosa{Style.RESET_ALL}")
-        return False
+# --- Constantes para Workspaces ---
+WORKSPACES_DEF_FILE_NAME = "workspaces.def"
+DEFAULT_WORKSPACE = "~/devs"  # Workspace por defecto si no se especifica otro
 
-    return True
+def get_workspaces_file_path(config_dir_path: Path) -> Path:
+    """Devuelve la ruta absoluta al archivo de definición de workspaces."""
+    return config_dir_path / WORKSPACES_DEF_FILE_NAME
+
+def load_workspaces(debug_mode: bool = False) -> list[str]:
+    """
+    Carga la lista de workspaces desde el archivo workspaces.def.
+    Si el archivo no existe, lo crea con el workspace por defecto.
+    Si está vacío o hay un error al leerlo, usa DEFAULT_WORKSPACE.
+    
+    Returns:
+        list[str]: Lista de rutas de workspaces, expandidas (sin ~)
+    """
+    config_dir = get_config_dir_path()
+    workspaces_file = get_workspaces_file_path(config_dir)
+
+    # Crear archivo .def si no existe
+    if not workspaces_file.exists():
+        try:
+            config_dir.mkdir(parents=True, exist_ok=True)
+            with open(workspaces_file, "w", encoding="utf-8") as f:
+                f.write(f"{DEFAULT_WORKSPACE}\n")
+            if debug_mode:
+                print(f"[DEBUG] Archivo '{workspaces_file.name}' no encontrado. Creado con workspace por defecto.")
+        except Exception as e:
+            if debug_mode:
+                print(f"[DEBUG] Error al crear '{workspaces_file.name}': {e}")
+            return [str(Path(DEFAULT_WORKSPACE).expanduser())]
+
+    # Leer workspaces
+    try:
+        with open(workspaces_file, "r", encoding="utf-8") as f:
+            workspaces = [
+                str(Path(line.strip()).expanduser())
+                for line in f
+                if line.strip() and not line.strip().startswith("#")
+            ]
+        if workspaces:
+            if debug_mode:
+                print(f"[DEBUG] Workspaces cargados: {workspaces}")
+            return workspaces
+        else:
+            if debug_mode:
+                print("[DEBUG] Archivo de workspaces vacío, usando workspace por defecto.")
+            return [str(Path(DEFAULT_WORKSPACE).expanduser())]
+    except Exception as e:
+        if debug_mode:
+            print(f"[DEBUG] Error leyendo archivo de workspaces ({e}), usando workspace por defecto.")
+        return [str(Path(DEFAULT_WORKSPACE).expanduser())]
+
+def get_default_workspace() -> Path:
+    """Obtiene el workspace por defecto (el primero de la lista)."""
+    workspaces = load_workspaces()
+    return Path(workspaces[0]) if workspaces else Path(DEFAULT_WORKSPACE).expanduser()
+
+def validate_workspace_path(workspace_path: str | Path) -> Path:
+    """
+    Valida y normaliza una ruta de workspace.
+    
+    Args:
+        workspace_path: Ruta del workspace (puede ser relativa o absoluta)
+        
+    Returns:
+        Path: Ruta absoluta normalizada del workspace
+        
+    Raises:
+        ValueError: Si la ruta no es válida o no se puede crear
+    """
+    try:
+        # Convertir a Path y expandir ~
+        path = Path(workspace_path).expanduser().resolve()
+        
+        # Crear el directorio si no existe
+        path.mkdir(parents=True, exist_ok=True)
+        
+        return path
+    except Exception as e:
+        raise ValueError(f"Ruta de workspace inválida: {e}")
+
+def validate_project_path(workspace_path: Path, project_name: str) -> Path:
+    """
+    Valida y normaliza una ruta de proyecto dentro de un workspace.
+    
+    Args:
+        workspace_path: Ruta del workspace (debe ser absoluta)
+        project_name: Nombre del proyecto (solo nombre de carpeta)
+        
+    Returns:
+        Path: Ruta absoluta normalizada del proyecto
+        
+    Raises:
+        ValueError: Si el nombre del proyecto no es válido o la ruta no se puede crear
+    """
+    if not workspace_path.is_absolute():
+        raise ValueError("La ruta del workspace debe ser absoluta")
+        
+    # Validar nombre del proyecto
+    if not project_name or "/" in project_name or "\\" in project_name:
+        raise ValueError("El nombre del proyecto debe ser un nombre de carpeta válido")
+        
+    try:
+        # Construir y normalizar la ruta del proyecto
+        project_path = (workspace_path / project_name).resolve()
+        
+        # Crear el directorio si no existe
+        project_path.mkdir(parents=True, exist_ok=True)
+        
+        return project_path
+    except Exception as e:
+        raise ValueError(f"Error al crear/validar ruta del proyecto: {e}")
 
 def main():
     # 1. Crear parser base con argumento --path
@@ -1732,6 +1706,17 @@ def main():
         help="Inicializa un nuevo proyecto",
         parents=[base_parser]
     )
+    # Agregar argumentos específicos para init
+    parser_init.add_argument(
+        "-w", "--workspace",
+        type=str,
+        help="Ruta del workspace donde se creará el proyecto"
+    )
+    parser_init.add_argument(
+        "-f", "--force",
+        action="store_true",
+        help="Forzar la actualización del workspace existente"
+    )
     parser_init.set_defaults(func=handle_init_config)
     
     # Subcomando 'edit'
@@ -1749,14 +1734,6 @@ def main():
         parents=[base_parser]
     )
     parser_setup_ci.set_defaults(func=handle_setup_ci)
-    
-    # Subcomando 'setup-head'
-    parser_setup_head = subparsers.add_parser(
-        "setup-head",
-        help="Configura la carpeta templates en el directorio destino",
-        parents=[base_parser]
-    )
-    parser_setup_head.set_defaults(func=handle_setup_head)
     
     # 4. Parsear argumentos
     args = parser.parse_args()

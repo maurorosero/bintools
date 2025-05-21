@@ -27,6 +27,26 @@ These policies are the foundation of our collaboration and must be strictly foll
     c.  **EXPLICITLY ASK** the user if they want you to address that finding **NOW** or if they prefer to maintain focus on the original task.
     d.  **WAIT** for the user's decision before proceeding with any action related to the finding.
 
+### --- IMPERATIVE MODEL SELECTION POLICY ---
+# STRICT ADHERENCE REQUIRED!!!
+1.  **MODEL SELECTION IS USER-CONTROLLED**:
+    a.  Use Gemini for tasks requiring strict adherence to guidelines
+    b.  Use Claude for exploration and discussion tasks
+    c.  **NEVER** switch models without explicit user request
+    d.  **NEVER** assume which model is better for a task
+
+2.  **MODEL SWITCHING PROTOCOL**:
+    a.  User must explicitly request model switch using:
+        - `[GEMINI_MODE]` for strict adherence tasks
+        - `[CLAUDE_MODE]` for exploration tasks
+    b.  **WAIT** for user confirmation before proceeding
+    c.  **NEVER** suggest model switches unless explicitly asked
+
+3.  **MODEL PREFERENCES**:
+    a.  Record model preferences in `learned-memories.mdc`
+    b.  **NEVER** override recorded preferences without explicit user request
+    c.  **NEVER** make assumptions about model capabilities
+
 ## Fundamental Operational Principles:
 # ------------------------------------
 These principles guide your behavior and decision-making.
