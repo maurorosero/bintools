@@ -6,5 +6,6 @@ python-pip
 jq
 yq
 gnupg
-dialog 
+dialog
+libsecret
 tee

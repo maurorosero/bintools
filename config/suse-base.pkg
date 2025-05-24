@@ -6,5 +6,6 @@ python3-pip
 jq
 yq
 gpg2
-dialog 
+dialog
+libsecret-tools
 tee

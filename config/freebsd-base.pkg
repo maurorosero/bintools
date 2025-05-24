@@ -7,5 +7,6 @@ jq
 yq
 gnupg
 gum
-dialog4ports 
+dialog4ports
+libsecret
 tee
