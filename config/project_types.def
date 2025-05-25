@@ -1,395 +1,71 @@
 # project_types.def
 # Definición de tipos de proyectos disponibles para scaffolding
 
-[types]
+# =========================
+# Lista depurada de tipos de proyecto
+# =========================
+
+# --- PROYECTOS DE INTERÉS PRINCIPAL ---
+
 # Python Package
+# Plantilla oficial y activa para paquetes Python (cookiecutter-pypackage)
+# [VERIFICADA 2025-05-22 MRP]
 python-package = {
     description = "Estructura estándar para paquetes Python"
-    template = "https://github.com/audreyr/cookiecutter-pypackage"
+    template = "git+ssh://git@github.com/audreyfeldroy/cookiecutter-pypackage.git"
     required_fields = ["package_name", "package_description"]
     optional_fields = ["author_name", "author_email"]
 }
 
-# React Application
-react-app = {
-    description = "Aplicación React moderna con TypeScript"
-    template = "https://github.com/cookiecutter/cookiecutter-react"
-    required_fields = ["project_name"]
-    optional_fields = ["use_typescript", "use_styled_components"]
-}
-
-# Django Project
-django-project = {
-    description = "Proyecto Django con configuración moderna"
-    template = "https://github.com/pydanny/cookiecutter-django"
-    required_fields = ["project_name", "domain_name"]
-    optional_fields = ["use_docker", "use_celery"]
-}
-
-# Rust CLI
-rust-cli = {
-    description = "Herramienta de línea de comandos en Rust"
-    template = "https://github.com/clap-rs/clap"
-    required_fields = ["project_name"]
-    optional_fields = ["use_async", "use_logging"]
-}
-
-# Node Package
+# NodeJS Package
+# Plantilla oficial para paquetes Node.js (cookiecutter-node-package)
+# [VERIFICADA 2025-05-22 MRP]
 node-package = {
     description = "Paquete Node.js con TypeScript"
-    template = "https://github.com/cookiecutter/cookiecutter-node-package"
-    required_fields = ["package_name"]
-    optional_fields = ["use_typescript", "use_eslint"]
+    template = "git+ssh://git@https://github.com/rrwen/cookiecutter-npm.git"
+    required_fields = ["template_name"]
+    optional_fields = []
 }
 
-# Go Service
-go-service = {
-    description = "Servicio en Go con estructura moderna"
-    template = "https://github.com/golang-standards/project-layout"
-    required_fields = ["service_name"]
-    optional_fields = ["use_grpc", "use_swagger"]
-}
-
-# Odoo Module
-odoo-module = {
-    description = "Módulo Odoo con estructura estándar y mejores prácticas"
-    template = "https://github.com/OCA/cookiecutter-oca"
-    required_fields = ["module_name", "module_description"]
-    optional_fields = ["odoo_version", "license", "author_name", "author_email"]
-}
-
-# ESPHome Component
-esphome-component = {
-    description = "Componente ESPHome para ESP32/ESP8266"
-    template = "https://github.com/esphome/cookiecutter-esphome"
-    required_fields = ["component_name", "component_description"]
-    optional_fields = ["board_type", "use_wifi", "use_mqtt"]
-}
-
-# FastAPI Service
-fastapi-service = {
-    description = "Servicio API REST con FastAPI y estructura moderna"
-    template = "https://github.com/tiangolo/full-stack-fastapi-cookiecutter"
-    required_fields = ["project_name"]
-    optional_fields = ["use_docker", "use_postgres", "use_celery"]
-}
-
-# Flutter App
-flutter-app = {
+# Flutter Apps
+# Plantilla moderna y mantenida para apps Flutter 
+# [VERIFICADA 2025-05-22 MRP]
+flutter-apps = {
     description = "Aplicación móvil multiplataforma con Flutter"
-    template = "https://github.com/felangel/cookiecutter-flutter"
+    template = "git+ssh://git@github.com/better-dart/flutter-template.git"
+    directory = "mono-repo"
     required_fields = ["app_name"]
     optional_fields = ["use_bloc", "use_firebase", "use_localization"]
 }
 
-# Vue.js Application
-vue-app = {
-    description = "Aplicación Vue.js moderna con TypeScript"
-    template = "https://github.com/cookiecutter/cookiecutter-vue"
-    required_fields = ["project_name"]
-    optional_fields = ["use_typescript", "use_vuex", "use_router"]
+# C++ Modern Project
+# Plantilla moderna y configurable para proyectos C++ con CMake, integración CI y documentación.
+# [VERIFICADA 2025-05-22 MRP]
+cpp-modern-project = {
+    description = "Proyecto C++ moderno con CMake, integración CI, documentación y opciones avanzadas"
+    template = "git+ssh://git@github.com/ssciwr/cookiecutter-cpp-project.git"
+    required_fields = [
+        "project_name:project_details.title",
+        "project_slug:repository.name",
+        "full_name:project_details.lead",
+        "license:repository.license_template"
+    ]
+    optional_fields = [
+        "remote_url:\"None\"",
+        "github_actions_ci:!func_github_ci",
+        "gitlab_ci:!func_gitlab_ci",
+        "readthedocs",
+        "doxygen",
+        "cxx_minimum_standard",
+        "python_bindings",
+        "pypi_release",
+        "codecovio"
+    ]
 }
 
-# Microservice (Python)
-microservice-py = {
-    description = "Microservicio Python con estructura moderna y escalable"
-    template = "https://github.com/tiangolo/cookiecutter-microservice"
-    required_fields = ["service_name"]
-    optional_fields = ["use_docker", "use_kubernetes", "use_redis"]
-}
+# --- FIN DE LA LISTA ---
 
-# IoT Project (ESP32/ESP8266)
-iot-project = {
-    description = "Proyecto IoT para ESP32/ESP8266 con Arduino"
-    template = "https://github.com/arduino/arduino-cli"
-    required_fields = ["project_name"]
-    optional_fields = ["board_type", "use_wifi", "use_ble", "use_mqtt"]
-}
-
-# Next.js Application
-nextjs-app = {
-    description = "Aplicación web moderna con Next.js"
-    template = "https://github.com/cookiecutter/cookiecutter-nextjs"
-    required_fields = ["project_name"]
-    optional_fields = ["use_typescript", "use_tailwind", "use_prisma"]
-}
-
-# Electron App
-electron-app = {
-    description = "Aplicación de escritorio multiplataforma con Electron"
-    template = "https://github.com/cookiecutter/cookiecutter-electron"
-    required_fields = ["app_name"]
-    optional_fields = ["use_typescript", "use_react", "use_vue"]
-}
-
-# Django REST Framework API
-django-rest-api = {
-    description = "API REST con Django REST Framework"
-    template = "https://github.com/agconti/cookiecutter-django-rest"
-    required_fields = ["project_name"]
-    optional_fields = ["use_docker", "use_celery", "use_swagger"]
-}
-
-# Serverless Function (AWS Lambda)
-serverless-function = {
-    description = "Función serverless para AWS Lambda"
-    template = "https://github.com/cookiecutter/cookiecutter-aws-sam-hello-python"
-    required_fields = ["function_name"]
-    optional_fields = ["runtime", "use_layers", "use_xray"]
-}
-
-# Mobile App (React Native)
-react-native-app = {
-    description = "Aplicación móvil multiplataforma con React Native"
-    template = "https://github.com/react-native-community/cookiecutter-react-native"
-    required_fields = ["app_name"]
-    optional_fields = ["use_typescript", "use_redux", "use_navigation"]
-}
-
-# Data Science Project
-data-science = {
-    description = "Proyecto de ciencia de datos con estructura estándar"
-    template = "https://github.com/drivendata/cookiecutter-data-science"
-    required_fields = ["project_name"]
-    optional_fields = ["use_docker", "use_dvc", "use_mlflow"]
-}
-
-# Blockchain Project (Solidity)
-blockchain-project = {
-    description = "Proyecto blockchain con contratos inteligentes en Solidity"
-    template = "https://github.com/OpenZeppelin/cookiecutter-openzeppelin"
-    required_fields = ["project_name"]
-    optional_fields = ["use_hardhat", "use_openzeppelin", "use_ganache"]
-}
-
-# WordPress Theme
-wordpress-theme = {
-    description = "Tema WordPress moderno con soporte para Gutenberg"
-    template = "https://github.com/WordPress/twentytwentyfour"
-    required_fields = ["theme_name", "theme_description"]
-    optional_fields = ["use_sass", "use_webpack", "use_gutenberg", "use_woocommerce"]
-}
-
-# WordPress Plugin
-wordpress-plugin = {
-    description = "Plugin WordPress con estructura moderna y mejores prácticas"
-    template = "https://github.com/DevinVinson/WordPress-Plugin-Boilerplate"
-    required_fields = ["plugin_name", "plugin_description"]
-    optional_fields = ["use_rest_api", "use_settings_page", "use_activation_hooks"]
-}
-
-# Node.js Web Application
-nodejs-webapp = {
-    description = "Aplicación web Node.js con Express y estructura moderna"
-    template = "https://github.com/cookiecutter/cookiecutter-nodejs-express"
-    required_fields = ["project_name"]
-    optional_fields = ["use_typescript", "use_sequelize", "use_jwt", "use_swagger"]
-}
-
-# Node.js API Service
-nodejs-api = {
-    description = "Servicio API Node.js con NestJS y arquitectura modular"
-    template = "https://github.com/nestjs/typescript-starter"
-    required_fields = ["service_name"]
-    optional_fields = ["use_typeorm", "use_swagger", "use_graphql", "use_microservices"]
-}
-
-# MCP AI Project
-mcp-ai-project = {
-    description = "Proyecto de Machine Learning/IA con estructura MCP (Model-Controller-Predictor)"
-    template = "https://github.com/cookiecutter/cookiecutter-data-science"
-    required_fields = ["project_name", "model_type"]
-    optional_fields = ["use_tensorflow", "use_pytorch", "use_mlflow", "use_dvc", "use_docker"]
-}
-
-# C++ Library
-cpp-library = {
-    description = "Biblioteca C++ moderna con CMake y pruebas unitarias"
-    template = "https://github.com/cpp-best-practices/cpp_starter_project"
-    required_fields = ["library_name"]
-    optional_fields = ["use_cpp17", "use_catch2", "use_conan", "use_docs"]
-}
-
-# C++ Application
-cpp-application = {
-    description = "Aplicación C++ con estructura moderna y gestión de dependencias"
-    template = "https://github.com/cpp-best-practices/cpp_starter_project"
-    required_fields = ["project_name"]
-    optional_fields = ["use_cpp17", "use_qt", "use_boost", "use_docker"]
-}
-
-# C Project
-c-project = {
-    description = "Proyecto C con Make y estructura estándar"
-    template = "https://github.com/cookiecutter/cookiecutter-c-project"
-    required_fields = ["project_name"]
-    optional_fields = ["use_cmake", "use_autotools", "use_unit_tests", "use_docs"]
-}
-
-# Embedded C/C++
-embedded-cpp = {
-    description = "Proyecto embebido C/C++ para microcontroladores"
-    template = "https://github.com/cookiecutter/cookiecutter-embedded"
-    required_fields = ["project_name", "target_mcu"]
-    optional_fields = ["use_freertos", "use_cpp", "use_hal", "use_unit_tests"]
-}
-
-# Cursor IDE Extension
-cursor-extension = {
-    description = "Extensión para Cursor IDE con capacidades de IA"
-    template = "https://github.com/cursor-io/cursor-extension-template"
-    required_fields = ["extension_name", "extension_description"]
-    optional_fields = ["use_typescript", "use_react", "use_ai_features", "use_commands", "use_webview"]
-}
-
-# Cursor AI Agent
-cursor-ai-agent = {
-    description = "Agente de IA para Cursor IDE con capacidades de asistencia y automatización"
-    template = "https://github.com/cursor-io/cursor-ai-agent-template"
-    required_fields = ["agent_name", "agent_purpose"]
-    optional_fields = ["use_openai", "use_anthropic", "use_local_models", "use_memory", "use_tools"]
-}
-
-# LangChain Application
-langchain-app = {
-    description = "Aplicación basada en LangChain para procesamiento de lenguaje natural"
-    template = "https://github.com/langchain-ai/langchain-template"
-    required_fields = ["project_name", "chain_type"]
-    optional_fields = ["use_openai", "use_anthropic", "use_vector_store", "use_agents", "use_memory"]
-}
-
-# LangChain Agent
-langchain-agent = {
-    description = "Agente inteligente basado en LangChain con capacidades de razonamiento"
-    template = "https://github.com/langchain-ai/langchain-agent-template"
-    required_fields = ["agent_name", "agent_capabilities"]
-    optional_fields = ["use_tools", "use_memory", "use_planning", "use_react", "use_self_critique"]
-}
-
-# LangChain RAG Application
-langchain-rag = {
-    description = "Aplicación RAG (Retrieval Augmented Generation) con LangChain"
-    template = "https://github.com/langchain-ai/langchain-rag-template"
-    required_fields = ["project_name", "data_source"]
-    optional_fields = ["use_chroma", "use_pinecone", "use_weaviate", "use_embeddings", "use_hybrid_search"]
-}
-
-# LangChain Custom Chain
-langchain-custom-chain = {
-    description = "Cadena personalizada de LangChain para procesamiento específico"
-    template = "https://github.com/langchain-ai/langchain-custom-chain-template"
-    required_fields = ["chain_name", "chain_purpose"]
-    optional_fields = ["use_custom_prompts", "use_custom_tools", "use_custom_memory", "use_custom_callbacks"]
-}
-
-# PHP CLI Application
-php-cli = {
-    description = "Aplicación de línea de comandos en PHP con estructura moderna"
-    template = "https://github.com/cookiecutter/cookiecutter-php-cli"
-    required_fields = ["project_name", "command_name"]
-    optional_fields = ["use_composer", "use_symfony_console", "use_docker", "use_tests", "use_logging"]
-}
-
-# PHP Web Application
-php-web = {
-    description = "Aplicación web PHP moderna con estructura MVC"
-    template = "https://github.com/cookiecutter/cookiecutter-php-web"
-    required_fields = ["project_name", "framework"]
-    optional_fields = ["use_laravel", "use_symfony", "use_composer", "use_docker", "use_tests", "use_orm"]
-}
-
-# PHP API Service
-php-api = {
-    description = "Servicio API REST en PHP con documentación OpenAPI"
-    template = "https://github.com/cookiecutter/cookiecutter-php-api"
-    required_fields = ["service_name", "api_version"]
-    optional_fields = ["use_laravel", "use_symfony", "use_swagger", "use_jwt", "use_oauth2"]
-}
-
-# PHP Microservice
-php-microservice = {
-    description = "Microservicio PHP con arquitectura hexagonal"
-    template = "https://github.com/cookiecutter/cookiecutter-php-microservice"
-    required_fields = ["service_name"]
-    optional_fields = ["use_docker", "use_kubernetes", "use_rabbitmq", "use_redis", "use_metrics"]
-}
-
-# PHP Package
-php-package = {
-    description = "Paquete PHP reutilizable con estructura PSR-4"
-    template = "https://github.com/cookiecutter/cookiecutter-php-package"
-    required_fields = ["package_name", "namespace"]
-    optional_fields = ["use_composer", "use_phpunit", "use_github_actions", "use_phpstan", "use_psalm"]
-}
-
-# PHP Framework (Custom)
-php-framework = {
-    description = "Framework PHP personalizado con arquitectura moderna"
-    template = "https://github.com/cookiecutter/cookiecutter-php-framework"
-    required_fields = ["framework_name", "php_version"]
-    optional_fields = ["use_di", "use_router", "use_orm", "use_middleware", "use_events"]
-}
-
-# Ansible Role
-ansible-role = {
-    description = "Rol Ansible con estructura estándar y mejores prácticas"
-    template = "https://github.com/ansible/ansible-role-template"
-    required_fields = ["role_name", "role_description"]
-    optional_fields = ["use_molecule", "use_galaxy", "use_docker", "use_github_actions", "use_vars"]
-}
-
-# Ansible Collection
-ansible-collection = {
-    description = "Colección Ansible con roles y módulos personalizados"
-    template = "https://github.com/ansible-collections/collection_template"
-    required_fields = ["collection_name", "namespace"]
-    optional_fields = ["use_galaxy", "use_molecule", "use_plugins", "use_inventory", "use_playbooks"]
-}
-
-# Ansible Playbook Project
-ansible-playbook = {
-    description = "Proyecto de playbooks Ansible con estructura organizada"
-    template = "https://github.com/cookiecutter/cookiecutter-ansible-playbook"
-    required_fields = ["project_name", "environment"]
-    optional_fields = ["use_roles", "use_inventory", "use_vault", "use_galaxy", "use_ci_cd"]
-}
-
-# Home Assistant Custom Component
-homeassistant-component = {
-    description = "Componente personalizado para Home Assistant"
-    template = "https://github.com/cookiecutter/cookiecutter-homeassistant-custom-component"
-    required_fields = ["component_name", "component_description"]
-    optional_fields = ["use_config_flow", "use_services", "use_websockets", "use_translations", "use_tests"]
-}
-
-# Home Assistant Integration
-homeassistant-integration = {
-    description = "Integración completa para Home Assistant con múltiples plataformas"
-    template = "https://github.com/cookiecutter/cookiecutter-homeassistant-integration"
-    required_fields = ["integration_name", "domain"]
-    optional_fields = ["use_config_flow", "use_services", "use_websockets", "use_translations", "use_tests", "use_manifest"]
-}
-
-# Home Assistant Blueprint
-homeassistant-blueprint = {
-    description = "Blueprint para automatizaciones en Home Assistant"
-    template = "https://github.com/cookiecutter/cookiecutter-homeassistant-blueprint"
-    required_fields = ["blueprint_name", "blueprint_description"]
-    optional_fields = ["use_script", "use_automation", "use_condition", "use_trigger", "use_variables"]
-}
-
-# Home Assistant Theme
-homeassistant-theme = {
-    description = "Tema personalizado para Home Assistant"
-    template = "https://github.com/cookiecutter/cookiecutter-homeassistant-theme"
-    required_fields = ["theme_name", "theme_description"]
-    optional_fields = ["use_dark_mode", "use_light_mode", "use_custom_colors", "use_custom_fonts", "use_translations"]
-}
-
-# Home Assistant Add-on
-homeassistant-addon = {
-    description = "Add-on para Home Assistant Supervisor"
-    template = "https://github.com/cookiecutter/cookiecutter-homeassistant-addon"
-    required_fields = ["addon_name", "addon_description"]
-    optional_fields = ["use_docker", "use_ingress", "use_auth", "use_ssl", "use_backup", "use_watchdog"]
-} 
+# Comentarios:
+# - Todas las URLs usan HTTPS salvo que el repositorio requiera autenticación SSH.
+# - Si alguna plantilla deja de estar disponible, buscar la alternativa más mantenida y oficial.
+# - Las plantillas deben verificarse periódicamente para asegurar que sigan activas y mantenidas.

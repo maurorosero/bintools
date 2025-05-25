@@ -513,6 +513,15 @@ def config_mdc():
     
     # Usar el directorio actual como ruta del proyecto por defecto
     project_dir = Path.cwd()
+    
+    # Validar que exista .ws o .project antes de proceder
+    ws_file = project_dir / ".ws"
+    project_dir_check = project_dir / ".project"
+    
+    if not (ws_file.exists() or project_dir_check.exists()):
+        print("❌ Error: No es un proyecto o espacio de trabajo válido")
+        return False
+    
     cursor_rules_dir = project_dir / ".cursor" / "rules"
     cursor_rules_dir.mkdir(parents=True, exist_ok=True)
     
