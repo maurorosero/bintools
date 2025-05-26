@@ -1,0 +1,8 @@
+repos:
+  - repo: local
+    hooks:
+      - id: commitlint
+        name: Validate commit message format
+        entry: ./commitlint-wrapper.py
+        language: python
+        stages: [commit-msg] 
