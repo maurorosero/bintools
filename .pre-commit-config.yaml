@@ -3,6 +3,6 @@ repos:
     hooks:
       - id: commitlint
         name: Validate commit message format
-        entry: ./commitlint-wrapper.sh
+        entry: ./commitlint-wrapper.py
         language: script
         stages: [commit-msg] 
