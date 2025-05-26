@@ -1,8 +1,0 @@
-repos:
-  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
-    rev: v9.22.0
-    hooks:
-      - id: commitlint
-        name: Validate commit message format
-        stage: commit-msg
-        additional_dependencies: ['@commitlint/config-conventional'] 
