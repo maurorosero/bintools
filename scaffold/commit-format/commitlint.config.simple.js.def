@@ -1,0 +1,67 @@
+/**
+ * Configuración de commitlint que implementa un formato de commits simplificado
+ * con un conjunto mínimo de reglas y tipos de commit predefinidos.
+ * Define reglas básicas para validar el formato [TAG] (#Issue) Descripción
+ * con un conjunto limitado de tipos de commit permitidos.
+ *
+ * Copyright (C) 2025 MAURO ROSERO PÉREZ
+ * License: GPLv3
+ *
+ * @file commitlint.config.simple.js.def
+ * @version 0.1.0
+ * @author Mauro Rosero P. <mauro.rosero@gmail.com>
+ * @created 2025-05-12 21:56:33
+ *
+ * This file is managed by template_manager.py.
+ * Any changes to this header will be overwritten on the next fix.
+ *
+ * HEADER_END_TAG - DO NOT REMOVE OR MODIFY THIS LINE
+ */
+
+const requireIssueFromMeta = process.env.REQUIRE_ISSUE_FROM_META === 'true';
+const VERSION = "0.1.0"; // Version para el script de versionado
+
+module.exports = {
+  // extends: ['@commitlint/config-conventional'], // Eliminado para usar nuestro parserPreset
+  parserPreset: {
+    parserOpts: {
+      // Captura: [TAG] (#IssueNumber opcional) Descripción
+      // 1: TAG (type)
+      // 2: #IssueNumber (scope) - opcional
+      // 3: Descripción (subject)
+      headerPattern: /^\[([A-Z]+)\](?: \((#\d+)\))? (.*)$/,
+      headerCorrespondence: ['type', 'scope', 'subject'],
+    },
+  },
+  rules: {
+    // --- Reglas para TYPE (el TAG) ---
+    'type-enum': [
+      2,
+      'always',
+      [
+        'FIX',    // Correcciones y bugs
+        'FEAT',   // Nuevas características
+        'DOCS',   // Documentación
+        'CHORE',  // Mantenimiento y tareas generales
+        'CI'      // Para cambios en configuración/scripts de CI/CD
+      ]
+    ],
+    'type-case': [2, 'always', 'upper-case'],
+    'type-empty': [2, 'never'],
+
+    // --- Reglas para SCOPE (el #IssueNumber) ---
+    'scope-empty': [requireIssueFromMeta ? 2 : 0, 'never'], // Condicionalmente obligatorio
+    'scope-case': [2, 'always', 'lower-case'],
+
+    // --- Reglas para SUBJECT (la descripción) ---
+    'subject-empty': [2, 'never'],
+    'subject-case': [0], // Sin restricciones de mayúsculas/minúsculas para 'simple'
+    // 'subject-min-length': [2, 'always', 5], // Opcional: puedes añadir si lo deseas
+
+    // --- Reglas generales del HEADER ---
+    'header-max-length': [2, 'always', 100]
+    
+    // Otras reglas de config-conventional que quisieras replicar tendrían que añadirse aquí.
+    // Por ahora, solo se aplican las definidas explícitamente.
+  }
+}; 

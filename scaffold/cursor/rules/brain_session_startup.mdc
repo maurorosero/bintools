@@ -1,0 +1,90 @@
+# Session Startup Protocol Definition
+# =================================
+# IMPERATIVE - CRITICAL SYSTEM COMPONENT
+# This file defines the protocol for starting and managing Cursor IDE sessions.
+# DO NOT MODIFY WITHOUT EXPLICIT USER AUTHORIZATION.
+
+# Initial Verification Definition
+# ----------------------------
+initial_verification:
+  compliance_system:
+    priority: "HIGHEST"
+    required_file: "config/compliance_enforcement.mdc.def"
+    validation_rules:
+      - "File MUST exist"
+      - "File MUST be loadable"
+      - "File MUST be valid .mdc format"
+      - "File MUST NOT be empty"
+    failure_action:
+      - "STOP ALL OPERATIONS"
+      - "Notify user of critical system failure"
+      - "Wait for explicit user instruction"
+
+  rule_loading:
+    priority: "HIGH"
+    required_files:
+      - "config/interaction_protocols.mdc.def"
+      - "config/learned-memories.mdc.def"
+      - "config/commit_standards.mdc.def"
+      - "config/ci_cd_commit_policy.mdc.def"
+      - "config/cli_banner_standard.mdc.def"
+      - "config/create_rules.mdc.def"
+      - "config/memory.mdc.def"
+    validation_rules:
+      - "ALL files MUST exist"
+      - "ALL files MUST be loadable"
+      - "ALL files MUST be valid .mdc format"
+      - "NO file can be empty"
+    failure_action:
+      - "STOP ALL OPERATIONS"
+      - "Notify user of missing/unloadable files"
+      - "Provide exact list of missing files"
+      - "Wait for user instruction"
+
+# Session State Definition
+# ----------------------
+session_state:
+  verification:
+    check_points:
+      - "session_start"
+      - "rule_application"
+      - "user_interaction"
+      - "system_operation"
+    validation_rules:
+      - "Compliance system MUST be active"
+      - "ALL rules MUST be loaded"
+      - "System state MUST be valid"
+    failure_action:
+      - "STOP ALL OPERATIONS"
+      - "Notify user"
+      - "Wait for explicit user instruction"
+
+# Error Handling Definition
+# -----------------------
+error_handling:
+  compliance_violation:
+    priority: "HIGHEST"
+    validation_rules:
+      - "ANY violation MUST be detected"
+      - "ALL violations MUST be logged"
+      - "User MUST be notified"
+    action_rules:
+      - "IMMEDIATELY STOP ALL OPERATIONS"
+      - "Log violation with full context"
+      - "Notify user of specific violation"
+      - "Wait for explicit user instruction"
+
+# Rule Update Protocol Definition
+# -----------------------------
+rule_update:
+  validation_rules:
+    - "Changes MUST be logged"
+    - "User MUST be notified"
+    - "Changes MUST be reflected in learned-memories.mdc.def"
+  action_rules:
+    - "Next session MUST load updated rules"
+    - "Changes MUST be verified"
+    - "User MUST confirm changes"
+
+# REMINDER: THIS PROTOCOL IS IMPERATIVE AND MUST BE FOLLOWED EXACTLY
+# ----------------------------------------------------------------- 

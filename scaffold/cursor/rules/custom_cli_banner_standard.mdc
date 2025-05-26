@@ -1,0 +1,61 @@
+# Standard for Banners in Interactive Console Tools (CLI)
+
+This guide applies **EXCLUSIVELY** WHEN:
+1.  You are creating a **NEW interactive console tool** (script or CLI application).
+2.  The user explicitly requests you to add or standardize a banner for an existing tool.
+
+If **ONE** of these conditions is met, and you are working on a file that is the main entry point or a relevant module for a CLI, implement a startup banner following these guidelines:
+
+## Mandatory Functional Requirements:
+
+1.  **Pre-Screen Clear**: Before displaying the banner, the terminal MUST be cleared.
+    *   Python: `import os; os.system('cls' if os.name == 'nt' else 'clear')`
+    *   Bash: `clear`
+    *   Node.js (JavaScript/TypeScript): `console.clear()` or `process.stdout.write('\\x1Bc');` (prefer `console.clear()` if available in the runtime environment).
+
+2.  **Encapsulated Implementation**: The logic for displaying the banner MUST be in a dedicated function (e.g., `show_banner()`, `display_header()`, `print_banner()`).
+
+3.  **Early and Single Call**: Invoke this function ONLY ONCE, at the beginning of the interactive tool's main execution, before any other output or main logic.
+
+## Mandatory Minimum Banner Content:
+
+The banner MUST display, at a minimum, the following information, defined using global or module constants:
+
+1.  **Application/Tool Name**:
+    *   Use a constant named `APP_NAME`.
+    *   Ex: `APP_NAME = "My Super Tool"` (Python/JS), `readonly APP_NAME="My Super Tool"` (Bash).
+
+2.  **Version**:
+    *   Use a constant named `VERSION`.
+    *   Ex: `VERSION = "0.1.0"` (Python/JS), `readonly VERSION="0.1.0"` (Bash).
+    *   **Single Source of Truth (SSoT)**: Prioritize obtaining this information dynamically from project metadata (e.g., `pyproject.toml` in Python, `package.json` in Node.js, a dedicated `VERSION` file, or environment variables) rather than hardcoding it if a canonical source already exists. If obtained dynamically, you can still assign it to the `VERSION` constant for internal use.
+
+3.  **Author**:
+    *   Use a constant named `AUTHOR`.
+    *   Ex: `AUTHOR = "user/Organization"` (Python/JS), `readonly AUTHOR="user/Organization"` (Bash).
+    *   **SSoT**: Similar to the version, try to obtain it from sources like `git config user.name`, project files, etc., if appropriate and feasible, to maintain consistency.
+
+## Visual Style and Formatting (Recommendations):
+
+*   **Visual Consistency**: Try to make the banner's style consistent with other tools in the project (e.g., the banner of `pymanager.sh` or `promanager.py`).
+*   **Clarity and Readability**: The banner should be clear, concise, and easy to read. Avoid excessive information.
+*   **Delimiters**: Use characters like `*`, `=`, `-` to frame the banner text and visually separate it from the rest of the output. Consider using a fixed width (e.g., `BANNER_WIDTH = 70` or `80`) for the banner and centering the text within it.
+*   **Centering (Optional but Recommended)**: If it is simple to implement in the target language and improves aesthetics, center the banner text lines.
+*   **Spacing**: Add at least one empty line (`print()` or `echo`) after the complete banner to cleanly separate it from the tool's subsequent output.
+
+## Example Banner Structure (Conceptual):
+
+```
+======================================================================
+                  [APP_NAME] - Version [VERSION]
+                         Author: [AUTHOR]
+        (Optional: brief slogan or one-line description)
+======================================================================
+```
+
+## Language:
+
+*   The descriptive text of the banner (slogans, etc.) should be in Spanish, unless the project or user context indicates another language.
+*   Constant names (`APP_NAME`, `VERSION`, `AUTHOR`, `BANNER_WIDTH`) must be in English as specified.
+
+**IMPORTANT**: Adapt the implementation (syntax of constants, functions, screen clearing, string handling, and formatting) to the specific conventions and features of the current file's programming language (Python, Bash, JavaScript, TypeScript, etc.). CURSOR will help you apply this rule when you modify or create files that match the specified `globs`. 
