@@ -1,8 +1,48 @@
 repos:
+  # Grupo 1: Formato de archivos
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        name: format-trailing-whitespace
+      - id: end-of-file-fixer
+        name: format-end-of-file
+      - id: mixed-line-ending
+        name: format-mixed-line-ending
+        args: [--fix=lf]
+      - id: fix-byte-order-marker
+        name: format-byte-order-marker
+
+  # Grupo 2: Verificación de ejecutables
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-executables-have-shebangs
+        name: exec-check-shebang
+      - id: check-shebang-scripts-are-executable
+        name: exec-check-executable
+
+  # Grupo 3: Control de tamaño de archivos
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-added-large-files
+        name: size-check-large-files
+        args: [--maxkb=500]
+
+  # Grupo 4: Detección de secretos
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        name: sec-detect-secrets
+        exclude: package.lock.json
+
+  # Grupo 5: Validación de commits (manteniendo tu configuración actual)
   - repo: local
     hooks:
       - id: commitlint
-        name: Validate commit message format
+        name: commit-validate
         entry: .githooks/commitlint-wrapper.py
         language: python
         stages: [commit-msg] 

@@ -32,7 +32,10 @@ module.exports = {
   },
   rules: {
     // --- Reglas para TYPE (el TAG) ---
-    // 'type-enum': [0], // Sin restricción de enum de TAGs por defecto para esta config "conventional"
+    'type-enum': [2, 'always', [
+      'IMPROVE', 'FIX', 'DOCS', 'STYLE', 'REFACTOR',
+      'PERF', 'TEST', 'BUILD', 'CI', 'CHORE'
+    ]],
     'type-case': [2, 'always', 'upper-case'], // Asegurar que el TAG sea mayúsculas
     'type-empty': [2, 'never'], // El TAG es obligatorio
 

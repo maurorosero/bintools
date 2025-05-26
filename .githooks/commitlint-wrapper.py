@@ -68,9 +68,15 @@ def main():
         sys.exit(1)
 
     try:
-        # Intentar ejecutar commitlint
+        # Obtener la ruta al archivo de configuración
+        config_file = Path(__file__).parent / "commitlint.config.js"
+        if not config_file.exists():
+            print(f"Error: No se encontró el archivo de configuración: {config_file}")
+            sys.exit(1)
+
+        # Intentar ejecutar commitlint con la configuración local
         result = subprocess.run(
-            ["npx", "commitlint", "--edit", str(commit_msg_file)],
+            ["npx", "commitlint", "--config", str(config_file), "--edit", str(commit_msg_file)],
             capture_output=True,
             text=True
         )
