@@ -1,5 +1,5 @@
 repos:
-  # Grupo 1: Formato de archivos
+  # Grupo 01: Formato de archivos
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
@@ -13,7 +13,7 @@ repos:
       - id: fix-byte-order-marker
         name: format-byte-order-marker
 
-  # Grupo 2: Verificación de ejecutables
+  # Grupo 02: Verificación de ejecutables
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
@@ -22,7 +22,7 @@ repos:
       - id: check-shebang-scripts-are-executable
         name: exec-check-executable
 
-  # Grupo 3: Control de tamaño de archivos
+  # Grupo 03: Control de tamaño de archivos
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
@@ -30,7 +30,7 @@ repos:
         name: size-check-large-files
         args: [--maxkb=500]
 
-  # Grupo 4: Detección de secretos
+  # Grupo 04: Detección de secretos
   - repo: https://github.com/Yelp/detect-secrets
     rev: v1.4.0
     hooks:
@@ -38,7 +38,7 @@ repos:
         name: sec-detect-secrets
         exclude: package.lock.json
 
-  # Grupo 5: Validación de commits (manteniendo tu configuración actual)
+  # Grupo 05: Validación de commits (manteniendo tu configuración actual)
   - repo: local
     hooks:
       - id: commitlint
