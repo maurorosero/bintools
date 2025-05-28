@@ -241,4 +241,4 @@
 # podman                # Alternativa a Docker sin demonio
 # buildah                # Herramienta para construir imágenes OCI
 # skopeo                 # Utilidad para trabajar con imágenes de contenedores
-# lxc                    # Herramientas para contenedores Linux 
+# lxc                    # Herramientas para contenedores Linux

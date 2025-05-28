@@ -38,7 +38,7 @@ python-gnupg>=0.5.0              # Librería para manejar GPG (GnuPG)
 # --- Interacción con APIs para sistemas de control de versiones ---
 PyGithub>=2.6.1                  # Cliente Python para la API REST de GitHub v3
 python-gitlab>=3.15.0            # Cliente Python para la API REST de GitLab v4
-python-gitea>=1.20.0             # Cliente Python para la API REST de Gitea v1.20.0 
+python-gitea>=1.20.0             # Cliente Python para la API REST de Gitea v1.20.0
 atlassian-python-api>=3.15.0     # Cliente Python para la API REST de Atlassian v3.15.0
 
 # --- TOML Parsing/Writing ---

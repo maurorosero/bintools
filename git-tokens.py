@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-""" 
-Script CLI para gestionar tokens de autenticación de servicios Git 
-(GitHub, GitLab, Forgejo, Gitea, Bitbucket Cloud y Bitbucket on-premise) 
+"""
+Script CLI para gestionar tokens de autenticación de servicios Git
+(GitHub, GitLab, Forgejo, Gitea, Bitbucket Cloud y Bitbucket on-premise)
 usando keyring de forma multiplataforma.
 
 Copyright (C) 2025 MAURO ROSERO PÉREZ
@@ -391,4 +391,4 @@ def main():
         parser.print_help()
 
 if __name__ == "__main__":
-    main() 
+    main()

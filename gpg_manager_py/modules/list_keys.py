@@ -88,4 +88,4 @@ def view_key_details(gpg: GPGWrapper, keys: list):
      else:
          show_warning(f"Could not find details for fingerprint {selected_fpr}")
 
-     confirm_continue() 
+     confirm_continue()

@@ -88,7 +88,7 @@ def ensure_cache_dir():
 def get_readme_content():
     """Obtiene el contenido del README.md, usando caché si es posible."""
     ensure_cache_dir()
-    
+
     if README_CACHE_FILE.exists():
         try:
             # Verificar la antigüedad del caché
@@ -135,7 +135,7 @@ def get_os_arch_label_for_community_readme():
         elif "x86_64" in arch or "amd64" in arch:
             return "darwin-x64"
     # Windows no está explícitamente en la tabla de ese README, se maneja por separado.
-    
+
     print_warning(f"Combinación SO/arquitectura no soportada directamente por el parseo del README de la comunidad: {os_type}-{arch}")
     return None
 
@@ -156,7 +156,7 @@ def get_latest_download_url():
 
     lines = readme_content.splitlines()
     header_found = False
-    
+
     # Expresiones regulares corregidas (raw strings r"\\"")
     # Pipe literal es \\\\| , corchetes literales son \\\\[ y \\\\]], paréntesis literales son \\\\( y \\\\)
     data_row_pattern_linux = re.compile(r"^\|([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|$")
@@ -181,7 +181,7 @@ def get_latest_download_url():
                 print_debug(f"Encabezado de tabla encontrado en línea: {stripped_line}")
                 header_found = True
             continue
-        
+
         if separator_line_pattern.match(stripped_line) or stripped_line == "":
             print_debug(f"Línea separadora o vacía ignorada: {stripped_line}")
             continue
@@ -189,10 +189,10 @@ def get_latest_download_url():
         # If we reach here, header_found is true, and it's not a separator/empty line.
         # This MUST be the first data line we are interested in.
         # data_row_pattern should be valid if os_label was successfully determined.
-        
+
         print_debug(f"Procesando primera línea de datos candidata: '{stripped_line}'")
         match = data_row_pattern.match(stripped_line)
-        
+
         if match:
             # Para Linux, la columna con los enlaces es la quinta.
             # Para macOS, es la tercera (según el patrón data_row_pattern_macos).
@@ -214,17 +214,17 @@ def get_latest_download_url():
                 print_debug(f"El grupo de captura ({target_group_index}) para la columna de enlaces es None. Línea: '{stripped_line}'. Regex: {data_row_pattern.pattern}")
                 print_error(f"Falla crítica: El patrón de fila de datos coincidió, pero el grupo de captura ({target_group_index}) para la columna de enlaces estaba vacío.")
                 return None
-            
+
             column_content = column_content_match.strip()
             print_debug(f"Contenido de columna (columna de enlaces) extraído: '{column_content}'")
-            
+
             # os_label is like "linux-x64" or "darwin-arm64"
             # El contenido es HTML, no Markdown. Buscamos <a href="URL">os_label_escaped</a>
             # Ejemplo: <a href="https://...AppImage">linux-x64</a>
             # re.escape(os_label) asegura que si os_label tiene caracteres especiales de regex (como '-'), se traten literalmente.
             link_pattern_str = r'<a\s+href="([^"]+)"[^>]*>\s*' + re.escape(os_label) + r'\s*</a>'
             link_match = re.search(link_pattern_str, column_content)
-            
+
             if link_match:
                 url = link_match.group(1).strip() # Extract the URL
                 print_debug(f"URL específica para '{os_label}' encontrada: {url}")
@@ -268,7 +268,7 @@ def install_linux():
         return
 
     print_info(f"URL de descarga obtenida: {download_url}")
-    
+
     file_name = download_url.split("/")[-1]
     temp_download_path = Path(shutil.get_unpack_formats()[0][0]) / file_name # Usa un dir temporal estándar
     # Corregido: shutil.get_unpack_formats()[0][0] no es un directorio, usar tempfile
@@ -290,7 +290,7 @@ def install_linux():
     # 3. Instalar (asumiendo AppImage por ahora, basado en la lógica del README)
     if file_name.lower().endswith(".appimage"):
         install_path = LINUX_BIN_DIR / "cursor" # Nombre genérico del ejecutable
-        
+
         print_info(f"Preparando instalación de {file_name}...")
         try:
             # Usar capture_output para evitar que pkill imprima a la consola
@@ -320,7 +320,7 @@ def install_linux():
                 print_warning(f"No se pudo eliminar {install_path} (podría estar aún en uso): {ose}. Se intentará mover de todas formas.")
             except Exception as ex_unlink:
                  print_warning(f"Error inesperado al eliminar {install_path}: {ex_unlink}. Se intentará mover de todas formas.")
-        
+
         # Mover y renombrar el AppImage
         try:
             print_info(f"Instalando {file_name} en {install_path}...")
@@ -334,7 +334,7 @@ def install_linux():
 
         # 4. Crear entrada .desktop (opcional, pero bueno para la integración)
         create_linux_desktop_entry(install_path)
-        
+
         print_info(f"Puedes ejecutar {APP_NAME} escribiendo 'cursor' en tu terminal o buscándolo en tu menú de aplicaciones.")
 
     elif file_name.lower().endswith(".tar.gz") or file_name.lower().endswith(".zip"):
@@ -355,13 +355,13 @@ def install_linux():
     # Limpieza final del directorio temporal
     if Path(temp_dir).exists():
         shutil.rmtree(temp_dir)
-    
+
     print_success(f"{APP_NAME} para Linux instalado correctamente.")
 
 def remove_linux():
     """Desinstala Cursor AI de Linux."""
     print_info(f"Iniciando la desinstalación de {APP_NAME} para Linux...")
-    
+
     install_dir_app = LINUX_INSTALL_DIR_BASE / "Cursor"
     executable_path = LINUX_BIN_DIR / "cursor"
     desktop_file_path = LINUX_APPS_DIR / "cursor.desktop"
@@ -373,7 +373,7 @@ def remove_linux():
             print_debug(f"Eliminando enlace simbólico/ejecutable: {executable_path}")
             executable_path.unlink(missing_ok=True)
             removed_something = True
-        
+
         if desktop_file_path.exists():
             print_debug(f"Eliminando archivo .desktop: {desktop_file_path}")
             desktop_file_path.unlink(missing_ok=True)
@@ -397,13 +397,13 @@ def remove_linux():
             shutil.rmtree(install_dir_app) # ¡CUIDADO! Esto elimina recursivamente.
             print_debug(f"Directorio {install_dir_app} eliminado.")
             removed_something = True
-        
+
         # Limpiar también archivos de configuración si es necesario, similar a macOS/Windows.
         # Cursor podría almacenar configuraciones en ~/.config/Cursor o similar.
         # Esto no estaba en el script `cursor-install.sh` original.
         # Path.home() / ".config" / "Cursor"
         # Por ahora, nos enfocamos en lo que instaló el script.
-        
+
         if removed_something:
             print_success(f"{APP_NAME} desinstalado de Linux.")
             print_info(f"Actualizando base de datos de menús...")
@@ -470,7 +470,7 @@ def create_linux_desktop_entry(executable_path: Path):
     print_info(f"Intentando crear entrada .desktop para {executable_path}...")
     # La ruta ejecutable debe estar entre comillas si puede contener espacios
     exec_command = f'"{executable_path}" --no-sandbox %U' # Usar comillas simples para el f-string externo
-    
+
     # Usar f-string con triples comillas. Asegurarse que las comillas internas no interfieran.
     # Si se necesitan comillas dentro del contenido del .desktop, usar un tipo diferente
     # o escaparlas si es necesario, aunque para este contenido no parece ser el caso.
@@ -501,36 +501,36 @@ StartupWMClass=Cursor
 def config_mdc():
     """Configura los archivos de reglas de Cursor."""
     print("\n🔄 Configurando reglas MDC para Cursor...\n")
-    
+
     # Obtener la ruta del script actual
     script_dir = Path(__file__).parent
     config_dir = script_dir / "config"
-    
+
     # Verificar que existe el directorio config
     if not config_dir.exists():
         print("❌ No se encontró el directorio de configuración")
         return False
-    
+
     # Usar el directorio actual como ruta del proyecto por defecto
     project_dir = Path.cwd()
-    
+
     # Validar que exista .ws o .project antes de proceder
     ws_file = project_dir / ".ws"
     project_dir_check = project_dir / ".project"
-    
+
     if not (ws_file.exists() or project_dir_check.exists()):
         print("❌ Error: No es un proyecto o espacio de trabajo válido")
         return False
-    
+
     cursor_rules_dir = project_dir / ".cursor" / "rules"
     cursor_rules_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Copiar archivos *.mdc.def a .cursor/rules
     mdc_files = list(config_dir.glob("*.mdc.def"))
     if not mdc_files:
         print("❌ No se encontraron archivos .mdc.def en el directorio de configuración")
         return False
-    
+
     print("📁 Copiando archivos de reglas...")
     for mdc_file in mdc_files:
         target_file = cursor_rules_dir / mdc_file.stem.replace(".def", "")
@@ -540,13 +540,13 @@ def config_mdc():
         except Exception as e:
             print(f"  ✗ Error al copiar {mdc_file.name}: {e}")
             return False
-    
+
     # Copiar .cursorrules.def a .cursorrules en la raíz del proyecto
     cursorrules_def = config_dir / ".cursorrules.def"
     if not cursorrules_def.exists():
         print("❌ No se encontró el archivo .cursorrules.def")
         return False
-    
+
     target_cursorrules = project_dir / ".cursorrules"
     try:
         shutil.copy2(cursorrules_def, target_cursorrules)
@@ -554,13 +554,13 @@ def config_mdc():
     except Exception as e:
         print(f"  ✗ Error al copiar .cursorrules.def: {e}")
         return False
-    
+
     # Leer y mostrar el contenido de cursor_identity.def
     identity_file = config_dir / "cursor_identity.def"
     if not identity_file.exists():
         print("❌ No se encontró el archivo cursor_identity.def")
         return False
-    
+
     try:
         identity_content = identity_file.read_text(encoding="utf-8")
         print("\n📋 Configuración de identidad de Cursor:")
@@ -568,7 +568,7 @@ def config_mdc():
         for line in identity_content.splitlines():
             print(line)
         print("─" * 80)
-        
+
         print("\n📝 Pasos para configurar:")
         print("  1. Abre Cursor Settings (File/Preferences/Cursor Settings)")
         print("  2. En Rules/User Rules, pega el contenido anterior")
@@ -576,7 +576,7 @@ def config_mdc():
     except Exception as e:
         print(f"❌ Error al leer cursor_identity.def: {e}")
         return False
-    
+
     print("\n✨ Configuración completada exitosamente\n")
     return True
 
@@ -588,7 +588,7 @@ def main():
         epilog=f"Ejemplos de uso:\\n  python micursor.py --install    (Para instalar {APP_NAME})\\n  python micursor.py --remove     (Para desinstalar {APP_NAME})\\n  python micursor.py --config-mdc (Para configurar reglas MDC)",
         formatter_class=argparse.RawTextHelpFormatter
     )
-    
+
     action_group = parser.add_mutually_exclusive_group(required=True)
     action_group.title = "Acciones requeridas (elegir una)"
     action_group.add_argument("--install", action="store_true", help=f"Realiza la instalación de {APP_NAME} en el sistema.\\nPara Linux, intentará una instalación automatizada.\\nPara macOS y Windows, proporcionará instrucciones detalladas.")
@@ -598,7 +598,7 @@ def main():
     if len(sys.argv) == 1: # Si no se pasan argumentos, muestra la ayuda y sale.
         parser.print_help(sys.stderr)
         sys.exit(1)
-        
+
     args = parser.parse_args()
 
     system = platform.system()
@@ -613,7 +613,7 @@ def main():
         else:
             print_error(f"Sistema operativo '{system}' no soportado directamente por este script para instalación automática.")
             print_info(f"Por favor, visita {CURSOR_DOWNLOAD_PAGE_URL} para instrucciones manuales.")
-    
+
     elif args.remove:
         if system == "Linux":
             remove_linux()
@@ -625,7 +625,7 @@ def main():
             print_error(f"Sistema operativo '{system}' no soportado directamente por este script para desinstalación automática.")
             print_info("Por favor, consulta la documentación de tu sistema o de Cursor para desinstalación manual.")
             sys.exit(1)
-    
+
     elif args.config_mdc:
         if not config_mdc():
             sys.exit(1)
@@ -648,7 +648,7 @@ if __name__ == "__main__":
 
     def print_error(message: str):
         print(f"[ERROR] {message}")
-    
+
     def print_success(message: str):
         print(f"[SUCCESS] {message}")
 

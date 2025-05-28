@@ -251,4 +251,4 @@
 # buildah             # Herramienta para construir imágenes OCI
 # skopeo              # Utilidad para trabajar con imágenes de contenedores
 # lxd                 # Gestor de contenedores y máquinas virtuales (canonical)
-# lxc                 # Herramientas para contenedores Linux 
+# lxc                 # Herramientas para contenedores Linux

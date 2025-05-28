@@ -47,11 +47,11 @@ def clear_screen():
 def show_banner():
     """Muestra el banner de la aplicación."""
     clear_screen()
-    
+
     # Centrar el texto
     def center_text(text: str, width: int = BANNER_WIDTH) -> str:
         return text.center(width)
-    
+
     # Construir el banner
     banner = [
         "=" * BANNER_WIDTH,
@@ -61,7 +61,7 @@ def show_banner():
         "=" * BANNER_WIDTH,
         ""  # Línea en blanco al final
     ]
-    
+
     # Imprimir el banner
     print("\n".join(banner))
 
@@ -76,27 +76,27 @@ HEADER_END_TAGS = {
 
 class CodeAnalyzer:
     """Analiza el código para extraer su descripción."""
-    
+
     @staticmethod
     def extract_description(code: str, file_type: str) -> str:
         """
         Extrae la descripción del código según su tipo.
-        
+
         Para Python:
         - Primero busca un docstring al inicio del módulo
         - Si no hay docstring, busca un comentario # Description:
-        
+
         Para Bash/Shell:
         - Busca un comentario # Description:
-        
+
         Para JavaScript/TypeScript:
         - Busca un comentario // Description:
         """
         if not code.strip():
             return "Sin descripción disponible"
-            
+
         lines = code.strip().split('\n')
-        
+
         if file_type == 'python':
             # Intentar extraer de docstring
             try:
@@ -107,24 +107,24 @@ class CodeAnalyzer:
                         return ast.get_docstring(node, clean=True).split('\n')[0].strip()
             except:
                 pass
-                
+
             # Buscar comentario # Description:
             for line in lines[:5]:  # Buscar en las primeras 5 líneas
                 if line.strip().startswith('# Description:'):
                     return line.split(':', 1)[1].strip()
-                    
+
         elif file_type in ['bash', 'shellscript']:
             # Buscar comentario # Description:
             for line in lines[:5]:
                 if line.strip().startswith('# Description:'):
                     return line.split(':', 1)[1].strip()
-                    
+
         elif file_type in ['javascript', 'typescript']:
             # Buscar comentario // Description:
             for line in lines[:5]:
                 if line.strip().startswith('// Description:'):
                     return line.split(':', 1)[1].strip()
-        
+
         return "Sin descripción disponible"
 
 class TemplateManager:
@@ -147,7 +147,7 @@ class TemplateManager:
 
     def _load_project_version(self) -> Optional[str]:
         """Intenta cargar la versión desde ./project/version.
-        
+
         Returns:
             Optional[str]: La versión si el archivo existe y es válido, None en caso contrario.
         """
@@ -195,21 +195,21 @@ class TemplateManager:
                         return str(Path(filepath).absolute())
                 elif var_config["type"] == "default":
                     return var_config.get("value", "")
-            
+
             # Variables con valores por defecto
             if var_name in self.config["default_variables"]:
                 return self.config["default_variables"][var_name]
-            
+
             # Variables opcionales
             if var_name in self.config.get("optional_variables", {}):
                 var_config = self.config["optional_variables"][var_name]
                 if var_config.get("only_when_ai_generated", False):
                     return var_config.get("value", "")
                 return ""
-            
+
             # Si no se encuentra un valor, usar cadena vacía
             return ""
-            
+
         except Exception as e:
             logger.error(f"Error al obtener valor para variable {var_name}: {e}")
             return ""
@@ -227,10 +227,10 @@ class TemplateManager:
 
             # Extraer descripción del código
             description = self.analyzer.extract_description(content, file_type)
-            
+
             # Cargar la plantilla
             template = self._load_template(file_type)
-            
+
             # Preparar las variables básicas
             variables = {
                 "description": description,
@@ -281,7 +281,7 @@ class TemplateManager:
 def main():
     # Mostrar el banner al inicio
     show_banner()
-    
+
     parser = argparse.ArgumentParser(
         description="""
 Gestor de headers estandarizados para archivos de código.
@@ -318,7 +318,7 @@ Ejemplos de uso:
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     subparsers = parser.add_subparsers(dest="command", help="Comandos disponibles")
-    
+
     # Comando create
     create_parser = subparsers.add_parser(
         "create",
@@ -353,16 +353,16 @@ El archivo se creará en la ruta especificada, y si ya existe, será sobrescrito
     )
 
     args = parser.parse_args()
-    
+
     if not args.command:
         parser.print_help()
         return 1
-        
+
     manager = TemplateManager(args.config)
-    
+
     if args.command == "create":
         success = manager.create_file(args.filepath, args.content)
         return 0 if success else 1
 
 if __name__ == "__main__":
-    exit(main()) 
+    exit(main())

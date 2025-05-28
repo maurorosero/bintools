@@ -125,4 +125,4 @@ def create_key_menu(gpg: GPGWrapper):
 
     except Exception as e:
         show_error(f"An unexpected error occurred during key generation: {e}")
-        confirm_continue() 
+        confirm_continue()

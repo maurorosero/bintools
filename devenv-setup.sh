@@ -59,7 +59,7 @@ echo ""
 # 1. Verificar existencia de pip
 echo -e "\n${CYAN}➜ ${BOLD}Verificando 'pip'...${NC}"
 if ! command_exists pip; then # Usar command_exists de baselib
-    mostrar_error "Comando 'pip' no encontrado en el PATH." 
+    mostrar_error "Comando 'pip' no encontrado en el PATH."
     mostrar_info "  Por favor, asegúrate de que Python y pip estén instalados."
     exit 1
 fi
@@ -156,7 +156,7 @@ if [ ! -d "$VSCODE_DIR" ]; then
         if [ $? -ne 0 ]; then
             mostrar_error "No se pudo copiar el JSON de snippets al portapapeles."
             exit 1
-        else 
+        else
             mostrar_exito "JSON de snippets copiado al portapapeles."
             exit 0
         fi
@@ -178,7 +178,7 @@ if [ -d "$VSCODE_DIR" ]; then
             mostrar_error "No se pudo escribir en el archivo $VSCODE_SNIPPETS_FILE."
             mostrar_error "No se pudo copiar el JSON de snippets al portapapeles."
             exit 1
-        else 
+        else
             mostrar_exito "JSON de snippets copiado al portapapeles."
             exit 0
         fi
@@ -187,4 +187,4 @@ fi
 
 echo ""
 echo -e "${GREEN}${BOLD}--- Configuración del Entorno Completada ---${NC}"
-exit 0 
+exit 0

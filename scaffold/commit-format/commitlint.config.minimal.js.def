@@ -47,7 +47,7 @@ module.exports = {
     'subject-empty': [2, 'never'], // El subject (mensaje principal) es obligatorio
     'subject-case': [0], // No restricción en mayúsculas/minúsculas del subject para minimal
     'subject-min-length': [2, 'always', 5], // Un mínimo pequeño para el subject
-    
+
     // --- Reglas generales del HEADER ---
     'header-max-length': [2, 'always', 100], // Limita la longitud total
 
@@ -68,4 +68,4 @@ module.exports = {
     // Añade más reglas con [0] aquí si es necesario para anular comportamientos por defecto
     // si decides reintroducir algún 'extends' en el futuro.
   }
-}; 
+};

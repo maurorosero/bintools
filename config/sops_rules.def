@@ -1,3 +1,2 @@
 creation_rules:
   - pgp: '${git_fingerprint}'
-

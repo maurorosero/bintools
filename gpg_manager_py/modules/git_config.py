@@ -121,4 +121,4 @@ def set_git_gpg_program(gpg: GPGWrapper):
                confirm_continue()
      else:
           if ask_confirmation(f"Set gpg.program to '{new_path}'?", default=True):
-               set_git_config("gpg.program", new_path) 
+               set_git_config("gpg.program", new_path)

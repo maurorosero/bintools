@@ -402,7 +402,7 @@ pymanager.sh --package-local default "flask requests"
 # (asume que default es el entorno y requirements.txt es el archivo si se omiten los argumentos)
 pymanager.sh --package-local
 
-# Ejemplo 3: Instalar paquetes en un entorno local nombrado, ej. ./.venv/mi_entorno_dev/, 
+# Ejemplo 3: Instalar paquetes en un entorno local nombrado, ej. ./.venv/mi_entorno_dev/,
 # desde un archivo de requisitos específico para él, ej. requirements_dev.txt
 pymanager.sh --package-local mi_entorno_dev requirements_dev.txt
 ```
@@ -575,7 +575,7 @@ Con el entorno local activado, puedes instalar las dependencias de tu proyecto.
     # Si tienes un archivo de requisitos (ej. requirements.txt):
     pip install -r requirements.txt
     ```
-    
+
 *   **Opción B (Usando `pymanager.sh --package-local`):** Este comando es útil si necesitas instalar paquetes en un entorno local existente *sin tenerlo activado* en tu shell actual.
 
     ```bash
@@ -585,7 +585,7 @@ Con el entorno local activado, puedes instalar las dependencias de tu proyecto.
     # Para instalar desde un archivo 'requirements.txt' en el entorno local ./.venv/mi_proyecto_env/:
     pymanager.sh --package-local mi_proyecto_env requirements.txt
 
-    # Si quieres instalar desde './requirements.txt' en './.venv/default/' 
+    # Si quieres instalar desde './requirements.txt' en './.venv/default/'
     # (omitiendo el nombre del entorno y el nombre del paquete/archivo):
     pymanager.sh --package-local
     ```

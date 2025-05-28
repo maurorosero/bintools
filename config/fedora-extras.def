@@ -266,4 +266,4 @@
 # cri-o               # Motor de ejecución de contenedores ligero para Kubernetes
 # cri-tools           # Herramientas CLI para CRI compatible con Kubernetes
 # docker-ce           # Plataforma de contenedores Docker
-# docker-compose      # Herramienta para definir aplicaciones multi-contenedor 
+# docker-compose      # Herramienta para definir aplicaciones multi-contenedor

@@ -331,7 +331,7 @@ creation_rules:
   - path_regex: 'tesoro_real/.*'
     key_groups:
       # Cofre 1: Necesita a los dos caballeros
-      - pgp: 
+      - pgp:
           - 'NUMERO_SECRETO_ARTURO' # Llave de Arturo
           - 'NUMERO_SECRETO_LANCELOT' # Llave de Lancelot
         shamir_threshold: 2 # ¡Se necesitan 2 llaves para abrir este cofre!

@@ -163,7 +163,7 @@ def run_command(cmd_list, check=True, capture_output=False, text=True, sudo=Fals
          cmd_list.insert(0, 'sudo')
 
     log.debug(f"Ejecutando comando: {' '.join(cmd_list)}")
-    
+
     # Determinar si ocultar salida para spinner
     stdout_pipe = subprocess.PIPE if status_message else None
     stderr_pipe = subprocess.PIPE if status_message else None
@@ -181,15 +181,15 @@ def run_command(cmd_list, check=True, capture_output=False, text=True, sudo=Fals
                 cmd_list, check=check, capture_output=capture_output, text=text,
                 shell=shell, env=env, input=input
             )
-        
+
         # Loguear salida si se capturó (especialmente útil si se ocultó por el spinner)
         if process.stdout:
             log.debug(f"Salida stdout: {process.stdout.strip()}")
         if process.stderr:
             log.debug(f"Salida stderr: {process.stderr.strip()}")
-        
+
         return process
-        
+
     except subprocess.CalledProcessError as e:
         # Loguear salida completa del error aunque se usara spinner
         if hasattr(e, 'stdout') and e.stdout:
@@ -344,7 +344,7 @@ def check_if_client_installed(os_info):
         program_files = os.environ.get("ProgramFiles", "C:\\Program Files")
         app_path = Path(program_files) / "Pritunl"
         app_path_x86 = Path(os.environ.get("ProgramFiles(x86)", "C:\\Program Files (x86)")) / "Pritunl"
-        
+
         # Comprobar también la existencia del ejecutable principal como doble check
         exe_path = app_path / "pritunl.exe"
         exe_path_x86 = app_path_x86 / "pritunl.exe"
@@ -459,7 +459,7 @@ def _install_macos(gpg_key):
         response = requests.get(pkg_url, stream=True)
         response.raise_for_status() # Lanza excepción si hay error HTTP
         total_size = int(response.headers.get('content-length', 0))
-        
+
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -561,7 +561,7 @@ def _uninstall_linux(os_info):
     if command_exists("dpkg"): pkg_manager = "apt-get"; remove_cmd = ["sudo", pkg_manager, "remove", "-y", pkg_name]
     elif command_exists("rpm"): pkg_manager = "dnf" if command_exists("dnf") else "yum"; remove_cmd = ["sudo", pkg_manager, "remove", "-y", pkg_name] if pkg_manager else []
     elif command_exists("pacman"): pkg_manager = "pacman"; remove_cmd = ["sudo", pkg_manager, "-Rs", "--noconfirm", pkg_name]
-    
+
     if not remove_cmd: print_error("Gestor de paquetes no compatible."); return False
 
     try:
@@ -814,16 +814,16 @@ def main():
         if action_to_perform == "install":
             log.info("Cliente no instalado. Procediendo con la instalación...")
             # Pass gpg_key=None for Windows, required for others
-            gpg_key_arg = PRITUNL_SIGN if system != "Windows" else None 
+            gpg_key_arg = PRITUNL_SIGN if system != "Windows" else None
             if gpg_key_arg is None and system != "Windows":
                  print_error("Error interno: clave GPG no cargada para la instalación.", exit_code=1)
-            
+
             # Llamar a la función correcta (con o sin gpg_key)
             if system != "Windows":
                  if not install_client_os(os_info, gpg_key_arg): success = False
             else:
                  if not install_client_os(os_info, None): success = False # Pasar None para Windows
-        
+
         elif action_to_perform == "remove":
             log.info("Cliente instalado. Procediendo con la desinstalación...")
             if not uninstall_client_os(os_info):
@@ -844,4 +844,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    main()

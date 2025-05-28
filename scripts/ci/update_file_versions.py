@@ -79,7 +79,7 @@ def get_commits_info_since(ref):
     separator = "<||COMMIT_SEP||>" # Un separador más único
     # %B para cuerpo completo. Añadir un terminador después del cuerpo.
     log_format = f"--format=%H{separator}%B%n<||END_MSG||>"
-    
+
     full_log_output = run_git_command(f"git log {ref}..HEAD {log_format}")
     if not full_log_output:
         return []
@@ -88,7 +88,7 @@ def get_commits_info_since(ref):
     # Cada commit termina con <||END_MSG||>\n
     # El último puede no tener el \n final, así que strip() y luego split.
     commit_entries = full_log_output.strip().split("<||END_MSG||>\n")
-    
+
     for entry in commit_entries:
         if not entry.strip():
             continue
@@ -143,7 +143,7 @@ def calculate_next_version(current_version_str, commit_messages):
             bump_type = TAG_TO_BUMP_TYPE.get(tag)
             if BUMP_PRECEDENCE.get(bump_type, 0) > BUMP_PRECEDENCE.get(highest_bump, 0):
                 highest_bump = bump_type
-    
+
     if not highest_bump:
         return None
 
@@ -175,7 +175,7 @@ def update_version_in_file(filepath, new_version, line_num, original_line_conten
     if not current_version_match or not current_version_match.group(1):
         print(f"Error: No se pudo re-parsear la línea original '{original_line_content}' en {filepath}", file=sys.stderr)
         return False
-    
+
     # Usar re.sub para un reemplazo más seguro dentro del patrón
     def replace_version(match_obj):
         start_idx_in_match = match_obj.start(1) - match_obj.start(0)
@@ -189,7 +189,7 @@ def update_version_in_file(filepath, new_version, line_num, original_line_conten
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
             lines = f.readlines()
-        
+
         if 0 <= line_num < len(lines):
             original_ending = '\n' if lines[line_num].endswith('\n') else ''
             lines[line_num] = new_line_content + original_ending
@@ -227,7 +227,7 @@ def main():
         commit_hash = commit['hash']
         commit_message = commit['message']
         changed_files_in_commit = get_changed_files_for_commit(commit_hash)
-        
+
         for filepath in changed_files_in_commit:
             if os.path.isfile(filepath) and os.path.splitext(filepath)[1] in SUPPORTED_EXTENSIONS:
                 file_to_commit_msgs[filepath].append(commit_message)
@@ -244,9 +244,9 @@ def main():
         if current_version is None:
             print(f"  No se encontró línea de versión válida o archivo no soportado. Saltando.")
             continue
-        
+
         print(f"  Versión actual encontrada: {current_version} en línea {line_num + 1}")
-        
+
         commit_messages_for_file = file_to_commit_msgs[filepath]
         next_version = calculate_next_version(current_version, commit_messages_for_file)
 

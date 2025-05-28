@@ -160,4 +160,4 @@ def revoke_identity(gpg: GPGWrapper, key_fpr: str):
     gpg_commands = f"uid {uid_index}\nrevuid\ny\nsave\n"
 
     run_gpg_edit_key_command(gpg, key_fpr, gpg_commands)
-    confirm_continue() 
+    confirm_continue()

@@ -98,9 +98,9 @@ def check_for_uncommitted_changes(repo_path: Path, branch_name_for_message: str 
     Imprime un mensaje de error si se detectan cambios.
     """
     success, out_status, err_status = run_git_command(
-        ["git", "status", "--porcelain"], 
-        cwd=repo_path, 
-        check=True, 
+        ["git", "status", "--porcelain"],
+        cwd=repo_path,
+        check=True,
         suppress_output=True
     )
 
@@ -115,10 +115,10 @@ def check_for_uncommitted_changes(repo_path: Path, branch_name_for_message: str 
 
         if QUESTIONARY_AVAILABLE:
             do_stash = questionary.confirm(
-                f"¿Desea que wfwdevs intente guardar estos cambios en '{branch_name_for_message}' temporalmente (stash) y continuar?", 
+                f"¿Desea que wfwdevs intente guardar estos cambios en '{branch_name_for_message}' temporalmente (stash) y continuar?",
                 default=False
             ).ask()
-            
+
             if do_stash is None: # El usuario presionó Ctrl+C en la pregunta
                 print(f"{Fore.YELLOW}Operación cancelada por el usuario. No se realizó stash.{Style.RESET_ALL}")
                 return True # Problema persiste
@@ -132,11 +132,11 @@ def check_for_uncommitted_changes(repo_path: Path, branch_name_for_message: str 
                 success_stash, out_stash, err_stash = run_git_command(
                     ["git", "stash", "push", "-u", "-m", stash_msg],
                     cwd=repo_path,
-                    check=False 
+                    check=False
                 )
                 if success_stash:
                     # "No local changes to save" indica que el stash no guardó nada nuevo.
-                    # Esto puede ocurrir si los únicos cambios eran untracked y el stash ya los tenía 
+                    # Esto puede ocurrir si los únicos cambios eran untracked y el stash ya los tenía
                     # o si el estado estaba limpio a pesar de la salida de --porcelain (menos probable).
                     if "No local changes to save" in out_stash or "No hay cambios locales para guardar" in out_stash or not out_stash.strip():
                         print(f"{Fore.GREEN}No se encontraron cambios nuevos para guardar en el stash o el stash no modificó el estado.{Style.RESET_ALL}")
@@ -149,7 +149,7 @@ def check_for_uncommitted_changes(repo_path: Path, branch_name_for_message: str 
                             return True # Problema persiste
                         print(f"{Fore.GREEN}El estado del repositorio parece estar limpio ahora. Continuando...{Style.RESET_ALL}")
                         return False # No había nada que impidiera la operación o el stash lo resolvió.
-                    
+
                     print(f"{Fore.GREEN}Cambios guardados temporalmente en el stash. Continuando...{Style.RESET_ALL}")
                     print(f"{Fore.CYAN}NOTA: Para recuperar estos cambios más tarde en la rama '{branch_name_for_message}', puedes usar:{Style.RESET_ALL}")
                     print(f"{Fore.CYAN}  1. Cambia a la rama: git checkout {branch_name_for_message}{Style.RESET_ALL}")
@@ -166,7 +166,7 @@ def check_for_uncommitted_changes(repo_path: Path, branch_name_for_message: str 
         else: # No QUESTIONARY_AVAILABLE
             print(f"{Fore.YELLOW}Módulo 'questionary' no disponible. No se puede ofrecer stash automático.{Style.RESET_ALL}")
             return True # Comportamiento actual: detener si hay cambios y no hay forma de preguntar.
-    
+
     # No hay salida en --porcelain, o el stash fue exitoso y limpió el árbol.
     return False
 
@@ -182,7 +182,7 @@ def clean_branch_name_suffix(suffix: str) -> str:
 def check_if_main_is_ahead(repo_path: Path, remote_name: str, main_branch_name: str, develop_branch_name: str) -> bool:
     """Verifica si la rama main remota tiene commits que develop (local) no tiene."""
     print(f"{Fore.CYAN}Verificando si '{remote_name}/{main_branch_name}' tiene cambios para '{develop_branch_name}'...{Style.RESET_ALL}")
-    
+
     # Asegurar que las referencias remotas están actualizadas para una comparación precisa
     run_git_command(["git", "fetch", remote_name, main_branch_name], cwd=repo_path, suppress_output=True)
     # No es estrictamente necesario fetchear develop aquí si vamos a compararlo con su estado local actual.
@@ -196,13 +196,13 @@ def check_if_main_is_ahead(repo_path: Path, remote_name: str, main_branch_name: 
         check=True, # Este comando debería funcionar si las ramas existen.
         suppress_output=True
     )
-    
+
     if success and out.strip().isdigit():
         commits_ahead = int(out.strip())
         if commits_ahead > 0:
             print(f"{Fore.YELLOW}'{remote_name}/{main_branch_name}' tiene {commits_ahead} commit(s) que '{develop_branch_name}' (local) no posee. Se requiere merge.{Style.RESET_ALL}")
             return True
-    
+
     print(f"{Fore.GREEN}'{develop_branch_name}' (local) ya está actualizada con (o por delante de) '{remote_name}/{main_branch_name}'.{Style.RESET_ALL}")
     return False
 
@@ -230,7 +230,7 @@ def sync_target_from_source_branch(
     if original_branch_on_sync_start != target_branch:
         if check_for_uncommitted_changes(repo_path, branch_name_for_message=original_branch_on_sync_start):
             # Mensaje ya impreso por check_for_uncommitted_changes
-            return False 
+            return False
     # -----------------------------------------------------------------------------------
 
     # 1. Checkout target_branch (si no estamos ya en ella)
@@ -300,7 +300,7 @@ def sync_target_from_source_branch(
         print(f"{Fore.RED}Error al empujar '{target_branch}': {err_push}{Style.RESET_ALL}")
         print(f"{Fore.YELLOW}El merge (si ocurrió) se completó localmente, pero el push falló. Intenta el push manual.{Style.RESET_ALL}")
         return False # Push falló. El usuario está en target_branch para arreglarlo.
-    
+
     if "Everything up-to-date" in out_push or "Todo actualizado" in out_push:
         print(f"{Fore.GREEN}'{target_branch}' en el remoto ya estaba actualizada.{Style.RESET_ALL}")
     else:
@@ -308,7 +308,7 @@ def sync_target_from_source_branch(
 
 
     print(f"{Fore.GREEN}Sincronización de '{target_branch}' desde '{source_branch}' finalizada.{Style.RESET_ALL}")
-    
+
     # Volver a la rama original ANTES de la sincronización, si es diferente de target_branch y el proceso fue exitoso
     if current_branch_success and original_branch_on_sync_start != target_branch:
         print(f"\n{Fore.CYAN}Volviendo a la rama original '{original_branch_on_sync_start}'...{Style.RESET_ALL}")
@@ -319,7 +319,7 @@ def sync_target_from_source_branch(
 def handle_new_task(args: argparse.Namespace):
     """Manejador para --task new"""
     print(f"{Fore.MAGENTA}--- Iniciando Nueva Tarea de Desarrollo ---{Style.RESET_ALL}")
-    
+
     repo_path = args.path.resolve()
     if not (repo_path / ".git").is_dir() and not (repo_path / ".git").is_file(): # .git puede ser un archivo en worktrees
         print(f"{Fore.RED}Error: La ruta '{repo_path}' no parece ser un repositorio Git válido.{Style.RESET_ALL}")
@@ -347,7 +347,7 @@ def handle_new_task(args: argparse.Namespace):
     if branch_type not in BRANCH_TYPES_CONFIG:
         print(f"{Fore.RED}Error: Tipo de rama '{branch_type}' no es válido. Tipos permitidos: {', '.join(BRANCH_TYPES_CONFIG.keys())}{Style.RESET_ALL}")
         sys.exit(1)
-        
+
     full_new_branch_name = f"{branch_type}/{branch_name_suffix}"
     print(f"Nombre completo de la nueva rama: {Fore.YELLOW}{full_new_branch_name}{Style.RESET_ALL}")
 
@@ -383,7 +383,7 @@ def handle_new_task(args: argparse.Namespace):
         print(f"{Fore.RED}No se pudo determinar la rama actual antes de crear la nueva tarea. Abortando.{Style.RESET_ALL}")
         if script_initial_branch_success : run_git_command(["git", "checkout", script_initial_branch], cwd=repo_path, suppress_output=True)
         sys.exit(1)
-        
+
     if current_branch_name_before_new_task != base_for_new_task:
         print(f"{Fore.CYAN}Cambiando a la rama base '{base_for_new_task}' para crear la rama de trabajo...{Style.RESET_ALL}")
         # --- NUEVA VERIFICACIÓN: Antes de cambiar a base_for_new_task (si es diferente de la actual) ---
@@ -400,14 +400,14 @@ def handle_new_task(args: argparse.Namespace):
             if script_initial_branch_success : run_git_command(["git", "checkout", script_initial_branch], cwd=repo_path, suppress_output=True)
             sys.exit(1)
         current_branch_name_before_new_task = base_for_new_task # Actualizar el nombre después del checkout exitoso
-    
+
     # --- NUEVA VERIFICACIÓN: Antes del pull final en base_for_new_task ---
     # current_branch_name_before_new_task ahora DEBERÍA ser base_for_new_task
-    if check_for_uncommitted_changes(repo_path, branch_name_for_message=current_branch_name_before_new_task): 
+    if check_for_uncommitted_changes(repo_path, branch_name_for_message=current_branch_name_before_new_task):
         if script_initial_branch_success : run_git_command(["git", "checkout", script_initial_branch], cwd=repo_path, suppress_output=True)
         sys.exit(1)
     # --------------------------------------------------------------------------
-    
+
     # Pull final en la rama base (especialmente importante para hotfix que no pasó por sync_target_from_source_branch)
     print(f"{Fore.CYAN}Asegurando la última versión de '{base_for_new_task}' desde el remoto ('{args.remote}')...{Style.RESET_ALL}")
     success_pull_base, out_pull_base, err_pull_base = run_git_command(["git", "pull", args.remote, base_for_new_task], cwd=repo_path)
@@ -417,7 +417,7 @@ def handle_new_task(args: argparse.Namespace):
         print(f"{Fore.YELLOW}Operación abortada debido a fallo en 'git pull'.{Style.RESET_ALL}")
         if script_initial_branch_success : run_git_command(["git", "checkout", script_initial_branch], cwd=repo_path, suppress_output=True)
         sys.exit(1)
-            
+
     elif "Already up to date" not in out_pull_base and "Ya está actualizado" not in out_pull_base and out_pull_base:
         print(out_pull_base) # Mostrar salida si hubo cambios
 
@@ -431,7 +431,7 @@ def handle_new_task(args: argparse.Namespace):
             perform_checkout_existing = True
             if QUESTIONARY_AVAILABLE:
                 perform_checkout_existing = questionary.confirm(f"¿Desea cambiar a la rama existente '{full_new_branch_name}'?", default=True).ask()
-            
+
             if perform_checkout_existing:
                 success_co_exist, _, err_co_exist = run_git_command(["git", "checkout", full_new_branch_name], cwd=repo_path)
                 if not success_co_exist:
@@ -539,7 +539,7 @@ def handle_sync_develop_task(args: argparse.Namespace):
         if original_branch != dev_branch_to_sync:
             run_git_command(["git", "checkout", original_branch], cwd=repo_path, suppress_output=True)
         return
-        
+
     choices = [
         questionary.Choice("Sincronizar localmente con 'rebase' y luego intentar Push directo al remoto", value="rebase_push"),
         questionary.Choice("Sincronizar localmente con 'merge' y luego intentar Push directo al remoto", value="merge_push"),
@@ -573,7 +573,7 @@ def handle_sync_develop_task(args: argparse.Namespace):
         # Para merge, podríamos añadir --no-ff, --no-edit si queremos forzar un commit de merge.
         # if local_op == "merge":
         # integration_command_list.extend(["--no-ff", "--no-edit"]) # Opcional
-            
+
         success_integration, out_integration, err_integration = run_git_command(integration_command_list, cwd=repo_path, check=False)
 
         if not success_integration:
@@ -600,7 +600,7 @@ def handle_sync_develop_task(args: argparse.Namespace):
         if chosen_strategy.endswith("_push"):
             print(f"\n{Fore.CYAN}Intentando empujar (push) la rama '{dev_branch_to_sync}' a '{remote_name}'...{Style.RESET_ALL}")
             success_push, out_push, err_push = run_git_command(["git", "push", remote_name, dev_branch_to_sync], cwd=repo_path, check=False) # check=False para analizar error
-            
+
             if success_push:
                 if "Everything up-to-date" in out_push or "Todo actualizado" in out_push.lower():
                      print(f"{Fore.GREEN}La rama '{dev_branch_to_sync}' en '{remote_name}' ya estaba actualizada.{Style.RESET_ALL}")
@@ -609,7 +609,7 @@ def handle_sync_develop_task(args: argparse.Namespace):
                     if out_push: print(out_push) # Mostrar salida del push si la hubo
             else: # Push falló
                 error_message_lc = err_push.lower() if err_push else ""
-                
+
                 # Heurística para identificar rechazo por protección/permisos
                 is_protection_error = (
                     ("protected branch" in error_message_lc or
@@ -647,7 +647,7 @@ def handle_sync_develop_task(args: argparse.Namespace):
 
         elif chosen_strategy.endswith("_only"):
             print(f"\n{Fore.GREEN}No se seleccionó ninguna acción remota. La rama local '{dev_branch_to_sync}' está actualizada (o como resultó de la operación local).{Style.RESET_ALL}")
-    
+
     # else: Si la integración no fue exitosa, no se intenta nada más. Los mensajes de error ya se mostraron.
 
     # Restaurar rama original si se cambió
@@ -685,7 +685,7 @@ def main():
         action='store_true',
         help="Indica la sincronización de la rama de desarrollo."
     )
-    
+
     # Argumentos para --task-new
     parser.add_argument(
         "--type",
@@ -734,5 +734,5 @@ if __name__ == "__main__":
     #     if os.name == 'posix': print("c", end="") # Limpia la terminal en POSIX
     #     elif os.name == 'nt': os.system('cls')      # Limpia la terminal en Windows
     # print(f"{Fore.CYAN}--- wfwdevs.py - Asistente de Flujo de Trabajo Git ---{Style.RESET_ALL}\n")
-    
-    main() 
+
+    main()

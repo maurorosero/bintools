@@ -159,4 +159,4 @@ Estas reglas se refieren a la generación de código nuevo o modificaciones sign
 
 ## Evaluación de Resultados
 
-Para cada prueba, se registrará el prompt del usuario, la respuesta/acción de CURSOR, y una evaluación de si el comportamiento se alinea con las reglas. Cualquier desviación se anotará para futuras mejoras de las reglas o del entendimiento de CURSOR. 
+Para cada prueba, se registrará el prompt del usuario, la respuesta/acción de CURSOR, y una evaluación de si el comportamiento se alinea con las reglas. Cualquier desviación se anotará para futuras mejoras de las reglas o del entendimiento de CURSOR.

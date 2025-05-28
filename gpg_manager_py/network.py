@@ -42,4 +42,4 @@ def download_key_from_url(url):
         return None
     except Exception as e:
         show_error(f"An unexpected error occurred during download: {e}")
-        return None 
+        return None

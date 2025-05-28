@@ -85,10 +85,10 @@ def main():
             # Si falla, limpiar el archivo y mostrar sugerencia
             print("Mensaje de commit inválido. Limpiando archivo temporal...")
             commit_msg_file.unlink(missing_ok=True)
-            
+
             print("\nSugerencia: Usa el formato [TAG] descripción")
             print("TAGS permitidos:", ", ".join(f"[{tag}]" for tag in get_allowed_tags()))
-            
+
             # Mostrar el error de commitlint si existe
             if result.stdout:
                 print("\nDetalles del error:")
@@ -96,7 +96,7 @@ def main():
             if result.stderr:
                 print("\nError:")
                 print(result.stderr)
-                
+
             sys.exit(1)
 
     except subprocess.CalledProcessError as e:
@@ -109,4 +109,4 @@ def main():
     sys.exit(0)
 
 if __name__ == "__main__":
-    main() 
+    main()

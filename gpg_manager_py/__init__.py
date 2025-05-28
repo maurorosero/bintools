@@ -9,4 +9,4 @@
 # __init__.py - Description placeholder
 # -----------------------------------------------------------------------------
 #
-# gpg_manager_py Package 
+# gpg_manager_py Package

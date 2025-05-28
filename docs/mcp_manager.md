@@ -38,4 +38,4 @@ servers:
 - Manejo de variables de entorno por servidor.
 - Registro de logs básico.
 
-*(Esta documentación es un placeholder. Necesita ser expandida con más detalles sobre la implementación y opciones avanzadas.)* 
+*(Esta documentación es un placeholder. Necesita ser expandida con más detalles sobre la implementación y opciones avanzadas.)*

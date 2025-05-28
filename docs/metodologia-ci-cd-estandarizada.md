@@ -173,4 +173,4 @@ Se proporciona una "librería base" de plantillas conceptuales o archivos de con
 
 ## 8. Conclusión
 
-Esta metodología CI/CD estandarizada, comenzando con validaciones locales mediante Pre-Commit Hooks y continuando con una serie de pipelines de CI/CD, proporciona un marco exhaustivo y adaptable para el desarrollo de software. Al definir claramente cada capa de validación y sus responsabilidades, los equipos pueden lograr un alto grado de automatización y confianza en sus entregas. La clave reside en la correcta implementación de los "puntos de control lógicos" en cada etapa, desde el commit local hasta el despliegue final. 
+Esta metodología CI/CD estandarizada, comenzando con validaciones locales mediante Pre-Commit Hooks y continuando con una serie de pipelines de CI/CD, proporciona un marco exhaustivo y adaptable para el desarrollo de software. Al definir claramente cada capa de validación y sus responsabilidades, los equipos pueden lograr un alto grado de automatización y confianza en sus entregas. La clave reside en la correcta implementación de los "puntos de control lógicos" en cada etapa, desde el commit local hasta el despliegue final.

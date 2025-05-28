@@ -66,7 +66,7 @@ jobs:
             # Lógica existente para Pull Requests
             BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
             LABELS_JSON='${{ toJson(github.event.pull_request.labels.*.name) }}'
-            
+
             if ! type -p jq > /dev/null; then sudo apt-get update && sudo apt-get install -y jq; fi
             HAS_MAJOR_LABEL=$(echo "$LABELS_JSON" | jq 'any(. == "release-major")')
 
@@ -84,7 +84,7 @@ jobs:
             echo "ERROR: Evento no soportado: $EVENT_NAME. No se determinará incremento."
             INCREMENT_TYPE="none"
           fi
-          
+
           echo "INCREMENT_TYPE=${INCREMENT_TYPE}" >> $GITHUB_OUTPUT
 
       - name: Make scripts executable
@@ -147,7 +147,7 @@ jobs:
           git tag "$NEW_TAG"
           # Exportar el tag para el paso de release
           echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_OUTPUT
-          
+
       - name: Push changes and tag
         run: |
           # Empujar los commits (si los hubo) y el tag creado
@@ -164,4 +164,4 @@ jobs:
           gh release create "$NEXT_VERSION_TAG" \
             --generate-notes \
             --title "Release $NEXT_VERSION_TAG"
-          echo "INFO: GitHub release creado exitosamente." 
+          echo "INFO: GitHub release creado exitosamente."

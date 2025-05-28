@@ -104,7 +104,7 @@ python email_cleaner.py --email "tu_correo@dominio.com" --password "tu_contrase�
 # Analizar todos los correos (sin límite)
 python email_cleaner.py --analyze --limit all
 
-# Analizar los últimos N correos 
+# Analizar los últimos N correos
 python email_cleaner.py --analyze --limit 500
 
 # Generar reporte de categorías

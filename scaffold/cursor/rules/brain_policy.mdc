@@ -42,4 +42,4 @@ Follow the general project format, which is also detailed in `commit_standards.m
 
 ## 4. Importance
 
-This rule specializes the general guidance from `commit_standards.mdc` to ensure that changes to critical CI/CD infrastructure and project configuration are clear and follow a strict convention. CURSOR will assist you in ensuring the correct tags and format are used when working on these files. 
+This rule specializes the general guidance from `commit_standards.mdc` to ensure that changes to critical CI/CD infrastructure and project configuration are clear and follow a strict convention. CURSOR will assist you in ensuring the correct tags and format are used when working on these files.

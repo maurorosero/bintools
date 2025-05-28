@@ -171,4 +171,4 @@
 # docker-machine      # Herramienta para crear hosts Docker
 # kubectl             # Cliente para Kubernetes
 # minikube            # Ejecuta Kubernetes localmente
-# helm                # Gestor de paquetes para Kubernetes 
+# helm                # Gestor de paquetes para Kubernetes

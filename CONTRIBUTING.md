@@ -163,4 +163,4 @@ Utilizamos `commitlint` (configurado vía `pre-commit`) para validar el formato 
 *   Añade pruebas unitarias, de integración o funcionales según sea apropiado para tus cambios.
 
 ---
-¡Gracias por tu dedicación a mantener este proyecto organizado y robusto! 
+¡Gracias por tu dedicación a mantener este proyecto organizado y robusto!

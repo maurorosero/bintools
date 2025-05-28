@@ -158,4 +158,4 @@ def ensure_directory_exists(dir_path, mode=0o700):
              os.chmod(dir_path, mode)
          except OSError as e:
              show_warning(f"Could not set permissions on existing directory {dir_path}: {e}")
-    return True 
+    return True

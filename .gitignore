@@ -118,4 +118,3 @@ tmp/*
 # Excepto el archivo .gitkeep para que Git rastree el directorio
 !tmp/.gitkeep
 # -------------------------
-

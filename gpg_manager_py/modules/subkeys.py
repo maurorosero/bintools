@@ -209,4 +209,4 @@ def revoke_subkey(gpg: GPGWrapper, key_fpr: str):
     gpg_commands = f"key {subkey_index}\nrevkey\n{reason_code}\n{reason_text}\ny\nsave\n"
 
     run_gpg_edit_key_command(gpg, key_fpr, gpg_commands)
-    confirm_continue() 
+    confirm_continue()

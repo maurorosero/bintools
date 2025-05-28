@@ -45,13 +45,13 @@ add_to_path_persistent() {
         # Default to .profile for other shells
         shell_rc="$HOME/.profile"
     fi
-    
+
     # Check if PATH already contains ~/bin
     if grep -q "PATH=\"\$HOME/bin:\$PATH\"" "$shell_rc" 2>/dev/null; then
         echo "~/bin is already in your PATH configuration in $shell_rc"
         return
     fi
-    
+
     # Add ~/bin to PATH in shell configuration file
     echo -e "\n# Add ~/bin to PATH\nexport PATH=\"\$HOME/bin:\$PATH\"" >> "$shell_rc"
     echo "~/bin added to PATH permanently in $shell_rc"
@@ -69,16 +69,16 @@ remove_from_path_persistent() {
         # Default to .profile for other shells
         shell_rc="$HOME/.profile"
     fi
-    
+
     # Check if file exists
     if [ ! -f "$shell_rc" ]; then
         echo "Configuration file $shell_rc not found"
         return 1
     fi
-    
+
     # Create a backup before making changes
     cp "$shell_rc" "${shell_rc}.bak"
-    
+
     # Remove the ~/bin from PATH configuration
     local removed=0
     if grep -q "PATH=\"\$HOME/bin:\$PATH\"" "$shell_rc"; then
@@ -86,7 +86,7 @@ remove_from_path_persistent() {
         sed -i '/export PATH="\$HOME\/bin:\$PATH"/d' "$shell_rc"
         removed=1
     fi
-    
+
     # Show appropriate message
     if [ $removed -eq 1 ]; then
         echo "~/bin removed from PATH configuration in $shell_rc"

@@ -60,8 +60,8 @@ module.exports = {
 
     // --- Reglas generales del HEADER ---
     'header-max-length': [2, 'always', 100]
-    
+
     // Otras reglas de config-conventional que quisieras replicar tendrían que añadirse aquí.
     // Por ahora, solo se aplican las definidas explícitamente.
   }
-}; 
+};

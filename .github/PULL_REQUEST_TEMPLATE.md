@@ -20,15 +20,15 @@ Marca con una "X" lo que aplica:
 
 Describe brevemente los cambios realizados:
 
-> Ejemplo:  
+> Ejemplo:
 > Añadida validación de correo electrónico en el registro de usuarios utilizando regex y actualizadas las pruebas unitarias correspondientes.
 
 ## Archivos o módulos modificados
 
 Enumera los archivos principales que se modificaron:
 
-> Ejemplo:  
-> - bin/setup.sh  
+> Ejemplo:
+> - bin/setup.sh
 > - src/services/userService.ts
 
 ## ¿Este cambio requiere actualizaciones en la documentación?
@@ -40,14 +40,14 @@ Si la respuesta es sí, asegúrate de actualizar la documentación relevante ant
 
 ## Consideraciones adicionales
 
-¿Hay algo que el revisor deba saber antes de aprobar este Pull Request?  
+¿Hay algo que el revisor deba saber antes de aprobar este Pull Request?
 ¿Se requiere alguna configuración extra, migración, o acción especial?
 
 > Detallar aquí si aplica.
 
 ---
 
-**Recuerda**:  
+**Recuerda**:
 - Sincroniza tu rama con `main` antes de solicitar revisión.
 - Asegúrate de que todos los tests automáticos pasen.
 - Revisa que tu commit siga la estructura de mensajes establecida.

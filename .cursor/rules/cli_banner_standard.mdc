@@ -58,4 +58,4 @@ The banner MUST display, at a minimum, the following information, defined using 
 *   The descriptive text of the banner (slogans, etc.) should be in Spanish, unless the project or user context indicates another language.
 *   Constant names (`APP_NAME`, `VERSION`, `AUTHOR`, `BANNER_WIDTH`) must be in English as specified.
 
-**IMPORTANT**: Adapt the implementation (syntax of constants, functions, screen clearing, string handling, and formatting) to the specific conventions and features of the current file's programming language (Python, Bash, JavaScript, TypeScript, etc.). CURSOR will help you apply this rule when you modify or create files that match the specified `globs`. 
+**IMPORTANT**: Adapt the implementation (syntax of constants, functions, screen clearing, string handling, and formatting) to the specific conventions and features of the current file's programming language (Python, Bash, JavaScript, TypeScript, etc.). CURSOR will help you apply this rule when you modify or create files that match the specified `globs`.

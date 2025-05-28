@@ -2,7 +2,7 @@
 # ==========================================================================
 # ## Contexto del Proyecto
 # - Este repositorio contiene una colección de scripts y utilidades personales (
-principalmente 
+principalmente
 Python, Bash, Node.js/TypeScript) para desarrollo y gestión ofimática, con un en
 foque en asistencia por IA.
                               # - Es un monorepo donde los componentes son lógic
@@ -34,7 +34,7 @@ BUTING.md.
 # Reglas específicas de Cursor
 rules:
   # Regla para configuraciones CI/CD y .cursorrules
-  - path_patterns: 
+  - path_patterns:
       - "**/.cursorrules"
       - ".github/workflows/*.yml"
       - "ci/*"
@@ -77,12 +77,12 @@ I).
                      2. El usuario te solicita **explícitamente** añadir o estan
 darizar un banner para una her
 ramienta existente.
-                     
+
       Si **UNA** de estas condiciones se cumple, y estás trabajando en un archiv
 o que es el pun
 to de entrada principal o un módulo relevante para una CLI, implementa un banner
  de inicio siguiendo estas directrices:
-                              
+
       ## Requisitos Funcionales Obligatorios:
       1.  **Limpieza de Pantalla Previa**: Antes de mostrar el banner, la termin
 al DEBE ser lim
@@ -100,7 +100,7 @@ nción dedicada (ej. `show_banner()`, `display_header()`, `print_banner()`).
 OLA VEZ, al inicio de la ejecu
 ción principal de la herramienta interactiva, antes de cualquier otra salida o l
 ógica principal.
-                              
+
       ## Contenido Mínimo Obligatorio del Banner:
       El banner DEBE mostrar, como mínimo, la siguiente información, definida me
 diante constant
@@ -134,7 +134,7 @@ a consistencia.
 e con otras her
 ramientas del proyecto (ej. el banner de `pymanager.sh` o `promanager.py`).
                      *   **Claridad y Legibilidad**: El banner debe ser claro, c
-onciso y fácil de leer. Evita 
+onciso y fácil de leer. Evita
 el exceso de información.
                      *   **Delimitadores**: Utiliza caracteres como `*`, `=`, `-'''
 para enmarcar el texto del b
@@ -146,7 +146,7 @@ e destino y mejora la estética, centra las líneas de texto del banner.
                      *   **Espaciado**: Añade al menos una línea vacía (`print()
 ` o `echo`) después del banner
  completo para separarlo limpiamente de la salida subsiguiente de la herramienta
-.              
+.
       ## Ejemplo de Estructura de Banner (Conceptual):
       \`\`\`
       ======================================================================
@@ -158,17 +158,17 @@ e destino y mejora la estética, centra las líneas de texto del banner.
 
       ## Idioma:
       *   El texto descriptivo del banner (eslóganes, etc.) debe estar en españo
-l, a menos que 
+l, a menos que
 el contexto del proyecto indique otro idioma.
                      *   Los nombres de las constantes (`APP_NAME`, `VERSION`, `
 AUTHOR`, `BANNER_WIDTH`) deben
  ser en inglés como se especifica.
-               
+
       **IMPORTANTE**: Adapta la implementación (sintaxis de constantes, funcione
-s, limpieza de 
+s, limpieza de
 pantalla, manejo de cadenas y formato) a las convenciones y características espe
 cíficas del lenguaje de programación del archivo actual (Python, Bash, JavaScrip
-t, TypeScript, etc.).         
+t, TypeScript, etc.).
       # --- POLÍTICA IMPERATIVA DE EDICIÓN DE CÓDIGO ---
       # ES OBLIGATORIO Y MANDATORIO SEGUIR ESTA POLÍTICA:
       # 1. NUNCA generes una propuesta de edición de código (`edit_file`) sin an
@@ -219,7 +219,7 @@ o la Licencia MIT. Ver `LICENSE` para más información.").
                      6.  Intenta aplicar las heurísticas de auto-relleno definid
 as en el contexto si estás cre
 ando un nuevo README (buscar `pyproject.toml`, archivos de licencia, `git config
-`, etc.).      
+`, etc.).
   # Nueva regla para placeholders de imagen en Markdown
   - language: markdown
     prompt: |
@@ -229,14 +229,14 @@ ando un nuevo README (buscar `pyproject.toml`, archivos de licencia, `git config
 nserción poster
 ior de imágenes', 'añadir placeholders de imagen para una herramienta', o una fr
 ase similar que indique esta intención específica para un archivo Markdown:
-                                    
+
       Utiliza OBLIGATORIAMENTE el siguiente formato de comentario HTML para cada
  placeholder:
 
       <!-- IMAGE_PLACEHOLDER id="N" name="nombre_sugerido_para_la_imagen.png" co
 ntext="Descripc
 ión detallada del contenido y propósito de la imagen." -->
-               
+
       Donde:
       - "N" es un identificador numérico secuencial para la imagen dentro del do
 cumento (comenz
@@ -249,18 +249,18 @@ acion-nombre-repo.png`).
 pósito de la imagen." es el contexto esencial
  que ayudará a generar o seleccionar la imagen correcta. Este contexto debe ser
 claro y conciso.
-                              
+
       Asegúrate de que estos placeholders:
       1. NO sean visibles en la renderización normal del Markdown.
       2. Sean el ÚNICO método para indicar un placeholder de imagen procesable p
 or herramientas
 .
-                     
+
       Elimina cualquier otra forma de placeholder de imagen que hayas usado prev
 iamente (ej. `[
 IMAGEN: ...]`, `*Contexto:* ...`) y reemplázala íntegramente con este formato de
  comentario HTML. Cada placeholder debe estar en su propia línea o ser clarament
-e distinguible.               
+e distinguible.
   - language: python
     prompt: |
       Cuando generes un nuevo archivo Python, asegúrate SIEMPRE de incluir un do
@@ -272,7 +272,7 @@ sito principal del script.
                      Ejemplo:
       \`\`\`python
       import sys
-      
+
       """Este script procesa archivos de log para extraer errores."""
 
       # ... resto del código ...
@@ -299,7 +299,7 @@ xisten) describiendo el propósito principal del script/módulo en una sola fras
                                     Ejemplo:
       \`\`\`javascript
       import fs from 'fs';
-      
+
       // Description: Esta utilidad valida los datos de entrada del formulario.
 
       // ... resto del código ...
@@ -313,7 +313,7 @@ xisten) describiendo el propósito principal del script/módulo en una sola fras
                                     Ejemplo:
       \`\`\`typescript
       import { Request, Response } from 'express';
-      
+
       // Description: Este controlador maneja las peticiones de autenticación de
  usuario.
 
@@ -391,14 +391,14 @@ mente), el código generado debe esforzarse por cumplir con las convenciones imp
 estas por estas herramientas.       # - CONFIGURACIÓN DE HOOKS: Presta atención
 a la configuración en `.pre-commit-config.yam
 l` para entender qué verificaciones automáticas se realizan.
-               
+
       # --- POLÍTICA IMPERATIVA DE EDICIÓN DE CÓDIGO ---
       # ¡¡¡MÁXIMA PRIORIDAD - CUMPLIMIENTO OBLIGATORIO ESTRICTO!!!
       # 1. ESTÁ ABSOLUTAMENTE PROHIBIDO Y ES UNA VIOLACIÓN CRÍTICA generar una p
 ropuesta de edi
 ción de código (`edit_file`) sin haber CUMPLIDO PREVIAMENTE AMBOS PASOS:
                      #    a) Describir DETALLADAMENTE y DE FORMA EXPLÍCITA en el
- chat los cambios EXACTOS que 
+ chat los cambios EXACTOS que
 planeas realizar.
                      #    b) HABER RECIBIDO MI CONFIRMACIÓN EXPLÍCITA E INEQUÍVO
 CA ("procede", "ok", "sí", "ad
@@ -448,8 +448,8 @@ ommit)
       2. El usuario especifique explícitamente usar otro idioma
       3. Sea requerido por convenciones externas (ej: nombres de variables, está
 ndares de APIs)
-      
+
       Excepciones permitidas:
       - Código fuente: variables/funciones en inglés (por convención)
       - Mensajes de commit: seguir el formato [TAG] en inglés
-      - Metadatos técnicos en archivos de configuración 
+      - Metadatos técnicos en archivos de configuración

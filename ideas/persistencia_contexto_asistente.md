@@ -79,4 +79,4 @@ Se propone usar dos tipos de archivo, ubicados en el directorio `.project/`:
 *   **No es aprendizaje real:** Es alimentación de contexto, no una modificación interna persistente del LLM.
 *   **Dependencia de la Interpretación:** La efectividad depende de la calidad/claridad de la información almacenada y la capacidad del asistente para interpretarla correctamente *en esa sesión*.
 *   **Sobrecarga:** Requiere disciplina para mantener los archivos actualizados y añade un paso extra (lectura/escritura) al flujo de trabajo.
-*   **Contexto Limitado:** Solo funciona si los archivos están presentes y accesibles en el contexto de la sesión actual. 
+*   **Contexto Limitado:** Solo funciona si los archivos están presentes y accesibles en el contexto de la sesión actual.

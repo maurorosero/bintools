@@ -28,7 +28,7 @@ node-package = {
 }
 
 # Flutter Apps
-# Plantilla moderna y mantenida para apps Flutter 
+# Plantilla moderna y mantenida para apps Flutter
 # [VERIFICADA 2025-05-22 MRP]
 flutter-apps = {
     description = "Aplicación móvil multiplataforma con Flutter"

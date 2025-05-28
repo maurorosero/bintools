@@ -58,4 +58,4 @@
 ## Adherence to Linters and Style:
 # -----------------------------
 # Remember that this project uses linters and formatters (`pre-commit` hooks). Ensure your code complies with these tools before committing.
-# CURSOR will help you formulate commit messages that follow these rules. 
+# CURSOR will help you formulate commit messages that follow these rules.

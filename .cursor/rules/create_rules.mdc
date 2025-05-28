@@ -35,7 +35,7 @@ How to add new cursor rules to the project
 ```
 ---
 description: Short description of the rule's purpose
-globs: optional/path/pattern/**/* 
+globs: optional/path/pattern/**/*
 alwaysApply: false
 ---
 # Rule Title
@@ -57,4 +57,4 @@ function goodExample() {
 function badExample() {
   // Implementation not following guidelines
 }
-``` 
+```

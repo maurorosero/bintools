@@ -204,4 +204,4 @@ Para reportar bugs, solicitar características o hacer preguntas, por favor abre
 <!-- Reemplaza con el enlace real a los issues si aplica -->
 
 ---
-*Documentación generada con asistencia de IA.* 
+*Documentación generada con asistencia de IA.*

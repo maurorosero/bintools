@@ -63,11 +63,11 @@ def count_patch_commits(since_ref):
     """Cuenta commits con [FIX] o [STYLE] desde una referencia dada."""
     if not since_ref: # Si no hay referencia previa, no hay commits relevantes para contar
         return 0
-        
+
     log_output = run_command(f"git log {since_ref}..HEAD --pretty=%s")
     if not log_output:
         return 0
-        
+
     count = 0
     for line in log_output.splitlines():
         if PATCH_COUNT_TAGS.match(line):
@@ -96,10 +96,10 @@ def calculate_next_version(current_version_tuple, increment_type, last_tag_name)
 
 def main():
     parser = argparse.ArgumentParser(description="Calcula la siguiente versión SemVer global.")
-    parser.add_argument("increment_type", 
-                        choices=['major', 'minor', 'patch', 'none'], 
+    parser.add_argument("increment_type",
+                        choices=['major', 'minor', 'patch', 'none'],
                         help="Tipo de incremento determinado por el workflow (major, minor, patch, none).")
-    
+
     args = parser.parse_args()
 
     if args.increment_type == 'none':
@@ -112,7 +112,7 @@ def main():
     if last_tag_name:
         # Quita la 'v' inicial si existe
         current_version_str = last_tag_name[1:] if last_tag_name.startswith('v') else last_tag_name
-        
+
     current_version_tuple = parse_version(current_version_str)
     if current_version_tuple == (0, 0, 0) and last_tag_name:
          print(f"Warning: No se pudo parsear la versión del último tag '{last_tag_name}'. Tratando como 0.0.0.", file=sys.stderr)
@@ -135,7 +135,7 @@ def main():
         print(f"No se pudo calcular la siguiente versión para el tipo de incremento '{args.increment_type}'.", file=sys.stderr)
         print("NONE") # Indicar que no hay nueva versión
         sys.exit(0)
-         
+
     # Comprobar si la versión calculada es realmente nueva
     if next_version_tuple == current_version_tuple:
          print(f"La versión calculada ({'.'.join(map(str, next_version_tuple))}) es la misma que la actual. No se creará nuevo release.", file=sys.stderr)
@@ -147,4 +147,4 @@ def main():
         print(next_version_str)
 
 if __name__ == "__main__":
-    main() 
+    main()

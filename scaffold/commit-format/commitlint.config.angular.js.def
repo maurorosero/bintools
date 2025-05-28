@@ -55,7 +55,7 @@ module.exports = {
     'type-empty': [2, 'never'],
 
     // --- Reglas para SCOPE (el #IssueNumber) ---
-    'scope-empty': [requireIssueFromMeta ? 2 : 0, 'never'], 
+    'scope-empty': [requireIssueFromMeta ? 2 : 0, 'never'],
     'scope-case': [2, 'always', 'lower-case'], // Se mantiene, es compatible
     // No se añade 'scope-pattern' ya que el headerPattern del parserPreset lo maneja.
 
@@ -66,10 +66,10 @@ module.exports = {
       'always',
       ['sentence-case', 'lower-case'] // Se mantiene como estaba en la config original de angular
     ],
-    
+
     // --- Reglas generales del HEADER ---
     'header-max-length': [2, 'always', 100]
-    
+
     // Otras reglas de config-angular que se deseen replicar deberían añadirse explícitamente aquí.
   }
-}; 
+};

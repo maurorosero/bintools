@@ -3,13 +3,13 @@
 # Las líneas que comienzan con # son comentarios y serán ignoradas
 # Nota: Los siguientes paquetes están en suse-base.pkg:
 # - curl
-# - git 
+# - git
 # - wget
 # - python3
 # - python3-pip
 # - jq
 # - gnupg2
-# - dialog 
+# - dialog
 
 # Herramientas de desarrollo
 # gcc                 # Compilador GNU C
@@ -36,11 +36,11 @@
 # SuSEfirewall2       # Firewall dinámico para SUSE Linux
 
 # Otras utilidades
-# unzip               # Descompresor de archivos ZIP 
+# unzip               # Descompresor de archivos ZIP
 # tree                # Muestra directorios en forma de árbol
 # tldr                # Páginas de ayuda simplificadas
 # rsync               # Herramienta de sincronización remota
-# tmux                # Multiplexor de terminal 
+# tmux                # Multiplexor de terminal
 
 # Herramientas de mensajería
 # python3-telethon    # Biblioteca Python para interactuar con la API de Telegram
@@ -145,4 +145,4 @@
 # mtr                 # Combinación de traceroute y ping
 # iotop               # Monitor de uso de I/O por procesos
 # sysstat             # Utilidades para monitoreo de rendimiento
-# netcat-openbsd      # Utilidad de red versátil 
+# netcat-openbsd      # Utilidad de red versátil

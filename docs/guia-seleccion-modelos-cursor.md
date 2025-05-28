@@ -126,4 +126,4 @@ A continuación, se presenta una guía para seleccionar un modelo basado en la t
 
 ## Conclusión
 
-La selección informada del modelo de IA en Cursor es una habilidad que se desarrolla con la práctica. Utilizar esta guía como punto de partida te ayudará a optimizar tu interacción con la IA y a mejorar tu productividad en el desarrollo de software. 
+La selección informada del modelo de IA en Cursor es una habilidad que se desarrolla con la práctica. Utilizar esta guía como punto de partida te ayudará a optimizar tu interacción con la IA y a mejorar tu productividad en el desarrollo de software.

@@ -131,10 +131,10 @@ compare_versions() {
   if [[ "$1" == "$2" ]]; then
     return 2  # Versiones iguales
   fi
-  
+
   local IFS=.
   local i ver1=($1) ver2=($2)
-  
+
   # Rellenar con ceros para tener el mismo número de elementos
   for ((i=${#ver1[@]}; i<${#ver2[@]}; i++)); do
     ver1[i]=0
@@ -142,7 +142,7 @@ compare_versions() {
   for ((i=${#ver2[@]}; i<${#ver1[@]}; i++)); do
     ver2[i]=0
   done
-  
+
   # Comparar cada componente de la versión
   for ((i=0; i<${#ver1[@]}; i++)); do
     if [[ ${ver1[i]} -gt ${ver2[i]} ]]; then
@@ -151,7 +151,7 @@ compare_versions() {
       return 1  # version1 < version2
     fi
   done
-  
+
   return 2  # Versiones iguales (no debería llegar aquí, pero por si acaso)
 }
 
@@ -165,11 +165,11 @@ error_exit() {
 # Función para verificar la conexión a internet
 check_internet_connection() {
   echo "Verificando conexión a internet..." >> "$LOG_FILE"
-  
+
   # Sitios comunes y confiables para probar la conectividad
   local test_hosts=("google.com" "github.com" "cloudflare.com")
   INTERNET_AVAILABLE=false
-  
+
   # Verificar si tenemos curl o wget disponibles
   if command -v curl &>/dev/null; then
     for host in "${test_hosts[@]}"; do
@@ -197,12 +197,12 @@ check_internet_connection() {
       fi
     done
   fi
-  
+
   if [[ "$INTERNET_AVAILABLE" == false ]]; then
     echo "No se pudo verificar la conexión a internet" >> "$LOG_FILE"
     echo "ADVERTENCIA: No se detecta conexión a internet. Algunas funciones pueden no estar disponibles." >&2
   fi
-  
+
   return 0
 }
 
@@ -297,7 +297,7 @@ detect_os() {
 is_package_installed() {
   local pkg="$1"
   local is_installed=false
-  
+
   case "$OS" in
     macos)
       # En macOS (Homebrew)
@@ -377,7 +377,7 @@ is_package_installed() {
       fi
       ;;
   esac
-  
+
   echo "$is_installed"
 }
 
@@ -385,23 +385,23 @@ is_package_installed() {
 get_latest_sops_version() {
   local latest_version="$SOPS_DEFAULT_VERSION"
   local source_info="versión predeterminada"
-  
+
   echo "Consultando última versión de SOPS disponible..." >> "$LOG_FILE"
-  
+
   # Verificar conexión a internet antes de intentar consultas externas
   check_internet_connection
-  
+
   if [[ "$INTERNET_AVAILABLE" == false ]]; then
     echo "Sin conexión a internet. Usando versión predeterminada de SOPS: $latest_version" >> "$LOG_FILE"
     echo "ADVERTENCIA: Sin conexión a internet. Usando versión predeterminada de SOPS: $latest_version" >&2
     echo "$latest_version"
     return 0
   fi
-  
+
   # PASO 1: Intentar obtener la versión directamente del sitio web de GitHub (prioridad más alta)
   if command -v curl &>/dev/null; then
     echo "Intentando obtener versión desde la página web de GitHub releases..." >> "$LOG_FILE"
-    
+
     # Método 1: Consultar directamente la página web de releases
     local github_html
     if github_html=$(curl -s -m 15 "https://github.com/mozilla/sops/releases"); then
@@ -415,7 +415,7 @@ get_latest_sops_version() {
     else
       echo "Falló la consulta a la página web de GitHub. Error de conexión o timeout." >> "$LOG_FILE"
     fi
-    
+
     # Si no se pudo obtener desde la web, intentar con la API
     if [[ "$source_info" == "versión predeterminada" && "$FORCE_DEFAULT_SOPS_VERSION" != "true" ]]; then
       if command -v jq &>/dev/null; then
@@ -450,7 +450,7 @@ get_latest_sops_version() {
   else
     echo "No se pudo consultar GitHub web - curl no disponible" >> "$LOG_FILE"
   fi
-  
+
   # PASO 2: Si no se pudo obtener de GitHub, intentar con los repos del sistema operativo
   if [[ "$source_info" == "versión predeterminada" ]]; then
     case "$OS" in
@@ -552,14 +552,14 @@ get_latest_sops_version() {
         ;;
     esac
   fi
-  
+
   # PASO 3: Si no se pudo obtener de ninguna fuente, usar la versión predeterminada
   if [[ "$source_info" == "versión predeterminada" ]]; then
     echo "Usando versión predeterminada: $latest_version" >> "$LOG_FILE"
   fi
-  
+
   echo "Última versión de SOPS: $latest_version (fuente: $source_info)" >> "$LOG_FILE"
-  
+
   # Devolver solo la versión sin texto adicional
   echo "$latest_version"
 }
@@ -570,13 +570,13 @@ show_action() {
   local width=60
   local padding=2
   local border=$(printf '%*s' $((width-4)) '' | tr ' ' '-')
-  
+
   echo
   echo -e "${COLOR_MAGENTA}${BOLD}+${border}+${COLOR_RESET}"
   printf "${COLOR_MAGENTA}${BOLD}|${COLOR_RESET}${COLOR_CYAN} %-$((width-padding-2))s${COLOR_MAGENTA}${BOLD}|${COLOR_RESET}\n" "$action"
   echo -e "${COLOR_MAGENTA}${BOLD}+${border}+${COLOR_RESET}"
   echo
-  
+
   # También registrar en el log pero sin formato
   echo "Acción: $action" >> "$LOG_FILE"
 }
@@ -585,7 +585,7 @@ show_action() {
 show_install_start() {
   local type="$1"
   local count="$2"
-  
+
   echo
   echo -e "${COLOR_CYAN}${BOLD}▶ Iniciando instalación de paquetes $type...${COLOR_RESET}"
   echo -e "${COLOR_CYAN}${BOLD}  Total de paquetes a instalar: $count${COLOR_RESET}"
@@ -599,13 +599,13 @@ show_package_progress() {
   local current="$1"
   local total="$2"
   local pkg="$3"
-  
+
   echo
   local progress=$((current * 100 / total))
   local bar_width=30
   local fill_width=$((progress * bar_width / 100))
   local empty_width=$((bar_width - fill_width))
-  
+
   local bar=""
   if [[ $fill_width -gt 0 ]]; then
     bar=$(printf '%*s' $fill_width '' | tr ' ' '█')
@@ -613,7 +613,7 @@ show_package_progress() {
   if [[ $empty_width -gt 0 ]]; then
     bar="${bar}$(printf '%*s' $empty_width '' | tr ' ' '░')"
   fi
-  
+
   echo -e "${COLOR_BLUE}${BOLD}[$current/$total]${COLOR_RESET} ${COLOR_YELLOW}$pkg${COLOR_RESET}"
   echo -e "${COLOR_BLUE}[${bar}] ${progress}%${COLOR_RESET}"
 }
@@ -623,7 +623,7 @@ show_package_result() {
   local result="$1"
   local pkg="$2"
   local duration="$3"
-  
+
   if [[ "$result" == "success" ]]; then
     echo -e "  ${COLOR_GREEN}${BOLD}✓ Paquete $pkg instalado correctamente ${COLOR_RESET}${COLOR_CYAN}(${duration}s)${COLOR_RESET}"
   elif [[ "$result" == "already" ]]; then
@@ -653,12 +653,12 @@ show_package_result() {
 # Añadir una función para mostrar mensaje de finalización con formato
 show_completion_message() {
   local message="$1"
-  
+
   echo
   echo -e "${COLOR_GREEN}${BOLD}✓ ${message}${COLOR_RESET}"
   printf '%*s\n' 60 '' | tr ' ' '─'
   echo
-  
+
   # También registrar en el log pero sin formato
   echo "Completado: $message" >> "$LOG_FILE"
 }
@@ -667,11 +667,11 @@ show_completion_message() {
 # Añadir una función para mostrar mensajes de verificación con formato
 show_verification_message() {
   local message="$1"
-  
+
   echo
   echo -e "${COLOR_BLUE}${BOLD}♦ ${message}${COLOR_RESET}"
   echo
-  
+
   # También registrar en el log pero sin formato
   echo "Verificación: $message" >> "$LOG_FILE"
 }
@@ -679,10 +679,10 @@ show_verification_message() {
 # Añadir función para mostrar mensajes de estado
 show_status() {
   local message="$1"
-  
+
   echo
   echo -e "${COLOR_CYAN}${BOLD}• ${message}${COLOR_RESET}"
-  
+
   # También registrar en el log pero sin formato
   echo "Estado: $message" >> "$LOG_FILE"
 }
@@ -690,10 +690,10 @@ show_status() {
 # Añadir función para mostrar mensajes de éxito
 show_success() {
   local message="$1"
-  
+
   echo
   echo -e "${COLOR_GREEN}${BOLD}✓ ${message}${COLOR_RESET}"
-  
+
   # También registrar en el log pero sin formato
   echo "Éxito: $message" >> "$LOG_FILE"
 }
@@ -701,10 +701,10 @@ show_success() {
 # Añadir función para mostrar mensajes de advertencia
 show_warning() {
   local message="$1"
-  
+
   echo
   echo -e "${COLOR_YELLOW}${BOLD}⚠ ${message}${COLOR_RESET}"
-  
+
   # También registrar en el log pero sin formato
   echo "Advertencia: $message" >> "$LOG_FILE"
 }
@@ -712,10 +712,10 @@ show_warning() {
 # Añadir función para mostrar mensajes de error
 show_error() {
   local message="$1"
-  
+
   echo
   echo -e "${COLOR_RED}${BOLD}✗ ${message}${COLOR_RESET}"
-  
+
   # También registrar en el log pero sin formato
   echo "Error: $message" >> "$LOG_FILE"
 }
@@ -726,11 +726,11 @@ install_sops() {
 
   # Verificar conectividad a internet
   check_internet_connection
-  
+
   # Obtener última versión disponible
   local latest_version
   latest_version=$(get_latest_sops_version)
-  
+
   local current_version="desconocida"
   local is_installed=false
   local need_update=false
@@ -746,14 +746,14 @@ install_sops() {
         current_version="${BASH_REMATCH[0]}"
       fi
     fi
-    
+
     show_status "SOPS ya está instalado (versión $current_version)"
-    
+
     # Comparar versión actual con versión disponible si la versión actual no es desconocida
     if [[ "$current_version" != "desconocida" ]]; then
       compare_versions "$latest_version" "$current_version"
       local compare_result=$?
-      
+
       if [[ $compare_result -eq 0 ]]; then
         # Versión disponible es mayor que la instalada
         need_update=true
@@ -779,7 +779,7 @@ install_sops() {
 
   # Determinar si se debe instalar/actualizar según el modo de operación
   local should_install=false
-  
+
   if [[ "$OPERATION_MODE" == "install" ]]; then
     # En modo install, instalar solo si no está instalado
     if [[ "$is_installed" == false ]]; then
@@ -810,7 +810,7 @@ install_sops() {
       return 0
     else
       # Continuar con el resto del script
-      echo "Continuando con el resto del proceso de instalación..." >> "$LOG_FILE" 
+      echo "Continuando con el resto del proceso de instalación..." >> "$LOG_FILE"
     fi
   fi
 
@@ -836,11 +836,11 @@ install_sops() {
       local arch
       arch=$(uname -m)
       local target_arch
-      
+
       case "$arch" in
         x86_64) target_arch="amd64" ;;
         aarch64|arm64) target_arch="arm64" ;;
-        *) 
+        *)
           show_error "Arquitectura no soportada para SOPS: $arch"
           return 1
           ;;
@@ -858,30 +858,30 @@ install_sops() {
           fi
         fi
       done
-      
+
       show_status "Usando versión de SOPS: $latest_version"
-      
+
       # Descargar el binario
       local temp_dir
       temp_dir=$(mktemp -d)
-      
+
       # Construir URL
       local download_url="https://github.com/mozilla/sops/releases/download/v${latest_version}/sops-v${latest_version}.linux.${target_arch}"
-      
+
       show_status "Descargando SOPS desde: $download_url"
-      
+
       if ! curl -L -s -o "$temp_dir/sops" "$download_url"; then
         show_warning "Falló la descarga desde $download_url - intentando URL alternativa..."
-        
+
         # Probar URL alternativa sin 'v' en el nombre del archivo
         download_url="https://github.com/mozilla/sops/releases/download/v${latest_version}/sops-${latest_version}.linux.${target_arch}"
         show_status "Intentando con URL alternativa: $download_url"
-        
+
         if ! curl -L -s -o "$temp_dir/sops" "$download_url"; then
           # Probar otra variante de URL
           download_url="https://github.com/getsops/sops/releases/download/v${latest_version}/sops-v${latest_version}.linux.${target_arch}"
           show_status "Intentando con segunda URL alternativa: $download_url"
-          
+
           if ! curl -L -s -o "$temp_dir/sops" "$download_url"; then
             show_error "Falló la descarga de SOPS desde GitHub usando todos los formatos de URL"
             rm -rf "$temp_dir"
@@ -889,14 +889,14 @@ install_sops() {
           fi
         fi
       fi
-      
+
       # Verificar que el archivo se descargó correctamente
       if [[ ! -s "$temp_dir/sops" ]]; then
         show_error "Archivo descargado está vacío o no existe"
         rm -rf "$temp_dir"
         return 1
       fi
-      
+
       # Hacer ejecutable e instalar
       chmod +x "$temp_dir/sops"
       if mv "$temp_dir/sops" /usr/local/bin/sops; then
@@ -906,7 +906,7 @@ install_sops() {
         rm -rf "$temp_dir"
         return 1
       fi
-      
+
       # Limpiar
       rm -rf "$temp_dir"
       ;;
@@ -946,7 +946,7 @@ install_sops() {
         installed_version="${BASH_REMATCH[0]}"
       fi
     fi
-    
+
     show_success "SOPS instalado/actualizado correctamente (versión $installed_version)"
     return 0
   else
@@ -961,27 +961,27 @@ install_snap_packages() {
   local result=0
   local os_name=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
   local snap_list=""
-  
+
   show_action "Instalar paquetes Snap"
-  
+
   # Verificar que sea un sistema apto para Snap
   if [ "$os_name" != "ubuntu" ]; then
     echo "ADVERTENCIA: Snap solo está soportado oficialmente en Ubuntu, la instalación podría fallar." >> "$LOG_FILE"
     show_warning "Snap solo está soportado oficialmente en Ubuntu, la instalación podría fallar"
   fi
-  
+
   # Verificar conexión a internet
   if ! check_internet_connection; then
     echo "ERROR: No hay conexión a Internet. No se pueden instalar paquetes Snap." >> "$LOG_FILE"
     show_error "No hay conexión a Internet. No se pueden instalar paquetes Snap"
     return 1
   fi
-  
+
   # Verificar que snapd esté instalado
   if ! command -v snap &> /dev/null; then
     echo "El servicio snap no está instalado. Intentando instalar snapd..." >> "$LOG_FILE"
     show_status "El servicio snap no está instalado. Intentando instalar snapd..."
-    
+
     if [[ "$os_name" == "ubuntu" || "$os_name" == "debian" ]]; then
       sudo apt-get update &>> "$LOG_FILE"
       sudo apt-get install -y snapd &>> "$LOG_FILE"
@@ -1003,41 +1003,41 @@ install_snap_packages() {
     echo "El servicio snapd ya está instalado." >> "$LOG_FILE"
     show_status "El servicio snapd ya está instalado"
   fi
-  
+
   # Leer archivo de paquetes snap y filtrar comentarios y líneas vacías
   if [ -f "${CONFIG_DIR}/snap.pkg" ]; then
     mapfile -t snap_packages < <(grep -v "^\s*#\|^\s*$" "${CONFIG_DIR}/snap.pkg")
-    
+
     # Verificar paquetes ya instalados
     local installed_count=0
     local already_installed=()
     local to_install=()
-    
+
     echo "Verificando paquetes snap instalados..." >> "$LOG_FILE"
-    
+
     for package in "${snap_packages[@]}"; do
       # Extraer nombre y parámetros si los hay
       local pkg_name
       local params=""
-      
+
       if [[ "$package" == *" "* ]]; then
         pkg_name=$(echo "$package" | cut -d' ' -f1)
         params=$(echo "$package" | cut -d' ' -f2-)
       else
         pkg_name="$package"
       fi
-      
+
       # Verificar si el paquete ya está instalado vía snap
       if snap list | grep -q "^$pkg_name "; then
         echo "Paquete snap '$pkg_name' ya instalado vía Snap." >> "$LOG_FILE"
         already_installed+=("$pkg_name")
         continue
       fi
-      
+
       # Verificar si el comando asociado al paquete está disponible por otros medios
       local cmd_exists=false
       local binary_names=()
-      
+
       # Mapeo de nombres de paquetes snap a posibles comandos/binarios
       case "$pkg_name" in
         chromium)
@@ -1072,7 +1072,7 @@ install_snap_packages() {
           binary_names=("$pkg_name")
           ;;
       esac
-      
+
       # Verificar si alguno de los binarios está disponible
       for binary in "${binary_names[@]}"; do
         if command -v "$binary" &>/dev/null; then
@@ -1081,7 +1081,7 @@ install_snap_packages() {
           break
         fi
       done
-      
+
       # Si es un sistema Debian/Ubuntu, verificar instalación vía apt
       if [[ "$os_name" == "ubuntu" || "$os_name" == "debian" ]]; then
         # Mapeo de nombres de paquetes snap a posibles paquetes apt
@@ -1098,7 +1098,7 @@ install_snap_packages() {
             apt_pkgs=("$pkg_name")
             ;;
         esac
-        
+
         # Verificar instalación vía apt
         for apt_pkg in "${apt_pkgs[@]}"; do
           if dpkg -l | grep -q "ii  $apt_pkg "; then
@@ -1108,7 +1108,7 @@ install_snap_packages() {
           fi
         done
       fi
-      
+
       # Verificar instalación vía flatpak si está disponible
       if command -v flatpak &>/dev/null; then
         if flatpak list | grep -qi "$pkg_name"; then
@@ -1116,7 +1116,7 @@ install_snap_packages() {
           echo "Paquete '$pkg_name' instalado vía Flatpak." >> "$LOG_FILE"
         fi
       fi
-      
+
       # Si el comando existe o está instalado por otros medios, marcarlo como ya instalado
       if [[ "$cmd_exists" == true ]]; then
         already_installed+=("$pkg_name (instalado por otro método)")
@@ -1125,50 +1125,50 @@ install_snap_packages() {
         to_install+=("$package")
       fi
     done
-    
+
     # Mostrar lista de paquetes a instalar y ya instalados
     show_title "PAQUETES SNAP (${#snap_packages[@]} total)"
 
     show_packages_list "Paquetes ya instalados" "$COLOR_GREEN" "${already_installed[@]}"
     show_pending_packages "Paquetes a instalar" "$COLOR_YELLOW" "${to_install[@]}"
-    
+
     # Informar paquetes ya instalados
     if [ ${#already_installed[@]} -eq ${#snap_packages[@]} ]; then
       echo -e "\n${COLOR_GREEN}${BOLD}✓ ¡Todos los paquetes Snap ya están instalados!${COLOR_RESET}"
       return 0
     fi
-    
+
     # Instalar paquetes pendientes
     if [ ${#to_install[@]} -gt 0 ]; then
       echo "Instalando ${#to_install[@]} paquetes snap pendientes..." >> "$LOG_FILE"
-      
+
       show_install_start "Snap" "${#to_install[@]}"
-      
+
       local success_count=0
       local failed_packages=()
       local total_packages=${#to_install[@]}
-      
+
       for ((i=0; i<total_packages; i++)); do
         package="${to_install[$i]}"
-        
+
         # Extraer nombre y parámetros si los hay
         local pkg_name
         local params=""
-        
+
         if [[ "$package" == *" "* ]]; then
           pkg_name=$(echo "$package" | cut -d' ' -f1)
           params=$(echo "$package" | cut -d' ' -f2-)
         else
           pkg_name="$package"
         fi
-        
+
         show_package_progress $((i+1)) $total_packages "$pkg_name"
-        
+
         echo "Instalando snap '$package'..." >> "$LOG_FILE"
-        
+
         # Medir el tiempo de instalación
         start_time=$(date +%s)
-        
+
         # Instalar el paquete con o sin parámetros
         set +e  # Desactivar salida por error temporalmente para este comando
         if [ -n "$params" ]; then
@@ -1176,11 +1176,11 @@ install_snap_packages() {
         else
           sudo snap install "$pkg_name" &>> "$LOG_FILE"
         fi
-        
+
         result=$?
         end_time=$(date +%s)
         duration=$((end_time - start_time))
-        
+
         if [ $result -ne 0 ]; then
           echo "ERROR: No se pudo instalar el paquete snap '$package'. Código de error: $result" >> "$LOG_FILE"
           show_package_result "error" "$pkg_name" "$duration"
@@ -1192,7 +1192,7 @@ install_snap_packages() {
         fi
         set -u  # Reactivar opciones pero sin incluir -e
       done
-      
+
       # Mostrar resumen de la instalación
       show_title "RESUMEN DE INSTALACIÓN"
       if [[ ${#already_installed[@]} -gt 0 ]]; then
@@ -1207,7 +1207,7 @@ install_snap_packages() {
         done
         echo -e "${COLOR_YELLOW}Ver $LOG_FILE para más detalles.${COLOR_RESET}"
       fi
-      
+
       show_completion_message "Instalación de paquetes Snap completada"
     fi
   else
@@ -1215,14 +1215,14 @@ install_snap_packages() {
     show_error "El archivo de paquetes Snap '${CONFIG_DIR}/snap.pkg' no existe"
     return 1
   fi
-  
+
   return 0
 }
 
 # Función para instalar paquetes extras definidos por el usuario
 install_extra_packages() {
   show_action "Instalar paquetes extras"
-  
+
   # Determinar el archivo de paquetes extras según el SO
   local extras_pkg_file=""
   case "$OS" in
@@ -1252,14 +1252,14 @@ install_extra_packages() {
       return 0
       ;;
   esac
-  
+
   # Verificar si existe el archivo de paquetes extras
   if [[ ! -f "$extras_pkg_file" ]]; then
     echo "No se encontró el archivo de paquetes extras: $extras_pkg_file" >> "$LOG_FILE"
     echo "Omitiendo la instalación de paquetes extras."
     return 0
   fi
-  
+
   # Verificar conectividad a internet
   check_internet_connection
   if [[ "$INTERNET_AVAILABLE" == false ]]; then
@@ -1267,22 +1267,22 @@ install_extra_packages() {
     echo "ADVERTENCIA: Sin conexión a internet. No se pueden instalar paquetes extras." >> "$LOG_FILE"
     return 1
   fi
-  
+
   # Leer paquetes desde el archivo, excluyendo líneas de comentarios
   mapfile -t EXTRAS_TO_INSTALL < <(grep -vE '^\s*(#|$)' "$extras_pkg_file" | awk '{print $1}')
-  
+
   if [[ ${#EXTRAS_TO_INSTALL[@]} -eq 0 ]]; then
     echo "No hay paquetes extras para instalar desde $extras_pkg_file."
     echo "No hay paquetes extras para instalar desde $extras_pkg_file." >> "$LOG_FILE"
     return 0
   fi
-  
+
   echo "Paquetes extras a instalar: ${EXTRAS_TO_INSTALL[*]}" >> "$LOG_FILE"
-  
+
   # Identificar paquetes que ya están instalados
   already_installed=()
   to_install=()
-  
+
   for pkg in "${EXTRAS_TO_INSTALL[@]}"; do
     if [[ "$(is_package_installed "$pkg")" == "true" ]]; then
       already_installed+=("$pkg")
@@ -1290,7 +1290,7 @@ install_extra_packages() {
       to_install+=("$pkg")
     fi
   done
-  
+
   # Mostrar lista de paquetes a instalar y ya instalados
   show_title "PAQUETES EXTRAS (${#EXTRAS_TO_INSTALL[@]} total)"
 
@@ -1309,21 +1309,21 @@ install_extra_packages() {
   local success_count=0
   local failed_packages=()
   local total_packages=${#to_install[@]}
-  
+
   for ((i=0; i<total_packages; i++)); do
     pkg="${to_install[$i]}"
     show_package_progress $((i+1)) $total_packages "$pkg"
-    
+
     # Verificar nuevamente si el paquete ya está instalado
     if [[ "$(is_package_installed "$pkg")" == "true" ]]; then
       show_package_result "already" "$pkg" ""
       ((success_count++))
       continue
     fi
-    
+
     # Medir el tiempo de instalación
     start_time=$(date +%s)
-    
+
     echo "Instalando paquete extra: $pkg" >> "$LOG_FILE"
     set +e  # Desactivar salida por error temporalmente para este comando
     if eval "$INSTALL_CMD" "$pkg" >> "$LOG_FILE" 2>&1; then
@@ -1346,7 +1346,7 @@ install_extra_packages() {
     fi
     set -u  # Reactivar opciones pero sin incluir -e
   done
-  
+
   # Mostrar resumen de la instalación
   show_title "RESUMEN DE INSTALACIÓN"
   if [[ ${#already_installed[@]} -gt 0 ]]; then
@@ -1369,14 +1369,14 @@ install_extra_packages() {
 
 install_base_packages() {
   show_action "Instalar paquetes base"
-  
+
   if [[ ! -f "$PKG_FILE" ]]; then
     error_exit "Archivo de paquetes base no encontrado: $PKG_FILE"
   fi
-  
+
   # Verificar conectividad a internet
   check_internet_connection
-  
+
   if [[ "$INTERNET_AVAILABLE" == false ]]; then
     echo "ADVERTENCIA: Sin conexión a internet. No se pueden instalar paquetes." >&2
     echo "ADVERTENCIA: Sin conexión a internet. No se pueden instalar paquetes." >> "$LOG_FILE"
@@ -1392,11 +1392,11 @@ install_base_packages() {
   fi
 
   echo "Paquetes base a instalar: ${PACKAGES_TO_INSTALL[*]}" >> "$LOG_FILE"
-  
+
   # Identificar paquetes que ya están instalados
   already_installed=()
   to_install=()
-  
+
   for pkg in "${PACKAGES_TO_INSTALL[@]}"; do
     if [[ "$(is_package_installed "$pkg")" == "true" ]]; then
       already_installed+=("$pkg")
@@ -1404,7 +1404,7 @@ install_base_packages() {
       to_install+=("$pkg")
     fi
   done
-  
+
   # Mostrar lista de paquetes a instalar y ya instalados
   show_title "PAQUETES BASE (${#PACKAGES_TO_INSTALL[@]} total)"
 
@@ -1432,21 +1432,21 @@ install_base_packages() {
   local success_count=0
   local failed_packages=()
   local total_packages=${#to_install[@]}
-  
+
   for ((i=0; i<total_packages; i++)); do
     pkg="${to_install[$i]}"
     show_package_progress $((i+1)) $total_packages "$pkg"
-    
+
     # Verificar nuevamente si el paquete ya está instalado
     if [[ "$(is_package_installed "$pkg")" == "true" ]]; then
       show_package_result "already" "$pkg" ""
       ((success_count++))
       continue
     fi
-    
+
     # Medir el tiempo de instalación
     start_time=$(date +%s)
-    
+
     echo "Instalando paquete base: $pkg" >> "$LOG_FILE"
     set +e  # Desactivar salida por error temporalmente para este comando
     if eval "$INSTALL_CMD" "$pkg" >> "$LOG_FILE" 2>&1; then
@@ -1469,7 +1469,7 @@ install_base_packages() {
     fi
     set -u  # Reactivar opciones pero sin incluir -e
   done
-  
+
   # Mostrar resumen de la instalación
   show_title "RESUMEN DE INSTALACIÓN"
   if [[ ${#already_installed[@]} -gt 0 ]]; then
@@ -1493,7 +1493,7 @@ update_system_packages() {
 
   # Verificar conectividad a internet
   check_internet_connection
-  
+
   if [[ "$INTERNET_AVAILABLE" == false ]]; then
     echo "ADVERTENCIA: Sin conexión a internet. No se pueden actualizar paquetes." >&2
     echo "ADVERTENCIA: Sin conexión a internet. No se pueden actualizar paquetes." >> "$LOG_FILE"
@@ -1529,7 +1529,7 @@ show_title() {
   local width=60
   local border_char="="
   local border_line=$(printf "%${width}s" | tr " " "$border_char")
-  
+
   echo
   echo -e "$border_line"
   echo -e "$border_char ${COLOR_CYAN}${BOLD}$title${COLOR_RESET} $border_char"
@@ -1544,12 +1544,12 @@ show_packages_list() {
   shift 2
   local packages=("$@")
   local count=${#packages[@]}
-  
+
   # Si no hay paquetes, no mostrar nada
   if [[ $count -eq 0 ]]; then
     return
   fi
-  
+
   # Encontrar la longitud máxima para alinear
   local max_length=0
   for pkg in "${packages[@]}"; do
@@ -1557,20 +1557,20 @@ show_packages_list() {
       max_length=${#pkg}
     fi
   done
-  
+
   # Usar siempre 2 columnas como solicitado
   local columns=2
-  
+
   # Añadir padding amplio para mayor separación entre columnas (incluyendo "✓ ")
   max_length=$((max_length + 2 + 8))  # +2 para "✓ " y +8 para espaciado amplio
-  
+
   # Mostrar título y contador
   echo -e "${color}${BOLD}$title ($count)${COLOR_RESET}"
   echo -e "${color}─────────────────────${COLOR_RESET}"
-  
+
   # Calcular elementos por columna
   local items_per_column=$(( (count + columns - 1) / columns ))
-  
+
   # Mostrar en filas
   for ((i = 0; i < items_per_column; i++)); do
     for ((j = 0; j < columns; j++)); do
@@ -1591,12 +1591,12 @@ show_pending_packages() {
   shift 2
   local packages=("$@")
   local count=${#packages[@]}
-  
+
   # Si no hay paquetes, no mostrar nada
   if [[ $count -eq 0 ]]; then
     return
   fi
-  
+
   # Encontrar la longitud máxima para alinear
   local max_length=0
   for pkg in "${packages[@]}"; do
@@ -1604,20 +1604,20 @@ show_pending_packages() {
       max_length=${#pkg}
     fi
   done
-  
+
   # Usar siempre 2 columnas como solicitado
   local columns=2
-  
+
   # Añadir padding amplio para mayor separación entre columnas (incluyendo "→ ")
   max_length=$((max_length + 2 + 8))  # +2 para "→ " y +8 para espaciado amplio
-  
+
   # Mostrar título y contador
   echo -e "${color}${BOLD}$title ($count)${COLOR_RESET}"
   echo -e "${color}─────────────────────${COLOR_RESET}"
-  
+
   # Calcular elementos por columna
   local items_per_column=$(( (count + columns - 1) / columns ))
-  
+
   # Mostrar en filas
   for ((i = 0; i < items_per_column; i++)); do
     for ((j = 0; j < columns; j++)); do
@@ -1698,19 +1698,19 @@ case "$ACTION" in
     else
       # Instalar paquetes base
       install_base_packages
-      
+
       # Instalar paquetes extras definidos por el usuario
       install_extra_packages
-            
+
       # Verificar si se debe instalar Snap
       echo "Verificando si se deben instalar paquetes Snap..." >> "$LOG_FILE"
       show_verification_message "Verificando instalación de paquetes Snap"
-      
+
       # Instalar paquetes snap si no se ha desactivado y es un sistema compatible
       if [[ "$NO_SNAP" == false ]]; then
         echo "Verificando instalación de paquetes Snap..." >> "$LOG_FILE"
         echo "DEBUG: NO_SNAP=$NO_SNAP, OS=$OS, lsb-release=$(test -f /etc/lsb-release && echo 'existe' || echo 'no existe'), snap.pkg=$(test -f ${CONFIG_DIR}/snap.pkg && echo 'existe' || echo 'no existe')" >> "$LOG_FILE"
-        # Verifica si el sistema es Ubuntu genuino (no Mint ni otro derivado incompatible) 
+        # Verifica si el sistema es Ubuntu genuino (no Mint ni otro derivado incompatible)
         # y si existe snap.pkg antes de intentar instalar
         if [[ "$OS" == "debian" && -f /etc/lsb-release && -f "${CONFIG_DIR}/snap.pkg" ]]; then
           # Verificar si es un derivado que no usa Snap por defecto
@@ -1744,7 +1744,7 @@ case "$ACTION" in
       if [[ "$INSTALL_SOPS" == true ]]; then
         install_sops
       fi
-      
+
     fi
     ;;
   update)

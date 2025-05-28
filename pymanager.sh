@@ -736,7 +736,7 @@ list_packages() {
                  local display_name="Local: $env_name ($potential_env_path)"
                  if [[ "$env_name" == "default" ]]; then
                     display_name="Local: default ($potential_env_path)"
-                 fi 
+                 fi
                  options+=("$display_name")
                  env_paths+=("$potential_env_path")
                  log "INFO" "Entorno local válido encontrado: $env_name en $potential_env_path"
@@ -950,7 +950,7 @@ create_venv() {
         if ! mkdir -p "$local_venv_base_dir"; then mostrar_error "No se pudo crear $local_venv_base_dir"; exit 1; fi
     fi
 
-    # --- Lógica de creación / reinstalación --- 
+    # --- Lógica de creación / reinstalación ---
     local reinstall_env=false
     if [ -d "$target_venv_path" ]; then
         read -p "El entorno local '$target_venv_path' ya existe. ¿Desea reinstalarlo? (s/N/c=cancelar): " confirm_create
@@ -1224,7 +1224,7 @@ remove_local_env() {
         fi
     fi
 
-    # --- Procesar la SELECCIÓN ÚNICA (choice_str) --- 
+    # --- Procesar la SELECCIÓN ÚNICA (choice_str) ---
     local paths_to_delete=()
     local delete_all=false
     local user_cancelled=false # Para la opción '[ Cancelar ]'
@@ -1238,7 +1238,7 @@ remove_local_env() {
             paths_to_delete=("${env_paths[@]}")
             log "INFO" "Acción seleccionada: Eliminar TODOS los entornos locales."
             ;;
-        *) 
+        *)
             # Es un nombre de entorno individual
             local found_path=false
             for i in "${!env_names[@]}"; do
@@ -1274,9 +1274,9 @@ remove_local_env() {
         log "ERROR" "paths_to_delete está vacío después del procesamiento de selección única, sin cancelación."
         exit 1 # Salir con error, esto no debería pasar
     fi
-    # --- FIN MODIFICACIÓN 4 --- 
+    # --- FIN MODIFICACIÓN 4 ---
 
-    # --- Confirmación final y bucle de eliminación (ajustado para mensaje) --- 
+    # --- Confirmación final y bucle de eliminación (ajustado para mensaje) ---
     local confirm_msg_final=""
     if $delete_all; then
         confirm_msg_final="¿Realmente desea eliminar TODOS (${#paths_to_delete[@]}) los entornos locales listados?"
@@ -1419,4 +1419,4 @@ main() {
 # Ejecutar main si el script no está siendo "sourced"
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     main "$@"
-fi 
+fi

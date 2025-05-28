@@ -9,4 +9,4 @@
 # __init__.py - Description placeholder
 # -----------------------------------------------------------------------------
 #
-# GPG Manager Modules 
+# GPG Manager Modules

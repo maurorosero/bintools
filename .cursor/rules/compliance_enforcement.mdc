@@ -161,4 +161,4 @@ usage_rules:
   - "System MUST maintain complete verification and violation logs"
 
 # REMINDER: THIS SYSTEM IS IMPERATIVE AND TAKES PRECEDENCE OVER ALL OTHER SYSTEMS
-# ----------------------------------------------------------------------------- 
+# -----------------------------------------------------------------------------

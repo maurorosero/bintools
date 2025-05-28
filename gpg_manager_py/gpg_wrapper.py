@@ -403,4 +403,4 @@ class GPGWrapper:
 #     show_error("GPG is not available. Some functionality will be disabled.")
 # except Exception as e:
 #     gpg_handler = None
-#     show_error(f"Failed to initialize GPG handler: {e}") 
+#     show_error(f"Failed to initialize GPG handler: {e}")

@@ -20,17 +20,17 @@ main() {
   # Check dependencies
   check_dependencies
   local deps_status=$?
-  
+
   if [ $deps_status -ne 0 ]; then
     exit $deps_status
   fi
 
   # Ensure translations are loaded
   ensure_translations_loaded
-  
+
   # Debug translations
   debug_translations
-  
+
   # No need to display welcome message here, it's already handled in the main menu
   # main_menu will display the header
   main_menu

@@ -1565,7 +1565,7 @@ class ConfirmDeleteDialog(ModalScreen):
             action = 'delete_public'
         elif button_id == "delete-secret":
             action = 'delete_secret'
-        
+
         # Post the message first, then close the screen
         if action is not None or button_id == "delete-cancel": # Ensure cancel also posts a message
              self.log(f"ConfirmDeleteDialog: Posting message Deleted(action={action!r})") # Log before post
@@ -1663,7 +1663,7 @@ class CreateKeyScreen(Screen):
                  yield Button("Cancel", id="cancel")
 
             # Add loading indicator (initially hidden)
-            yield LoadingIndicator(id="create-loading") 
+            yield LoadingIndicator(id="create-loading")
 
         yield Footer()
 
@@ -1757,7 +1757,7 @@ class CreateKeyScreen(Screen):
 
                 batch_input = "\n".join(line for line in batch_lines if line) # Filter empty lines
 
-                # --- Run Worker --- # 
+                # --- Run Worker --- #
                 self.log(f"Starting key generation worker with input:\n{batch_input}")
                 # Show loading indicator
                 self.query_one("#create-loading").display = True
@@ -2065,4 +2065,4 @@ def main():
          sys.exit(1)
 
 if __name__ == "__main__":
-    main() 
+    main()

@@ -19,25 +19,25 @@ function split_ipaddr() {
     if [ ${1:-X} = X ] || [ "${1}" != ${1//[^.0-9]/} ] || [ "${1//[0-9]/}" != "..." ]; then
         return 1
     fi
-    
+
     local rval=0
     local t
     local -a T=([1]="" [2]="" [3]="" [4]="")
-    
+
     # Split the IP address
     T[1]=${1%%.*}
     T[2]=${1#*.}; T[2]=${T[2]%%.*}
     T[3]=${1#*.*.}; T[3]=${T[3]%%.*}
     T[4]=${1#*.*.*.}
-    
+
     # Validate each octet
     [ ${T[1]} = 0 ] && rval=1
-    
+
     for t in 1 2 3 4; do
         [ ${T[${t}]:-999} -gt 255 ] && rval=1
         eval "${2}[${t}]=${T[${t}]}"
     done
-    
+
     return ${rval}
 }
 
@@ -100,23 +100,23 @@ while [ ${#} -ge 2 ]; do
     split_ipaddr ${1/\/*/} TARG || eval "${BADTARG}"
     BITS=${1/*\//}
     shift
-    
+
     # Validate bits
     if [ ${BITS:-X} = X ] || [ "${BITS}" != ${BITS//[^0-9]/} ]; then
         eval "${BADBITS}"
     fi
-    
+
     if [ ${BITS} -gt 32 ] || [ ${BITS} -lt 1 ]; then
         eval "${BADBITS}"
     fi
-    
+
     # Handle optional "gw" keyword
     [ ${1:-X} = gw ] && shift
-    
+
     # Parse gateway
     split_ipaddr ${1:-X} GW || eval "${BADGW}"
     shift
-    
+
     # Build output in hex format
     OUT=${OUT}$( printf ":%02x:%02x" ${BITS} ${TARG[1]} )
     [ ${BITS} -gt 8 ]  && OUT=${OUT}$( printf ":%02x" ${TARG[2]} )
@@ -132,4 +132,3 @@ if $VERBOSE; then
 else
     echo ${OUT/:/}
 fi
-

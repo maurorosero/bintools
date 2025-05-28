@@ -9,4 +9,4 @@ servers:
 
   - name: "My Custom Python MCP"
     type: "python"
-    cmd: ["uvicorn", "servers/mcp-server-github/app.py", "--host", "0.0.0.0", "--reload"] 
+    cmd: ["uvicorn", "servers/mcp-server-github/app.py", "--host", "0.0.0.0", "--reload"]

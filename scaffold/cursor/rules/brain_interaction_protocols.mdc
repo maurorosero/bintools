@@ -63,4 +63,4 @@ These principles guide your behavior and decision-making.
 In addition to commit rules, when generating or modifying code or documentation:
 -   **EXISTING STYLE**: Observe and follow the existing coding and formatting style in the project files.
 -   **LINTERS AND FORMATTERS**: If the project uses tools like Black, Prettier, Flake8, ESLint, Pylint, etc. (whether configured in `pre-commit` or used externally), the generated code should strive to comply with the conventions imposed by these tools.
--   **HOOK CONFIGURATION**: Pay attention to the configuration in `.pre-commit-config.yaml` to understand what automatic checks are performed. 
+-   **HOOK CONFIGURATION**: Pay attention to the configuration in `.pre-commit-config.yaml` to understand what automatic checks are performed.

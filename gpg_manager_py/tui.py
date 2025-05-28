@@ -321,4 +321,4 @@ def ask_user_info():
     comment = ask_question("Comment (optional):", q_type='text')
     if comment is None and comment != "": return None, None, None # Distinguish cancel from empty
 
-    return real_name, email, comment 
+    return real_name, email, comment

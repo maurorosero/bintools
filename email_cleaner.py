@@ -348,7 +348,7 @@ def check_spam_rules(email_message):
                     spam_score += 1
                     spam_reasons.append(f"Encabezado '{header_key}' coincide con patrón de spam: {rule}")
                     # Optimization: if one rule matches this header, no need to check other rules for the same header
-                    break 
+                    break
             except Exception as e:
                 logging.warning(f"Error procesando encabezado '{header_key}' para reglas de spam: {e}")
 
@@ -373,7 +373,7 @@ def check_dnsbl(ip_address):
         # Obtener la IP en formato DNSBL
         ip_parts = ip_address.split('.')
         ip_reversed = '.'.join(reversed(ip_parts))
-        
+
         for dnsbl in DNSBL_SERVERS:
             try:
                 query = f"{ip_reversed}.{dnsbl}"
@@ -386,7 +386,7 @@ def check_dnsbl(ip_address):
                 continue
     except Exception as e:
         logging.error(f"Error al verificar DNSBL: {str(e)}")
-    
+
     return False
 
 def debug_log(func):
@@ -429,7 +429,7 @@ def check_internet_connection():
                 sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
             else:  # IPv4
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            
+
             sock.settimeout(timeout)
             sock.connect((host, 53))  # Puerto 53 para DNS
             sock.close()
@@ -568,13 +568,13 @@ resolver = dns.resolver.Resolver()
 def install_packages():
     """Instala los paquetes necesarios en el entorno virtual"""
     print("Configurando entorno virtual...")
-    
+
     # Configurar el entorno virtual primero
     python_path, pip_path = setup_virtual_env()
     if not python_path or not pip_path:
         print("Error: No se pudo configurar el entorno virtual")
         return False
-    
+
     # Lista de paquetes requeridos
     required_packages = [
         'pandas',           # Para manejo de datos y reportes
@@ -584,10 +584,10 @@ def install_packages():
         'html2text',        # Para convertir HTML a texto
         'requests'          # Para peticiones HTTP
     ]
-    
+
     print("Instalando dependencias necesarias...")
     installed_successfully = True
-    
+
     # Primero actualizar pip y herramientas básicas
     try:
         print("Actualizando herramientas básicas...")
@@ -603,7 +603,7 @@ def install_packages():
             print(f"{COLORS['YELLOW']}Advertencia: No se pudieron actualizar las herramientas básicas: {result.stderr}{COLORS['RESET']}")
     except Exception as e:
         print(f"{COLORS['YELLOW']}Advertencia: No se pudieron actualizar las herramientas básicas: {str(e)}{COLORS['RESET']}")
-    
+
     # Instalar paquetes uno por uno
     for package in required_packages:
         print(f"Instalando {package}...")
@@ -615,7 +615,7 @@ def install_packages():
                 stderr=subprocess.PIPE,
                 text=True
             )
-            
+
             if result.returncode == 0:
                 # Verificar que realmente se instaló
                 if check_package_installed(package, python_path):
@@ -641,11 +641,11 @@ def install_packages():
                 print(f"{COLORS['RED']}✗ Error al instalar {package}:{COLORS['RESET']}")
                 print(result.stderr)
                 installed_successfully = False
-                
+
         except Exception as e:
             print(f"{COLORS['RED']}✗ Error al instalar {package}: {str(e)}{COLORS['RESET']}")
             installed_successfully = False
-    
+
     if installed_successfully:
         print(f"\n{COLORS['GREEN']}✓ Todas las dependencias instaladas correctamente{COLORS['RESET']}")
         return True
@@ -666,7 +666,7 @@ def load_custom_categories():
                     # Ignorar líneas vacías y comentarios
                     if not line or line.startswith('#'):
                         continue
-                    
+
                     # Parsear la línea: categoria|palabras_clave|dominios|emails
                     parts = line.split('|')
                     if len(parts) >= 1:
@@ -674,18 +674,18 @@ def load_custom_categories():
                         keywords = parts[1].split(',') if len(parts) > 1 else []
                         domains = parts[2].split(',') if len(parts) > 2 else []
                         emails = parts[3].split(',') if len(parts) > 3 else []
-                        
+
                         # Limpiar espacios en blanco
                         keywords = [k.strip() for k in keywords if k.strip()]
                         domains = [d.strip() for d in domains if d.strip()]
                         emails = [e.strip().lower() for e in emails if e.strip()]
-                        
+
                         custom_categories[category] = {
                             'keywords': keywords,
                             'domains': domains,
                             'emails': emails
                         }
-            
+
             logging.info(f"Cargadas {len(custom_categories)} categorías personalizadas")
             return custom_categories
         except Exception as e:
@@ -805,7 +805,7 @@ class EmailManager:
                     logging.debug(f"Saltando correo ya procesado: {num_str}")
                     continue
 
-                # --- Fetch Email --- 
+                # --- Fetch Email ---
                 try:
                     _, msg_data = self.imap.fetch(num_bytes, '(RFC822)')
                     # Check if fetch returned data
@@ -819,8 +819,8 @@ class EmailManager:
                     logging.error(f"Error al obtener correo ID {num_str}: {fetch_error}")
                     logging.error(traceback.format_exc()) # Log fetch error traceback
                     continue # Skip this email if fetch fails
-                
-                # --- Process Email (Categorize & Save) --- 
+
+                # --- Process Email (Categorize & Save) ---
                 # Extraer información del correo usando la función standalone
                 subject = _decode_header(email_message['subject'])
                 from_addr = _decode_header(email_message['from'])
@@ -834,7 +834,7 @@ class EmailManager:
                     if part.get('Content-Disposition') is not None:
                         has_attachments = True
                         break
-                
+
                 # Inner try-except for categorization/saving part
                 try:
                     # Categorizar el correo
@@ -854,7 +854,7 @@ class EmailManager:
                     # Save current state of self.categories to self.progress before saving file
                     self.progress['categories'] = self.categories
                     self._save_progress()
-                
+
                 except TypeError as te:
                     logging.error(f"TypeError durante categorización/guardado para correo ID {num_str}: {te}")
                     logging.error(f"Subject: {subject}") # Log potentially problematic data
@@ -877,7 +877,7 @@ class EmailManager:
             logging.error(f"Error general fuera del bucle de procesamiento de correos: {e}")
             logging.error(traceback.format_exc())
             # Consider re-raising or handling appropriately depending on desired program behavior on fatal errors.
-    
+
     def _categorize_email(self, subject: str, from_addr: str, email_message) -> str:
         """Categoriza un correo basado en su asunto, remitente y contenido"""
         subject = subject.lower()
@@ -957,7 +957,7 @@ class EmailManager:
         if 'accesos' in all_categories and 'accesos' in categories:
             del all_categories['accesos']
 
-        # --- Check for 'accesos' category first --- 
+        # --- Check for 'accesos' category first ---
         accesos_rules = categories.get('accesos', {})
         is_accesos = False
         if accesos_rules:
@@ -992,16 +992,16 @@ class EmailManager:
                 # Date couldn't be parsed
                 return 'accesos_fecha_invalida'
 
-        # --- Check other categories --- 
+        # --- Check other categories ---
         for category, data in all_categories.items():
             # Verificar palabras clave en el asunto
             if any(keyword in subject for keyword in data.get('keywords', [])):
                 return category
-            
+
             # Verificar dominios en el remitente
             if any(domain in from_addr for domain in data.get('domains', [])):
                 return category
-            
+
             # Verificar direcciones de correo específicas
             if any(email in from_addr for email in data.get('emails', [])):
                 return category
@@ -1054,7 +1054,7 @@ class EmailManager:
         print("-" * 70)
         print(f"{COLORS['CYAN']}{'Categoría':<20} {'Total':<10} {'Con Adjuntos':<15} {'Tipo':<10}{COLORS['RESET']}")
         print("-" * 70)
-        
+
         # Recalculate attachment counts if not stored (optional, adds overhead)
         # For now, relying on data stored during analysis
         # If attachment info isn't in progress.json, we need to adjust
@@ -1087,7 +1087,7 @@ class EmailManager:
         try:
             self.imap.select('INBOX')
             emails_to_delete = delete_categories[category]
-            
+
             if dry_run:
                 print(f"\nModo de prueba - Se eliminarían {len(emails_to_delete)} correos de la categoría '{category}'")
                 return
@@ -1129,7 +1129,7 @@ def check_gmail_config():
     """Verifica si la configuración de Gmail es correcta"""
     if not os.path.exists(CONFIG_FILE):
         return False
-    
+
     try:
         with open(CONFIG_FILE, 'r') as f:
             config = json.load(f)
@@ -1144,7 +1144,7 @@ def create_config_file():
     """Crea o actualiza el archivo de configuración"""
     print(f"\n{COLORS['CYAN']}Configuración del correo electrónico{COLORS['RESET']}")
     print("-" * 50)
-    
+
     # Valores por defecto si el archivo existe
     config = {}
     if os.path.exists(CONFIG_FILE):
@@ -1154,10 +1154,10 @@ def create_config_file():
             print(f"Archivo de configuración existente encontrado en: {CONFIG_FILE}")
         except Exception as e:
             print(f"Error al leer el archivo de configuración: {str(e)}")
-    
+
     # Solicitar información
     print("\nIngresa la información solicitada (deja en blanco para mantener el valor actual):")
-    
+
     # Email
     current_email = config.get('email', '')
     email = input(f"Dirección de correo electrónico [{current_email}]: ").strip()
@@ -1166,7 +1166,7 @@ def create_config_file():
     elif not email:
         print(f"{COLORS['RED']}Error: La dirección de correo es obligatoria{COLORS['RESET']}")
         return False
-    
+
     # Verificar si es Gmail
     is_gmail = email.lower().endswith('@gmail.com')
     if is_gmail:
@@ -1177,7 +1177,7 @@ def create_config_file():
         print("3. Luego ve a https://myaccount.google.com/apppasswords")
         print("4. Genera una nueva contraseña para esta aplicación")
         print("5. Usa esa contraseña en lugar de tu contraseña normal de Gmail")
-    
+
     # Password
     current_password = config.get('password', '')
     password = input(f"Contraseña del correo [{('*' * len(current_password)) if current_password else ''}]: ").strip()
@@ -1186,7 +1186,7 @@ def create_config_file():
     elif not password:
         print(f"{COLORS['RED']}Error: La contraseña es obligatoria{COLORS['RESET']}")
         return False
-    
+
     # Server
     current_server = config.get('server', '')
     server = input(f"Servidor IMAP [{current_server}]: ").strip()
@@ -1209,19 +1209,19 @@ def create_config_file():
         else:
             print(f"{COLORS['RED']}Error: El servidor IMAP es obligatorio{COLORS['RESET']}")
             return False
-    
+
     # Guardar configuración
     config = {
         'email': email,
         'password': password,
         'server': server
     }
-    
+
     try:
         with open(CONFIG_FILE, 'w') as f:
             json.dump(config, f, indent=4)
         print(f"\n{COLORS['GREEN']}✓ Configuración guardada en: {CONFIG_FILE}{COLORS['RESET']}")
-        
+
         # Mostrar información de seguridad
         print(f"\n{COLORS['YELLOW']}Notas de seguridad:{COLORS['RESET']}")
         print("1. El archivo de configuración contiene información sensible")
@@ -1230,11 +1230,11 @@ def create_config_file():
             print("3. Para Gmail, asegúrate de usar una 'Contraseña de aplicación'")
             print("4. Si tienes problemas, verifica que la verificación en dos pasos esté activada")
         print("5. No compartas este archivo con nadie")
-        
+
         # Establecer permisos restrictivos
         os.chmod(CONFIG_FILE, 0o600)
         print(f"\n{COLORS['GREEN']}✓ Permisos del archivo actualizados a 600 (solo lectura para el propietario){COLORS['RESET']}")
-        
+
         return True
     except Exception as e:
         print(f"{COLORS['RED']}Error al guardar la configuración: {str(e)}{COLORS['RESET']}")
@@ -1272,25 +1272,25 @@ def main():
         parser.add_argument('--email', help='Dirección de correo electrónico')
         parser.add_argument('--password', help='Contraseña del correo')
         parser.add_argument('--server', help='Servidor IMAP (ej: imap.gmail.com)')
-        parser.add_argument('--config', action='store_true', 
+        parser.add_argument('--config', action='store_true',
                            help='Configurar credenciales de correo')
-        
+
         # Argumentos de funcionalidad
-        parser.add_argument('--init', action='store_true', 
+        parser.add_argument('--init', action='store_true',
                            help='Iniciar análisis desde cero (ignora el progreso guardado)')
-        parser.add_argument('--limit', 
+        parser.add_argument('--limit',
                            help='Límite de correos a procesar (número o "all" para todos)')
-        parser.add_argument('--analyze', action='store_true', 
+        parser.add_argument('--analyze', action='store_true',
                            help='Analizar correos y categorizarlos')
-        parser.add_argument('--report', action='store_true', 
+        parser.add_argument('--report', action='store_true',
                            help='Generar reporte de categorías en formato CSV')
-        parser.add_argument('--list', action='store_true', 
+        parser.add_argument('--list', action='store_true',
                            help='Listar categorías disponibles y cantidad de correos')
-        parser.add_argument('--delete', 
+        parser.add_argument('--delete',
                            help='Eliminar correos de una categoría específica')
-        parser.add_argument('--force', action='store_true', 
+        parser.add_argument('--force', action='store_true',
                            help='Forzar eliminación (sin modo de prueba)')
-        parser.add_argument('--install', action='store_true', 
+        parser.add_argument('--install', action='store_true',
                            help='Instalar dependencias necesarias')
 
         # Si es una solicitud de instalación, instalar y salir
@@ -1309,10 +1309,10 @@ def main():
                 print("Error durante la configuración")
             sys.exit(0)
 
-        # --- Argument Parsing --- 
+        # --- Argument Parsing ---
         args = parser.parse_args()
 
-        # --- List Only Mode --- 
+        # --- List Only Mode ---
         # Check if only list is requested (and not other actions requiring connection)
         if args.list and not (args.analyze or args.delete or args.email or args.password or args.server):
             print_info("Modo 'Listar categorías':")
@@ -1343,7 +1343,7 @@ def main():
                 print("Ejemplo: redes_sociales|facebook,twitter,instagram|facebook.com,twitter.com|noreply@facebook.com,info@twitter.com")
             sys.exit(0)
 
-        # --- Standard Mode (Requires Connection) --- 
+        # --- Standard Mode (Requires Connection) ---
         print_info("Modo estándar: Conectando al servidor...")
 
         # Si es una solicitud de ayuda, mostrar ayuda y salir
@@ -1406,10 +1406,10 @@ def main():
             # Ejecutar acciones según los argumentos
             if args.analyze:
                 manager.analyze_emails(limit=args.limit, force_init=args.init)
-            
+
             if args.report:
                 manager.generate_report()
-            
+
             if args.delete:
                 manager.delete_emails_by_category(args.delete, dry_run=not args.force)
 
@@ -1430,4 +1430,4 @@ Para más detalles, consulta el archivo de log:
         sys.exit(1)
 
 if __name__ == "__main__":
-    main() 
+    main()

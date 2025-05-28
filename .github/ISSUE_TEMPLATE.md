@@ -17,10 +17,10 @@ Marca con una "X" lo que aplica:
 
 Describe de forma clara y concisa el problema o la solicitud:
 
-> Ejemplo (para bug):  
+> Ejemplo (para bug):
 > Al ejecutar el script bin/setup.sh en Debian 12, falla en la instalación de dependencias debido a un error en la detección del sistema operativo.
 
-> Ejemplo (para funcionalidad):  
+> Ejemplo (para funcionalidad):
 > Se solicita agregar soporte para múltiples entornos en la configuración inicial del proyecto.
 
 ## Pasos para Reproducir (en caso de bug)
@@ -35,7 +35,7 @@ Proporciona los pasos para reproducir el error:
 
 Explica qué debería suceder en condiciones normales:
 
-> Ejemplo:  
+> Ejemplo:
 > El script debería detectar correctamente el sistema operativo y continuar la instalación sin errores.
 
 ## Entorno
@@ -50,13 +50,13 @@ Completa la información de tu entorno:
 
 Agrega cualquier otro dato relevante (logs, capturas de pantalla, traceback de errores, etc.)
 
-> Ejemplo:  
-> Log de error:  
+> Ejemplo:
+> Log de error:
 > `Error: unsupported platform 'debian' detected during bootstrap process.`
 
 ---
 
-**Nota**:  
+**Nota**:
 - Verifica primero si el problema o solicitud ya existe antes de crear un nuevo issue.
 - Proporciona la mayor cantidad de información posible para facilitar la resolución.
 
