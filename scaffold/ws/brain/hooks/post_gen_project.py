@@ -12,6 +12,88 @@ import subprocess
 from pathlib import Path
 import os
 import shutil
+import json
+
+try:
+    import jinja2 # type: ignore
+except ImportError:
+    # Verificar si hay un venv activo
+    if not os.environ.get('VIRTUAL_ENV'):
+        print("Error: No hay un entorno virtual activo. Por favor active un venv primero.")
+        sys.exit(1)
+        
+    # Intentar instalar jinja2
+    print("Instalando jinja2...")
+    subprocess.run(
+        [sys.executable, "-m", "pip", "install", "jinja2"],
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+    import jinja2 # type: ignore
+
+# Variables globales de cookiecutter
+commit_lint_files_check = "{{ cookiecutter.commit_lint_files_check }}"
+commit_lint_exec_check = "{{ cookiecutter.commit_lint_exec_check }}"
+commit_lint_files_size_limit_mb = "{{ cookiecutter.commit_lint_files_size_limit_mb }}"
+commit_lint_secrets_check = "{{ cookiecutter.commit_lint_secrets_check }}"
+commit_format = "{{ cookiecutter.commit_format }}"
+workspace_slug = "{{ cookiecutter.workspace_slug }}"
+license_type = "{{ cookiecutter.license }}"
+cursor_config = "{{ cookiecutter.cursor_config }}"
+
+def generate_precommit_config(workspace_dir: Path) -> bool:
+    """
+    Genera el archivo .pre-commit-config.yaml usando la plantilla y las variables de cookiecutter.
+    """
+    try:
+        # Obtener la ruta del template
+        template_dir = get_template_dir()
+        if template_dir is None:
+            print("Error: No se pudo encontrar el directorio scaffold")
+            return False
+            
+        # Construir la ruta a la plantilla
+        template_path = template_dir.parent.parent / "commit-format" / "pre-commit-config.yaml.j2"
+        if not template_path.exists():
+            print(f"Error: No se encontró la plantilla: {template_path}")
+            return False
+            
+        # Leer la plantilla
+        template_content = template_path.read_text()
+        
+        # Crear el entorno Jinja2
+        env = jinja2.Environment(undefined=jinja2.StrictUndefined)
+        template = env.from_string(template_content)
+        
+        # Obtener las variables de cookiecutter
+        cookiecutter_context = {
+            "cookiecutter": {
+                "commit_lint_files_check": commit_lint_files_check,
+                "commit_lint_exec_check": commit_lint_exec_check,
+                "commit_lint_files_size_limit_mb": commit_lint_files_size_limit_mb,
+                "commit_lint_secrets_check": commit_lint_secrets_check,
+                "commit_format": commit_format
+            }
+        }
+        
+        # Renderizar la plantilla con el contexto
+        output = template.render(**cookiecutter_context)
+        
+        # Escribir el archivo generado
+        output_path = workspace_dir / ".pre-commit-config.yaml"
+        output_path.write_text(output)
+        
+        print(f"Archivo .pre-commit-config.yaml generado en: {output_path}")
+        return True
+        
+    except Exception as e:
+        print(f"Error al generar .pre-commit-config.yaml: {e}")
+        print(f"Tipo de error: {type(e)}")
+        import traceback
+        print("Traceback completo:")
+        print(traceback.format_exc())
+        return False
 
 def init_git(workspace_dir: Path) -> bool:
     """
@@ -64,6 +146,11 @@ def setup_pre_commit(workspace_dir: Path) -> bool:
     Instala y configura pre-commit hooks.
     """
     try:
+        # Generar el archivo de configuración
+        if not generate_precommit_config(workspace_dir):
+            print("Error: No se pudo generar el archivo .pre-commit-config.yaml")
+            return False
+
         # Verificar si hay un venv activo
         if not os.environ.get("VIRTUAL_ENV"):
             print("Error: No hay un entorno virtual activo.")
@@ -147,9 +234,10 @@ def remove_commitlint_files(workspace_dir: Path) -> bool:
     """
     try:
         files_to_remove = [
-            workspace_dir / ".dithooks/commitlint.config.js",
+            workspace_dir / ".githooks/commitlint.config.js",
             workspace_dir / ".githooks/commitlint-wrapper.py",
             workspace_dir / ".pre-commit-config.yaml",
+            workspace_dir / ".githooks",
         ]
         
         for file in files_to_remove:
@@ -368,12 +456,6 @@ def main():
     """
     Función principal que ejecuta las tareas post-generación.
     """
-    # Obtener las variables de cookiecutter
-    workspace_slug = "{{ cookiecutter.workspace_slug }}"
-    commit_format = "{{ cookiecutter.commit_format }}"
-    license_type = "{{ cookiecutter.license }}"
-    cursor_config = "{{ cookiecutter.cursor_config }}"
-    
     # Obtener el directorio del proyecto
     workspace_dir = Path.cwd()
     
@@ -403,21 +485,25 @@ def main():
         if not remove_commitlint_files(workspace_dir):
             success = False
     else:
-        # Verificar solo el archivo de pre-commit
-        if not (workspace_dir / ".pre-commit-config.yaml").exists():
-            print("Error: No se encontró el archivo .pre-commit-config.yaml")
-            print("Esto puede indicar que cookiecutter no copió correctamente los archivos")
+        # Primero generar el archivo de configuración de pre-commit
+        context = {
+            "commit_lint_files_check": "{{ cookiecutter.commit_lint_files_check }}",
+            "commit_lint_exec_check": "{{ cookiecutter.commit_lint_exec_check }}",
+            "commit_lint_files_size_limit_mb": "{{ cookiecutter.commit_lint_files_size_limit_mb }}",
+            "commit_lint_secrets_check": "{{ cookiecutter.commit_lint_secrets_check }}",
+            "commit_format": commit_format
+        }
+        if not generate_precommit_config(workspace_dir):
+            print("Error: No se pudo generar el archivo de configuración de pre-commit")
             success = False
-        else:
-            # Primero copiar el archivo de configuración de commitlint
-            if not copy_commitlint_config(workspace_dir, commit_format):
-                success = False
-            else:
-                # Luego instalar dependencias y configurar pre-commit
-                if not install_commitlint_deps(workspace_dir):
-                    success = False
-                elif not setup_pre_commit(workspace_dir):
-                    success = False
+        # Luego copiar el archivo de configuración de commitlint
+        elif not copy_commitlint_config(workspace_dir, commit_format):
+            success = False
+        # Finalmente instalar dependencias y configurar pre-commit
+        elif not install_commitlint_deps(workspace_dir):
+            success = False
+        elif not setup_pre_commit(workspace_dir):
+            success = False
     
     # Si alguna tarea falla, terminar con error
     if not success:
