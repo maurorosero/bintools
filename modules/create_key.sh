@@ -39,7 +39,7 @@ create_key_menu() {
   local expire_opt="Expire After..."
   local name_error="Name cannot be empty"
   local email_error="Email cannot be empty"
-  
+
   if [ "$LANG_CODE" = "es" ]; then
     title="Crear Nueva Clave GPG"
     # RSA y ECC son iguales en todos los idiomas
@@ -52,16 +52,16 @@ create_key_menu() {
     name_error="El nombre no puede estar vacío"
     email_error="El correo no puede estar vacío"
   fi
-  
+
   section_header "$title"
-  
+
   # Choose key type
   local key_type=$(gum choose "$rsa_opt" "$ecc_opt" "$back_opt")
-  
+
   if [ "$key_type" = "$back_opt" ]; then
     return
   fi
-  
+
   # Get user information
   local name=$(gum input --placeholder "$fullname_prompt" --value "")
   if [ -z "$name" ]; then
@@ -69,23 +69,23 @@ create_key_menu() {
     confirm_continue
     return
   fi
-  
+
   local email=$(gum input --placeholder "$email_prompt" --value "")
   if [ -z "$email" ]; then
     show_error "$email_error"
     confirm_continue
     return
   fi
-  
+
   local comment=$(gum input --placeholder "$comment_prompt" --value "")
-  
+
   # Ask for key expiration
   local expiry_type=$(gum choose "$never_opt" "$expire_opt" "$back_opt")
-  
+
   if [ "$expiry_type" = "$back_opt" ]; then
     return
   fi
-  
+
   local expiry="0"
   if [ "$expiry_type" = "$expire_opt" ]; then
     # Opciones de expiración
@@ -93,16 +93,16 @@ create_key_menu() {
     local years_two="2 Years"
     local years_five="5 Years"
     local custom_opt="Custom..."
-    
+
     if [ "$LANG_CODE" = "es" ]; then
       year_one="1 Año"
       years_two="2 Años"
       years_five="5 Años"
       custom_opt="Personalizado..."
     fi
-    
+
     local expiry_option=$(gum choose "$year_one" "$years_two" "$years_five" "$custom_opt")
-    
+
     case "$expiry_option" in
       "$year_one")
         expiry="1y"
@@ -123,7 +123,7 @@ create_key_menu() {
         ;;
     esac
   fi
-  
+
   # Generate the key
   if [ "$key_type" = "$rsa_opt" ]; then
     create_rsa_key "$name" "$email" "$comment" "$expiry"
@@ -145,23 +145,23 @@ create_rsa_key() {
   local email="$2"
   local comment="$3"
   local expiry="$4"
-  
+
   local user_id="$name"
   if [ -n "$comment" ]; then
     user_id="$name ($comment)"
   fi
   user_id="$user_id <$email>"
-  
+
   show_info "$(_t "creating_key_for" "RSA 4096" "$user_id")"
   show_info "$([ "$expiry" = "0" ] && echo "$(_t "never_expires")" || echo "$(_t "with_expiry" "$expiry")")"
-  
+
   if ! gum confirm "$(_t "proceed_key_creation")"; then
     return
   fi
-  
+
   # Create temp batch file
   local batch_file=$(mktemp)
-  
+
   cat > "$batch_file" << EOF
 %echo Generating a RSA 4096 key
 Key-Type: RSA
@@ -170,42 +170,42 @@ Subkey-Type: RSA
 Subkey-Length: 4096
 Name-Real: $name
 EOF
-  
+
   if [ -n "$comment" ]; then
     echo "Name-Comment: $comment" >> "$batch_file"
   fi
-  
+
   cat >> "$batch_file" << EOF
 Name-Email: $email
 Expire-Date: $expiry
 %commit
 %echo Key generation completed
 EOF
-  
+
   # Generate the key
   gum spin --title "$(_t "generating_key" "RSA 4096")" -- gpg --batch --generate-key "$batch_file"
   local create_status=$?
-  
+
   # Clean up
   rm "$batch_file"
-  
+
   if [ $create_status -ne 0 ]; then
     show_error "$(_t "key_creation_failed")"
     confirm_continue
     return
   fi
-  
+
   # Get the fingerprint of the new key
   local fingerprint=$(gpg --list-keys --with-colons "$email" | grep -m 1 "^fpr" | cut -d: -f10)
-  
+
   show_success "$(_t "key_created_success")"
   gum style --foreground "$COLOR_INFO" "$(_t "fingerprint" "$(echo $fingerprint | sed 's/\(.\{4\}\)/\1 /g')")"
-  
+
   # Ask to configure Git with this key
   if gum confirm "$(_t "configure_git_prompt")"; then
     configure_git "$email" "$name" "$fingerprint"
   fi
-  
+
   confirm_continue
   return
 }
@@ -223,23 +223,23 @@ create_ecc_key() {
   local email="$2"
   local comment="$3"
   local expiry="$4"
-  
+
   local user_id="$name"
   if [ -n "$comment" ]; then
     user_id="$name ($comment)"
   fi
   user_id="$user_id <$email>"
-  
+
   show_info "$(_t "creating_key_for" "Ed25519" "$user_id")"
   show_info "$([ "$expiry" = "0" ] && echo "$(_t "never_expires")" || echo "$(_t "with_expiry" "$expiry")")"
-  
+
   if ! gum confirm "$(_t "proceed_key_creation")"; then
     return
   fi
-  
+
   # Create temp batch file
   local batch_file=$(mktemp)
-  
+
   cat > "$batch_file" << EOF
 %echo Generating an Ed25519 key
 Key-Type: EDDSA
@@ -248,42 +248,42 @@ Subkey-Type: EDDSA
 Subkey-Curve: ed25519
 Name-Real: $name
 EOF
-  
+
   if [ -n "$comment" ]; then
     echo "Name-Comment: $comment" >> "$batch_file"
   fi
-  
+
   cat >> "$batch_file" << EOF
 Name-Email: $email
 Expire-Date: $expiry
 %commit
 %echo Key generation completed
 EOF
-  
+
   # Generate the key
   gum spin --title "$(_t "generating_key" "Ed25519")" -- gpg --batch --generate-key "$batch_file"
   local create_status=$?
-  
+
   # Clean up
   rm "$batch_file"
-  
+
   if [ $create_status -ne 0 ]; then
     show_error "$(_t "key_creation_failed")"
     confirm_continue
     return
   fi
-  
+
   # Get the fingerprint of the new key
   local fingerprint=$(gpg --list-keys --with-colons "$email" | grep -m 1 "^fpr" | cut -d: -f10)
-  
+
   show_success "$(_t "key_created_success")"
   gum style --foreground "$COLOR_INFO" "$(_t "fingerprint" "$(echo $fingerprint | sed 's/\(.\{4\}\)/\1 /g')")"
-  
+
   # Ask to configure Git with this key
   if gum confirm "$(_t "configure_git_prompt")"; then
     configure_git "$email" "$name" "$fingerprint"
   fi
-  
+
   confirm_continue
   return
 }

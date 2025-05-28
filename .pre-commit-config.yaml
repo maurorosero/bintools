@@ -45,4 +45,4 @@ repos:
         name: commit-validate
         entry: .githooks/commitlint-wrapper.py
         language: python
-        stages: [commit-msg] 
+        stages: [commit-msg]

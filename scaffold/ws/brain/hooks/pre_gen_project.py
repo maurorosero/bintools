@@ -18,13 +18,13 @@ def validate_workspace_slug(slug: str) -> bool:
     if not slug:
         print("Error: El nombre del workspace no puede estar vacío")
         return False
-        
+
     # Validar que sea un nombre de directorio válido
     if not re.match(r'^[a-zA-Z0-9][a-zA-Z0-9_-]*$', slug):
         print("Error: El nombre del workspace solo puede contener letras, números, guiones y guiones bajos")
         print("       y debe comenzar con una letra o número")
         return False
-        
+
     return True
 
 def main():
@@ -33,15 +33,15 @@ def main():
     """
     # Obtener las variables de cookiecutter
     workspace_slug = "{{ cookiecutter.workspace_slug }}"
-    
+
     # Validar todas las opciones
     validations = [
         validate_workspace_slug(workspace_slug)
     ]
-    
+
     # Si alguna validación falla, terminar con error
     if not all(validations):
         sys.exit(1)
 
 if __name__ == "__main__":
-    main() 
+    main()

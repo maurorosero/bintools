@@ -30,7 +30,7 @@ identities_menu() {
     local primary_opt="Change Primary Identity"
     local delete_opt="Delete Identity"
     local back_opt="Back"
-    
+
     if [ "$LANG_CODE" = "es" ]; then
       menu_title="Gestión de Identidades de Usuario"
       add_opt="Añadir Identidad"
@@ -39,7 +39,7 @@ identities_menu() {
       delete_opt="Eliminar Identidad"
       back_opt="Volver"
     fi
-    
+
     gum style \
       --border double \
       --border-foreground "$COLOR_PRIMARY" \
@@ -48,14 +48,14 @@ identities_menu() {
       --align center \
       --bold \
       "$menu_title"
-    
+
     local choice=$(gum choose \
       "$add_opt" \
       "$list_opt" \
       "$primary_opt" \
       "$delete_opt" \
       "$back_opt")
-    
+
     case "$choice" in
       "$add_opt")
         add_identity
@@ -82,19 +82,19 @@ list_identities() {
   local select_prompt="Select key to list identities"
   local identities_title="Identities for Key"
   local continue_prompt="Press Enter to continue"
-  
+
   if [ "$LANG_CODE" = "es" ]; then
     select_prompt="Selecciona clave para listar identidades"
     identities_title="Identidades para la Clave"
     continue_prompt="Presiona Enter para continuar"
   fi
-  
+
   local key_id=$(select_key "$select_prompt")
-  
+
   if [ -z "$key_id" ]; then
     return
   fi
-  
+
   gum style \
     --border rounded \
     --foreground "$COLOR_INFO" \
@@ -103,10 +103,10 @@ list_identities() {
     --width 60 \
     --align center \
     "$identities_title: $key_id"
-  
+
   # Display identities using gpg
   gpg --list-keys "$key_id"
-  
+
   gum confirm "$continue_prompt" && return
 }
 
@@ -126,7 +126,7 @@ add_identity() {
   local success_msg="✓ Identity added successfully!"
   local failed_msg="✗ Failed to add identity"
   local continue_prompt="Press Enter to continue"
-  
+
   if [ "$LANG_CODE" = "es" ]; then
     select_prompt="Selecciona clave para añadir identidad"
     name_placeholder="Nombre Completo"
@@ -142,45 +142,45 @@ add_identity() {
     failed_msg="✗ Error al añadir identidad"
     continue_prompt="Presiona Enter para continuar"
   fi
-  
+
   local key_id=$(select_key "$select_prompt")
-  
+
   if [ -z "$key_id" ]; then
     return
   fi
-  
+
   # Get user information
   local name=$(gum input --placeholder "$name_placeholder" --value "")
   if [ -z "$name" ]; then
     gum style --foreground "$COLOR_ERROR" "$name_error"
     gum confirm "$continue_prompt" && return
   fi
-  
+
   local email=$(gum input --placeholder "$email_placeholder" --value "")
   if [ -z "$email" ]; then
     gum style --foreground "$COLOR_ERROR" "$email_error"
     gum confirm "$continue_prompt" && return
   fi
-  
+
   local comment=$(gum input --placeholder "$comment_placeholder" --value "")
-  
+
   # Build user ID string
   local user_id="$name"
   if [ -n "$comment" ]; then
     user_id="$name ($comment)"
   fi
   user_id="$user_id <$email>"
-  
+
   gum style --foreground "$COLOR_INFO" "$adding_text: $user_id"
   gum style --foreground "$COLOR_INFO" "$to_key: $key_id"
-  
+
   if ! gum confirm "$proceed_confirm"; then
     return
   fi
-  
+
   # Create batch file for key editing
   local batch_file=$(mktemp)
-  
+
   cat > "$batch_file" << EOF
 adduid
 $name
@@ -188,19 +188,19 @@ $comment
 $email
 save
 EOF
-  
+
   # Execute the edit-key command
   gum spin --title "$adding_title" -- gpg --batch --command-fd 0 --status-fd 2 --edit-key "$key_id" < "$batch_file"
-  
+
   # Clean up
   rm "$batch_file"
-  
+
   if [ $? -eq 0 ]; then
     gum style --foreground "$COLOR_SUCCESS" "$success_msg"
   else
     gum style --foreground "$COLOR_ERROR" "$failed_msg"
   fi
-  
+
   gum confirm "$continue_prompt" && return
 }
 
@@ -217,7 +217,7 @@ change_primary_identity() {
   local changing_title="Changing primary identity..."
   local success_msg="✓ Primary identity changed successfully!"
   local failed_msg="✗ Failed to change primary identity"
-  
+
   if [ "$LANG_CODE" = "es" ]; then
     select_prompt="Selecciona clave para cambiar identidad principal"
     no_identities="No se encontraron identidades para esta clave"
@@ -230,80 +230,80 @@ change_primary_identity() {
     success_msg="✓ ¡Identidad principal cambiada con éxito!"
     failed_msg="✗ Error al cambiar identidad principal"
   fi
-  
+
   local key_id=$(select_key "$select_prompt")
-  
+
   if [ -z "$key_id" ]; then
     return
   fi
-  
+
   # Get UIDs for the selected key
   local uids_raw=$(gpg --list-keys --with-colons "$key_id" | grep "^uid")
-  
+
   if [ -z "$uids_raw" ]; then
     gum style --foreground "$COLOR_ERROR" "$no_identities"
     gum confirm "$continue_prompt" && return
   fi
-  
+
   # Parse UIDs into an array
   local uid_indices=()
   local uid_info=()
   local index=1
-  
+
   while IFS='' read -r line; do
     local uid_validity=$(echo "$line" | cut -d: -f2)
     local uid_name=$(echo "$line" | cut -d: -f10)
     local primary=""
-    
+
     # Check if this is the primary UID
     if [ "$uid_validity" = "u" ]; then
       primary=" ($primary_text)"
     fi
-    
+
     uid_indices+=("$index")
     uid_info+=("$index: $uid_name$primary")
-    
+
     ((index++))
   done <<< "$uids_raw"
-  
+
   # Let user select a UID
   uid_info+=("$cancel_opt")
   local selection=$(gum choose --header "$select_header" "${uid_info[@]}")
-  
+
   if [ "$selection" = "$cancel_opt" ]; then
     return
   fi
-  
+
   # Extract UID index from selection
   local uid_index=$(echo "$selection" | cut -d: -f1)
-  
+
   # Confirm change
   if ! gum confirm "$confirm_change"; then
     return
   fi
-  
+
   # Create batch file for key editing
   local batch_file=$(mktemp)
-  
+
   # GPG uses 1-based indexing for UIDs
   cat > "$batch_file" << EOF
 uid $uid_index
 primary
 save
 EOF
-  
+
   # Execute the edit-key command
   gum spin --title "$changing_title" -- gpg --batch --command-fd 0 --status-fd 2 --edit-key "$key_id" < "$batch_file"
-  
+
   # Clean up
   rm "$batch_file"
-  
+
   if [ $? -eq 0 ]; then
     gum style --foreground "$COLOR_SUCCESS" "$success_msg"
   else
     gum style --foreground "$COLOR_ERROR" "$failed_msg"
   fi
-  
+
   gum confirm "$continue_prompt" && return
 }
 
@@ -325,7 +325,7 @@ delete_identity() {
   local deleting_title="Deleting identity..."
   local success_msg="✓ Identity deleted successfully!"
   local failed_msg="✗ Failed to delete identity"
-  
+
   if [ "$LANG_CODE" = "es" ]; then
     select_prompt="Selecciona clave para eliminar identidad"
     no_identities="No se encontraron identidades para esta clave"
@@ -343,77 +343,77 @@ delete_identity() {
     success_msg="✓ ¡Identidad eliminada con éxito!"
     failed_msg="✗ Error al eliminar identidad"
   fi
-  
+
   local key_id=$(select_key "$select_prompt")
-  
+
   if [ -z "$key_id" ]; then
     return
   fi
-  
+
   # Get UIDs for the selected key
   local uids_raw=$(gpg --list-keys --with-colons "$key_id" | grep "^uid")
-  
+
   # Count UIDs
   local uid_count=$(echo "$uids_raw" | wc -l)
-  
+
   if [ -z "$uids_raw" ]; then
     gum style --foreground "$COLOR_ERROR" "$no_identities"
     gum confirm "$continue_prompt" && return
   fi
-  
+
   if [ "$uid_count" -eq 1 ]; then
     gum style --foreground "$COLOR_ERROR" "$only_identity"
     gum confirm "$continue_prompt" && return
   fi
-  
+
   # Parse UIDs into an array
   local uid_indices=()
   local uid_info=()
   local index=1
-  
+
   while IFS='' read -r line; do
     local uid_validity=$(echo "$line" | cut -d: -f2)
     local uid_name=$(echo "$line" | cut -d: -f10)
     local primary=""
-    
+
     # Check if this is the primary UID
     if [ "$uid_validity" = "u" ]; then
       primary=" ($primary_text)"
     fi
-    
+
     uid_indices+=("$index")
     uid_info+=("$index: $uid_name$primary")
-    
+
     ((index++))
   done <<< "$uids_raw"
-  
+
   # Let user select a UID
   uid_info+=("$cancel_opt")
   local selection=$(gum choose --header "$select_header" "${uid_info[@]}")
-  
+
   if [ "$selection" = "$cancel_opt" ]; then
     return
   fi
-  
+
   # Check if trying to delete primary UID
   if [[ "$selection" == *"($primary_text)"* ]]; then
     gum style --foreground "$COLOR_ERROR" "$primary_error"
     gum confirm "$continue_prompt" && return
   fi
-  
+
   # Extract UID index from selection
   local uid_index=$(echo "$selection" | cut -d: -f1)
-  
+
   # Confirm deletion
   gum style --foreground "$COLOR_WARNING" "$warning_msg"
-  
+
   if ! gum confirm "$confirm_delete" --affirmative="$affirmative_btn" --negative="$negative_btn"; then
     return
   fi
-  
+
   # Create batch file for key editing
   local batch_file=$(mktemp)
-  
+
   # GPG uses 1-based indexing for UIDs
   cat > "$batch_file" << EOF
 uid $uid_index
@@ -421,18 +421,18 @@ deluid
 y
 save
 EOF
-  
+
   # Execute the edit-key command
   gum spin --title "$deleting_title" -- gpg --batch --command-fd 0 --status-fd 2 --edit-key "$key_id" < "$batch_file"
-  
+
   # Clean up
   rm "$batch_file"
-  
+
   if [ $? -eq 0 ]; then
     gum style --foreground "$COLOR_SUCCESS" "$success_msg"
   else
     gum style --foreground "$COLOR_ERROR" "$failed_msg"
   fi
-  
+
   gum confirm "$continue_prompt" && return
 }

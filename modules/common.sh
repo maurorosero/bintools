@@ -66,26 +66,26 @@ readonly COLOR_PUBLIC_KEY=67    # A subdued blue for public keys
 # Returns: 0 if all dependencies are present, 1 otherwise
 check_dependencies() {
   local missing_deps=false
-  
+
   if ! command -v gpg &> /dev/null; then
     gum style --foreground "$COLOR_ERROR" "Error: gpg is not installed"
     missing_deps=true
   fi
-  
+
   if ! command -v gum &> /dev/null; then
     echo "Error: gum is not installed"
     echo "Visit https://github.com/charmbracelet/gum for installation instructions"
     missing_deps=true
   fi
-  
+
   if ! command -v git &> /dev/null; then
     gum style --foreground "$COLOR_WARNING" "Warning: git is not installed. Git integration will not be available."
   fi
-  
+
   if [ "$missing_deps" = true ]; then
     return "$ERR_MISSING_DEPS"
   fi
-  
+
   return "$ERR_SUCCESS"
 }
 
@@ -100,11 +100,11 @@ select_key() {
   if [ -z "$prompt" ]; then
     prompt="Select a key"
   fi
-  
+
   # Get secret keys first (keys with private components) for distinguishing own keys
   local secret_keys_raw=$(gpg --list-secret-keys --with-colons 2>/dev/null)
   local secret_key_ids=()
-  
+
   # Extract secret key IDs to identify own keys
   if [ -n "$secret_keys_raw" ]; then
     while IFS='' read -r line; do
@@ -115,23 +115,23 @@ select_key() {
       fi
     done <<< "$secret_keys_raw"
   fi
-  
+
   # Get all keys
   local keys_out=$(gpg --list-keys --with-colons)
   local key_ids=()
   local key_uids=()
   local key_types=()  # To indicate if a key is own key or public
   local current_key=""
-  
+
   while IFS='' read -r line; do
     local rec_type=${line%%:*}
-    
+
     if [ "$rec_type" = "pub" ]; then
       current_key=$(echo "$line" | cut -d: -f5)
     elif [ "$rec_type" = "uid" ] && [ -n "$current_key" ]; then
       key_ids+=("$current_key")
       key_uids+=("$(echo "$line" | cut -d: -f10)")
-      
+
       # Check if this is our own key (has a private key)
       local is_own_key=false
       for secret_id in "${secret_key_ids[@]}"; do
@@ -140,52 +140,52 @@ select_key() {
           break
         fi
       done
-      
+
       if [ "$is_own_key" = true ]; then
         key_types+=("own")
       else
         key_types+=("public")
       fi
-      
+
       current_key=""
     fi
   done <<< "$keys_out"
-  
+
   if [ ${#key_ids[@]} -eq 0 ]; then
     gum style --foreground "$COLOR_ERROR" "No GPG keys found"
     return ""
   fi
-  
+
   # Build options for gum choose with color coding for own vs public keys
   local options=()
   local options_header="Select a key"
-  
+
   # Option for showing only certain types of keys
   local filter_type=""
   local filter_options=("$(_t "show_all_keys")" "$(_t "show_my_keys")" "$(_t "show_public_keys")")
   local filter_selection=$(gum choose --header "$(_t "key_filter_prompt")" "${filter_options[@]}")
-  
+
   case "$filter_selection" in
     "$(_t "show_my_keys")")
       filter_type="own"
       options_header="$(_t "select_key_prompt" "$prompt" "$(_t "showing_own")")"
       ;;
     "$(_t "show_public_keys")")
-      filter_type="public" 
+      filter_type="public"
       options_header="$(_t "select_key_prompt" "$prompt" "$(_t "showing_public")")"
       ;;
     *)
       options_header="$(_t "select_key_prompt" "$prompt" "$(_t "showing_all")")"
       ;;
   esac
-  
+
   # Add keys based on filter
   for i in "${!key_ids[@]}"; do
     # Skip keys that don't match the filter
     if [ -n "$filter_type" ] && [ "${key_types[$i]}" != "$filter_type" ]; then
       continue
     fi
-    
+
     # Format key entries based on key type (own or public)
     if [ "${key_types[$i]}" = "own" ]; then
       # Format own keys with the key ID as identifier
@@ -196,21 +196,21 @@ select_key() {
       options+=("${key_uids[$i]} (${key_ids[$i]})")
     fi
   done
-  
+
   if [ ${#options[@]} -eq 0 ]; then
     gum style --foreground "$COLOR_ERROR" "No keys match the selected filter"
     return ""
   fi
-  
+
   options+=("Cancel")
-  
+
   # Let user select a key
   local selection=$(gum choose --header "$options_header" "${options[@]}")
-  
+
   if [ "$selection" = "Cancel" ]; then
     return ""
   fi
-  
+
   # Extract key ID from selection (get what's inside the last parentheses)
   # The format is either:
   # 1. For own keys: "[A1E9DB07] Mauro Rosero (DEVOPS) <email@example.com> (A17ADF8EA1E9DB07)"
@@ -279,7 +279,7 @@ display_welcome() {
 # Returns: Formatted date string
 format_date() {
   local timestamp="$1"
-  
+
   if [ "$timestamp" = "0" ]; then
     echo "$(_t "never_expires")"
   else
@@ -298,10 +298,10 @@ section_header() {
   local text="$1"
   local color="${2:-$COLOR_PRIMARY}"
   local subtitle="${3:-}"
-  
+
   # Clear screen for clean display
   clear
-  
+
   if [ -n "$subtitle" ]; then
     gum style \
       --border double \
@@ -322,7 +322,7 @@ section_header() {
       --bold \
       "$text"
   fi
-  
+
   # Add a little space after the header
   echo ""
 }
@@ -336,12 +336,12 @@ section_header() {
 get_capability_desc() {
   local capabilities="$1"
   local cap_desc=""
-  
+
   [[ "$capabilities" == *"s"* ]] && cap_desc="${cap_desc}$(_t "capability_sign") "
   [[ "$capabilities" == *"e"* ]] && cap_desc="${cap_desc}$(_t "capability_encrypt") "
   [[ "$capabilities" == *"a"* ]] && cap_desc="${cap_desc}$(_t "capability_auth") "
   [[ "$capabilities" == *"c"* ]] && cap_desc="${cap_desc}$(_t "capability_cert") "
-  
+
   # Remove trailing space
   echo "${cap_desc:0:-1}"
 }
@@ -396,7 +396,7 @@ LANG_CODE=""
 #   $1: Language code (e.g., "en", "es", "zh", "hi", "ar", "fr")
 set_language() {
   local lang="$1"
-  
+
   # Validate language
   local valid_lang=false
   for i in "${!AVAILABLE_LANGS[@]}"; do
@@ -405,20 +405,20 @@ set_language() {
       break
     fi
   done
-  
+
   if [ "$valid_lang" = true ]; then
     LANG_CODE="$lang"
-    
+
     # IMPORTANT: Reset translations array at the global scope
     unset TRANSLATIONS
     # Export the variable to make sure it's at global scope
     export TRANSLATIONS
     # Redeclare as global associative array
     declare -gA TRANSLATIONS
-    
+
     # Load translations directly
     local lang_file="${SCRIPT_DIR}/i18n/${LANG_CODE}.sh"
-    
+
     # Check if language file exists
     if [ -f "$lang_file" ]; then
       echo "Loading translations from $lang_file"
@@ -429,13 +429,13 @@ set_language() {
       LANG_CODE="en"
       source "${SCRIPT_DIR}/i18n/en.sh"
     fi
-    
+
     echo "Loaded ${#TRANSLATIONS[@]} translations for $LANG_CODE"
   else
     show_error "Invalid language code: $lang"
     return 1
   fi
-  
+
   return 0
 }
 
@@ -449,23 +449,23 @@ set_language() {
 _t() {
   local key="$1"
   shift
-  
+
   # Debug information for translation lookup
   if [ -n "${GPG_MANAGER_DEBUG}" ]; then
     echo "DEBUG _t: Looking up key '$key', TRANSLATIONS has ${#TRANSLATIONS[@]} items" >&2
   fi
-  
+
   # Check if translation exists
   if [ -n "${TRANSLATIONS[$key]}" ]; then
     local text="${TRANSLATIONS[$key]}"
-    
+
     # Replace placeholders
     local i=1
     for replacement in "$@"; do
       text="${text//\{\{$i\}\}/$replacement}"
       i=$((i + 1))
     done
-    
+
     echo "$text"
   else
     # If translation doesn't exist, print debug info
@@ -482,13 +482,13 @@ _t() {
 # Description: Displays a menu for selecting language
 language_selection_menu() {
   local options=()
-  
+
   for i in "${!AVAILABLE_LANGS[@]}"; do
     options+=("${LANG_NAMES[$i]} (${AVAILABLE_LANGS[$i]})")
   done
-  
+
   local selection=$(gum choose --header "Select Language / Seleccione Idioma / 选择语言 / भाषा चुनें / اختر لغة / Choisir une langue" "${options[@]}")
-  
+
   # Extract language code from selection
   if [ -n "$selection" ]; then
     local lang_code=$(echo "$selection" | grep -o '([a-z][a-z])' | tr -d '()')

@@ -135,12 +135,12 @@ detect_language() {
             [ -n "$SYSTEM_LANG" ] && break
         fi
     done
-    
+
     # Set default language to English if no language detected
     if [ -z "$SYSTEM_LANG" ]; then
         SYSTEM_LANG="en"
     fi
-    
+
     # Assign the appropriate translation array
     case "$SYSTEM_LANG" in
         es)

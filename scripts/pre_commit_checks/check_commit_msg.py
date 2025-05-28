@@ -37,7 +37,7 @@ def main():
         # Esto es importante porque pre-commit puede ejecutar hooks desde .git/hooks
         git_root = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], text=True).strip()
         meta_file_path = os.path.join(git_root, PROJECT_META_PATH)
-        
+
         if not os.path.exists(meta_file_path):
             print(f"Advertencia: Archivo de metadatos del proyecto no encontrado en '{meta_file_path}'.")
             print("Se asumirá 'require_issue = false'.")
@@ -81,14 +81,14 @@ def main():
         "--edit", commit_msg_filepath,
         "--config", config_file_path_abs
     ]
-    
+
     try:
         # print(f"Debug: Ejecutando comando: {' '.join(command)}")
         # print(f"Debug: Con entorno: REQUIRE_ISSUE_FROM_META={env['REQUIRE_ISSUE_FROM_META']}")
         # print(f"Debug: Contenido del mensaje de commit en '{commit_msg_filepath}':")
         # with open(commit_msg_filepath, 'r', encoding='utf-8') as f_msg:
         #     print(f_msg.read())
-            
+
         process = subprocess.run(command, env=env, capture_output=True, text=True, check=False, cwd=git_root)
 
         if process.returncode != 0:
@@ -104,7 +104,7 @@ def main():
             if process.stdout: # Mostrar output si lo hay (puede ser informativo)
                 print(process.stdout.strip())
             sys.exit(0)
-            
+
     except FileNotFoundError:
         print("Error: 'npx' (y por tanto 'commitlint') no encontrado. Asegúrate de que Node.js y npm estén instalados y en el PATH.", file=sys.stderr)
         print("Puedes necesitar instalar commitlint globalmente o como dependencia del proyecto.", file=sys.stderr)
@@ -114,4 +114,4 @@ def main():
         sys.exit(1)
 
 if __name__ == "__main__":
-    main() 
+    main()
