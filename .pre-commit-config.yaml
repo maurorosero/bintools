@@ -46,3 +46,22 @@ repos:
         entry: .githooks/commitlint-wrapper.py
         language: python
         stages: [commit-msg]
+
+  # Grupo 06: Branch Workflow Validation (🆕 NUEVO)
+  - repo: local
+    hooks:
+      - id: branch-workflow-commit
+        name: branch-workflow-commit-validator
+        entry: python branch-workflow-validator.py commit
+        language: system
+        stages: [pre-commit]
+        pass_filenames: false
+        verbose: true
+        
+      - id: branch-workflow-push
+        name: branch-workflow-push-validator  
+        entry: python branch-workflow-validator.py push
+        language: system
+        stages: [pre-push]
+        pass_filenames: false
+        verbose: true
