@@ -19,24 +19,53 @@ from typing import Dict, List, Optional, Tuple, Any
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 from enum import Enum
+import shutil
 
 # Importar nuestros componentes existentes
 try:
     from pathlib import Path
-    sys.path.append(str(Path(__file__).parent))
-    # Importar selectivamente sin ejecutar main
     import importlib.util
 
-    spec = importlib.util.spec_from_file_location("validator", "branch-workflow-validator.py")
-    if spec and spec.loader:
-        validator_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(validator_module)
+    def find_validator_path(target_repo_path: Path) -> Optional[Path]:
+        """Busca el validator en múltiples ubicaciones posibles."""
+        possible_locations = [
+            # En el repositorio de destino
+            target_repo_path / ".githooks" / "branch-workflow-validator.py",
+            # En el directorio bin (donde están las herramientas)
+            Path(__file__).parent / ".githooks" / "branch-workflow-validator.py",
+            # En el directorio actual
+            Path.cwd() / ".githooks" / "branch-workflow-validator.py",
+            # En el PATH del sistema (si bin está en PATH)
+            shutil.which("branch-workflow-validator.py")
+        ]
 
-        GitRepository = validator_module.GitRepository
-        ContextDetector = validator_module.ContextDetector
-        VALIDATION_CONFIGS = validator_module.VALIDATION_CONFIGS
-    else:
-        raise ImportError("No se pudo cargar el módulo validator")
+        for location in possible_locations:
+            if location and Path(location).exists():
+                return Path(location)
+
+        return None
+
+    def load_validator_module(validator_path: Path = None, target_repo_path: Path = None):
+        """Carga el módulo validator desde la ubicación detectada."""
+        if not validator_path:
+            validator_path = find_validator_path(target_repo_path or Path.cwd())
+
+        if not validator_path:
+            raise ImportError("No se pudo encontrar branch-workflow-validator.py")
+
+        spec = importlib.util.spec_from_file_location("validator", validator_path)
+        if spec and spec.loader:
+            validator_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(validator_module)
+            return validator_module
+        else:
+            raise ImportError("No se pudo cargar el módulo validator")
+
+    # Cargar el validator (se actualizará en __init__ con la ruta correcta)
+    validator_module = None
+    GitRepository = None
+    ContextDetector = None
+    VALIDATION_CONFIGS = None
 
 except Exception as e:
     print(f"⚠️  Advertencia: No se pudieron cargar módulos locales: {e}")
@@ -51,6 +80,7 @@ except Exception as e:
     class ContextDetector:
         def __init__(self, repo): pass
         def detect_context(self): return "REMOTE"
+    VALIDATION_CONFIGS = {}
 
 # Opcional: APIs externas (si hay tokens disponibles)
 try:
@@ -160,6 +190,17 @@ class WorkflowOrchestrator:
 
     def __init__(self, repo_path: Path = None):
         self.repo_path = repo_path or Path.cwd()
+
+        # Cargar dinámicamente el validator para el proyecto target
+        global validator_module, GitRepository, ContextDetector, VALIDATION_CONFIGS
+        try:
+            validator_module = load_validator_module(target_repo_path=self.repo_path)
+            GitRepository = validator_module.GitRepository
+            ContextDetector = validator_module.ContextDetector
+            VALIDATION_CONFIGS = validator_module.VALIDATION_CONFIGS
+        except Exception as e:
+            print(f"{Fore.YELLOW}⚠️  Usando fallback básico para Git operations: {e}{Style.RESET_ALL}")
+
         self.git_repo = GitRepository(self.repo_path)
         self.context_detector = ContextDetector(self.git_repo)
         self.context = self.context_detector.detect_context()
@@ -167,6 +208,7 @@ class WorkflowOrchestrator:
         self.capability_level = self.api_caps.get_capability_level()
 
         print(f"{Fore.CYAN}🎭 Git Integration Manager iniciado{Style.RESET_ALL}")
+        print(f"{Fore.BLUE}📍 Proyecto: {Fore.YELLOW}{self.repo_path}{Style.RESET_ALL}")
         print(f"{Fore.BLUE}📍 Contexto: {Fore.YELLOW}{self.context}{Style.RESET_ALL}")
         print(f"{Fore.BLUE}⚡ Capacidades: {Fore.YELLOW}{self.capability_level.value}{Style.RESET_ALL}")
 
@@ -184,11 +226,15 @@ class WorkflowOrchestrator:
         """Construye el workflow de integración según capacidades."""
         steps = []
 
+        # Encontrar la ruta del validator
+        validator_path = find_validator_path(self.repo_path)
+        validator_cmd = str(validator_path) if validator_path else ".githooks/branch-workflow-validator.py"
+
         # Paso 1: Validación inicial
         steps.append(WorkflowStep(
             name="validate_branch",
             description="Validar estado de la rama",
-            command=f"python branch-workflow-validator.py push --target-branch {branch_name}",
+            command=f"python {validator_cmd} push --target-branch {branch_name}",
             requires_api=False
         ))
 
@@ -478,11 +524,11 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Ejemplos de uso:
-  %(prog)s integrate feature/login                    # Integrar feature completa
+  %(prog)s integrate feature/login                    # Integrar feature completa (cwd)
   %(prog)s integrate feature/login --dry-run          # Ver qué haría sin ejecutar
   %(prog)s integrate feature/login --mode api         # Usar APIs si están disponibles
-  %(prog)s health-check                              # Analizar salud del repo
-  %(prog)s cleanup                                   # Limpiar branches (dry-run)
+  %(prog)s -p /path/to/project health-check          # Analizar salud del repo específico
+  %(prog)s --path ../mi-proyecto cleanup             # Limpiar branches en otro proyecto
   %(prog)s cleanup --execute                         # Limpiar branches (ejecutar)
         """
     )
@@ -497,6 +543,13 @@ Ejemplos de uso:
         'branch_name',
         nargs='?',
         help='Nombre de la branch para integrar'
+    )
+
+    parser.add_argument(
+        '-p', '--path',
+        type=Path,
+        default=None,
+        help='Ruta del proyecto Git (por defecto: directorio actual)'
     )
 
     parser.add_argument(
@@ -521,7 +574,19 @@ Ejemplos de uso:
     args = parser.parse_args()
 
     try:
-        orchestrator = WorkflowOrchestrator()
+        # Usar la ruta especificada o el directorio actual
+        project_path = args.path or Path.cwd()
+
+        # Validar que sea un directorio válido
+        if not project_path.exists():
+            print(f"{Fore.RED}❌ Error: La ruta especificada no existe: {project_path}{Style.RESET_ALL}")
+            sys.exit(1)
+
+        if not project_path.is_dir():
+            print(f"{Fore.RED}❌ Error: La ruta especificada no es un directorio: {project_path}{Style.RESET_ALL}")
+            sys.exit(1)
+
+        orchestrator = WorkflowOrchestrator(repo_path=project_path)
 
         if args.action == 'integrate':
             if not args.branch_name:
