@@ -22,6 +22,8 @@ HEADER_END_TAG - DO NOT REMOVE OR MODIFY THIS LINE
 import sys
 import subprocess
 import shutil
+import json
+import re
 from pathlib import Path
 
 def check_npx_installed() -> bool:
@@ -43,12 +45,62 @@ def install_commitlint() -> bool:
         print(f"Error al instalar commitlint: {e.stderr}")
         return False
 
-def get_allowed_tags() -> list:
-    """Retorna la lista de TAGS permitidos para mostrar en el mensaje de error."""
-    return [
-        "IMPROVE", "FIX", "DOCS", "STYLE", "REFACTOR",
-        "PERF", "TEST", "BUILD", "CI", "CHORE"
-    ]
+def get_allowed_tags_from_config(config_file: Path) -> list:
+    """
+    Extrae dinámicamente los tags permitidos desde el archivo de configuración commitlint.config.js.
+    
+    Args:
+        config_file: Ruta al archivo commitlint.config.js
+        
+    Returns:
+        Lista de tags permitidos o lista vacía si hay error
+    """
+    try:
+        if not config_file.exists():
+            return []
+        
+        # Leer el contenido del archivo
+        content = config_file.read_text(encoding='utf-8')
+        
+        # Buscar el array de type-enum usando regex
+        # Patrón que busca 'type-enum': [nivel, 'always', [array_de_tags]]
+        pattern = r"'type-enum':\s*\[\s*\d+,\s*'always',\s*\[(.*?)\]"
+        match = re.search(pattern, content, re.DOTALL)
+        
+        if not match:
+            return []
+        
+        # Extraer los tags del array
+        tags_section = match.group(1)
+        
+        # Buscar todas las cadenas entre comillas simples
+        tag_pattern = r"'([A-Z]+)'"
+        tags = re.findall(tag_pattern, tags_section)
+        
+        return tags
+        
+    except Exception as e:
+        print(f"Advertencia: No se pudieron extraer los tags de la configuración: {e}")
+        # Fallback a tags básicos si hay error
+        return ["FEAT", "FIX", "DOCS", "CHORE"]
+
+def get_allowed_tags(config_file: Path) -> list:
+    """
+    Retorna la lista de TAGS permitidos leyéndolos dinámicamente desde la configuración.
+    
+    Args:
+        config_file: Ruta al archivo de configuración commitlint
+        
+    Returns:
+        Lista de tags permitidos
+    """
+    tags = get_allowed_tags_from_config(config_file)
+    
+    # Si no se pudieron extraer, usar fallback básico
+    if not tags:
+        tags = ["FEAT", "FIX", "DOCS", "CHORE"]
+    
+    return tags
 
 def main():
     """Función principal que ejecuta commitlint y maneja los errores."""
@@ -87,7 +139,7 @@ def main():
             commit_msg_file.unlink(missing_ok=True)
 
             print("\nSugerencia: Usa el formato [TAG] descripción")
-            print("TAGS permitidos:", ", ".join(f"[{tag}]" for tag in get_allowed_tags()))
+            print("TAGS permitidos:", ", ".join(f"[{tag}]" for tag in get_allowed_tags(config_file)))
 
             # Mostrar el error de commitlint si existe
             if result.stdout:

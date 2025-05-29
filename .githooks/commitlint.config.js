@@ -1,16 +1,16 @@
 /**
- * Configuración de commitlint que implementa un formato de commits personalizado
- * basado en el convencional pero adaptado al formato [TAG] (#Issue) Descripción.
- * Define reglas para validar el formato de los mensajes de commit, incluyendo
- * validación de tipos, scope (issue numbers) y descripción.
+ * Configuración de commitlint que implementa un formato de commits semántico
+ * con un conjunto completo de tipos de commit estandarizados. Define reglas
+ * estrictas para validar el formato [TAG] (#Issue) Descripción, incluyendo
+ * validación de tipos semánticos como FEAT, FIX, DOCS, etc.
  *
  * Copyright (C) 2025 MAURO ROSERO PÉREZ
  * License: GPLv3
  *
- * @file commitlint.config.js
+ * @file commitlint.config.semantic.js.def
  * @version 0.1.0
  * @author Mauro Rosero P. <mauro.rosero@gmail.com>
- * @created 2025-05-19 20:56:28
+ * @created 2025-05-12 21:56:33
  *
  * This file is managed by template_manager.py.
  * Any changes to this header will be overwritten on the next fix.
@@ -18,43 +18,40 @@
  * HEADER_END_TAG - DO NOT REMOVE OR MODIFY THIS LINE
  */
 
-
 const requireIssueFromMeta = process.env.REQUIRE_ISSUE_FROM_META === 'true';
+const VERSION = "0.1.0"; // Version para el script de versionado
 
 module.exports = {
-  // extends: ['@commitlint/config-conventional'], // Eliminado para control total con el parserPreset personalizado
   parserPreset: {
     parserOpts: {
-      // Consistente con los otros archivos: [TAG] (#IssueNumber opcional) Descripción
       headerPattern: /^\[([A-Z]+)\](?: \((#\d+)\))? (.*)$/,
       headerCorrespondence: ['type', 'scope', 'subject'],
     },
   },
   rules: {
-    // --- Reglas para TYPE (el TAG) ---
-    'type-enum': [2, 'always', [
-      'IMPROVE', 'FIX', 'DOCS', 'STYLE', 'REFACTOR',
-      'PERF', 'TEST', 'BUILD', 'CI', 'CHORE'
-    ]],
-    'type-case': [2, 'always', 'upper-case'], // Asegurar que el TAG sea mayúsculas
-    'type-empty': [2, 'never'], // El TAG es obligatorio
-
-    // --- Reglas para SCOPE (el #IssueNumber) ---
-    'scope-empty': [requireIssueFromMeta ? 2 : 0, 'never'],
-    'scope-case': [2, 'always', 'lower-case'], // Consistente con otros archivos
-    // No se añade 'scope-pattern' ya que el headerPattern del parserPreset lo maneja.
-
-    // --- Reglas para SUBJECT (la descripción) ---
-    'subject-empty': [2, 'never'],
-    'subject-case': [
+    'type-enum': [
       2,
       'always',
-      ['sentence-case', 'lower-case'] // Se mantiene como estaba
+      [
+        'FEAT',     // Nueva característica
+        'FIX',      // Corrección de bug
+        'DOCS',     // Cambios en documentación
+        'STYLE',    // Cambios que no afectan el significado del código
+        'REFACTOR', // Refactorización de código
+        'PERF',     // Cambios que mejoran el rendimiento
+        'TEST',     // Añadir o corregir tests
+        'BUILD',    // Cambios que afectan el sistema de build
+        'CI',       // Cambios en archivos y scripts de CI
+        'CHORE',    // Otros cambios que no modifican src o test
+        'REVERT'    // Revertir un commit
+      ]
     ],
-
-    // --- Reglas generales del HEADER ---
+    'type-case': [2, 'always', 'upper-case'],
+    'type-empty': [2, 'never'],
+    'scope-empty': [requireIssueFromMeta ? 2 : 0, 'never'],
+    'scope-case': [2, 'always', 'lower-case'],
+    'subject-empty': [2, 'never'],
+    'subject-case': [2, 'always', 'sentence-case'],
     'header-max-length': [2, 'always', 100]
-
-    // Otras reglas de config-conventional que se deseen replicar deberían añadirse explícitamente aquí.
   }
 };
