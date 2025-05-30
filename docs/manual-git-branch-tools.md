@@ -2665,3 +2665,407 @@ Para operaciones que no requieren APIs, el sistema genera los comandos Git equiv
 Esta integración híbrida permite que el Integration Manager sea útil en cualquier contexto, desde proyectos personales hasta entornos empresariales complejos, adaptándose automáticamente a las capacidades disponibles.
 
 ---
+
+## Branch Workflow Validator - Validación Contextual
+
+### Introducción y Propósito
+
+Branch Workflow Validator es el sistema de validación contextual del ecosistema Git Branch Tools, diseñado para verificar operaciones Git antes de ejecutarlas y prevenir errores comunes en el flujo de trabajo. Su propósito principal es actuar como una red de seguridad inteligente que se adapta automáticamente al contexto del proyecto.
+
+El validador funciona como un guardian contextual que analiza cada operación Git (commits, pushes, merges, creación/eliminación de branches) y aplica diferentes niveles de validación según el entorno detectado. Esto significa que las mismas operaciones pueden ser permisivas en proyectos personales pero estrictas en entornos empresariales.
+
+**¿Por qué implementar un Workflow Validator?**
+
+El Workflow Validator es esencial para mantener la integridad y calidad del código en cualquier proyecto Git, independientemente de su escala. Actúa como un sistema de control preventivo que:
+
+- Intercepta operaciones potencialmente problemáticas antes de que afecten el repositorio
+- Guía a los desarrolladores hacia mejores prácticas de Git
+- Asegura consistencia en el flujo de trabajo del equipo
+- Se adapta automáticamente según el contexto del proyecto
+
+**Prevención Proactiva de Errores**: El validador intercepta operaciones problemáticas antes de que causen daño, como pushes directos a ramas protegidas, nombres de ramas incorrectos, o operaciones sin upstream tracking configurado.
+
+**Educación Contextual**: En contextos permisivos, el validador actúa como mentor, sugiriendo mejores prácticas sin bloquear el trabajo. En contextos estrictos, enforza políticas corporativas sin excepciones.
+
+**Consistencia de Equipo**: Asegura que todos los miembros del equipo sigan las mismas reglas y convenciones, independientemente de su nivel de experiencia con Git.
+
+**Adaptación Automática**: El validador evoluciona con el proyecto, desde validaciones educativas en proyectos personales hasta compliance empresarial en entornos corporativos.
+
+### Niveles de Validación
+
+El validador implementa tres niveles de validación que se adaptan automáticamente al contexto detectado:
+
+#### Nivel PERMISSIVE (Contexto LOCAL)
+
+**Características:**
+
+- Solo muestra warnings educativos
+- No bloquea ninguna operación
+- Enfoque en enseñar mejores prácticas
+- Máxima flexibilidad para experimentación
+
+**Configuración:**
+
+```json
+{
+  "level": "permissive",
+  "protected_branches": ["main", "master"],
+  "require_upstream": false,
+  "require_pr": false,
+  "allow_direct_push_to_main": true,
+  "enforce_branch_naming": false,
+  "require_linear_history": false
+}
+```
+
+**Ejemplo de salida:**
+
+```bash
+$ branch-workflow-validator.py push --target-branch main
+
+🔍 Resultados de Validación
+  ℹ️  Contexto detectado: LOCAL (nivel: permissive)
+  ⚠️  Nombre de rama 'experimental-feature' no sigue convenciones recomendadas
+  ℹ️  Push directo a 'main' permitido en contexto LOCAL
+  ⚠️  Considera usar formato: feature/descripcion para mejor organización
+
+✅ Todas las validaciones pasaron exitosamente
+```
+
+#### Nivel MODERATE (Contexto HYBRID)
+
+**Características:**
+
+- Combina warnings con algunos bloqueos críticos
+- Balance entre flexibilidad y control
+- Ideal para equipos pequeños en crecimiento
+- Enforza convenciones importantes pero no obsesivamente
+
+**Configuración:**
+
+```json
+{
+  "level": "moderate",
+  "protected_branches": ["main", "master", "develop"],
+  "require_upstream": true,
+  "require_pr": false,
+  "allow_direct_push_to_main": false,
+  "enforce_branch_naming": true,
+  "require_linear_history": false
+}
+```
+
+**Ejemplo de salida:**
+
+```bash
+$ branch-workflow-validator.py push --target-branch main
+
+🔍 Resultados de Validación
+  ℹ️  Contexto detectado: HYBRID (nivel: moderate)
+  ✅ Nombre válido para rama feature: feature/nueva-funcionalidad
+  ❌ Push directo a rama protegida 'main' no permitido. Usar Pull Request.
+  ⚠️  Se requiere Pull Request para cambios en 'main'
+
+❌ 1 error(es) encontrado(s)
+```
+
+#### Nivel STRICT (Contexto REMOTE)
+
+**Características:**
+
+- Validación estricta con cero tolerancia
+- Bloquea operaciones que no cumplan políticas
+- Compliance empresarial completo
+- Auditoría y trazabilidad obligatoria
+
+**Configuración:**
+
+```json
+{
+  "level": "strict",
+  "protected_branches": ["main", "master", "develop", "staging", "release"],
+  "require_upstream": true,
+  "require_pr": true,
+  "allow_direct_push_to_main": false,
+  "enforce_branch_naming": true,
+  "require_linear_history": true
+}
+```
+
+**Ejemplo de salida:**
+
+```bash
+$ branch-workflow-validator.py commit
+
+🔍 Resultados de Validación
+  ℹ️  Contexto detectado: REMOTE (nivel: strict)
+  ✅ Nombre válido para rama feature: feature/microservicio-pagos
+  ✅ Rama 'feature/microservicio-pagos' creada correctamente desde 'develop'
+  ✅ No hay conflictos de merge pendientes
+
+✅ Todas las validaciones pasaron exitosamente
+```
+
+### Reglas de Validación
+
+El validador de ramas implementa un conjunto de reglas que varían según el contexto de ejecución (LOCAL, HYBRID, REMOTE) y el nivel de validación (relaxed, moderate, strict). Estas reglas aseguran la integridad del flujo de trabajo Git y previenen operaciones potencialmente peligrosas.
+
+#### Validación de Nombres de Rama
+
+El validador enforza convenciones de naming según patrones predefinidos:
+
+**Patrones Soportados:**
+
+- `feature/descripcion-clara`: Nuevas funcionalidades
+- `fix/descripcion-del-problema`: Correcciones de bugs
+- `hotfix/descripcion-urgente`: Correcciones críticas
+- `docs/tema-documentacion`: Cambios de documentación
+- `refactor/area-refactorizada`: Refactorización de código
+- `test/area-testing`: Añadir o mejorar tests
+- `chore/tarea-mantenimiento`: Tareas de mantenimiento
+- `release/v1.0.0`: Ramas de release con versionado
+
+**Ramas Principales Válidas:**
+
+- `main`, `master`, `develop`, `staging`
+
+**Ejemplos de validación:**
+
+```bash
+# ✅ Nombres válidos
+feature/nueva-autenticacion
+fix/error-calculo-iva
+hotfix/vulnerabilidad-critica
+docs/api-reference
+refactor/estructura-modulos
+test/unit-tests-auth
+chore/actualizar-dependencias
+release/v2.1.0
+
+# ❌ Nombres inválidos (en contexto strict)
+nueva-feature              # Falta prefijo de tipo
+feature-nueva              # Formato incorrecto
+experimental               # No sigue convención
+temp-fix                   # Formato incorrecto
+```
+
+#### Validación de Ramas Protegidas
+
+El validador previene operaciones peligrosas en ramas protegidas:
+
+**Operaciones Validadas:**
+
+- **Push directo**: Bloquea push directo a ramas protegidas en contextos moderate/strict
+- **Eliminación**: Previene eliminación accidental de ramas críticas
+- **Merge directo**: Enforza uso de Pull Requests cuando corresponde
+
+**Ejemplo de configuración por contexto:**
+
+```python
+# LOCAL: Solo main/master protegidas, push directo permitido
+"protected_branches": ["main", "master"]
+"allow_direct_push_to_main": true
+
+# HYBRID: Añade develop, push directo bloqueado
+"protected_branches": ["main", "master", "develop"]
+"allow_direct_push_to_main": false
+
+# REMOTE: Protección completa
+"protected_branches": ["main", "master", "develop", "staging", "release"]
+"allow_direct_push_to_main": false
+```
+
+#### Validación de Upstream Tracking
+
+El validador verifica configuración de upstream para asegurar sincronización:
+
+**Verificaciones:**
+
+- Rama actual tiene upstream configurado
+- Upstream apunta al remoto correcto
+- No hay configuraciones huérfanas
+
+**Comportamiento por contexto:**
+
+```bash
+# LOCAL: Opcional (solo warning)
+⚠️  Rama 'feature/nueva-api' no tiene upstream tracking. Usar: git push -u origin feature/nueva-api
+
+# HYBRID/REMOTE: Obligatorio (error)
+❌ Rama 'feature/nueva-api' no tiene upstream tracking. Usar: git push -u origin feature/nueva-api
+```
+
+#### Validación de Rama Base
+
+El validador verifica que las ramas se hayan creado desde la rama base correcta:
+
+**Reglas por tipo de rama:**
+
+- `hotfix/*`: Debe crearse desde `main` o `master`
+- `feature/*`, `fix/*`, `docs/*`, `refactor/*`, `test/*`, `chore/*`: Desde `develop` o `main`
+- `release/*`: Desde `develop`
+
+**Verificación técnica:**
+
+```bash
+# El validador usa git merge-base para verificar el ancestro
+git merge-base --is-ancestor develop feature/nueva-api
+# Si retorna 0, la rama se creó correctamente desde develop
+```
+
+#### Validación de Conflictos de Merge
+
+El validador detecta conflictos pendientes antes de operaciones críticas:
+
+**Detección:**
+
+```bash
+# Busca archivos con conflictos no resueltos
+git diff --name-only --diff-filter=U
+```
+
+**Bloqueo:**
+
+```bash
+❌ Conflictos de merge detectados en: src/auth.py, config/settings.py
+```
+
+#### Validación de Requerimiento de Pull Request
+
+En contextos estrictos, el validador enforza uso de Pull Requests:
+
+**Criterios:**
+
+- Operaciones en ramas protegidas requieren PR
+- Push directo bloqueado en contexto strict
+- Warnings en contexto moderate
+
+### Integración con Git Hooks
+
+El validador está diseñado para integrarse seamlessly con Git hooks para validación automática:
+
+#### Pre-Commit Hook
+
+El hook pre-commit se ejecuta automáticamente antes de cada commit para validar que los cambios cumplan con las reglas del workflow. Este hook actúa como primera línea de defensa, verificando el formato del mensaje de commit, la rama base y otros criterios antes de permitir que el commit se complete.
+
+**Contenido del hook:**
+
+```bash
+#!/bin/bash
+# .git/hooks/pre-commit
+
+# Ejecutar validación de commit
+python3 .githooks/branch-workflow-validator.py commit
+
+# Si falla, bloquear commit
+if [ $? -ne 0 ]; then
+    echo "❌ Commit bloqueado por validaciones fallidas"
+    exit 1
+fi
+```
+
+#### Pre-Push Hook
+
+El hook pre-push se ejecuta automáticamente antes de cada push para validar que la operación cumpla con las reglas del workflow. Este hook actúa como segunda línea de defensa, verificando que el push sea permitido según el contexto de la rama destino y las políticas establecidas.
+
+**Contenido del hook:**
+
+```bash
+#!/bin/bash
+# .git/hooks/pre-push
+
+# Obtener información del push
+while read local_ref local_sha remote_ref remote_sha; do
+    # Extraer nombre de rama remota
+    remote_branch=$(echo $remote_ref | sed 's/refs\/heads\///')
+
+    # Validar push
+    python3 .githooks/branch-workflow-validator.py push --target-branch $remote_branch
+
+    if [ $? -ne 0 ]; then
+        echo "❌ Push bloqueado por validaciones fallidas"
+        exit 1
+    fi
+done
+
+exit 0
+```
+
+#### Configuración de Hooks
+
+El ecosistema utiliza el framework **pre-commit** para gestionar los hooks de Git. La configuración está centralizada en `.pre-commit-config.yaml` que ya incluye la integración con el Branch Workflow Validator.
+
+**Configuración con Pre-commit Framework:**
+
+1. **Verificar pre-commit** (braintools ya maneja la instalación):
+
+   ```bash
+   # Verificar que pre-commit esté instalado
+   pre-commit --version
+   ```
+
+2. **Instalar hooks en el repositorio**:
+   ```bash
+   # Si usas braintools, la configuración es automática
+
+   # Si no usas braintools, instalar manualmente:
+   # pre-commit install
+   # pre-commit install --hook-type commit-msg
+   # pre-commit install --hook-type pre-push
+   ```
+
+3. **Verificar instalación**:
+   ```bash
+   # Verificar que los hooks estén instalados
+   ls -la .git/hooks/
+
+   # Probar hooks manualmente
+   pre-commit run --all-files
+
+   # Probar el validador específico
+   .githooks/branch-workflow-validator.py status
+   ```
+
+**Configuración incluida automáticamente en `.pre-commit-config.yaml`:**
+
+```yaml
+# Branch Workflow Commit Validation
+- repo: local
+  hooks:
+    - id: branch-workflow-commit
+      name: branch-workflow-commit-validator
+      entry: .githooks/branch-workflow-validator.py commit
+      language: system
+      stages: [pre-commit]
+      pass_filenames: false
+      always_run: true
+      verbose: true
+
+# Branch Workflow Push Validation
+- repo: local
+  hooks:
+    - id: branch-workflow-push
+      name: branch-workflow-push-validator
+      entry: .githooks/branch-workflow-validator.py push
+      language: system
+      stages: [pre-push]
+      pass_filenames: false
+      always_run: true
+      verbose: true
+```
+
+**Ejecución manual para pruebas:**
+```bash
+# Ejecutar todos los hooks
+pre-commit run --all-files
+
+# Ejecutar solo el validador de workflow
+pre-commit run branch-workflow-commit
+pre-commit run branch-workflow-push
+
+# Ejecutar directamente el validador
+.githooks/branch-workflow-validator.py commit
+.githooks/branch-workflow-validator.py push --target-branch main
+```
+
+---
