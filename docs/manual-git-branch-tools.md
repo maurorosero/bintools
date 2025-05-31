@@ -17,12 +17,15 @@ PARSEABLE_METADATA_END -->
    - [Requisitos y Dependencias](#requisitos-y-dependencias)
    - [Instalación y Configuración Inicial](#instalación-y-configuración-inicial)
 
-2. [Arquitectura del Sistema](#arquitectura-del-sistema)
+2. [Componentes y Estructura](#componentes-y-estructura)
+   - [Arquitectura del Ecosistema](#arquitectura-del-ecosistema)
    - [Diagrama de Componentes](#diagrama-de-componentes)
    - [Flujo de Datos entre Herramientas](#flujo-de-datos-entre-herramientas)
    - [Detección Automática de Contexto](#detección-automática-de-contexto)
    - [Niveles de Capacidades](#niveles-de-capacidades)
-   - [Integración con Plataformas Git](#integración-con-plataformas-git)
+   - [Contextos Soportados](#contextos-soportados)
+   - [Impacto en el Comportamiento](#impacto-en-el-comportamiento)
+   - [Ejemplo de Adaptación](#ejemplo-de-adaptación)
 
 3. [Git Tokens Manager - Gestión Segura de Tokens](#git-tokens-manager---gestión-segura-de-tokens)
    - [Introducción y Propósito](#introducción-y-propósito)
@@ -35,11 +38,11 @@ PARSEABLE_METADATA_END -->
    - [Configuración y Seguridad](#configuración-y-seguridad)
 
 4. [Branch Git Helper - Gestión Inteligente de Ramas](#branch-git-helper---gestión-inteligente-de-ramas)
-   - [Introducción y Propósito](#introducción-y-propósito)
+   - [Introducción y Propósito](#introducción-y-propósito-1)
    - [Tipos de Branch Soportados](#tipos-de-branch-soportados)
-   - [Detección Automática de Contexto](#detección-automática-de-contexto)
+   - [Detección Automática de Contexto](#detección-automática-de-contexto-1)
    - [Prioridades de Branch Base](#prioridades-de-branch-base)
-   - [Comandos y Sintaxis](#comandos-y-sintaxis)
+   - [Comandos y Sintaxis](#comandos-y-sintaxis-1)
    - [Ejemplos Prácticos](#ejemplos-prácticos)
 
 5. [Git Integration Manager - Orquestador de Workflows](#git-integration-manager---orquestador-de-workflows)
@@ -56,7 +59,6 @@ PARSEABLE_METADATA_END -->
    - [Niveles de Validación](#niveles-de-validación)
    - [Reglas de Validación](#reglas-de-validación)
    - [Integración con Git Hooks](#integración-con-git-hooks)
-   - [Comandos y Sintaxis](#comandos-y-sintaxis-3)
 
 7. [Workflows Completos End-to-End](#workflows-completos-end-to-end)
    - [Workflow de Feature Development](#workflow-de-feature-development)
