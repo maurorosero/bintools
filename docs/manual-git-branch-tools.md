@@ -68,22 +68,26 @@ PARSEABLE_METADATA_END -->
    - [Workflow Empresarial Completo](#workflow-empresarial-completo)
 
 8. [Configuración Avanzada](#configuración-avanzada)
-   - [Variables de Entorno](#variables-de-entorno)
-   - [Archivos de Configuración](#archivos-de-configuración)
-   - [Personalización por Proyecto](#personalización-por-proyecto)
-   - [Integración con CI/CD](#integración-con-cicd)
+   - [Detección Automática de Contexto](#detección-automática-de-contexto)
+   - [Configuración de Tokens](#configuración-de-tokens)
+   - [Branch Protection Automática](#branch-protection-automática)
+   - [Validación Contextual](#validación-contextual)
+   - [Integración Básica con CI/CD](#integración-básica-con-cicd)
+   - [Configuración Git Estándar](#configuración-git-estándar)
+   - [Health Checks y Mantenimiento](#health-checks-y-mantenimiento)
+   - [Configuración de Aliases Git](#configuración-de-aliases-git)
 
-9. [Troubleshooting y FAQ](#troubleshooting-y-faq)
-   - [Problemas Comunes](#problemas-comunes)
-   - [Diagnóstico de Errores](#diagnóstico-de-errores)
-   - [Preguntas Frecuentes](#preguntas-frecuentes)
-   - [Logs y Debugging](#logs-y-debugging)
-
-10. [Casos de Uso Avanzados](#casos-de-uso-avanzados)
+9. [Casos de Uso Avanzados](#casos-de-uso-avanzados)
     - [Desarrollo Multi-repositorio](#desarrollo-multi-repositorio)
     - [Equipos Distribuidos](#equipos-distribuidos)
     - [Integración Empresarial](#integración-empresarial)
     - [Automatización DevOps](#automatización-devops)
+
+10. [Troubleshooting y FAQ](#troubleshooting-y-faq)
+   - [Problemas Comunes](#problemas-comunes)
+   - [Diagnóstico de Errores](#diagnóstico-de-errores)
+   - [Preguntas Frecuentes](#preguntas-frecuentes)
+   - [Logs y Debugging](#logs-y-debugging)
 
 ---
 
@@ -4029,28 +4033,105 @@ Este conjunto de workflows demuestra cómo el ecosistema Git Branch Tools se ada
 
 ## Configuración Avanzada
 
-Esta sección cubre la configuración avanzada del ecosistema Git Branch Tools, incluyendo variables de entorno, archivos de configuración, personalización por proyecto e integración con sistemas CI/CD. La configuración avanzada permite adaptar el comportamiento del ecosistema a necesidades específicas y entornos complejos.
+Esta sección cubre la configuración avanzada del ecosistema Git Branch Tools que está **actualmente implementada**. El ecosistema utiliza principalmente detección automática de contexto y configuración basada en el entorno Git existente.
 
-> **📋 NOTA IMPORTANTE:** Esta sección documenta tanto funcionalidades **implementadas** como **planificadas**. Cada subsección está claramente marcada con su estado actual.
+> **📋 NOTA IMPORTANTE:** Esta sección documenta **únicamente funcionalidades implementadas**. Las configuraciones avanzadas planificadas se desarrollarán en futuras versiones.
 
-### Variables de Entorno
+### Detección Automática de Contexto
 
-> **🚧 ESTADO: PARCIALMENTE IMPLEMENTADO**
-> - ✅ **Implementado**: Detección automática de contexto (LOCAL/HYBRID/REMOTE)
-> - ❌ **Por implementar**: Variables de entorno específicas del ecosistema
+> **✅ IMPLEMENTADO**: Sistema completo de detección de contexto
 
-El ecosistema Git Branch Tools utiliza variables de entorno para configurar comportamientos globales y proporcionar fallbacks cuando otras configuraciones no están disponibles. Estas variables permiten personalizar el comportamiento sin modificar archivos de configuración.
+El ecosistema Git Branch Tools detecta automáticamente el contexto de trabajo (LOCAL/HYBRID/REMOTE) analizando las características del repositorio y ajusta su comportamiento en consecuencia.
 
-#### Variables de Tokens
+#### ¿Cómo funciona la detección?
 
-> **✅ IMPLEMENTADO**: El sistema básico de tokens existe en `git-tokens.py`
+**Criterios de Detección:**
 
-Las variables de entorno de tokens proporcionan un método alternativo para configurar credenciales, especialmente útil en entornos CI/CD donde el keyring del sistema no está disponible.
-
-**Formato de Variables de Token:**
+El sistema analiza múltiples factores para determinar el contexto:
 
 ```bash
-# Formato general: GIT_TOKEN_[SERVICIO]
+# ✅ IMPLEMENTADO: Detección automática
+git-integration-manager.py status
+# → Analiza automáticamente:
+#   - Número de colaboradores
+#   - Configuración de remotes
+#   - Presencia de branch protection
+#   - Historial de commits
+#   - Configuración de CI/CD
+```
+
+**Contextos Detectados:**
+
+1. **LOCAL**: Proyectos personales o experimentales
+   - Pocos colaboradores (1-2)
+   - Sin branch protection configurada
+   - Historial de commits simple
+   - Validación permisiva y educativa
+
+2. **HYBRID**: Proyectos de equipo pequeño
+   - Colaboradores moderados (3-10)
+   - Branch protection básica
+   - Workflows de equipo establecidos
+   - Validación moderada con guías
+
+3. **REMOTE**: Proyectos empresariales o críticos
+   - Muchos colaboradores (10+)
+   - Branch protection estricta configurada
+   - Workflows complejos de CI/CD
+   - Validación estricta y compliance
+
+#### Verificación del Contexto Detectado
+
+```bash
+# ✅ IMPLEMENTADO: Verificar contexto actual
+git-integration-manager.py status
+# Salida ejemplo:
+# Contexto detectado: REMOTE
+# Nivel de validación: strict
+# Branch protection: habilitada
+# Colaboradores detectados: 15
+# CI/CD detectado: GitHub Actions
+```
+
+### Configuración de Tokens
+
+> **✅ IMPLEMENTADO**: Sistema completo de gestión de tokens
+
+El ecosistema utiliza `git-tokens.py` para gestionar de forma segura los tokens de autenticación para APIs de plataformas Git.
+
+#### Gestión de Tokens con Keyring
+
+**Configuración interactiva:**
+
+```bash
+# ✅ IMPLEMENTADO: Configuración interactiva de tokens
+git-tokens.py
+# → Modo interactivo para configurar tokens de forma segura
+```
+
+**Configuración por línea de comandos:**
+
+```bash
+# ✅ IMPLEMENTADO: Configuración específica por servicio
+git-tokens.py --service github --token "ghp_your_token_here"
+git-tokens.py --service gitlab --token "glpat_your_token_here"
+git-tokens.py --service gitea --token "gitea_your_token_here"
+```
+
+**Servicios soportados:**
+
+- GitHub (cloud)
+- GitLab (cloud y on-premise)
+- Gitea
+- Forgejo (cloud y on-premise)
+- Bitbucket (cloud y server)
+
+#### Variables de Entorno como Fallback
+
+**Para entornos CI/CD:**
+
+```bash
+# ✅ IMPLEMENTADO: Variables de entorno soportadas
 export GIT_TOKEN_GITHUB="ghp_xxxxxxxxxxxxxxxxxxxx"
 export GIT_TOKEN_GITLAB="glpat_xxxxxxxxxxxxxxxxxxxx"
 export GIT_TOKEN_GITEA="gitea_xxxxxxxxxxxxxxxxxxxx"
@@ -4058,1068 +4139,231 @@ export GIT_TOKEN_FORGEJO="forgejo_xxxxxxxxxxxxxxxxxxxx"
 export GIT_TOKEN_BITBUCKET="bitbucket_xxxxxxxxxxxxxxxxxxxx"
 ```
 
-**Configuración por Servicio:**
-
-```bash
-# GitHub (cloud)
-export GIT_TOKEN_GITHUB="ghp_1234567890abcdef"
-
-# GitLab Cloud
-export GIT_TOKEN_GITLAB_C="glpat_1234567890abcdef"
-
-# GitLab On-premise
-export GIT_TOKEN_GITLAB_O="glpat_1234567890abcdef"
-export GIT_HOST_GITLAB_O="gitlab.empresa.com"
-
-# Gitea
-export GIT_TOKEN_GITEA="gitea_1234567890abcdef"
-export GIT_HOST_GITEA="gitea.empresa.com"
-
-# Forgejo Cloud
-export GIT_TOKEN_FORGEJO_C="forgejo_1234567890abcdef"
-
-# Forgejo On-premise
-export GIT_TOKEN_FORGEJO_O="forgejo_1234567890abcdef"
-export GIT_HOST_FORGEJO_O="forgejo.empresa.com"
-
-# Bitbucket Cloud
-export GIT_TOKEN_BITBUCKET_C="bitbucket_1234567890abcdef"
-
-# Bitbucket Server
-export GIT_TOKEN_BITBUCKET_O="bitbucket_1234567890abcdef"
-export GIT_HOST_BITBUCKET_O="bitbucket.empresa.com"
-```
-
-**Prioridad de Configuración:**
+**Prioridad de configuración:**
 
 1. **Keyring del sistema** (más seguro, recomendado)
 2. **Variables de entorno** (fallback para CI/CD)
-3. **Archivos de configuración** (legacy, no recomendado)
 
-#### Variables de Comportamiento
+### Branch Protection Automática
 
-> **❌ POR IMPLEMENTAR**: Variables específicas del ecosistema
+> **✅ IMPLEMENTADO**: Configuración automática de branch protection
 
-Estas variables controlan el comportamiento general del ecosistema:
+El `git-integration-manager.py` puede configurar automáticamente branch protection en repositorios remotos cuando detecta contexto REMOTE.
 
-**Variables de Contexto:**
+#### Configuración de Protección
 
-```bash
-# 🚧 POR IMPLEMENTAR: Forzar contexto específico (sobrescribe detección automática)
-export GIT_BRANCH_TOOLS_CONTEXT="LOCAL"    # LOCAL, HYBRID, REMOTE
-export GIT_BRANCH_TOOLS_CONTEXT="HYBRID"
-export GIT_BRANCH_TOOLS_CONTEXT="REMOTE"
-
-# 🚧 POR IMPLEMENTAR: Nivel de validación específico
-export GIT_BRANCH_TOOLS_VALIDATION="strict"  # permissive, moderate, strict
-```
-
-> **📝 NOTA**: Actualmente el contexto se detecta automáticamente. La funcionalidad para forzar contexto via variables de entorno está planificada.
-
-**Variables de Configuración:**
+**Configurar protección remota:**
 
 ```bash
-# 🚧 POR IMPLEMENTAR: Configuración de timeouts (en segundos)
-export GIT_BRANCH_TOOLS_API_TIMEOUT="30"
-export GIT_BRANCH_TOOLS_GIT_TIMEOUT="60"
+# ✅ IMPLEMENTADO: Configuración automática
+git-integration-manager.py setup-remote-protection --strategy remote
+# → Configura branch protection según mejores prácticas detectadas
 
-# 🚧 POR IMPLEMENTAR: Configuración de reintentos
-export GIT_BRANCH_TOOLS_API_RETRIES="3"
-export GIT_BRANCH_TOOLS_GIT_RETRIES="2"
+# ✅ IMPLEMENTADO: Configuración híbrida (local + remoto)
+git-integration-manager.py setup-remote-protection --strategy hybrid
+# → Combina validación local con protección remota
 
-# 🚧 POR IMPLEMENTAR: Configuración de logging
-export GIT_BRANCH_TOOLS_LOG_LEVEL="INFO"    # DEBUG, INFO, WARNING, ERROR
-export GIT_BRANCH_TOOLS_LOG_FILE="/path/to/logfile.log"
-
-# 🚧 POR IMPLEMENTAR: Configuración de cache
-export GIT_BRANCH_TOOLS_CACHE_DIR="~/.cache/git-branch-tools"
-export GIT_BRANCH_TOOLS_CACHE_TTL="3600"    # TTL en segundos
+# ✅ IMPLEMENTADO: Solo validación local
+git-integration-manager.py setup-remote-protection --strategy local
+# → Solo aplica validaciones locales
 ```
 
-**Variables de Funcionalidades:**
+#### Verificación de Estado de Protección
 
 ```bash
-# 🚧 POR IMPLEMENTAR: Habilitar/deshabilitar funcionalidades específicas
-export GIT_BRANCH_TOOLS_ENABLE_API="true"           # APIs de plataformas
-export GIT_BRANCH_TOOLS_ENABLE_HOOKS="true"         # Git hooks automáticos
-export GIT_BRANCH_TOOLS_ENABLE_ALIASES="true"       # Git aliases
-export GIT_BRANCH_TOOLS_ENABLE_VALIDATION="true"    # Validación automática
+# ✅ IMPLEMENTADO: Verificar estado actual
+git-integration-manager.py protection-status
+# → Muestra estado de branch protection
 
-# 🚧 POR IMPLEMENTAR: Configuración de push automático
-export GIT_BRANCH_TOOLS_AUTO_PUSH="true"            # Push automático por defecto
-export GIT_BRANCH_TOOLS_AUTO_UPSTREAM="true"        # Configurar upstream automáticamente
+# ✅ IMPLEMENTADO: Comparar local vs remoto
+git-integration-manager.py protection-status --compare
+# → Compara configuración local con remota
 
-# 🚧 POR IMPLEMENTAR: Configuración de sincronización
-export GIT_BRANCH_TOOLS_AUTO_SYNC="true"            # Sincronizar antes de crear branches
-export GIT_BRANCH_TOOLS_SYNC_TIMEOUT="30"           # Timeout para sincronización
+# ✅ IMPLEMENTADO: Sincronizar reglas
+git-integration-manager.py sync-protection-rules
+# → Sincroniza reglas de protección
 ```
 
-#### Variables de Debugging
+### Validación Contextual
 
-> **❌ POR IMPLEMENTAR**: Sistema de debugging avanzado
+> **✅ IMPLEMENTADO**: Sistema de validación adaptativa
 
-Para troubleshooting y desarrollo:
+El `branch-workflow-validator.py` implementa validación que se adapta automáticamente al contexto detectado.
+
+#### Validación de Commits
 
 ```bash
-# 🚧 POR IMPLEMENTAR: Debugging general
-export GIT_BRANCH_TOOLS_DEBUG="true"
-export GIT_BRANCH_TOOLS_VERBOSE="true"
+# ✅ IMPLEMENTADO: Validación de commits
+branch-workflow-validator.py commit
+# → Valida el último commit según el contexto
 
-# 🚧 POR IMPLEMENTAR: Debugging específico por componente
-export GIT_BRANCH_TOOLS_DEBUG_API="true"
-export GIT_BRANCH_TOOLS_DEBUG_VALIDATION="true"
-export GIT_BRANCH_TOOLS_DEBUG_CONTEXT="true"
-
-# 🚧 POR IMPLEMENTAR: Modo dry-run global
-export GIT_BRANCH_TOOLS_DRY_RUN="true"
-
-# 🚧 POR IMPLEMENTAR: Configuración de testing
-export GIT_BRANCH_TOOLS_TEST_MODE="true"
-export GIT_BRANCH_TOOLS_MOCK_API="true"
+# ✅ IMPLEMENTADO: Validación de push
+branch-workflow-validator.py push --target-branch main
+# → Valida antes de hacer push a una rama específica
 ```
 
-#### Configuración en Diferentes Shells
+#### Niveles de Validación por Contexto
 
-> **✅ IMPLEMENTADO**: Para tokens existentes | **❌ POR IMPLEMENTAR**: Para variables del ecosistema
+**LOCAL (Permisivo):**
+- Validación educativa con sugerencias
+- No bloquea operaciones
+- Proporciona guías de mejores prácticas
 
-**Bash/Zsh (.bashrc, .zshrc):**
+**HYBRID (Moderado):**
+- Validación con advertencias
+- Bloquea operaciones riesgosas
+- Requiere confirmación para acciones críticas
 
-```bash
-# ✅ IMPLEMENTADO: Configuración de tokens
-export GIT_TOKEN_GITHUB="ghp_your_token_here"
+**REMOTE (Estricto):**
+- Validación estricta
+- Bloquea operaciones no conformes
+- Requiere cumplimiento de políticas
 
-# 🚧 POR IMPLEMENTAR: Configuración del ecosistema
-export GIT_BRANCH_TOOLS_CONTEXT="HYBRID"
-export GIT_BRANCH_TOOLS_AUTO_PUSH="true"
-export GIT_BRANCH_TOOLS_LOG_LEVEL="INFO"
-```
+### Integración Básica con CI/CD
 
-**Fish (.config/fish/config.fish):**
+> **✅ IMPLEMENTADO**: Workflows básicos de CI/CD
 
-```fish
-# ✅ IMPLEMENTADO: Configuración de tokens
-set -gx GIT_TOKEN_GITHUB "ghp_your_token_here"
-
-# 🚧 POR IMPLEMENTAR: Configuración del ecosistema
-set -gx GIT_BRANCH_TOOLS_CONTEXT "HYBRID"
-set -gx GIT_BRANCH_TOOLS_AUTO_PUSH "true"
-set -gx GIT_BRANCH_TOOLS_LOG_LEVEL "INFO"
-```
-
-**PowerShell (Windows):**
-
-```powershell
-# ✅ IMPLEMENTADO: Configuración de tokens
-$env:GIT_TOKEN_GITHUB = "ghp_your_token_here"
-
-# 🚧 POR IMPLEMENTAR: Configuración del ecosistema
-$env:GIT_BRANCH_TOOLS_CONTEXT = "HYBRID"
-$env:GIT_BRANCH_TOOLS_AUTO_PUSH = "true"
-$env:GIT_BRANCH_TOOLS_LOG_LEVEL = "INFO"
-```
-
-### Archivos de Configuración
-
-> **❌ POR IMPLEMENTAR**: Sistema completo de archivos de configuración
-
-El ecosistema soporta múltiples archivos de configuración para diferentes niveles de personalización. Los archivos de configuración permiten configuraciones más complejas y específicas que las variables de entorno.
-
-#### Configuración Global
-
-> **🚧 PLANIFICADO**: Sistema de configuración global
-
-**Ubicación:** `~/.config/git-branch-tools/config.yaml`
-
-```yaml
-# 🚧 POR IMPLEMENTAR: Configuración global del usuario
-global:
-  # Configuración de contexto
-  default_context: "HYBRID"
-  force_context: false
-
-  # Configuración de validación
-  validation_level: "moderate"
-  enable_strict_naming: true
-
-  # Configuración de comportamiento
-  auto_push: true
-  auto_upstream: true
-  auto_sync: true
-
-  # Configuración de timeouts
-  api_timeout: 30
-  git_timeout: 60
-
-  # Configuración de logging
-  log_level: "INFO"
-  log_file: "~/.cache/git-branch-tools/git-branch-tools.log"
-
-  # Configuración de cache
-  cache_dir: "~/.cache/git-branch-tools"
-  cache_ttl: 3600
-
-# 🚧 POR IMPLEMENTAR: Configuración de servicios
-services:
-  github:
-    enabled: true
-    api_version: "v4"
-    timeout: 30
-    retries: 3
-
-  gitlab:
-    enabled: true
-    api_version: "v4"
-    timeout: 30
-    retries: 3
-
-  gitea:
-    enabled: true
-    timeout: 30
-    retries: 3
-
-  forgejo:
-    enabled: true
-    timeout: 30
-    retries: 3
-
-  bitbucket:
-    enabled: true
-    api_version: "2.0"
-    timeout: 30
-    retries: 3
-
-# 🚧 POR IMPLEMENTAR: Configuración de aliases
-aliases:
-  enable_global: true
-  prefix: "new-"
-  include_multi_project: true
-
-# 🚧 POR IMPLEMENTAR: Configuración de hooks
-hooks:
-  enable_auto_install: true
-  pre_commit: true
-  pre_push: true
-  commit_msg: true
-
-# ✅ PARCIALMENTE IMPLEMENTADO: Configuración de validación (contextos existen)
-validation:
-  branch_naming:
-    enforce: true
-    patterns:
-      feature: "feature/[a-z0-9-]+"
-      fix: "fix/[a-z0-9-]+"
-      hotfix: "hotfix/[a-z0-9-]+"
-      docs: "docs/[a-z0-9-]+"
-      refactor: "refactor/[a-z0-9-]+"
-      test: "test/[a-z0-9-]+"
-      chore: "chore/[a-z0-9-]+"
-      release: "release/v[0-9]+\\.[0-9]+\\.[0-9]+"
-
-  commit_format:
-    enforce: true
-    pattern: "\\[(FEATURE|FIX|HOTFIX|DOCS|REFACTOR|TEST|CHORE|RELEASE|BUILD)\\] .+"
-
-  protected_branches:
-    default: ["main", "master", "develop"]
-    strict: ["main", "master", "develop", "staging", "release"]
-```
-
-#### Configuración por Proyecto
-
-> **🚧 PLANIFICADO**: Configuración específica por repositorio
-
-**Ubicación:** `.git-branch-tools.yaml` (en la raíz del proyecto)
-
-```yaml
-# 🚧 POR IMPLEMENTAR: Configuración específica del proyecto
-project:
-  name: "mi-proyecto-especial"
-  type: "enterprise"  # personal, team, enterprise
-
-  # Sobrescribir contexto global
-  context: "REMOTE"
-  validation_level: "strict"
-
-  # Configuración específica del proyecto
-  branch_strategy: "git-flow"  # simple, git-flow, github-flow
-
-  # Configuración de branches
-  branches:
-    main: "main"
-    develop: "develop"
-    staging: "staging"
-    production: "main"
-
-  # Branches protegidas específicas del proyecto
-  protected_branches:
-    - "main"
-    - "master"
-    - "develop"
-    - "staging"
-    - "release"
-    - "production"
-
-  # Configuración de naming específica
-  naming:
-    enforce_strict: true
-    require_ticket_id: true
-    ticket_pattern: "[A-Z]+-[0-9]+"
-
-    # Patrones personalizados
-    patterns:
-      feature: "feature/[A-Z]+-[0-9]+-[a-z0-9-]+"
-      fix: "fix/[A-Z]+-[0-9]+-[a-z0-9-]+"
-      hotfix: "hotfix/[A-Z]+-[0-9]+-[a-z0-9-]+"
-
-  # Configuración de integración
-  integration:
-    require_pr: true
-    min_reviewers: 2
-    require_ci: true
-    require_security_scan: true
-
-    # Auto-assignment de reviewers
-    reviewers:
-      feature: ["@team-lead", "@senior-dev"]
-      hotfix: ["@security-team", "@devops-team"]
-      release: ["@architecture-team", "@qa-team"]
-
-  # Configuración de CI/CD
-  ci_cd:
-    platform: "github-actions"  # github-actions, gitlab-ci, jenkins, etc.
-    required_checks:
-      - "ci/tests"
-      - "ci/security-scan"
-      - "ci/quality-gate"
-      - "ci/performance-test"
-
-    # Configuración de deployment
-    deployment:
-      staging_branch: "staging"
-      production_branch: "main"
-      auto_deploy_staging: true
-      auto_deploy_production: false
-
-# 🚧 POR IMPLEMENTAR: Configuración de compliance (para proyectos empresariales)
-compliance:
-  enabled: true
-  standards: ["SOX", "GDPR", "HIPAA"]
-
-  audit:
-    enabled: true
-    log_all_operations: true
-    require_justification: true
-
-  security:
-    require_signed_commits: true
-    require_verified_email: true
-    block_force_push: true
-    block_branch_deletion: true
-
-# 🚧 POR IMPLEMENTAR: Configuración de notificaciones
-notifications:
-  enabled: true
-
-  slack:
-    enabled: true
-    webhook_url: "${SLACK_WEBHOOK_URL}"
-    channels:
-      general: "#git-notifications"
-      security: "#security-alerts"
-      releases: "#releases"
-
-  email:
-    enabled: true
-    smtp_server: "smtp.empresa.com"
-    recipients:
-      security: ["security@empresa.com"]
-      releases: ["releases@empresa.com"]
-
-  teams:
-    enabled: false
-    webhook_url: "${TEAMS_WEBHOOK_URL}"
-
-# 🚧 POR IMPLEMENTAR: Configuración de métricas
-metrics:
-  enabled: true
-
-  collection:
-    branch_creation: true
-    pr_creation: true
-    merge_time: true
-    review_time: true
-
-  export:
-    prometheus: true
-    grafana: true
-    custom_endpoint: "${METRICS_ENDPOINT}"
-```
-
-#### Configuración de Validación
-
-> **🚧 PLANIFICADO**: Configuración avanzada de validación
-
-**Ubicación:** `.git-branch-tools-validation.yaml`
-
-```yaml
-# 🚧 POR IMPLEMENTAR: Configuración específica de validación
-validation:
-  # ✅ IMPLEMENTADO: Configuración por contexto (lógica existe)
-  contexts:
-    LOCAL:
-      level: "permissive"
-      protected_branches: []
-      require_upstream: false
-      require_pr: false
-      allow_direct_push_to_main: true
-      enforce_branch_naming: false
-      require_linear_history: false
-
-    HYBRID:
-      level: "moderate"
-      protected_branches: ["main", "develop"]
-      require_upstream: true
-      require_pr: true
-      allow_direct_push_to_main: false
-      enforce_branch_naming: true
-      require_linear_history: false
-
-    REMOTE:
-      level: "strict"
-      protected_branches: ["main", "master", "develop", "staging", "release"]
-      require_upstream: true
-      require_pr: true
-      allow_direct_push_to_main: false
-      enforce_branch_naming: true
-      require_linear_history: true
-
-  # 🚧 POR IMPLEMENTAR: Reglas personalizadas
-  custom_rules:
-    - name: "require_ticket_reference"
-      enabled: true
-      pattern: "\\[([A-Z]+-[0-9]+)\\]"
-      message: "Commit debe referenciar un ticket (ej: [PROJ-123])"
-
-    - name: "block_wip_commits"
-      enabled: true
-      pattern: "^(WIP|wip|Work in progress)"
-      message: "Commits WIP no permitidos en ramas protegidas"
-      block_on_protected: true
-
-    - name: "require_signed_commits"
-      enabled: true
-      check_signature: true
-      message: "Commits deben estar firmados digitalmente"
-
-    - name: "max_commit_size"
-      enabled: true
-      max_files: 50
-      max_lines: 1000
-      message: "Commit demasiado grande, considerar dividir"
-
-  # 🚧 POR IMPLEMENTAR: Configuración de hooks
-  hooks:
-    pre_commit:
-      enabled: true
-      rules: ["require_ticket_reference", "block_wip_commits"]
-
-    pre_push:
-      enabled: true
-      rules: ["require_signed_commits", "max_commit_size"]
-
-    commit_msg:
-      enabled: true
-      rules: ["require_ticket_reference"]
-```
-
-### Personalización por Proyecto
-
-> **❌ POR IMPLEMENTAR**: Sistema completo de personalización
-
-La personalización por proyecto permite adaptar el comportamiento del ecosistema a las necesidades específicas de cada repositorio, manteniendo configuraciones globales como fallback.
-
-#### Detección Automática de Configuración
-
-> **🚧 PLANIFICADO**: Sistema jerárquico de configuración
-
-El ecosistema busca configuración en el siguiente orden de prioridad:
-
-1. **Configuración específica del proyecto** (`.git-branch-tools.yaml`) - 🚧 **POR IMPLEMENTAR**
-2. **Configuración de usuario** (`~/.config/git-branch-tools/config.yaml`) - 🚧 **POR IMPLEMENTAR**
-3. **Variables de entorno** - 🚧 **POR IMPLEMENTAR**
-4. **Configuración por defecto** - ✅ **IMPLEMENTADO** (contextos hardcoded)
-
-#### Configuración Jerárquica
-
-> **🚧 PLANIFICADO**: Herencia y sobrescritura de configuraciones
-
-**Ejemplo de configuración jerárquica:**
-
-```yaml
-# 🚧 POR IMPLEMENTAR: ~/.config/git-branch-tools/config.yaml (global)
-global:
-  auto_push: true
-  validation_level: "moderate"
-
-# 🚧 POR IMPLEMENTAR: proyecto-a/.git-branch-tools.yaml (específico)
-project:
-  auto_push: false  # Sobrescribe global
-  validation_level: "strict"  # Sobrescribe global
-  # Hereda otras configuraciones globales
-```
-
-#### Templates de Configuración
-
-> **🚧 PLANIFICADO**: Templates predefinidos para diferentes tipos de proyecto
-
-**Template para Proyecto Personal:**
-
-```yaml
-# 🚧 POR IMPLEMENTAR: .git-branch-tools.yaml para proyecto personal
-project:
-  type: "personal"
-  context: "LOCAL"
-  validation_level: "permissive"
-
-  auto_push: false
-  auto_sync: false
-
-  naming:
-    enforce_strict: false
-
-  protected_branches: []
-
-  hooks:
-    pre_commit: false
-    pre_push: false
-```
-
-**Template para Proyecto de Equipo:**
-
-```yaml
-# 🚧 POR IMPLEMENTAR: .git-branch-tools.yaml para proyecto de equipo
-project:
-  type: "team"
-  context: "HYBRID"
-  validation_level: "moderate"
-
-  auto_push: true
-  auto_sync: true
-
-  naming:
-    enforce_strict: true
-
-  protected_branches: ["main", "develop"]
-
-  integration:
-    require_pr: true
-    min_reviewers: 1
-
-  hooks:
-    pre_commit: true
-    pre_push: true
-```
-
-**Template para Proyecto Empresarial:**
-
-```yaml
-# 🚧 POR IMPLEMENTAR: .git-branch-tools.yaml para proyecto empresarial
-project:
-  type: "enterprise"
-  context: "REMOTE"
-  validation_level: "strict"
-
-  auto_push: true
-  auto_sync: true
-
-  naming:
-    enforce_strict: true
-    require_ticket_id: true
-    ticket_pattern: "[A-Z]+-[0-9]+"
-
-  protected_branches: ["main", "master", "develop", "staging", "release"]
-
-  integration:
-    require_pr: true
-    min_reviewers: 2
-    require_ci: true
-    require_security_scan: true
-
-  compliance:
-    enabled: true
-    standards: ["SOX", "GDPR"]
-    audit:
-      enabled: true
-      log_all_operations: true
-
-  hooks:
-    pre_commit: true
-    pre_push: true
-    commit_msg: true
-```
-
-#### Configuración Dinámica
-
-> **🚧 PLANIFICADO**: Configuración que se adapta dinámicamente
-
-**Configuración basada en branches:**
-
-```yaml
-# 🚧 POR IMPLEMENTAR: Configuración que cambia según la rama
-project:
-  dynamic_config:
-    enabled: true
-
-    branch_specific:
-      "main":
-        validation_level: "strict"
-        require_pr: true
-        min_reviewers: 2
-
-      "develop":
-        validation_level: "moderate"
-        require_pr: true
-        min_reviewers: 1
-
-      "feature/*":
-        validation_level: "moderate"
-        require_pr: false
-
-      "hotfix/*":
-        validation_level: "strict"
-        require_pr: true
-        min_reviewers: 2
-        priority: "high"
-        notifications:
-          slack: "#security-alerts"
-```
-
-**Configuración basada en archivos modificados:**
-
-```yaml
-# 🚧 POR IMPLEMENTAR: Configuración que cambia según archivos modificados
-project:
-  file_based_config:
-    enabled: true
-
-    patterns:
-      "src/security/*":
-        require_security_review: true
-        reviewers: ["@security-team"]
-
-      "database/migrations/*":
-        require_dba_review: true
-        reviewers: ["@dba-team"]
-
-      "docs/*":
-        validation_level: "permissive"
-        require_pr: false
-
-      "*.sql":
-        require_dba_review: true
-        block_direct_push: true
-```
-
-### Integración con CI/CD
-
-> **✅ PARCIALMENTE IMPLEMENTADO**: Existe workflow básico | **🚧 PLANIFICADO**: Integración avanzada
-
-La integración con sistemas CI/CD permite automatizar workflows completos y asegurar que las validaciones se ejecuten en entornos controlados.
+El ecosistema se integra con sistemas CI/CD existentes a través de comandos que pueden ejecutarse en pipelines.
 
 #### GitHub Actions
 
-> **✅ IMPLEMENTADO**: Workflow básico existe en `.github/workflows/branch-validation.yml`
-
-**Configuración básica (.github/workflows/git-branch-tools.yml):**
+**Workflow básico implementado:**
 
 ```yaml
-# ✅ IMPLEMENTADO: Workflow básico similar a este existe
-name: Git Branch Tools Validation
-
-on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
+# ✅ IMPLEMENTADO: Workflow básico en .github/workflows/
+name: Branch Validation
+on: [push, pull_request]
 
 jobs:
   validate:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0  # Necesario para análisis completo
-
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
-
-    - name: Install Git Branch Tools
-      run: |
-        pip install git-branch-tools  # 🚧 POR IMPLEMENTAR: Instalación como paquete
-
-    - name: Configure tokens
-      env:
-        GIT_TOKEN_GITHUB: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        echo "Token configurado via variable de entorno"
-
-    - name: Validate branch workflow
-      run: |
-        branch-workflow-validator.py commit  # ✅ IMPLEMENTADO
-        branch-workflow-validator.py push --target-branch ${{ github.ref_name }}  # ✅ IMPLEMENTADO
-
-    - name: Integration health check
-      run: |
-        git-integration-manager.py health-check  # ✅ IMPLEMENTADO
-
-    - name: Validate protection status
-      if: github.ref == 'refs/heads/main'
-      run: |
-        git-integration-manager.py protection-status --compare  # ✅ IMPLEMENTADO
+      - uses: actions/checkout@v3
+      - name: Validate branch workflow
+        run: |
+          branch-workflow-validator.py commit
+          branch-workflow-validator.py push --target-branch ${{ github.ref_name }}
+      - name: Health check
+        run: git-integration-manager.py health-check
 ```
 
-**Configuración avanzada con múltiples jobs:**
-
-```yaml
-# 🚧 POR IMPLEMENTAR: Workflow avanzado con detección automática
-name: Advanced Git Branch Tools Workflow
-
-on:
-  push:
-  pull_request:
-  schedule:
-    - cron: '0 2 * * 1'  # Weekly health check
-
-jobs:
-  context-detection:
-    runs-on: ubuntu-latest
-    outputs:
-      context: ${{ steps.detect.outputs.context }}
-      validation_level: ${{ steps.detect.outputs.validation_level }}
-
-    steps:
-    - uses: actions/checkout@v3
-    - name: Detect context
-      id: detect
-      run: |
-        # ✅ IMPLEMENTADO: Lógica de detección existe
-        CONTRIBUTORS=$(git log --format='%ae' | sort -u | wc -l)
-        COMMITS=$(git rev-list --all --count)
-
-        if [ $CONTRIBUTORS -le 2 ] && [ $COMMITS -lt 100 ]; then
-          echo "context=LOCAL" >> $GITHUB_OUTPUT
-          echo "validation_level=permissive" >> $GITHUB_OUTPUT
-        elif [ $CONTRIBUTORS -le 5 ] && [ $COMMITS -lt 1000 ]; then
-          echo "context=HYBRID" >> $GITHUB_OUTPUT
-          echo "validation_level=moderate" >> $GITHUB_OUTPUT
-        else
-          echo "context=REMOTE" >> $GITHUB_OUTPUT
-          echo "validation_level=strict" >> $GITHUB_OUTPUT
-        fi
-
-  validation:
-    needs: context-detection
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-
-    - name: Setup environment
-      env:
-        GIT_BRANCH_TOOLS_CONTEXT: ${{ needs.context-detection.outputs.context }}  # 🚧 POR IMPLEMENTAR
-        GIT_BRANCH_TOOLS_VALIDATION: ${{ needs.context-detection.outputs.validation_level }}  # 🚧 POR IMPLEMENTAR
-        GIT_TOKEN_GITHUB: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        pip install git-branch-tools  # 🚧 POR IMPLEMENTAR
-        echo "Context: $GIT_BRANCH_TOOLS_CONTEXT"
-        echo "Validation: $GIT_BRANCH_TOOLS_VALIDATION"
-
-    - name: Branch validation
-      run: |
-        branch-workflow-validator.py commit  # ✅ IMPLEMENTADO
-
-    - name: Integration validation
-      if: github.event_name == 'pull_request'
-      run: |
-        git-integration-manager.py integrate ${{ github.head_ref }} --mode dry-run  # ✅ IMPLEMENTADO
-
-  security-scan:
-    if: contains(github.ref, 'main') || contains(github.ref, 'develop')
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v3
-    - name: Security validation
-      env:
-        GIT_BRANCH_TOOLS_VALIDATION: "strict"  # 🚧 POR IMPLEMENTAR
-      run: |
-        # 🚧 POR IMPLEMENTAR: Validaciones de seguridad específicas
-        branch-workflow-validator.py security-scan
-
-  health-check:
-    if: github.event_name == 'schedule'
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-
-    - name: Repository health check
-      run: |
-        git-integration-manager.py health-check  # ✅ IMPLEMENTADO
-        git-integration-manager.py cleanup --dry-run  # 🚧 POR IMPLEMENTAR
-
-    - name: Protection status check
-      run: |
-        git-integration-manager.py protection-status --compare --json > protection-status.json  # ✅ IMPLEMENTADO
-
-    - name: Upload health report
-      uses: actions/upload-artifact@v3
-      with:
-        name: health-report
-        path: protection-status.json
-```
-
-#### GitLab CI
-
-> **🚧 PLANIFICADO**: Integración completa con GitLab CI
-
-**Configuración básica (.gitlab-ci.yml):**
-
-```yaml
-# 🚧 POR IMPLEMENTAR: Integración completa con GitLab CI
-stages:
-  - validate
-  - integrate
-  - deploy
-
-variables:
-  GIT_BRANCH_TOOLS_CONTEXT: "REMOTE"  # 🚧 POR IMPLEMENTAR
-  GIT_BRANCH_TOOLS_VALIDATION: "strict"  # 🚧 POR IMPLEMENTAR
-
-before_script:
-  - pip install git-branch-tools  # 🚧 POR IMPLEMENTAR
-  - export GIT_TOKEN_GITLAB_O=$CI_JOB_TOKEN
-
-validate_branch:
-  stage: validate
-  script:
-    - branch-workflow-validator.py commit  # ✅ IMPLEMENTADO
-    - branch-workflow-validator.py push --target-branch $CI_COMMIT_REF_NAME  # ✅ IMPLEMENTADO
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "push"
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-
-integration_check:
-  stage: integrate
-  script:
-    - git-integration-manager.py integrate $CI_COMMIT_REF_NAME --mode dry-run  # ✅ IMPLEMENTADO
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-
-protection_sync:
-  stage: integrate
-  script:
-    - git-integration-manager.py setup-remote-protection --strategy remote --dry-run  # ✅ IMPLEMENTADO
-    - git-integration-manager.py protection-status --compare  # ✅ IMPLEMENTADO
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_BRANCH == "develop"
-
-health_check:
-  stage: validate
-  script:
-    - git-integration-manager.py health-check  # ✅ IMPLEMENTADO
-    - git-integration-manager.py cleanup --dry-run  # 🚧 POR IMPLEMENTAR
-  artifacts:
-    reports:
-      junit: health-report.xml  # 🚧 POR IMPLEMENTAR
-    paths:
-      - health-report.json  # 🚧 POR IMPLEMENTAR
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule"
-```
-
-#### Jenkins
-
-> **🚧 PLANIFICADO**: Integración con Jenkins
-
-**Configuración básica (Jenkinsfile):**
-
-```groovy
-// 🚧 POR IMPLEMENTAR: Integración completa con Jenkins
-pipeline {
-    agent any
-
-    environment {
-        GIT_BRANCH_TOOLS_CONTEXT = 'REMOTE'  // 🚧 POR IMPLEMENTAR
-        GIT_BRANCH_TOOLS_VALIDATION = 'strict'  // 🚧 POR IMPLEMENTAR
-        GIT_TOKEN_GITHUB = credentials('github-token')
-    }
-
-    stages {
-        stage('Setup') {
-            steps {
-                sh 'pip install git-branch-tools'  // 🚧 POR IMPLEMENTAR
-            }
-        }
-
-        stage('Validate Branch') {
-            steps {
-                sh 'branch-workflow-validator.py commit'  // ✅ IMPLEMENTADO
-                sh "branch-workflow-validator.py push --target-branch ${env.BRANCH_NAME}"  // ✅ IMPLEMENTADO
-            }
-        }
-
-        stage('Integration Check') {
-            when {
-                changeRequest()
-            }
-            steps {
-                sh "git-integration-manager.py integrate ${env.CHANGE_BRANCH} --mode dry-run"  // ✅ IMPLEMENTADO
-            }
-        }
-
-        stage('Health Check') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'develop'
-                }
-            }
-            steps {
-                sh 'git-integration-manager.py health-check'  // ✅ IMPLEMENTADO
-                sh 'git-integration-manager.py protection-status --compare --json > protection-status.json'  // ✅ IMPLEMENTADO
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: 'protection-status.json', fingerprint: true
-                }
-            }
-        }
-    }
-
-    post {
-        failure {
-            emailext (
-                subject: "Git Branch Tools Validation Failed: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
-                body: "Validation failed for branch ${env.BRANCH_NAME}. Check console output for details.",
-                to: "${env.CHANGE_AUTHOR_EMAIL}"
-            )
-        }
-    }
-}
-```
-
-#### Configuración de Secrets y Variables
-
-> **✅ IMPLEMENTADO**: Para tokens básicos | **🚧 POR IMPLEMENTAR**: Para configuración avanzada
-
-**GitHub Actions Secrets:**
+#### Comandos para CI/CD
 
 ```bash
-# Configurar secrets en GitHub
-# Settings > Secrets and variables > Actions
-
-# ✅ IMPLEMENTADO: Tokens de API
-GITHUB_TOKEN          # Token de GitHub (automático)
-GITLAB_TOKEN          # Token de GitLab (si se usa)
-BITBUCKET_TOKEN       # Token de Bitbucket (si se usa)
-
-# 🚧 POR IMPLEMENTAR: Configuración de notificaciones
-SLACK_WEBHOOK_URL     # Webhook de Slack
-TEAMS_WEBHOOK_URL     # Webhook de Teams
-SMTP_PASSWORD         # Password para SMTP
-
-# 🚧 POR IMPLEMENTAR: Configuración específica
-GIT_BRANCH_TOOLS_CONFIG  # Configuración YAML completa (opcional)
+# ✅ IMPLEMENTADO: Comandos disponibles para pipelines
+branch-workflow-validator.py commit                    # Validar commits
+branch-workflow-validator.py push --target-branch main # Validar push
+git-integration-manager.py health-check               # Verificar salud del repo
+git-integration-manager.py protection-status          # Verificar protección
+git-integration-manager.py cleanup --dry-run          # Mostrar limpieza pendiente
 ```
 
-**GitLab CI Variables:**
+### Configuración Git Estándar
+
+> **✅ IMPLEMENTADO**: Utiliza configuración Git existente
+
+El ecosistema respeta y utiliza la configuración Git estándar del usuario.
+
+#### Configuración de Usuario
 
 ```bash
-# 🚧 POR IMPLEMENTAR: Configurar variables en GitLab
-# Settings > CI/CD > Variables
+# ✅ IMPLEMENTADO: Utiliza configuración Git existente
+git config --global user.name "Tu Nombre"
+git config --global user.email "tu.email@ejemplo.com"
 
-# ✅ IMPLEMENTADO: Tokens de API (protected, masked)
-GITLAB_TOKEN          # Token de GitLab
-GITHUB_TOKEN          # Token de GitHub (si se usa)
-
-# 🚧 POR IMPLEMENTAR: Configuración (protected)
-GIT_BRANCH_TOOLS_CONTEXT      # LOCAL, HYBRID, REMOTE
-GIT_BRANCH_TOOLS_VALIDATION   # permissive, moderate, strict
-
-# 🚧 POR IMPLEMENTAR: Notificaciones (protected, masked)
-SLACK_WEBHOOK_URL
-TEAMS_WEBHOOK_URL
+# El ecosistema lee automáticamente esta configuración
 ```
 
-**Jenkins Credentials:**
+#### Configuración de Remotes
 
 ```bash
-# 🚧 POR IMPLEMENTAR: Configurar credentials en Jenkins
-# Manage Jenkins > Manage Credentials
-
-# ✅ IMPLEMENTADO: Secret text credentials
-github-token          # Token de GitHub
-gitlab-token          # Token de GitLab
-slack-webhook         # Webhook de Slack
-
-# 🚧 POR IMPLEMENTAR: Username/password credentials
-smtp-credentials      # Credenciales SMTP
-
-# 🚧 POR IMPLEMENTAR: Secret file credentials
-git-branch-tools-config  # Archivo de configuración completo
+# ✅ IMPLEMENTADO: Detecta automáticamente remotes configurados
+git remote -v
+# → El ecosistema detecta automáticamente GitHub, GitLab, etc.
 ```
 
-#### Integración con Herramientas de Calidad
+### Health Checks y Mantenimiento
 
-> **🚧 PLANIFICADO**: Integración con herramientas de análisis de calidad
+> **✅ IMPLEMENTADO**: Sistema de health checks
 
-**SonarQube Integration:**
+El `git-integration-manager.py` proporciona análisis de salud del repositorio.
 
-```yaml
-# 🚧 POR IMPLEMENTAR: .github/workflows/quality.yml
-sonarqube:
-  runs-on: ubuntu-latest
-  steps:
-    - uses: actions/checkout@v3
-    - name: Git Branch Tools Validation
-      run: |
-        branch-workflow-validator.py commit --format sonarqube > sonar-git-issues.json  # 🚧 POR IMPLEMENTAR
-    - name: SonarQube Scan
-      uses: sonarqube-quality-gate-action@master
-      with:
-        scanMetadataReportFile: sonar-git-issues.json
+#### Health Check Completo
+
+```bash
+# ✅ IMPLEMENTADO: Análisis completo de salud
+git-integration-manager.py health-check
+# → Analiza:
+#   - Estado de branches
+#   - Configuración de remotes
+#   - Branch protection
+#   - Historial de commits
+#   - Posibles problemas
 ```
 
-**CodeClimate Integration:**
+#### Cleanup de Repositorio
 
-```yaml
-# 🚧 POR IMPLEMENTAR: .github/workflows/codeclimate.yml
-codeclimate:
-  runs-on: ubuntu-latest
-  steps:
-    - uses: actions/checkout@v3
-    - name: Git Branch Tools Health Check
-      run: |
-        git-integration-manager.py health-check --format codeclimate > cc-git-health.json  # 🚧 POR IMPLEMENTAR
-    - name: CodeClimate Upload
-      uses: paambaati/codeclimate-action@v3.0.0
-      with:
-        coverageLocations: cc-git-health.json:git-health
+```bash
+# ✅ IMPLEMENTADO: Análisis de limpieza
+git-integration-manager.py cleanup --dry-run
+# → Muestra qué branches se pueden limpiar sin ejecutar cambios
+
+# ✅ IMPLEMENTADO: Ejecutar limpieza
+git-integration-manager.py cleanup
+# → Ejecuta limpieza de branches obsoletas
 ```
 
-> **📋 RESUMEN DE ESTADO:**
-> - ✅ **Implementado**: Detección de contexto, validación básica, tokens, workflows básicos de CI/CD
-> - 🚧 **Por implementar**: Variables de entorno específicas, archivos de configuración, personalización avanzada, integración completa con CI/CD
+### Configuración de Aliases Git
+
+> **✅ IMPLEMENTADO**: Git aliases automáticos
+
+El `branch-git-helper.py` puede configurar aliases Git para facilitar el uso diario.
+
+#### Aliases Disponibles
+
+```bash
+# ✅ IMPLEMENTADO: Configuración automática de aliases
+# Los siguientes aliases se configuran automáticamente:
+
+git new-feature "nombre"    # Crear nueva feature branch
+git new-fix "nombre"        # Crear nueva fix branch
+git new-hotfix "nombre"     # Crear nueva hotfix branch
+git new-docs "nombre"       # Crear nueva docs branch
+git new-refactor "nombre"   # Crear nueva refactor branch
+git new-test "nombre"       # Crear nueva test branch
+git new-chore "nombre"      # Crear nueva chore branch
+git new-release "version"   # Crear nueva release branch
+```
+
+### Limitaciones Actuales
+
+> **📋 FUNCIONALIDADES NO IMPLEMENTADAS**
+
+Las siguientes funcionalidades están **planificadas** pero no implementadas:
+
+- ❌ Archivos de configuración YAML personalizados
+- ❌ Variables de entorno específicas del ecosistema
+- ❌ Configuración jerárquica por proyecto
+- ❌ Templates de configuración predefinidos
+- ❌ Configuración dinámica basada en branches
+- ❌ Integración avanzada con herramientas de calidad
+- ❌ Métricas y monitoreo automático
+- ❌ Notificaciones automáticas
+- ❌ Auto-remediation avanzada
+
+> **📋 RESUMEN DE CONFIGURACIÓN ACTUAL:**
 >
-> Esta configuración avanzada permite integrar completamente el ecosistema Git Branch Tools con pipelines CI/CD modernos, asegurando validación automática, compliance y calidad en todos los workflows de desarrollo.
+> **✅ Funcionalidades Implementadas:**
+> - Detección automática de contexto (LOCAL/HYBRID/REMOTE)
+> - Gestión segura de tokens con keyring del sistema
+> - Branch protection automática con múltiples estrategias
+> - Validación contextual adaptativa
+> - Health checks y cleanup básico
+> - Integración básica con CI/CD
+> - Git aliases automáticos
+> - Utilización de configuración Git estándar
+>
+> **🎯 Filosofía Actual:**
+> El ecosistema prioriza la **detección automática** y **configuración por convención** sobre configuración explícita, proporcionando una experiencia que "funciona sin configuración" mientras permite personalización cuando es necesaria.
 
 ---
