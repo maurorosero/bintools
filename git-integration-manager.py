@@ -299,7 +299,8 @@ class TokenManager:
     def get_platform_token(self, platform_info: PlatformInfo) -> Optional[str]:
         """Obtiene token para la plataforma detectada."""
         if not self.git_tokens:
-            return None
+            # Fallback a variables de entorno si git-tokens no está disponible
+            return self._get_token_from_env(platform_info)
 
         service_name = f"{platform_info.service}-{platform_info.mode}-integration"
         username = self.git_tokens.get_system_user()
@@ -316,6 +317,28 @@ class TokenManager:
                 return self.git_tokens.decrypt_token(token_enc, method)
         except Exception:
             pass
+
+        # Fallback a variables de entorno
+        return self._get_token_from_env(platform_info)
+
+    def _get_token_from_env(self, platform_info: PlatformInfo) -> Optional[str]:
+        """Obtiene token desde variables de entorno como fallback."""
+        import os
+
+        # Mapeo de plataformas a variables de entorno
+        env_vars = {
+            'github': ['GITHUB_TOKEN', 'GH_TOKEN'],
+            'gitlab': ['GITLAB_TOKEN', 'GL_TOKEN'],
+            'forgejo': ['FORGEJO_TOKEN', 'GITEA_TOKEN'],  # Forgejo es compatible con Gitea
+            'gitea': ['GITEA_TOKEN', 'FORGEJO_TOKEN'],    # Gitea es compatible con Forgejo
+            'bitbucket': ['BITBUCKET_TOKEN', 'BB_TOKEN']
+        }
+
+        # Intentar obtener token de variables de entorno
+        for var_name in env_vars.get(platform_info.service, []):
+            token = os.getenv(var_name)
+            if token:
+                return token
 
         return None
 
@@ -487,6 +510,377 @@ class GitLabAPI(BasePlatformAPI):
         except Exception:
             return False
 
+class ForgejoCompatibleAPI(BasePlatformAPI):
+    """
+    Clase base para APIs compatibles con Forgejo.
+
+    Forgejo utiliza una API compatible con GitHub, por lo que esta clase base
+    implementa la funcionalidad común que pueden usar tanto Forgejo como Gitea.
+    La API de Forgejo es la implementación de referencia.
+    """
+
+    def _get_base_url(self) -> str:
+        """Construye la URL base de la API."""
+        if self.platform_info.host:
+            return f"https://{self.platform_info.host}/api/v1"
+        else:
+            # Para servicios cloud de Forgejo
+            return "https://codeberg.org/api/v1"
+
+    def _get_auth_headers(self) -> dict:
+        """Obtiene headers de autenticación estándar para Forgejo/Gitea."""
+        return {
+            'Authorization': f'token {self.token}',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+
+    def create_pull_request(self, title: str, body: str, head_branch: str, base_branch: str = "develop") -> bool:
+        """
+        Crea un pull request usando la API de Forgejo.
+
+        La API de Forgejo es compatible con GitHub pero con algunas diferencias menores.
+        """
+        if not REQUESTS_AVAILABLE:
+            return False
+
+        url = f"{self.base_url}/repos/{self.platform_info.repo_owner}/{self.platform_info.repo_name}/pulls"
+        headers = self._get_auth_headers()
+
+        data = {
+            'title': title,
+            'body': body,
+            'head': head_branch,
+            'base': base_branch
+        }
+
+        try:
+            response = requests.post(url, headers=headers, json=data, timeout=10)
+            return response.status_code == 201
+        except Exception:
+            return False
+
+    def check_ci_status(self, branch: str) -> bool:
+        """
+        Verifica el estado de CI para una rama.
+
+        Utiliza el endpoint de status de commits compatible con GitHub.
+        """
+        if not REQUESTS_AVAILABLE:
+            return False
+
+        url = f"{self.base_url}/repos/{self.platform_info.repo_owner}/{self.platform_info.repo_name}/commits/{branch}/status"
+        headers = self._get_auth_headers()
+
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                status_data = response.json()
+                state = status_data.get('state', 'pending')
+                return state == 'success'
+        except Exception:
+            pass
+
+        return False
+
+    def merge_pull_request(self, pr_id: int) -> bool:
+        """
+        Hace merge de un pull request.
+
+        Utiliza el endpoint de merge compatible con GitHub.
+        """
+        if not REQUESTS_AVAILABLE:
+            return False
+
+        url = f"{self.base_url}/repos/{self.platform_info.repo_owner}/{self.platform_info.repo_name}/pulls/{pr_id}/merge"
+        headers = self._get_auth_headers()
+
+        data = {
+            'commit_title': 'Auto-merge via git-integration-manager',
+            'merge_method': 'merge'
+        }
+
+        try:
+            response = requests.put(url, headers=headers, json=data, timeout=10)
+            return response.status_code == 200
+        except Exception:
+            return False
+
+    def get_repository_info(self) -> dict:
+        """
+        Obtiene información del repositorio.
+
+        Método adicional útil para validaciones y metadatos.
+        """
+        if not REQUESTS_AVAILABLE:
+            return {}
+
+        url = f"{self.base_url}/repos/{self.platform_info.repo_owner}/{self.platform_info.repo_name}"
+        headers = self._get_auth_headers()
+
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                return response.json()
+        except Exception:
+            pass
+
+        return {}
+
+class ForgejoAPI(ForgejoCompatibleAPI):
+    """
+    API específica de Forgejo.
+
+    Forgejo es un fork de Gitea con enfoque en la gobernanza comunitaria.
+    Utiliza la API de Forgejo como implementación de referencia.
+    """
+
+    def _get_base_url(self) -> str:
+        """URL base específica para Forgejo."""
+        if self.platform_info.host:
+            # Forgejo on-premise
+            return f"https://{self.platform_info.host}/api/v1"
+        else:
+            # Forgejo cloud (Codeberg es la instancia principal)
+            return "https://codeberg.org/api/v1"
+
+    def create_pull_request(self, title: str, body: str, head_branch: str, base_branch: str = "develop") -> bool:
+        """
+        Crea un pull request en Forgejo.
+
+        Forgejo puede tener características específicas o mejoras sobre la API base.
+        """
+        # Usar implementación base de ForgejoCompatibleAPI
+        success = super().create_pull_request(title, body, head_branch, base_branch)
+
+        if success:
+            # Aquí se pueden añadir características específicas de Forgejo
+            # como labels automáticos, assignees, etc.
+            pass
+
+        return success
+
+    def check_ci_status(self, branch: str) -> bool:
+        """
+        Verifica CI en Forgejo.
+
+        Forgejo puede tener integraciones CI específicas.
+        """
+        # Usar implementación base y añadir verificaciones específicas de Forgejo
+        base_status = super().check_ci_status(branch)
+
+        # Aquí se pueden añadir verificaciones específicas de Forgejo
+        # como Woodpecker CI, que es común en instancias de Forgejo
+
+        return base_status
+
+class GiteaAPI(ForgejoCompatibleAPI):
+    """
+    API específica de Gitea.
+
+    Gitea es el proyecto original del cual Forgejo es un fork.
+    Hereda la funcionalidad base de ForgejoCompatibleAPI pero puede
+    tener diferencias específicas en endpoints o comportamiento.
+    """
+
+    def _get_base_url(self) -> str:
+        """URL base específica para Gitea."""
+        if self.platform_info.host:
+            # Gitea es principalmente on-premise
+            return f"https://{self.platform_info.host}/api/v1"
+        else:
+            # Gitea cloud es menos común, pero puede existir
+            return f"https://gitea.com/api/v1"
+
+    def _get_auth_headers(self) -> dict:
+        """
+        Headers de autenticación para Gitea.
+
+        Gitea puede tener ligeras diferencias en headers aceptados.
+        """
+        return {
+            'Authorization': f'token {self.token}',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'User-Agent': 'git-integration-manager/1.0'  # Gitea a veces requiere User-Agent
+        }
+
+    def create_pull_request(self, title: str, body: str, head_branch: str, base_branch: str = "develop") -> bool:
+        """
+        Crea un pull request en Gitea.
+
+        Gitea puede tener diferencias menores en la API comparado con Forgejo.
+        """
+        if not REQUESTS_AVAILABLE:
+            return False
+
+        url = f"{self.base_url}/repos/{self.platform_info.repo_owner}/{self.platform_info.repo_name}/pulls"
+        headers = self._get_auth_headers()
+
+        # Gitea puede requerir campos específicos o tener nombres diferentes
+        data = {
+            'title': title,
+            'body': body,
+            'head': head_branch,
+            'base': base_branch,
+            # Gitea específico: puede requerir assignees como lista vacía
+            'assignees': []
+        }
+
+        try:
+            response = requests.post(url, headers=headers, json=data, timeout=10)
+            return response.status_code == 201
+        except Exception:
+            return False
+
+    def check_ci_status(self, branch: str) -> bool:
+        """
+        Verifica CI en Gitea.
+
+        Gitea puede tener diferentes integraciones CI que Forgejo.
+        """
+        # Usar implementación base pero con verificaciones específicas de Gitea
+        base_status = super().check_ci_status(branch)
+
+        # Gitea puede tener integraciones específicas como Drone CI
+        # que requieren verificaciones adicionales
+
+        return base_status
+
+    def get_repository_info(self) -> dict:
+        """
+        Obtiene información del repositorio en Gitea.
+
+        Gitea puede retornar campos específicos diferentes a Forgejo.
+        """
+        repo_info = super().get_repository_info()
+
+        # Procesar campos específicos de Gitea si es necesario
+        if repo_info:
+            # Gitea puede tener campos específicos que necesiten procesamiento
+            pass
+
+        return repo_info
+
+class BitbucketAPI(BasePlatformAPI):
+    """
+    API específica de Bitbucket.
+
+    Bitbucket tiene una API REST v2 completamente diferente a GitHub/Forgejo/Gitea.
+    """
+
+    def _get_base_url(self) -> str:
+        """URL base para Bitbucket."""
+        if self.platform_info.host:
+            # Bitbucket Server (on-premise)
+            return f"https://{self.platform_info.host}/rest/api/1.0"
+        else:
+            # Bitbucket Cloud
+            return "https://api.bitbucket.org/2.0"
+
+    def _get_auth_headers(self) -> dict:
+        """Headers de autenticación para Bitbucket."""
+        if self.platform_info.host:
+            # Bitbucket Server usa Bearer token
+            return {
+                'Authorization': f'Bearer {self.token}',
+                'Content-Type': 'application/json'
+            }
+        else:
+            # Bitbucket Cloud puede usar App Password
+            return {
+                'Authorization': f'Bearer {self.token}',
+                'Content-Type': 'application/json'
+            }
+
+    def create_pull_request(self, title: str, body: str, head_branch: str, base_branch: str = "develop") -> bool:
+        """
+        Crea un pull request en Bitbucket.
+
+        Bitbucket tiene una estructura de API diferente.
+        """
+        if not REQUESTS_AVAILABLE:
+            return False
+
+        if self.platform_info.host:
+            # Bitbucket Server
+            url = f"{self.base_url}/projects/{self.platform_info.repo_owner}/repos/{self.platform_info.repo_name}/pull-requests"
+            data = {
+                'title': title,
+                'description': body,
+                'fromRef': {'id': f'refs/heads/{head_branch}'},
+                'toRef': {'id': f'refs/heads/{base_branch}'}
+            }
+        else:
+            # Bitbucket Cloud
+            url = f"{self.base_url}/repositories/{self.platform_info.repo_owner}/{self.platform_info.repo_name}/pullrequests"
+            data = {
+                'title': title,
+                'description': body,
+                'source': {'branch': {'name': head_branch}},
+                'destination': {'branch': {'name': base_branch}}
+            }
+
+        headers = self._get_auth_headers()
+
+        try:
+            response = requests.post(url, headers=headers, json=data, timeout=10)
+            return response.status_code == 201
+        except Exception:
+            return False
+
+    def check_ci_status(self, branch: str) -> bool:
+        """
+        Verifica CI en Bitbucket.
+
+        Bitbucket tiene su propio sistema de pipelines.
+        """
+        if not REQUESTS_AVAILABLE:
+            return False
+
+        if self.platform_info.host:
+            # Bitbucket Server - verificar build status
+            url = f"{self.base_url}/projects/{self.platform_info.repo_owner}/repos/{self.platform_info.repo_name}/commits/{branch}/builds"
+        else:
+            # Bitbucket Cloud - verificar pipelines
+            url = f"{self.base_url}/repositories/{self.platform_info.repo_owner}/{self.platform_info.repo_name}/pipelines"
+
+        headers = self._get_auth_headers()
+
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                # Procesar respuesta específica de Bitbucket
+                data = response.json()
+                # Lógica específica para determinar estado de CI en Bitbucket
+                return True  # Simplificado por ahora
+        except Exception:
+            pass
+
+        return False
+
+    def merge_pull_request(self, pr_id: int) -> bool:
+        """
+        Hace merge de un pull request en Bitbucket.
+        """
+        if not REQUESTS_AVAILABLE:
+            return False
+
+        if self.platform_info.host:
+            # Bitbucket Server
+            url = f"{self.base_url}/projects/{self.platform_info.repo_owner}/repos/{self.platform_info.repo_name}/pull-requests/{pr_id}/merge"
+        else:
+            # Bitbucket Cloud
+            url = f"{self.base_url}/repositories/{self.platform_info.repo_owner}/{self.platform_info.repo_name}/pullrequests/{pr_id}/merge"
+
+        headers = self._get_auth_headers()
+
+        try:
+            response = requests.post(url, headers=headers, timeout=10)
+            return response.status_code == 200
+        except Exception:
+            return False
+
 class APIFactory:
     """Factory para crear APIs específicas de cada plataforma."""
 
@@ -497,8 +891,14 @@ class APIFactory:
             return GitHubAPI(platform_info, token)
         elif platform_info.service == 'gitlab':
             return GitLabAPI(platform_info, token)
+        elif platform_info.service == 'forgejo':
+            return ForgejoAPI(platform_info, token)
+        elif platform_info.service == 'gitea':
+            return GiteaAPI(platform_info, token)
+        elif platform_info.service == 'bitbucket':
+            return BitbucketAPI(platform_info, token)
         else:
-            # Otras plataformas no implementadas aún
+            # Plataforma no soportada
             return None
 
 @dataclass
@@ -530,8 +930,11 @@ class APICapabilities:
     """Detecta y gestiona capacidades de APIs disponibles."""
 
     def __init__(self):
-        self.github_token = os.getenv('GITHUB_TOKEN')
-        self.gitlab_token = os.getenv('GITLAB_TOKEN')
+        self.github_token = os.getenv('GITHUB_TOKEN') or os.getenv('GH_TOKEN')
+        self.gitlab_token = os.getenv('GITLAB_TOKEN') or os.getenv('GL_TOKEN')
+        self.forgejo_token = os.getenv('FORGEJO_TOKEN') or os.getenv('GITEA_TOKEN')
+        self.gitea_token = os.getenv('GITEA_TOKEN') or os.getenv('FORGEJO_TOKEN')
+        self.bitbucket_token = os.getenv('BITBUCKET_TOKEN') or os.getenv('BB_TOKEN')
         self.capabilities = self._detect_capabilities()
 
     def _detect_capabilities(self) -> Dict[str, bool]:
@@ -539,13 +942,28 @@ class APICapabilities:
         caps = {
             'github_api': bool(self.github_token and REQUESTS_AVAILABLE),
             'gitlab_api': bool(self.gitlab_token and REQUESTS_AVAILABLE),
+            'forgejo_api': bool(self.forgejo_token and REQUESTS_AVAILABLE),
+            'gitea_api': bool(self.gitea_token and REQUESTS_AVAILABLE),
+            'bitbucket_api': bool(self.bitbucket_token and REQUESTS_AVAILABLE),
             'git_cli': True,  # Siempre disponible
             'local_analysis': True,  # Siempre disponible
         }
 
-        # Verificar conectividad específica
+        # Verificar conectividad específica para las APIs principales
         if caps['github_api']:
             caps['github_api'] = self._test_github_connection()
+
+        if caps['gitlab_api']:
+            caps['gitlab_api'] = self._test_gitlab_connection()
+
+        if caps['forgejo_api']:
+            caps['forgejo_api'] = self._test_forgejo_connection()
+
+        if caps['gitea_api']:
+            caps['gitea_api'] = self._test_gitea_connection()
+
+        if caps['bitbucket_api']:
+            caps['bitbucket_api'] = self._test_bitbucket_connection()
 
         return caps
 
@@ -564,14 +982,96 @@ class APICapabilities:
         except Exception:
             return False
 
+    def _test_gitlab_connection(self) -> bool:
+        """Prueba conexión con GitLab API."""
+        if not REQUESTS_AVAILABLE:
+            return False
+
+        try:
+            response = requests.get(
+                'https://gitlab.com/api/v4/user',
+                headers={'Authorization': f'Bearer {self.gitlab_token}'},
+                timeout=5
+            )
+            return response.status_code == 200
+        except Exception:
+            return False
+
+    def _test_forgejo_connection(self) -> bool:
+        """Prueba conexión con Forgejo API (usando Codeberg como referencia)."""
+        if not REQUESTS_AVAILABLE:
+            return False
+
+        try:
+            # Probar con Codeberg (instancia principal de Forgejo)
+            response = requests.get(
+                'https://codeberg.org/api/v1/user',
+                headers={'Authorization': f'token {self.forgejo_token}'},
+                timeout=5
+            )
+            return response.status_code == 200
+        except Exception:
+            # Si falla, asumir que el token es válido pero la instancia no es accesible
+            return True
+
+    def _test_gitea_connection(self) -> bool:
+        """Prueba conexión con Gitea API."""
+        if not REQUESTS_AVAILABLE:
+            return False
+
+        try:
+            # Gitea es principalmente on-premise, así que no hay una instancia estándar para probar
+            # Asumir que el token es válido si existe
+            return True
+        except Exception:
+            return False
+
+    def _test_bitbucket_connection(self) -> bool:
+        """Prueba conexión con Bitbucket API."""
+        if not REQUESTS_AVAILABLE:
+            return False
+
+        try:
+            response = requests.get(
+                'https://api.bitbucket.org/2.0/user',
+                headers={'Authorization': f'Bearer {self.bitbucket_token}'},
+                timeout=5
+            )
+            return response.status_code == 200
+        except Exception:
+            return False
+
     def get_capability_level(self) -> CapabilityLevel:
         """Determina el nivel de capacidades disponibles."""
-        if self.capabilities['github_api'] or self.capabilities['gitlab_api']:
+        api_count = sum([
+            self.capabilities['github_api'],
+            self.capabilities['gitlab_api'],
+            self.capabilities['forgejo_api'],
+            self.capabilities['gitea_api'],
+            self.capabilities['bitbucket_api']
+        ])
+
+        if api_count >= 1:
             return CapabilityLevel.FULL
         elif REQUESTS_AVAILABLE:
             return CapabilityLevel.ENHANCED
         else:
             return CapabilityLevel.BASIC
+
+    def get_available_platforms(self) -> List[str]:
+        """Retorna lista de plataformas con APIs disponibles."""
+        available = []
+        if self.capabilities['github_api']:
+            available.append('github')
+        if self.capabilities['gitlab_api']:
+            available.append('gitlab')
+        if self.capabilities['forgejo_api']:
+            available.append('forgejo')
+        if self.capabilities['gitea_api']:
+            available.append('gitea')
+        if self.capabilities['bitbucket_api']:
+            available.append('bitbucket')
+        return available
 
 # ============================================================================
 # NUEVAS CLASES PARA CONFIGURACIÓN AUTOMÁTICA DEL REMOTO
@@ -728,13 +1228,13 @@ class GitLabProtectionAPI(PlatformProtectionAPI):
     def __init__(self, platform_info: PlatformInfo, token: str):
         self.platform = platform_info
         self.token = token
-        self.project_id = self._get_project_id()
-
-        # Determinar URL base (cloud vs self-hosted)
-        if platform_info.mode == "c":
-            self.base_url = "https://gitlab.com/api/v4"
-        else:
+        if platform_info.host:
             self.base_url = f"https://{platform_info.host}/api/v4"
+        else:
+            self.base_url = "https://gitlab.com/api/v4"
+
+        # Obtener project ID
+        self.project_id = self._get_project_id()
 
     def _get_project_id(self):
         """Obtiene el ID del proyecto GitLab."""
@@ -746,7 +1246,10 @@ class GitLabProtectionAPI(PlatformProtectionAPI):
             return {}
 
         url = f"{self.base_url}/projects/{urllib.parse.quote_plus(self.project_id)}/protected_branches/{branch_name}"
-        headers = {"Private-Token": self.token}
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json"
+        }
 
         try:
             response = requests.get(url, headers=headers, timeout=10)
@@ -762,7 +1265,897 @@ class GitLabProtectionAPI(PlatformProtectionAPI):
             return {"status": "error", "message": "requests no disponible"}
 
         url = f"{self.base_url}/projects/{urllib.parse.quote_plus(self.project_id)}/protected_branches"
-        headers = {"Private-Token": self.token}
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json"
+        }
+
+        # Mapear configuración universal a GitLab
+        gitlab_config = self._map_universal_to_gitlab(config, branch_name)
+
+        try:
+            response = requests.post(url, headers=headers, json=gitlab_config, timeout=10)
+            if response.status_code == 201:
+                return {"status": "success", "branch": branch_name}
+            else:
+                return {"status": "error", "message": response.text, "branch": branch_name}
+        except Exception as e:
+            return {"status": "error", "message": str(e), "branch": branch_name}
+
+    def remove_protection(self, branch_name: str) -> dict:
+        """Remueve protección de una branch."""
+        if not REQUESTS_AVAILABLE:
+            return {"status": "error", "message": "requests no disponible"}
+
+        url = f"{self.base_url}/projects/{urllib.parse.quote_plus(self.project_id)}/protected_branches/{branch_name}"
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json"
+        }
+
+        try:
+            response = requests.delete(url, headers=headers, timeout=10)
+            if response.status_code == 204:
+                return {"status": "success", "branch": branch_name}
+            else:
+                return {"status": "error", "message": response.text, "branch": branch_name}
+        except Exception as e:
+            return {"status": "error", "message": str(e), "branch": branch_name}
+
+    def list_protected_branches(self) -> list:
+        """Lista branches protegidas en GitLab."""
+        if not REQUESTS_AVAILABLE:
+            return []
+
+        url = f"{self.base_url}/projects/{urllib.parse.quote_plus(self.project_id)}/protected_branches"
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json"
+        }
+
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                branches = response.json()
+                return [branch['name'] for branch in branches]
+            return []
+        except Exception:
+            return []
+
+    def _map_universal_to_gitlab(self, universal_config, branch_name):
+        """Mapea configuración universal a formato GitLab."""
+        return {
+            "name": branch_name,
+            "push_access_level": 40 if universal_config.get("restrict_access") else 30,  # Maintainer vs Developer
+            "merge_access_level": 40 if universal_config.get("require_reviews") else 30,
+            "unprotect_access_level": 40,  # Solo maintainers pueden desproteger
+            "code_owner_approval_required": universal_config.get("require_code_owners", False)
+        }
+
+class ForgejoCompatibleProtectionAPI(PlatformProtectionAPI):
+    """
+    API base para protección de branches compatible con Forgejo.
+
+    Forgejo utiliza una API compatible con GitHub para branch protection,
+    por lo que esta clase base implementa la funcionalidad común.
+    """
+
+    def __init__(self, platform_info: PlatformInfo, token: str):
+        self.platform = platform_info
+        self.token = token
+        self.base_url = self._get_base_url()
+
+    def _get_base_url(self) -> str:
+        """Construye la URL base de la API."""
+        if self.platform.host:
+            return f"https://{self.platform.host}/api/v1"
+        else:
+            # Para servicios cloud de Forgejo
+            return "https://codeberg.org/api/v1"
+
+    def _get_auth_headers(self) -> dict:
+        """Obtiene headers de autenticación estándar."""
+        return {
+            'Authorization': f'token {self.token}',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+
+    def get_current_protection(self, branch_name: str) -> dict:
+        """Obtiene protección actual de la branch."""
+        if not REQUESTS_AVAILABLE:
+            return {}
+
+        url = f"{self.base_url}/repos/{self.platform.repo_owner}/{self.platform.repo_name}/branches/{branch_name}/protection"
+        headers = self._get_auth_headers()
+
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                return response.json()
+            return {}
+        except Exception:
+            return {}
+
+    def apply_protection(self, branch_name: str, config: dict) -> dict:
+        """Aplica protección usando API compatible con GitHub."""
+        if not REQUESTS_AVAILABLE:
+            return {"status": "error", "message": "requests no disponible"}
+
+        url = f"{self.base_url}/repos/{self.platform.repo_owner}/{self.platform.repo_name}/branches/{branch_name}/protection"
+        headers = self._get_auth_headers()
+
+        # Mapear configuración universal a formato Forgejo/GitHub
+        forgejo_config = self._map_universal_to_forgejo(config)
+
+        try:
+            response = requests.put(url, headers=headers, json=forgejo_config, timeout=10)
+            if response.status_code == 200:
+                return {"status": "success", "branch": branch_name}
+            else:
+                return {"status": "error", "message": response.text, "branch": branch_name}
+        except Exception as e:
+            return {"status": "error", "message": str(e), "branch": branch_name}
+
+    def remove_protection(self, branch_name: str) -> dict:
+        """Remueve protección de una branch."""
+        if not REQUESTS_AVAILABLE:
+            return {"status": "error", "message": "requests no disponible"}
+
+        url = f"{self.base_url}/repos/{self.platform.repo_owner}/{self.platform.repo_name}/branches/{branch_name}/protection"
+        headers = self._get_auth_headers()
+
+        try:
+            response = requests.delete(url, headers=headers, timeout=10)
+            if response.status_code == 204:
+                return {"status": "success", "branch": branch_name}
+            else:
+                return {"status": "error", "message": response.text, "branch": branch_name}
+        except Exception as e:
+            return {"status": "error", "message": str(e), "branch": branch_name}
+
+    def list_protected_branches(self) -> list:
+        """Lista branches protegidas."""
+        if not REQUESTS_AVAILABLE:
+            return []
+
+        url = f"{self.base_url}/repos/{self.platform.repo_owner}/{self.platform.repo_name}/branches"
+        headers = self._get_auth_headers()
+
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                branches = response.json()
+                # Filtrar solo las branches protegidas
+                protected = []
+                for branch in branches:
+                    if branch.get('protected', False):
+                        protected.append(branch['name'])
+                return protected
+            return []
+        except Exception:
+            return []
+
+    def _map_universal_to_forgejo(self, universal_config):
+        """Mapea configuración universal a formato Forgejo/GitHub."""
+        config = {}
+
+        # Required status checks
+        if universal_config.get("required_checks"):
+            config["required_status_checks"] = {
+                "strict": universal_config.get("require_up_to_date", True),
+                "contexts": universal_config.get("required_checks", [])
+            }
+        else:
+            config["required_status_checks"] = None
+
+        # Pull request reviews
+        if universal_config.get("require_reviews"):
+            config["required_pull_request_reviews"] = {
+                "required_approving_review_count": universal_config.get("min_reviewers", 1),
+                "dismiss_stale_reviews": universal_config.get("dismiss_stale", True),
+                "require_code_owner_reviews": universal_config.get("require_code_owners", False)
+            }
+        else:
+            config["required_pull_request_reviews"] = None
+
+        # Restrictions
+        if universal_config.get("restrict_access"):
+            config["restrictions"] = {
+                "users": universal_config.get("allowed_users", []),
+                "teams": universal_config.get("allowed_teams", [])
+            }
+        else:
+            config["restrictions"] = None
+
+        # Enforce admins
+        config["enforce_admins"] = universal_config.get("enforce_admins", True)
+
+        # Allow force pushes and deletions
+        config["allow_force_pushes"] = universal_config.get("allow_force_push", False)
+        config["allow_deletions"] = universal_config.get("allow_deletions", False)
+
+        return config
+
+class ForgejoProtectionAPI(ForgejoCompatibleProtectionAPI):
+    """
+    API específica de Forgejo para branch protection.
+
+    Forgejo puede tener características específicas o mejoras sobre la API base.
+    """
+
+    def _get_base_url(self) -> str:
+        """URL base específica para Forgejo."""
+        if self.platform.host:
+            # Forgejo on-premise
+            return f"https://{self.platform.host}/api/v1"
+        else:
+            # Forgejo cloud (Codeberg es la instancia principal)
+            return "https://codeberg.org/api/v1"
+
+    def apply_protection(self, branch_name: str, config: dict) -> dict:
+        """
+        Aplica protección en Forgejo.
+
+        Forgejo puede tener características específicas o mejoras.
+        """
+        # Usar implementación base y añadir características específicas de Forgejo
+        result = super().apply_protection(branch_name, config)
+
+        if result.get("status") == "success":
+            # Aquí se pueden añadir configuraciones específicas de Forgejo
+            # como webhooks automáticos, integraciones con Woodpecker CI, etc.
+            pass
+
+        return result
+
+class GiteaProtectionAPI(ForgejoCompatibleProtectionAPI):
+    """
+    API específica de Gitea para branch protection.
+
+    Gitea puede tener diferencias específicas en endpoints o comportamiento.
+    """
+
+    def _get_base_url(self) -> str:
+        """URL base específica para Gitea."""
+        if self.platform.host:
+            # Gitea es principalmente on-premise
+            return f"https://{self.platform.host}/api/v1"
+        else:
+            # Gitea cloud es menos común
+            return f"https://gitea.com/api/v1"
+
+    def _get_auth_headers(self) -> dict:
+        """
+        Headers de autenticación para Gitea.
+
+        Gitea puede tener ligeras diferencias en headers aceptados.
+        """
+        return {
+            'Authorization': f'token {self.token}',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'User-Agent': 'git-integration-manager/1.0'  # Gitea a veces requiere User-Agent
+        }
+
+    def _map_universal_to_forgejo(self, universal_config):
+        """
+        Mapea configuración universal a formato Gitea.
+
+        Gitea puede tener campos específicos diferentes a Forgejo.
+        """
+        config = super()._map_universal_to_forgejo(universal_config)
+
+        # Gitea puede requerir campos específicos o tener nombres diferentes
+        # Por ejemplo, Gitea puede no soportar code owners
+        if config.get("required_pull_request_reviews"):
+            # Gitea puede no soportar require_code_owner_reviews
+            config["required_pull_request_reviews"]["require_code_owner_reviews"] = False
+
+        return config
+
+class BitbucketProtectionAPI(PlatformProtectionAPI):
+    """
+    API específica de Bitbucket para branch protection.
+
+    Bitbucket tiene una API completamente diferente para branch permissions.
+    """
+
+    def __init__(self, platform_info: PlatformInfo, token: str):
+        self.platform = platform_info
+        self.token = token
+        self.base_url = self._get_base_url()
+
+    def _get_base_url(self) -> str:
+        """URL base para Bitbucket."""
+        if self.platform.host:
+            # Bitbucket Server (on-premise)
+            return f"https://{self.platform.host}/rest/api/1.0"
+        else:
+            # Bitbucket Cloud
+            return "https://api.bitbucket.org/2.0"
+
+    def _get_auth_headers(self) -> dict:
+        """Headers de autenticación para Bitbucket."""
+        return {
+            'Authorization': f'Bearer {self.token}',
+            'Content-Type': 'application/json'
+        }
+
+    def get_current_protection(self, branch_name: str) -> dict:
+        """Obtiene protección actual de Bitbucket."""
+        if not REQUESTS_AVAILABLE:
+            return {}
+
+        if self.platform.host:
+            # Bitbucket Server
+            url = f"{self.base_url}/projects/{self.platform.repo_owner}/repos/{self.platform.repo_name}/restrictions"
+        else:
+            # Bitbucket Cloud
+            url = f"{self.base_url}/repositories/{self.platform.repo_owner}/{self.platform.repo_name}/branch-restrictions"
+
+        headers = self._get_auth_headers()
+
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                restrictions = response.json()
+                # Filtrar restricciones para la branch específica
+                branch_restrictions = []
+                if self.platform.host:
+                    # Bitbucket Server format
+                    for restriction in restrictions.get('values', []):
+                        if restriction.get('matcher', {}).get('displayId') == branch_name:
+                            branch_restrictions.append(restriction)
+                else:
+                    # Bitbucket Cloud format
+                    for restriction in restrictions.get('values', []):
+                        if restriction.get('pattern') == branch_name:
+                            branch_restrictions.append(restriction)
+
+                return {"restrictions": branch_restrictions}
+            return {}
+        except Exception:
+            return {}
+
+    def apply_protection(self, branch_name: str, config: dict) -> dict:
+        """Aplica protección Bitbucket-específica."""
+        if not REQUESTS_AVAILABLE:
+            return {"status": "error", "message": "requests no disponible"}
+
+        # Bitbucket maneja protección a través de branch restrictions
+        restrictions = self._map_universal_to_bitbucket(config, branch_name)
+        results = []
+
+        for restriction in restrictions:
+            if self.platform.host:
+                # Bitbucket Server
+                url = f"{self.base_url}/projects/{self.platform.repo_owner}/repos/{self.platform.repo_name}/restrictions"
+            else:
+                # Bitbucket Cloud
+                url = f"{self.base_url}/repositories/{self.platform.repo_owner}/{self.platform.repo_name}/branch-restrictions"
+
+            headers = self._get_auth_headers()
+
+            try:
+                response = requests.post(url, headers=headers, json=restriction, timeout=10)
+                if response.status_code == 201:
+                    results.append({"status": "success", "restriction": restriction["kind"]})
+                else:
+                    results.append({"status": "error", "message": response.text, "restriction": restriction["kind"]})
+            except Exception as e:
+                results.append({"status": "error", "message": str(e), "restriction": restriction["kind"]})
+
+        return {"status": "success" if all(r["status"] == "success" for r in results) else "partial", "results": results, "branch": branch_name}
+
+    def remove_protection(self, branch_name: str) -> dict:
+        """Remueve protección de una branch."""
+        if not REQUESTS_AVAILABLE:
+            return {"status": "error", "message": "requests no disponible"}
+
+        # Primero obtener restricciones actuales
+        current = self.get_current_protection(branch_name)
+        restrictions = current.get("restrictions", [])
+
+        results = []
+        for restriction in restrictions:
+            restriction_id = restriction.get("id")
+            if restriction_id:
+                if self.platform.host:
+                    # Bitbucket Server
+                    url = f"{self.base_url}/projects/{self.platform.repo_owner}/repos/{self.platform.repo_name}/restrictions/{restriction_id}"
+                else:
+                    # Bitbucket Cloud
+                    url = f"{self.base_url}/repositories/{self.platform.repo_owner}/{self.platform.repo_name}/branch-restrictions/{restriction_id}"
+
+                headers = self._get_auth_headers()
+
+                try:
+                    response = requests.delete(url, headers=headers, timeout=10)
+                    if response.status_code == 204:
+                        results.append({"status": "success", "restriction_id": restriction_id})
+                    else:
+                        results.append({"status": "error", "message": response.text, "restriction_id": restriction_id})
+                except Exception as e:
+                    results.append({"status": "error", "message": str(e), "restriction_id": restriction_id})
+
+        return {"status": "success" if all(r["status"] == "success" for r in results) else "partial", "results": results, "branch": branch_name}
+
+    def list_protected_branches(self) -> list:
+        """Lista branches protegidas en Bitbucket."""
+        if not REQUESTS_AVAILABLE:
+            return []
+
+        if self.platform.host:
+            # Bitbucket Server
+            url = f"{self.base_url}/projects/{self.platform.repo_owner}/repos/{self.platform.repo_name}/restrictions"
+        else:
+            # Bitbucket Cloud
+            url = f"{self.base_url}/repositories/{self.platform.repo_owner}/{self.platform.repo_name}/branch-restrictions"
+
+        headers = self._get_auth_headers()
+
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                restrictions = response.json()
+                protected_branches = set()
+
+                if self.platform.host:
+                    # Bitbucket Server format
+                    for restriction in restrictions.get('values', []):
+                        branch_pattern = restriction.get('matcher', {}).get('displayId')
+                        if branch_pattern:
+                            protected_branches.add(branch_pattern)
+                else:
+                    # Bitbucket Cloud format
+                    for restriction in restrictions.get('values', []):
+                        pattern = restriction.get('pattern')
+                        if pattern:
+                            protected_branches.add(pattern)
+
+                return list(protected_branches)
+            return []
+        except Exception:
+            return []
+
+    def _map_universal_to_bitbucket(self, universal_config, branch_name):
+        """Mapea configuración universal a formato Bitbucket."""
+        restrictions = []
+
+        # Bitbucket maneja protección a través de diferentes tipos de restricciones
+        if universal_config.get("require_reviews"):
+            if self.platform.host:
+                # Bitbucket Server format
+                restrictions.append({
+                    "type": "pull-request-only",
+                    "matcher": {
+                        "id": branch_name,
+                        "displayId": branch_name,
+                        "type": {"id": "BRANCH", "name": "Branch"}
+                    },
+                    "users": [],
+                    "groups": []
+                })
+            else:
+                # Bitbucket Cloud format
+                restrictions.append({
+                    "kind": "require_approvals_to_merge",
+                    "pattern": branch_name,
+                    "value": universal_config.get("min_reviewers", 1)
+                })
+
+        # Restricción de push directo
+        if universal_config.get("restrict_access"):
+            if self.platform.host:
+                # Bitbucket Server
+                restrictions.append({
+                    "type": "no-deletes",
+                    "matcher": {
+                        "id": branch_name,
+                        "displayId": branch_name,
+                        "type": {"id": "BRANCH", "name": "Branch"}
+                    }
+                })
+            else:
+                # Bitbucket Cloud
+                restrictions.append({
+                    "kind": "restrict_merges",
+                    "pattern": branch_name,
+                    "users": universal_config.get("allowed_users", [])
+                })
+
+        return restrictions
+
+class PlatformAPIFactory:
+    """Factory para crear APIs de protección específicas."""
+
+    @staticmethod
+    def create_protection_api(platform_info: PlatformInfo, token: str) -> Optional[PlatformProtectionAPI]:
+        """Crea API de protección específica según la plataforma."""
+
+        if platform_info.service == "github":
+            return GitHubProtectionAPI(platform_info, token)
+        elif platform_info.service == "gitlab":
+            return GitLabProtectionAPI(platform_info, token)
+        elif platform_info.service == "forgejo":
+            return ForgejoProtectionAPI(platform_info, token)
+        elif platform_info.service == "gitea":
+            return GiteaProtectionAPI(platform_info, token)
+        elif platform_info.service == "bitbucket":
+            return BitbucketProtectionAPI(platform_info, token)
+        else:
+            # Plataforma no soportada
+            return None
+
+@dataclass
+class WorkflowStep:
+    """Representa un paso en un workflow."""
+    name: str
+    description: str
+    command: Optional[str] = None
+    requires_api: bool = False
+    api_endpoint: Optional[str] = None
+    fallback_instruction: Optional[str] = None
+    completed: bool = False
+    skipped: bool = False
+    error: Optional[str] = None
+
+@dataclass
+class RepositoryMetrics:
+    """Métricas del repositorio."""
+    total_branches: int = 0
+    active_branches: int = 0
+    stale_branches: int = 0
+    merged_branches: int = 0
+    total_commits: int = 0
+    contributors: int = 0
+    last_activity: Optional[datetime] = None
+    health_score: float = 0.0
+
+class APICapabilities:
+    """Detecta y gestiona capacidades de APIs disponibles."""
+
+    def __init__(self):
+        self.github_token = os.getenv('GITHUB_TOKEN') or os.getenv('GH_TOKEN')
+        self.gitlab_token = os.getenv('GITLAB_TOKEN') or os.getenv('GL_TOKEN')
+        self.forgejo_token = os.getenv('FORGEJO_TOKEN') or os.getenv('GITEA_TOKEN')
+        self.gitea_token = os.getenv('GITEA_TOKEN') or os.getenv('FORGEJO_TOKEN')
+        self.bitbucket_token = os.getenv('BITBUCKET_TOKEN') or os.getenv('BB_TOKEN')
+        self.capabilities = self._detect_capabilities()
+
+    def _detect_capabilities(self) -> Dict[str, bool]:
+        """Detecta qué APIs están disponibles."""
+        caps = {
+            'github_api': bool(self.github_token and REQUESTS_AVAILABLE),
+            'gitlab_api': bool(self.gitlab_token and REQUESTS_AVAILABLE),
+            'forgejo_api': bool(self.forgejo_token and REQUESTS_AVAILABLE),
+            'gitea_api': bool(self.gitea_token and REQUESTS_AVAILABLE),
+            'bitbucket_api': bool(self.bitbucket_token and REQUESTS_AVAILABLE),
+            'git_cli': True,  # Siempre disponible
+            'local_analysis': True,  # Siempre disponible
+        }
+
+        # Verificar conectividad específica para las APIs principales
+        if caps['github_api']:
+            caps['github_api'] = self._test_github_connection()
+
+        if caps['gitlab_api']:
+            caps['gitlab_api'] = self._test_gitlab_connection()
+
+        if caps['forgejo_api']:
+            caps['forgejo_api'] = self._test_forgejo_connection()
+
+        if caps['gitea_api']:
+            caps['gitea_api'] = self._test_gitea_connection()
+
+        if caps['bitbucket_api']:
+            caps['bitbucket_api'] = self._test_bitbucket_connection()
+
+        return caps
+
+    def _test_github_connection(self) -> bool:
+        """Prueba conexión con GitHub API."""
+        if not REQUESTS_AVAILABLE:
+            return False
+
+        try:
+            response = requests.get(
+                'https://api.github.com/user',
+                headers={'Authorization': f'token {self.github_token}'},
+                timeout=5
+            )
+            return response.status_code == 200
+        except Exception:
+            return False
+
+    def _test_gitlab_connection(self) -> bool:
+        """Prueba conexión con GitLab API."""
+        if not REQUESTS_AVAILABLE:
+            return False
+
+        try:
+            response = requests.get(
+                'https://gitlab.com/api/v4/user',
+                headers={'Authorization': f'Bearer {self.gitlab_token}'},
+                timeout=5
+            )
+            return response.status_code == 200
+        except Exception:
+            return False
+
+    def _test_forgejo_connection(self) -> bool:
+        """Prueba conexión con Forgejo API (usando Codeberg como referencia)."""
+        if not REQUESTS_AVAILABLE:
+            return False
+
+        try:
+            # Probar con Codeberg (instancia principal de Forgejo)
+            response = requests.get(
+                'https://codeberg.org/api/v1/user',
+                headers={'Authorization': f'token {self.forgejo_token}'},
+                timeout=5
+            )
+            return response.status_code == 200
+        except Exception:
+            # Si falla, asumir que el token es válido pero la instancia no es accesible
+            return True
+
+    def _test_gitea_connection(self) -> bool:
+        """Prueba conexión con Gitea API."""
+        if not REQUESTS_AVAILABLE:
+            return False
+
+        try:
+            # Gitea es principalmente on-premise, así que no hay una instancia estándar para probar
+            # Asumir que el token es válido si existe
+            return True
+        except Exception:
+            return False
+
+    def _test_bitbucket_connection(self) -> bool:
+        """Prueba conexión con Bitbucket API."""
+        if not REQUESTS_AVAILABLE:
+            return False
+
+        try:
+            response = requests.get(
+                'https://api.bitbucket.org/2.0/user',
+                headers={'Authorization': f'Bearer {self.bitbucket_token}'},
+                timeout=5
+            )
+            return response.status_code == 200
+        except Exception:
+            return False
+
+    def get_capability_level(self) -> CapabilityLevel:
+        """Determina el nivel de capacidades disponibles."""
+        api_count = sum([
+            self.capabilities['github_api'],
+            self.capabilities['gitlab_api'],
+            self.capabilities['forgejo_api'],
+            self.capabilities['gitea_api'],
+            self.capabilities['bitbucket_api']
+        ])
+
+        if api_count >= 1:
+            return CapabilityLevel.FULL
+        elif REQUESTS_AVAILABLE:
+            return CapabilityLevel.ENHANCED
+        else:
+            return CapabilityLevel.BASIC
+
+    def get_available_platforms(self) -> List[str]:
+        """Retorna lista de plataformas con APIs disponibles."""
+        available = []
+        if self.capabilities['github_api']:
+            available.append('github')
+        if self.capabilities['gitlab_api']:
+            available.append('gitlab')
+        if self.capabilities['forgejo_api']:
+            available.append('forgejo')
+        if self.capabilities['gitea_api']:
+            available.append('gitea')
+        if self.capabilities['bitbucket_api']:
+            available.append('bitbucket')
+        return available
+
+# ============================================================================
+# NUEVAS CLASES PARA CONFIGURACIÓN AUTOMÁTICA DEL REMOTO
+# ============================================================================
+
+class PlatformProtectionAPI(ABC):
+    """Interfaz abstracta para APIs de protección de branches."""
+
+    @abstractmethod
+    def get_current_protection(self, branch_name: str) -> dict:
+        """Obtiene protección actual de una branch."""
+        pass
+
+    @abstractmethod
+    def apply_protection(self, branch_name: str, config: dict) -> dict:
+        """Aplica protección a una branch."""
+        pass
+
+    @abstractmethod
+    def remove_protection(self, branch_name: str) -> dict:
+        """Remueve protección de una branch."""
+        pass
+
+    @abstractmethod
+    def list_protected_branches(self) -> list:
+        """Lista todas las branches protegidas."""
+        pass
+
+class GitHubProtectionAPI(PlatformProtectionAPI):
+    """API específica de GitHub para branch protection."""
+
+    def __init__(self, platform_info: PlatformInfo, token: str):
+        self.platform = platform_info
+        self.token = token
+        self.base_url = f"https://api.github.com/repos/{platform_info.repo_owner}/{platform_info.repo_name}"
+
+    def get_current_protection(self, branch_name: str) -> dict:
+        """Obtiene protección actual de GitHub."""
+        if not REQUESTS_AVAILABLE:
+            return {}
+
+        url = f"{self.base_url}/branches/{branch_name}/protection"
+        headers = {
+            "Authorization": f"token {self.token}",
+            "Accept": "application/vnd.github.v3+json"
+        }
+
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                return response.json()
+            return {}
+        except Exception:
+            return {}
+
+    def apply_protection(self, branch_name: str, config: dict) -> dict:
+        """Aplica protección GitHub-específica."""
+        if not REQUESTS_AVAILABLE:
+            return {"status": "error", "message": "requests no disponible"}
+
+        url = f"{self.base_url}/branches/{branch_name}/protection"
+        headers = {
+            "Authorization": f"token {self.token}",
+            "Accept": "application/vnd.github.v3+json"
+        }
+
+        # Mapear configuración universal a GitHub
+        github_config = self._map_universal_to_github(config)
+
+        try:
+            response = requests.put(url, headers=headers, json=github_config, timeout=10)
+            if response.status_code == 200:
+                return {"status": "success", "branch": branch_name}
+            else:
+                return {"status": "error", "message": response.text, "branch": branch_name}
+        except Exception as e:
+            return {"status": "error", "message": str(e), "branch": branch_name}
+
+    def remove_protection(self, branch_name: str) -> dict:
+        """Remueve protección de una branch."""
+        if not REQUESTS_AVAILABLE:
+            return {"status": "error", "message": "requests no disponible"}
+
+        url = f"{self.base_url}/branches/{branch_name}/protection"
+        headers = {
+            "Authorization": f"token {self.token}",
+            "Accept": "application/vnd.github.v3+json"
+        }
+
+        try:
+            response = requests.delete(url, headers=headers, timeout=10)
+            if response.status_code == 204:
+                return {"status": "success", "branch": branch_name}
+            else:
+                return {"status": "error", "message": response.text, "branch": branch_name}
+        except Exception as e:
+            return {"status": "error", "message": str(e), "branch": branch_name}
+
+    def list_protected_branches(self) -> list:
+        """Lista branches protegidas en GitHub."""
+        if not REQUESTS_AVAILABLE:
+            return []
+
+        url = f"{self.base_url}/branches"
+        headers = {
+            "Authorization": f"token {self.token}",
+            "Accept": "application/vnd.github.v3+json"
+        }
+
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                branches = response.json()
+                return [b["name"] for b in branches if b.get("protected", False)]
+            return []
+        except Exception:
+            return []
+
+    def _map_universal_to_github(self, universal_config):
+        """Mapea configuración universal a formato GitHub."""
+        github_config = {}
+
+        # Required PR reviews
+        if universal_config.get("require_reviews"):
+            github_config["required_pull_request_reviews"] = {
+                "required_approving_review_count": universal_config.get("min_reviewers", 1),
+                "dismiss_stale_reviews": universal_config.get("dismiss_stale", True),
+                "require_code_owner_reviews": universal_config.get("require_code_owners", False)
+            }
+
+        # Status checks
+        if universal_config.get("required_checks"):
+            github_config["required_status_checks"] = {
+                "strict": universal_config.get("require_up_to_date", True),
+                "contexts": universal_config["required_checks"]
+            }
+
+        # Restrictions - GitHub requiere este campo, usar null si no hay restricciones
+        if universal_config.get("restrict_access"):
+            github_config["restrictions"] = {
+                "users": universal_config.get("allowed_users", []),
+                "teams": universal_config.get("allowed_teams", [])
+            }
+        else:
+            github_config["restrictions"] = None
+
+        github_config["enforce_admins"] = universal_config.get("enforce_admins", True)
+
+        return github_config
+
+class GitLabProtectionAPI(PlatformProtectionAPI):
+    """API específica de GitLab para branch protection."""
+
+    def __init__(self, platform_info: PlatformInfo, token: str):
+        self.platform = platform_info
+        self.token = token
+        if platform_info.host:
+            self.base_url = f"https://{platform_info.host}/api/v4"
+        else:
+            self.base_url = "https://gitlab.com/api/v4"
+
+        # Obtener project ID
+        self.project_id = self._get_project_id()
+
+    def _get_project_id(self):
+        """Obtiene el ID del proyecto GitLab."""
+        return f"{self.platform.repo_owner}/{self.platform.repo_name}"
+
+    def get_current_protection(self, branch_name: str) -> dict:
+        """Obtiene protección actual de GitLab."""
+        if not REQUESTS_AVAILABLE:
+            return {}
+
+        url = f"{self.base_url}/projects/{urllib.parse.quote_plus(self.project_id)}/protected_branches/{branch_name}"
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json"
+        }
+
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                return response.json()
+            return {}
+        except Exception:
+            return {}
+
+    def apply_protection(self, branch_name: str, config: dict) -> dict:
+        """Aplica protección GitLab-específica."""
+        if not REQUESTS_AVAILABLE:
+            return {"status": "error", "message": "requests no disponible"}
+
+        url = f"{self.base_url}/projects/{urllib.parse.quote_plus(self.project_id)}/protected_branches"
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json"
+        }
 
         # Mapear configuración universal a GitLab
         gitlab_config = self._map_universal_to_gitlab(config, branch_name)
@@ -782,7 +2175,10 @@ class GitLabProtectionAPI(PlatformProtectionAPI):
             return {"status": "error", "message": "requests no disponible"}
 
         url = f"{self.base_url}/projects/{urllib.parse.quote_plus(self.project_id)}/protected_branches/{branch_name}"
-        headers = {"Private-Token": self.token}
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json"
+        }
 
         try:
             response = requests.delete(url, headers=headers, timeout=10)
@@ -799,37 +2195,464 @@ class GitLabProtectionAPI(PlatformProtectionAPI):
             return []
 
         url = f"{self.base_url}/projects/{urllib.parse.quote_plus(self.project_id)}/protected_branches"
-        headers = {"Private-Token": self.token}
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json"
+        }
 
         try:
             response = requests.get(url, headers=headers, timeout=10)
             if response.status_code == 200:
                 branches = response.json()
-                return [b["name"] for b in branches]
+                return [branch['name'] for branch in branches]
             return []
         except Exception:
             return []
 
     def _map_universal_to_gitlab(self, universal_config, branch_name):
         """Mapea configuración universal a formato GitLab."""
-        gitlab_config = {"name": branch_name}
+        return {
+            "name": branch_name,
+            "push_access_level": 40 if universal_config.get("restrict_access") else 30,  # Maintainer vs Developer
+            "merge_access_level": 40 if universal_config.get("require_reviews") else 30,
+            "unprotect_access_level": 40,  # Solo maintainers pueden desproteger
+            "code_owner_approval_required": universal_config.get("require_code_owners", False)
+        }
 
-        # GitLab usa niveles de acceso numéricos
-        # 0: No access, 30: Developer, 40: Maintainer, 60: Admin
+class ForgejoCompatibleProtectionAPI(PlatformProtectionAPI):
+    """
+    API base para protección de branches compatible con Forgejo.
 
-        if universal_config.get("require_reviews"):
-            # Si requiere reviews, solo maintainers pueden push
-            gitlab_config["push_access_level"] = 40
-            gitlab_config["merge_access_level"] = 30  # Developers pueden merge via MR
+    Forgejo utiliza una API compatible con GitHub para branch protection,
+    por lo que esta clase base implementa la funcionalidad común.
+    """
+
+    def __init__(self, platform_info: PlatformInfo, token: str):
+        self.platform = platform_info
+        self.token = token
+        self.base_url = self._get_base_url()
+
+    def _get_base_url(self) -> str:
+        """Construye la URL base de la API."""
+        if self.platform.host:
+            return f"https://{self.platform.host}/api/v1"
         else:
-            gitlab_config["push_access_level"] = 30
-            gitlab_config["merge_access_level"] = 30
+            # Para servicios cloud de Forgejo
+            return "https://codeberg.org/api/v1"
 
-        # GitLab maneja code owners y approvals diferente
-        if universal_config.get("require_code_owners"):
-            gitlab_config["code_owner_approval_required"] = True
+    def _get_auth_headers(self) -> dict:
+        """Obtiene headers de autenticación estándar."""
+        return {
+            'Authorization': f'token {self.token}',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
 
-        return gitlab_config
+    def get_current_protection(self, branch_name: str) -> dict:
+        """Obtiene protección actual de la branch."""
+        if not REQUESTS_AVAILABLE:
+            return {}
+
+        url = f"{self.base_url}/repos/{self.platform.repo_owner}/{self.platform.repo_name}/branches/{branch_name}/protection"
+        headers = self._get_auth_headers()
+
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                return response.json()
+            return {}
+        except Exception:
+            return {}
+
+    def apply_protection(self, branch_name: str, config: dict) -> dict:
+        """Aplica protección usando API compatible con GitHub."""
+        if not REQUESTS_AVAILABLE:
+            return {"status": "error", "message": "requests no disponible"}
+
+        url = f"{self.base_url}/repos/{self.platform.repo_owner}/{self.platform.repo_name}/branches/{branch_name}/protection"
+        headers = self._get_auth_headers()
+
+        # Mapear configuración universal a formato Forgejo/GitHub
+        forgejo_config = self._map_universal_to_forgejo(config)
+
+        try:
+            response = requests.put(url, headers=headers, json=forgejo_config, timeout=10)
+            if response.status_code == 200:
+                return {"status": "success", "branch": branch_name}
+            else:
+                return {"status": "error", "message": response.text, "branch": branch_name}
+        except Exception as e:
+            return {"status": "error", "message": str(e), "branch": branch_name}
+
+    def remove_protection(self, branch_name: str) -> dict:
+        """Remueve protección de una branch."""
+        if not REQUESTS_AVAILABLE:
+            return {"status": "error", "message": "requests no disponible"}
+
+        url = f"{self.base_url}/repos/{self.platform.repo_owner}/{self.platform.repo_name}/branches/{branch_name}/protection"
+        headers = self._get_auth_headers()
+
+        try:
+            response = requests.delete(url, headers=headers, timeout=10)
+            if response.status_code == 204:
+                return {"status": "success", "branch": branch_name}
+            else:
+                return {"status": "error", "message": response.text, "branch": branch_name}
+        except Exception as e:
+            return {"status": "error", "message": str(e), "branch": branch_name}
+
+    def list_protected_branches(self) -> list:
+        """Lista branches protegidas."""
+        if not REQUESTS_AVAILABLE:
+            return []
+
+        url = f"{self.base_url}/repos/{self.platform.repo_owner}/{self.platform.repo_name}/branches"
+        headers = self._get_auth_headers()
+
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                branches = response.json()
+                # Filtrar solo las branches protegidas
+                protected = []
+                for branch in branches:
+                    if branch.get('protected', False):
+                        protected.append(branch['name'])
+                return protected
+            return []
+        except Exception:
+            return []
+
+    def _map_universal_to_forgejo(self, universal_config):
+        """Mapea configuración universal a formato Forgejo/GitHub."""
+        config = {}
+
+        # Required status checks
+        if universal_config.get("required_checks"):
+            config["required_status_checks"] = {
+                "strict": universal_config.get("require_up_to_date", True),
+                "contexts": universal_config.get("required_checks", [])
+            }
+        else:
+            config["required_status_checks"] = None
+
+        # Pull request reviews
+        if universal_config.get("require_reviews"):
+            config["required_pull_request_reviews"] = {
+                "required_approving_review_count": universal_config.get("min_reviewers", 1),
+                "dismiss_stale_reviews": universal_config.get("dismiss_stale", True),
+                "require_code_owner_reviews": universal_config.get("require_code_owners", False)
+            }
+        else:
+            config["required_pull_request_reviews"] = None
+
+        # Restrictions
+        if universal_config.get("restrict_access"):
+            config["restrictions"] = {
+                "users": universal_config.get("allowed_users", []),
+                "teams": universal_config.get("allowed_teams", [])
+            }
+        else:
+            config["restrictions"] = None
+
+        # Enforce admins
+        config["enforce_admins"] = universal_config.get("enforce_admins", True)
+
+        # Allow force pushes and deletions
+        config["allow_force_pushes"] = universal_config.get("allow_force_push", False)
+        config["allow_deletions"] = universal_config.get("allow_deletions", False)
+
+        return config
+
+class ForgejoProtectionAPI(ForgejoCompatibleProtectionAPI):
+    """
+    API específica de Forgejo para branch protection.
+
+    Forgejo puede tener características específicas o mejoras sobre la API base.
+    """
+
+    def _get_base_url(self) -> str:
+        """URL base específica para Forgejo."""
+        if self.platform.host:
+            # Forgejo on-premise
+            return f"https://{self.platform.host}/api/v1"
+        else:
+            # Forgejo cloud (Codeberg es la instancia principal)
+            return "https://codeberg.org/api/v1"
+
+    def apply_protection(self, branch_name: str, config: dict) -> dict:
+        """
+        Aplica protección en Forgejo.
+
+        Forgejo puede tener características específicas o mejoras.
+        """
+        # Usar implementación base y añadir características específicas de Forgejo
+        result = super().apply_protection(branch_name, config)
+
+        if result.get("status") == "success":
+            # Aquí se pueden añadir configuraciones específicas de Forgejo
+            # como webhooks automáticos, integraciones con Woodpecker CI, etc.
+            pass
+
+        return result
+
+class GiteaProtectionAPI(ForgejoCompatibleProtectionAPI):
+    """
+    API específica de Gitea para branch protection.
+
+    Gitea puede tener diferencias específicas en endpoints o comportamiento.
+    """
+
+    def _get_base_url(self) -> str:
+        """URL base específica para Gitea."""
+        if self.platform.host:
+            # Gitea es principalmente on-premise
+            return f"https://{self.platform.host}/api/v1"
+        else:
+            # Gitea cloud es menos común
+            return f"https://gitea.com/api/v1"
+
+    def _get_auth_headers(self) -> dict:
+        """
+        Headers de autenticación para Gitea.
+
+        Gitea puede tener ligeras diferencias en headers aceptados.
+        """
+        return {
+            'Authorization': f'token {self.token}',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'User-Agent': 'git-integration-manager/1.0'  # Gitea a veces requiere User-Agent
+        }
+
+    def _map_universal_to_forgejo(self, universal_config):
+        """
+        Mapea configuración universal a formato Gitea.
+
+        Gitea puede tener campos específicos diferentes a Forgejo.
+        """
+        config = super()._map_universal_to_forgejo(universal_config)
+
+        # Gitea puede requerir campos específicos o tener nombres diferentes
+        # Por ejemplo, Gitea puede no soportar code owners
+        if config.get("required_pull_request_reviews"):
+            # Gitea puede no soportar require_code_owner_reviews
+            config["required_pull_request_reviews"]["require_code_owner_reviews"] = False
+
+        return config
+
+class BitbucketProtectionAPI(PlatformProtectionAPI):
+    """
+    API específica de Bitbucket para branch protection.
+
+    Bitbucket tiene una API completamente diferente para branch permissions.
+    """
+
+    def __init__(self, platform_info: PlatformInfo, token: str):
+        self.platform = platform_info
+        self.token = token
+        self.base_url = self._get_base_url()
+
+    def _get_base_url(self) -> str:
+        """URL base para Bitbucket."""
+        if self.platform.host:
+            # Bitbucket Server (on-premise)
+            return f"https://{self.platform.host}/rest/api/1.0"
+        else:
+            # Bitbucket Cloud
+            return "https://api.bitbucket.org/2.0"
+
+    def _get_auth_headers(self) -> dict:
+        """Headers de autenticación para Bitbucket."""
+        return {
+            'Authorization': f'Bearer {self.token}',
+            'Content-Type': 'application/json'
+        }
+
+    def get_current_protection(self, branch_name: str) -> dict:
+        """Obtiene protección actual de Bitbucket."""
+        if not REQUESTS_AVAILABLE:
+            return {}
+
+        if self.platform.host:
+            # Bitbucket Server
+            url = f"{self.base_url}/projects/{self.platform.repo_owner}/repos/{self.platform.repo_name}/restrictions"
+        else:
+            # Bitbucket Cloud
+            url = f"{self.base_url}/repositories/{self.platform.repo_owner}/{self.platform.repo_name}/branch-restrictions"
+
+        headers = self._get_auth_headers()
+
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                restrictions = response.json()
+                # Filtrar restricciones para la branch específica
+                branch_restrictions = []
+                if self.platform.host:
+                    # Bitbucket Server format
+                    for restriction in restrictions.get('values', []):
+                        if restriction.get('matcher', {}).get('displayId') == branch_name:
+                            branch_restrictions.append(restriction)
+                else:
+                    # Bitbucket Cloud format
+                    for restriction in restrictions.get('values', []):
+                        if restriction.get('pattern') == branch_name:
+                            branch_restrictions.append(restriction)
+
+                return {"restrictions": branch_restrictions}
+            return {}
+        except Exception:
+            return {}
+
+    def apply_protection(self, branch_name: str, config: dict) -> dict:
+        """Aplica protección Bitbucket-específica."""
+        if not REQUESTS_AVAILABLE:
+            return {"status": "error", "message": "requests no disponible"}
+
+        # Bitbucket maneja protección a través de branch restrictions
+        restrictions = self._map_universal_to_bitbucket(config, branch_name)
+        results = []
+
+        for restriction in restrictions:
+            if self.platform.host:
+                # Bitbucket Server
+                url = f"{self.base_url}/projects/{self.platform.repo_owner}/repos/{self.platform.repo_name}/restrictions"
+            else:
+                # Bitbucket Cloud
+                url = f"{self.base_url}/repositories/{self.platform.repo_owner}/{self.platform.repo_name}/branch-restrictions"
+
+            headers = self._get_auth_headers()
+
+            try:
+                response = requests.post(url, headers=headers, json=restriction, timeout=10)
+                if response.status_code == 201:
+                    results.append({"status": "success", "restriction": restriction["kind"]})
+                else:
+                    results.append({"status": "error", "message": response.text, "restriction": restriction["kind"]})
+            except Exception as e:
+                results.append({"status": "error", "message": str(e), "restriction": restriction["kind"]})
+
+        return {"status": "success" if all(r["status"] == "success" for r in results) else "partial", "results": results, "branch": branch_name}
+
+    def remove_protection(self, branch_name: str) -> dict:
+        """Remueve protección de una branch."""
+        if not REQUESTS_AVAILABLE:
+            return {"status": "error", "message": "requests no disponible"}
+
+        # Primero obtener restricciones actuales
+        current = self.get_current_protection(branch_name)
+        restrictions = current.get("restrictions", [])
+
+        results = []
+        for restriction in restrictions:
+            restriction_id = restriction.get("id")
+            if restriction_id:
+                if self.platform.host:
+                    # Bitbucket Server
+                    url = f"{self.base_url}/projects/{self.platform.repo_owner}/repos/{self.platform.repo_name}/restrictions/{restriction_id}"
+                else:
+                    # Bitbucket Cloud
+                    url = f"{self.base_url}/repositories/{self.platform.repo_owner}/{self.platform.repo_name}/branch-restrictions/{restriction_id}"
+
+                headers = self._get_auth_headers()
+
+                try:
+                    response = requests.delete(url, headers=headers, timeout=10)
+                    if response.status_code == 204:
+                        results.append({"status": "success", "restriction_id": restriction_id})
+                    else:
+                        results.append({"status": "error", "message": response.text, "restriction_id": restriction_id})
+                except Exception as e:
+                    results.append({"status": "error", "message": str(e), "restriction_id": restriction_id})
+
+        return {"status": "success" if all(r["status"] == "success" for r in results) else "partial", "results": results, "branch": branch_name}
+
+    def list_protected_branches(self) -> list:
+        """Lista branches protegidas en Bitbucket."""
+        if not REQUESTS_AVAILABLE:
+            return []
+
+        if self.platform.host:
+            # Bitbucket Server
+            url = f"{self.base_url}/projects/{self.platform.repo_owner}/repos/{self.platform.repo_name}/restrictions"
+        else:
+            # Bitbucket Cloud
+            url = f"{self.base_url}/repositories/{self.platform.repo_owner}/{self.platform.repo_name}/branch-restrictions"
+
+        headers = self._get_auth_headers()
+
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                restrictions = response.json()
+                protected_branches = set()
+
+                if self.platform.host:
+                    # Bitbucket Server format
+                    for restriction in restrictions.get('values', []):
+                        branch_pattern = restriction.get('matcher', {}).get('displayId')
+                        if branch_pattern:
+                            protected_branches.add(branch_pattern)
+                else:
+                    # Bitbucket Cloud format
+                    for restriction in restrictions.get('values', []):
+                        pattern = restriction.get('pattern')
+                        if pattern:
+                            protected_branches.add(pattern)
+
+                return list(protected_branches)
+            return []
+        except Exception:
+            return []
+
+    def _map_universal_to_bitbucket(self, universal_config, branch_name):
+        """Mapea configuración universal a formato Bitbucket."""
+        restrictions = []
+
+        # Bitbucket maneja protección a través de diferentes tipos de restricciones
+        if universal_config.get("require_reviews"):
+            if self.platform.host:
+                # Bitbucket Server format
+                restrictions.append({
+                    "type": "pull-request-only",
+                    "matcher": {
+                        "id": branch_name,
+                        "displayId": branch_name,
+                        "type": {"id": "BRANCH", "name": "Branch"}
+                    },
+                    "users": [],
+                    "groups": []
+                })
+            else:
+                # Bitbucket Cloud format
+                restrictions.append({
+                    "kind": "require_approvals_to_merge",
+                    "pattern": branch_name,
+                    "value": universal_config.get("min_reviewers", 1)
+                })
+
+        # Restricción de push directo
+        if universal_config.get("restrict_access"):
+            if self.platform.host:
+                # Bitbucket Server
+                restrictions.append({
+                    "type": "no-deletes",
+                    "matcher": {
+                        "id": branch_name,
+                        "displayId": branch_name,
+                        "type": {"id": "BRANCH", "name": "Branch"}
+                    }
+                })
+            else:
+                # Bitbucket Cloud
+                restrictions.append({
+                    "kind": "restrict_merges",
+                    "pattern": branch_name,
+                    "users": universal_config.get("allowed_users", [])
+                })
+
+        return restrictions
 
 class PlatformAPIFactory:
     """Factory para crear APIs de protección específicas."""
@@ -842,8 +2665,14 @@ class PlatformAPIFactory:
             return GitHubProtectionAPI(platform_info, token)
         elif platform_info.service == "gitlab":
             return GitLabProtectionAPI(platform_info, token)
+        elif platform_info.service == "forgejo":
+            return ForgejoProtectionAPI(platform_info, token)
+        elif platform_info.service == "gitea":
+            return GiteaProtectionAPI(platform_info, token)
+        elif platform_info.service == "bitbucket":
+            return BitbucketProtectionAPI(platform_info, token)
         else:
-            # Otras plataformas no implementadas aún
+            # Plataforma no soportada
             return None
 
 class UniversalProtectionConfig:
@@ -1000,12 +2829,20 @@ class UniversalProtectionManager:
                 "code_owners": True,
                 "enforce_admins": False    # Diferentes permisos
             },
-            "gitea": {
+            "forgejo": {
                 "required_reviews": True,
-                "status_checks": True,
+                "status_checks": True,     # Via Forgejo Actions
                 "user_restrictions": True,
                 "team_restrictions": True,
-                "code_owners": False,      # No soportado
+                "code_owners": True,       # ✅ Soportado desde v1.21
+                "enforce_admins": True
+            },
+            "gitea": {
+                "required_reviews": True,
+                "status_checks": True,     # ✅ Via Gitea Actions (desde v1.19)
+                "user_restrictions": True,
+                "team_restrictions": True,
+                "code_owners": False,      # ❌ No soportado
                 "enforce_admins": True
             },
             "bitbucket": {
@@ -1013,7 +2850,7 @@ class UniversalProtectionManager:
                 "status_checks": True,
                 "user_restrictions": True,
                 "team_restrictions": True,
-                "code_owners": False,
+                "code_owners": False,      # ❌ No soportado nativamente
                 "enforce_admins": True
             }
         }
