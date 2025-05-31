@@ -1,0 +1,72 @@
+# Configuración de hooks para nivel standard
+# Este nivel incluye hooks adicionales para validación y seguridad
+
+hooks:
+  description: "Hooks estándar para proyectos híbridos"
+
+  pre_commit:
+    enabled: true
+    hooks:
+      # Hooks básicos
+      - id: trailing-whitespace
+        name: "Trim trailing whitespace"
+        description: "Elimina espacios en blanco al final de las líneas"
+
+      - id: end-of-file-fixer
+        name: "Fix end of files"
+        description: "Asegura que los archivos terminen con una nueva línea"
+
+      - id: check-yaml
+        name: "Check YAML"
+        description: "Valida archivos YAML"
+
+      - id: check-json
+        name: "Check JSON"
+        description: "Valida archivos JSON"
+
+      # Hooks de seguridad
+      - id: detect-private-key
+        name: "Detect Private Keys"
+        description: "Previene la adición de claves privadas"
+
+      - id: detect-aws-credentials
+        name: "Detect AWS Credentials"
+        description: "Previene la adición de credenciales AWS"
+
+      # Hooks de validación
+      - id: check-added-large-files
+        name: "Check for large files"
+        description: "Previene la adición de archivos grandes"
+        args: ["--maxkb=5120"]  # 5MB
+
+      - id: check-merge-conflict
+        name: "Check for merge conflicts"
+        description: "Previene commits con conflictos de merge"
+
+      - id: check-case-conflict
+        name: "Check for case conflicts"
+        description: "Previene conflictos de case en nombres de archivo"
+
+      # Hooks de código
+      - id: check-ast
+        name: "Check Python AST"
+        description: "Valida la sintaxis Python"
+        types: [python]
+
+      - id: check-docstring-first
+        name: "Check docstring first"
+        description: "Asegura que los docstrings estén al inicio"
+        types: [python]
+
+      # Hooks de workflow
+      - id: branch-workflow-validator
+        name: "Branch Workflow Validator"
+        description: "Valida el workflow de ramas"
+        entry: .githooks/branch-workflow-validator.py
+        args: ["--config", ".githooks/config/active/workflow.yaml"]
+
+      - id: commit-format-validator
+        name: "Commit Format Validator"
+        description: "Valida el formato de los commits"
+        entry: .githooks/commitlint-wrapper.py
+        args: ["--config", ".githooks/config/active/commitlint.config.js"]

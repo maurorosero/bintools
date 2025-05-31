@@ -1,0 +1,126 @@
+# Configuración de hooks para nivel enterprise
+# Este nivel incluye todos los hooks disponibles con configuraciones estrictas
+
+hooks:
+  description: "Hooks enterprise para proyectos remotos"
+
+  pre_commit:
+    enabled: true
+    hooks:
+      # Hooks básicos
+      - id: trailing-whitespace
+        name: "Trim trailing whitespace"
+        description: "Elimina espacios en blanco al final de las líneas"
+
+      - id: end-of-file-fixer
+        name: "Fix end of files"
+        description: "Asegura que los archivos terminen con una nueva línea"
+
+      - id: check-yaml
+        name: "Check YAML"
+        description: "Valida archivos YAML"
+
+      - id: check-json
+        name: "Check JSON"
+        description: "Valida archivos JSON"
+
+      # Hooks de seguridad
+      - id: detect-private-key
+        name: "Detect Private Keys"
+        description: "Previene la adición de claves privadas"
+
+      - id: detect-aws-credentials
+        name: "Detect AWS Credentials"
+        description: "Previene la adición de credenciales AWS"
+
+      - id: detect-gcp-credentials
+        name: "Detect GCP Credentials"
+        description: "Previene la adición de credenciales GCP"
+
+      - id: detect-azure-credentials
+        name: "Detect Azure Credentials"
+        description: "Previene la adición de credenciales Azure"
+
+      # Hooks de validación
+      - id: check-added-large-files
+        name: "Check for large files"
+        description: "Previene la adición de archivos grandes"
+        args: ["--maxkb=5120"]  # 5MB
+
+      - id: check-merge-conflict
+        name: "Check for merge conflicts"
+        description: "Previene commits con conflictos de merge"
+
+      - id: check-case-conflict
+        name: "Check for case conflicts"
+        description: "Previene conflictos de case en nombres de archivo"
+
+      - id: check-symlinks
+        name: "Check symlinks"
+        description: "Previene symlinks rotos"
+
+      # Hooks de código
+      - id: check-ast
+        name: "Check Python AST"
+        description: "Valida la sintaxis Python"
+        types: [python]
+
+      - id: check-docstring-first
+        name: "Check docstring first"
+        description: "Asegura que los docstrings estén al inicio"
+        types: [python]
+
+      - id: check-docstring-args
+        name: "Check docstring args"
+        description: "Valida que los argumentos en docstrings coincidan"
+        types: [python]
+
+      - id: check-json-schema
+        name: "Check JSON Schema"
+        description: "Valida esquemas JSON"
+        types: [json]
+
+      # Hooks de estilo
+      - id: black
+        name: "Black"
+        description: "Formatea código Python"
+        types: [python]
+        args: ["--line-length", "88"]
+
+      - id: isort
+        name: "isort"
+        description: "Ordena imports Python"
+        types: [python]
+        args: ["--profile", "black"]
+
+      - id: flake8
+        name: "Flake8"
+        description: "Linter Python"
+        types: [python]
+        args: ["--max-line-length", "88", "--extend-ignore", "E203"]
+
+      # Hooks de tests
+      - id: pytest
+        name: "pytest"
+        description: "Ejecuta tests Python"
+        types: [python]
+        args: ["--cov", "--cov-fail-under=80"]
+
+      # Hooks de documentación
+      - id: doc8
+        name: "doc8"
+        description: "Valida documentación"
+        types: [rst, md]
+
+      # Hooks de workflow
+      - id: branch-workflow-validator
+        name: "Branch Workflow Validator"
+        description: "Valida el workflow de ramas"
+        entry: .githooks/branch-workflow-validator.py
+        args: ["--config", ".githooks/config/active/workflow.yaml"]
+
+      - id: commit-format-validator
+        name: "Commit Format Validator"
+        description: "Valida el formato de los commits"
+        entry: .githooks/commitlint-wrapper.py
+        args: ["--config", ".githooks/config/active/commitlint.config.js"]

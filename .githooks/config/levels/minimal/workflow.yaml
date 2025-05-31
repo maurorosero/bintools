@@ -1,0 +1,38 @@
+# Configuración de workflow para nivel minimal
+# Este nivel está diseñado para proyectos locales con requisitos básicos
+
+workflow:
+  description: "Workflow básico para proyectos locales"
+  branch_rules:
+    main:
+      protection: false
+      require_reviews: false
+      require_status_checks: false
+    develop:
+      protection: false
+      require_reviews: false
+      require_status_checks: false
+    feature:
+      pattern: "feature/*"
+      protection: false
+      require_reviews: false
+    bugfix:
+      pattern: "bugfix/*"
+      protection: false
+      require_reviews: false
+    hotfix:
+      pattern: "hotfix/*"
+      protection: false
+      require_reviews: false
+
+  pull_request_rules:
+    require_description: true
+    require_assignee: false
+    require_labels: false
+    require_milestone: false
+    require_project: false
+    require_linked_issues: false
+
+  status_checks:
+    required: []
+    optional: []

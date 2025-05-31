@@ -1,0 +1,64 @@
+# Configuración de workflow para nivel standard
+# Este nivel está diseñado para proyectos híbridos con requisitos moderados
+
+workflow:
+  description: "Workflow estándar para proyectos híbridos"
+  branch_rules:
+    main:
+      protection: true
+      require_reviews: true
+      require_status_checks: true
+      required_status_checks:
+        - "pre-commit"
+        - "build"
+    develop:
+      protection: true
+      require_reviews: true
+      require_status_checks: true
+      required_status_checks:
+        - "pre-commit"
+        - "build"
+    feature:
+      pattern: "feature/*"
+      protection: false
+      require_reviews: true
+    bugfix:
+      pattern: "bugfix/*"
+      protection: false
+      require_reviews: true
+    hotfix:
+      pattern: "hotfix/*"
+      protection: false
+      require_reviews: true
+    release:
+      pattern: "release/*"
+      protection: true
+      require_reviews: true
+      require_status_checks: true
+
+  pull_request_rules:
+    require_description: true
+    require_assignee: true
+    require_labels: true
+    require_milestone: false
+    require_project: true
+    require_linked_issues: true
+    required_labels:
+      - "needs-review"
+      - "needs-testing"
+    allowed_labels:
+      - "bug"
+      - "enhancement"
+      - "documentation"
+      - "needs-review"
+      - "needs-testing"
+      - "ready-to-merge"
+
+  status_checks:
+    required:
+      - "pre-commit"
+      - "build"
+    optional:
+      - "test"
+      - "lint"
+      - "coverage"

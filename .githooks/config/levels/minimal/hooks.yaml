@@ -1,0 +1,41 @@
+# Configuración de hooks para nivel minimal
+# Este nivel incluye solo los hooks esenciales
+
+hooks:
+  description: "Hooks básicos para proyectos locales"
+
+  pre_commit:
+    enabled: true
+    hooks:
+      - id: trailing-whitespace
+        name: "Trim trailing whitespace"
+        description: "Elimina espacios en blanco al final de las líneas"
+
+      - id: end-of-file-fixer
+        name: "Fix end of files"
+        description: "Asegura que los archivos terminen con una nueva línea"
+
+      - id: check-yaml
+        name: "Check YAML"
+        description: "Valida archivos YAML"
+
+      - id: check-json
+        name: "Check JSON"
+        description: "Valida archivos JSON"
+
+      - id: check-added-large-files
+        name: "Check for large files"
+        description: "Previene la adición de archivos grandes"
+        args: ["--maxkb=5120"]  # 5MB
+
+      - id: branch-workflow-validator
+        name: "Branch Workflow Validator"
+        description: "Valida el workflow de ramas"
+        entry: .githooks/branch-workflow-validator.py
+        args: ["--config", ".githooks/config/active/workflow.yaml"]
+
+      - id: commit-format-validator
+        name: "Commit Format Validator"
+        description: "Valida el formato de los commits"
+        entry: .githooks/commitlint-wrapper.py
+        args: ["--config", ".githooks/config/active/commitlint.config.js"]

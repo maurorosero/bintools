@@ -48,37 +48,37 @@ def install_commitlint() -> bool:
 def get_allowed_tags_from_config(config_file: Path) -> list:
     """
     Extrae dinámicamente los tags permitidos desde el archivo de configuración commitlint.config.js.
-    
+
     Args:
         config_file: Ruta al archivo commitlint.config.js
-        
+
     Returns:
         Lista de tags permitidos o lista vacía si hay error
     """
     try:
         if not config_file.exists():
             return []
-        
+
         # Leer el contenido del archivo
         content = config_file.read_text(encoding='utf-8')
-        
+
         # Buscar el array de type-enum usando regex
         # Patrón que busca 'type-enum': [nivel, 'always', [array_de_tags]]
         pattern = r"'type-enum':\s*\[\s*\d+,\s*'always',\s*\[(.*?)\]"
         match = re.search(pattern, content, re.DOTALL)
-        
+
         if not match:
             return []
-        
+
         # Extraer los tags del array
         tags_section = match.group(1)
-        
+
         # Buscar todas las cadenas entre comillas simples
         tag_pattern = r"'([A-Z]+)'"
         tags = re.findall(tag_pattern, tags_section)
-        
+
         return tags
-        
+
     except Exception as e:
         print(f"Advertencia: No se pudieron extraer los tags de la configuración: {e}")
         # Fallback a tags básicos si hay error
@@ -87,19 +87,19 @@ def get_allowed_tags_from_config(config_file: Path) -> list:
 def get_allowed_tags(config_file: Path) -> list:
     """
     Retorna la lista de TAGS permitidos leyéndolos dinámicamente desde la configuración.
-    
+
     Args:
         config_file: Ruta al archivo de configuración commitlint
-        
+
     Returns:
         Lista de tags permitidos
     """
     tags = get_allowed_tags_from_config(config_file)
-    
+
     # Si no se pudieron extraer, usar fallback básico
     if not tags:
         tags = ["FEAT", "FIX", "DOCS", "CHORE"]
-    
+
     return tags
 
 def main():

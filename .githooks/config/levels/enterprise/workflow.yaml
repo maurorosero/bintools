@@ -1,0 +1,95 @@
+# Configuración de workflow para nivel enterprise
+# Este nivel está diseñado para proyectos remotos con requisitos estrictos
+
+workflow:
+  description: "Workflow enterprise para proyectos remotos"
+  branch_rules:
+    main:
+      protection: true
+      require_reviews: true
+      require_status_checks: true
+      required_status_checks:
+        - "pre-commit"
+        - "build"
+        - "test"
+        - "coverage"
+        - "security-scan"
+      required_reviewers: 2
+      dismiss_stale_reviews: true
+      require_code_owner_review: true
+    develop:
+      protection: true
+      require_reviews: true
+      require_status_checks: true
+      required_status_checks:
+        - "pre-commit"
+        - "build"
+        - "test"
+        - "coverage"
+      required_reviewers: 1
+      dismiss_stale_reviews: true
+    feature:
+      pattern: "feature/*"
+      protection: false
+      require_reviews: true
+      required_reviewers: 1
+    bugfix:
+      pattern: "bugfix/*"
+      protection: false
+      require_reviews: true
+      required_reviewers: 1
+    hotfix:
+      pattern: "hotfix/*"
+      protection: true
+      require_reviews: true
+      require_status_checks: true
+      required_reviewers: 2
+    release:
+      pattern: "release/*"
+      protection: true
+      require_reviews: true
+      require_status_checks: true
+      required_reviewers: 2
+      require_code_owner_review: true
+
+  pull_request_rules:
+    require_description: true
+    require_assignee: true
+    require_labels: true
+    require_milestone: true
+    require_project: true
+    require_linked_issues: true
+    required_labels:
+      - "needs-review"
+      - "needs-testing"
+      - "needs-docs"
+    allowed_labels:
+      - "bug"
+      - "security"
+      - "enhancement"
+      - "documentation"
+      - "needs-review"
+      - "needs-testing"
+      - "needs-docs"
+      - "ready-to-merge"
+      - "blocked"
+      - "critical"
+    require_approval: true
+    min_approvals: 2
+    require_ci_pass: true
+    require_no_conflicts: true
+    require_up_to_date: true
+
+  status_checks:
+    required:
+      - "pre-commit"
+      - "build"
+      - "test"
+      - "coverage"
+      - "security-scan"
+      - "dependency-check"
+    optional:
+      - "performance"
+      - "accessibility"
+      - "i18n"
+      - "a11y"
