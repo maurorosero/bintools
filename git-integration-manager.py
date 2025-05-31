@@ -3818,7 +3818,7 @@ Ejemplos de uso:
 
     parser.add_argument(
         'action',
-        choices=['integrate', 'health-check', 'cleanup', 'status', 'setup-remote-protection', 'protection-status', 'sync-protection-rules'],
+        choices=['integrate', 'health-check', 'cleanup', 'status', 'setup-remote-protection', 'protection-status', 'sync-protection-rules', 'quality-status', 'set-quality-level', 'list-commit-formats'],
         help='Acción a ejecutar'
     )
 
@@ -3890,6 +3890,11 @@ Ejemplos de uso:
         help='Mostrar salida en formato JSON (útil para scripts/debugging)'
     )
 
+    parser.add_argument(
+        '--commit-format',
+        help='Formato de commit (opcional, para set-quality-level)'
+    )
+
     args = parser.parse_args()
 
     try:
@@ -3903,6 +3908,22 @@ Ejemplos de uso:
 
         if not project_path.is_dir():
             print(f"{Fore.RED}❌ Error: La ruta especificada no es un directorio: {project_path}{Style.RESET_ALL}")
+            sys.exit(1)
+
+        # Importar QualityManager dinámicamente (si es necesario)
+        try:
+            import importlib.util
+            qm_path = project_path / ".githooks" / "quality_manager.py"
+            if qm_path.exists():
+                spec = importlib.util.spec_from_file_location("quality_manager", qm_path)
+                qm_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(qm_module)
+                QualityManager = qm_module.QualityManager
+            else:
+                print(f"{Fore.RED}❌ Error: No se encontró el módulo de QualityManager en {qm_path}{Style.RESET_ALL}")
+                sys.exit(1)
+        except Exception as e:
+            print(f"{Fore.RED}❌ Error al importar QualityManager: {e}{Style.RESET_ALL}")
             sys.exit(1)
 
         orchestrator = WorkflowOrchestrator(repo_path=project_path, args=args)
@@ -4024,6 +4045,43 @@ Ejemplos de uso:
             direction = args.direction
             success = orchestrator.sync_protection_rules(direction, dry_run=args.dry_run)
             sys.exit(0 if success else 1)
+
+        elif args.action == 'quality-status':
+            qm = QualityManager(project_path)
+            config = qm.get_current_configuration()
+            if args.json:
+                print(json.dumps(config, indent=2))
+            else:
+                print(f"\n{Fore.CYAN}📊 Estado de Calidad (Quality){Style.RESET_ALL}")
+                print("=" * 35)
+                if config['status'] == 'active':
+                    print(f"{Fore.BLUE}Nivel: {Fore.YELLOW}{config['level']}{Style.RESET_ALL}")
+                    print(f"{Fore.BLUE}Formato de commit: {Fore.YELLOW}{config['commit_format']}{Style.RESET_ALL}")
+                else:
+                    print(f"{Fore.YELLOW} (No hay configuración activa){Style.RESET_ALL}")
+
+        elif args.action == 'set-quality-level':
+            if not args.branch_name:
+                 print(f"{Fore.RED}❌ Error: Se requiere un nivel (branch_name) para set-quality-level{Style.RESET_ALL}")
+                 sys.exit(1)
+            qm = QualityManager(project_path)
+            try:
+                 result = qm.apply_configuration(args.branch_name, args.commit_format)
+                 print(f"{Fore.GREEN}✅ Nivel {result['level']} (commit format: {result['commit_format']}) aplicado.{Style.RESET_ALL}")
+            except Exception as e:
+                 print(f"{Fore.RED}❌ Error al aplicar nivel: {e}{Style.RESET_ALL}")
+                 sys.exit(1)
+
+        elif args.action == 'list-commit-formats':
+             qm = QualityManager(project_path)
+             formats = qm.list_available_formats()
+             if args.json:
+                 print(json.dumps(formats, indent=2))
+             else:
+                 print(f"\n{Fore.CYAN}📋 Formatos de Commit Disponibles{Style.RESET_ALL}")
+                 print("--------------------------------")
+                 for (name, info) in formats.items():
+                     print(f"{name}: {info['description']}")
 
     except Exception as e:
         print(f"{Fore.RED}❌ Error: {e}{Style.RESET_ALL}")
