@@ -1,41 +1,49 @@
 # Configuración de hooks para nivel minimal
-# Este nivel incluye solo los hooks esenciales
+# Este nivel incluye solo las verificaciones básicas necesarias
 
-hooks:
-  description: "Hooks básicos para proyectos locales"
+format:
+  # Hooks de formato básicos
+  trailing-whitespace: true  # Eliminar espacios al final de línea
+  end-of-file-fixer: true    # Asegurar nueva línea al final
+  mixed-line-ending: true    # Normalizar fin de línea a LF
+  fix-byte-order-marker: true # Eliminar BOM innecesarios
 
-  pre_commit:
-    enabled: true
-    hooks:
-      - id: trailing-whitespace
-        name: "Trim trailing whitespace"
-        description: "Elimina espacios en blanco al final de las líneas"
+exec:
+  # Verificaciones básicas de ejecutables
+  check-shebang: true        # Verificar shebang en scripts
+  check-executable: true     # Verificar permisos de ejecución
 
-      - id: end-of-file-fixer
-        name: "Fix end of files"
-        description: "Asegura que los archivos terminen con una nueva línea"
+size:
+  # Control básico de tamaño
+  max_kb: 1000              # Límite de 1MB por archivo
 
-      - id: check-yaml
-        name: "Check YAML"
-        description: "Valida archivos YAML"
+detect-secrets:
+  # Detección básica de secretos
+  enabled: false            # Desactivado en nivel minimal
+  exclude_patterns:         # Patrones a ignorar
+    - "package-lock.json"
+    - "yarn.lock"
+    - "*.min.js"
+    - "*.min.css"
 
-      - id: check-json
-        name: "Check JSON"
-        description: "Valida archivos JSON"
+commitlint:
+  # Validación básica de commits
+  enabled: true             # Activado con formato minimal
+  strict: false             # No es estricto
+  allow_empty: true         # Permite commits vacíos
+  allow_merge: true         # Permite commits de merge
 
-      - id: check-added-large-files
-        name: "Check for large files"
-        description: "Previene la adición de archivos grandes"
-        args: ["--maxkb=5120"]  # 5MB
+branch-workflow-commit:
+  # Validación básica de workflow en commits
+  enabled: true             # Activado
+  strict: false             # No es estricto
+  validate_branch_name: true # Validar nombre de rama
+  validate_merge_conflicts: true # Validar conflictos
 
-      - id: branch-workflow-validator
-        name: "Branch Workflow Validator"
-        description: "Valida el workflow de ramas"
-        entry: .githooks/branch-workflow-validator.py
-        args: ["--config", ".githooks/config/active/workflow.yaml"]
-
-      - id: commit-format-validator
-        name: "Commit Format Validator"
-        description: "Valida el formato de los commits"
-        entry: .githooks/commitlint-wrapper.py
-        args: ["--config", ".githooks/config/active/commitlint.config.js"]
+branch-workflow-push:
+  # Validación básica de workflow en push
+  enabled: false            # Desactivado en nivel minimal
+  strict: false             # No es estricto
+  validate_protected: false # No valida ramas protegidas
+  require_upstream: false   # No requiere upstream
+  require_pr: false         # No requiere PR

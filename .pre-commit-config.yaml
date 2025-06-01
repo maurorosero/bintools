@@ -1,72 +1,107 @@
 repos:
-  # Grupo 01: Formato de archivos
+  # Hooks oficiales de pre-commit para formato
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v4.6.0
     hooks:
       - id: trailing-whitespace
-        name: format-trailing-whitespace
       - id: end-of-file-fixer
-        name: format-end-of-file
       - id: mixed-line-ending
-        name: format-mixed-line-ending
         args: [--fix=lf]
       - id: fix-byte-order-marker
-        name: format-byte-order-marker
-
-  # Grupo 02: Verificación de ejecutables
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
-    hooks:
-      - id: check-executables-have-shebangs
-        name: exec-check-shebang
       - id: check-shebang-scripts-are-executable
-        name: exec-check-executable
-
-  # Grupo 03: Control de tamaño de archivos
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
-    hooks:
+      - id: check-executables-have-shebangs
       - id: check-added-large-files
-        name: size-check-large-files
         args: [--maxkb=500]
 
-  # Grupo 04: Detección de secretos
-  - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.4.0
+  # Grupo 01: Formato de archivos (DINÁMICO - Configurable por nivel)
+  - repo: local
+    hooks:
+      - id: format-hooks
+        name: format-all
+        entry: .githooks/quality_manager.py run-hook --hook-type format
+        language: python
+        additional_dependencies: [PyYAML]
+        stages: [pre-commit]
+        pass_filenames: false
+        always_run: true
+        description: "Ejecuta todos los hooks de formato según el nivel de calidad"
+
+  # Grupo 02: Verificación de ejecutables (DINÁMICO - Configurable por nivel)
+  - repo: local
+    hooks:
+      - id: exec-hooks
+        name: exec-check-all
+        entry: .githooks/quality_manager.py run-hook --hook-type exec
+        language: python
+        additional_dependencies: [PyYAML]
+        stages: [pre-commit]
+        pass_filenames: false
+        always_run: true
+        description: "Ejecuta todas las verificaciones de ejecutables según el nivel de calidad"
+
+  # Grupo 03: Control de tamaño de archivos (DINÁMICO - Configurable por nivel)
+  - repo: local
+    hooks:
+      - id: size-hooks
+        name: size-check-all
+        entry: .githooks/quality_manager.py run-hook --hook-type size
+        language: python
+        additional_dependencies: [PyYAML]
+        stages: [pre-commit]
+        pass_filenames: false
+        always_run: true
+        description: "Ejecuta todas las verificaciones de tamaño según el nivel de calidad"
+
+  # Grupo 04: Detección de secretos (DINÁMICO - Configurable por nivel)
+  - repo: local
     hooks:
       - id: detect-secrets
         name: sec-detect-secrets
-        exclude: package.lock.json
+        entry: .githooks/quality_manager.py run-hook --hook-type detect-secrets
+        language: python
+        additional_dependencies: [PyYAML]
+        pass_filenames: true
+        verbose: true
+        always_run: true
+        stages: [commit-msg]
 
-  # Grupo 05: Validación de commits (manteniendo tu configuración actual)
+  # Grupo 05: Validación de commits (DINÁMICO - Configurable por nivel)
   - repo: local
     hooks:
       - id: commitlint
         name: commit-validate
-        entry: .githooks/commitlint-wrapper.py
+        entry: .githooks/quality_manager.py run-hook --hook-type commitlint
         language: python
+        additional_dependencies: [PyYAML]
+        pass_filenames: true
+        verbose: true
+        always_run: true
         stages: [commit-msg]
 
-  # Grupo 06: Branch Workflow Commit Validation
+  # Grupo 06: Branch Workflow Commit Validation (DINÁMICO - Configurable por nivel)
   - repo: local
     hooks:
       - id: branch-workflow-commit
         name: branch-workflow-commit-validator
-        entry: .githooks/branch-workflow-validator.py commit
-        language: system
+        entry: .githooks/quality_manager.py run-hook --hook-type branch-workflow-commit
+        language: python
+        additional_dependencies: [PyYAML]
         stages: [pre-commit]
         pass_filenames: false
         always_run: true
         verbose: true
+        description: "Ejecuta la validación de workflow en commits según el nivel de calidad"
 
-  # Grupo 07: Branch Workflow Push Validation
+  # Grupo 07: Branch Workflow Push Validation (DINÁMICO - Configurable por nivel)
   - repo: local
     hooks:
       - id: branch-workflow-push
         name: branch-workflow-push-validator
-        entry: .githooks/branch-workflow-validator.py push
-        language: system
+        entry: .githooks/quality_manager.py run-hook --hook-type branch-workflow-push
+        language: python
+        additional_dependencies: [PyYAML]
         stages: [pre-push]
         pass_filenames: false
         always_run: true
         verbose: true
+        description: "Ejecuta la validación de workflow en push según el nivel de calidad"

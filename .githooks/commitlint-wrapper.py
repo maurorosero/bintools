@@ -114,6 +114,12 @@ def main():
         print(f"Error: No se encontró el archivo {commit_msg_file}")
         sys.exit(1)
 
+    # Leer el contenido del mensaje de commit para diagnóstico
+    try:
+        commit_msg = commit_msg_file.read_text()
+    except Exception as e:
+        commit_msg = f"No se pudo leer el mensaje de commit: {e}"
+
     # Verificar/instalar npx y commitlint
     if not check_npx_installed():
         print("Error: npx no está instalado. Por favor, instala Node.js y npm")
@@ -126,36 +132,52 @@ def main():
             print(f"Error: No se encontró el archivo de configuración: {config_file}")
             sys.exit(1)
 
-        # Intentar ejecutar commitlint con la configuración local
+        # Intentar ejecutar commitlint con la configuración local y verbosidad
         result = subprocess.run(
-            ["npx", "commitlint", "--config", str(config_file), "--edit", str(commit_msg_file)],
+            ["npx", "commitlint", "--config", str(config_file), "--edit", str(commit_msg_file), "--verbose"],
             capture_output=True,
             text=True
         )
 
         if result.returncode != 0:
-            # Si falla, limpiar el archivo y mostrar sugerencia
-            print("Mensaje de commit inválido. Limpiando archivo temporal...")
-            commit_msg_file.unlink(missing_ok=True)
-
-            print("\nSugerencia: Usa el formato [TAG] descripción")
-            print("TAGS permitidos:", ", ".join(f"[{tag}]" for tag in get_allowed_tags(config_file)))
-
-            # Mostrar el error de commitlint si existe
+            print("\n=== Detalles del Error de Validación de Commit ===", file=sys.stderr)
+            print("\nMensaje de commit actual:", file=sys.stderr)
+            print("---", file=sys.stderr)
+            print(commit_msg, file=sys.stderr)
+            print("---", file=sys.stderr)
             if result.stdout:
-                print("\nDetalles del error:")
-                print(result.stdout)
+                print("\nSalida de commitlint:", file=sys.stderr)
+                print(result.stdout, file=sys.stderr)
             if result.stderr:
-                print("\nError:")
-                print(result.stderr)
-
+                print("\nError de commitlint:", file=sys.stderr)
+                print(result.stderr, file=sys.stderr)
+            print("\nFormato esperado:", file=sys.stderr)
+            print("[TAG] (#Issue) Descripción", file=sys.stderr)
+            print("\nTAGS permitidos:", ", ".join(f"[{tag}]" for tag in get_allowed_tags(config_file)), file=sys.stderr)
+            print("\nEjemplos válidos:", file=sys.stderr)
+            print("[FEAT] (#123) Agrega nueva funcionalidad", file=sys.stderr)
+            print("[FIX] (#456) Corrige error en el login", file=sys.stderr)
+            print("[DOCS] (#789) Actualiza documentación de la API", file=sys.stderr)
+            print("\nLimpiando archivo temporal...", file=sys.stderr)
+            commit_msg_file.unlink(missing_ok=True)
             sys.exit(1)
 
     except subprocess.CalledProcessError as e:
-        print(f"Error ejecutando commitlint: {e}")
+        print("\n=== Error Ejecutando Commitlint ===", file=sys.stderr)
+        print(f"Error: {e}", file=sys.stderr)
+        if e.stdout:
+            print("\nSalida estándar:", file=sys.stderr)
+            print(e.stdout, file=sys.stderr)
+        if e.stderr:
+            print("\nError estándar:", file=sys.stderr)
+            print(e.stderr, file=sys.stderr)
         sys.exit(1)
     except Exception as e:
-        print(f"Error inesperado: {e}")
+        print("\n=== Error Inesperado ===", file=sys.stderr)
+        print(f"Error: {e}", file=sys.stderr)
+        import traceback
+        print("\nTraceback:", file=sys.stderr)
+        print(traceback.format_exc(), file=sys.stderr)
         sys.exit(1)
 
     sys.exit(0)

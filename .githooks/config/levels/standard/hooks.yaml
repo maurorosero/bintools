@@ -1,5 +1,67 @@
 # Configuración de hooks para nivel standard
-# Este nivel incluye hooks adicionales para validación y seguridad
+# Este nivel incluye verificaciones adicionales y más estrictas
+
+format:
+  # Hooks de formato estándar
+  trailing-whitespace: true  # Eliminar espacios al final de línea
+  end-of-file-fixer: true    # Asegurar nueva línea al final
+  mixed-line-ending: true    # Normalizar fin de línea a LF
+  fix-byte-order-marker: true # Eliminar BOM innecesarios
+
+exec:
+  # Verificaciones estándar de ejecutables
+  check-shebang: true        # Verificar shebang en scripts
+  check-executable: true     # Verificar permisos de ejecución
+
+size:
+  # Control estándar de tamaño
+  max_kb: 500               # Límite de 500KB por archivo
+
+detect-secrets:
+  # Detección estándar de secretos
+  enabled: true             # Activado en nivel standard
+  exclude_patterns:         # Patrones a ignorar
+    - "package-lock.json"
+    - "yarn.lock"
+    - "*.min.js"
+    - "*.min.css"
+    - "*.bundle.js"
+    - "*.chunk.js"
+  custom_patterns:          # Patrones personalizados
+    - name: "AWS Key"
+      pattern: "AKIA[0-9A-Z]{16}"
+    - name: "GitHub Token"
+      pattern: "gh[ps]_[a-zA-Z0-9]{36}"
+
+commitlint:
+  # Validación estándar de commits
+  enabled: true             # Activado con formato simple
+  strict: true              # Es estricto
+  allow_empty: false        # No permite commits vacíos
+  allow_merge: true         # Permite commits de merge
+  require_scope: false      # No requiere scope
+  require_references: false # No requiere referencias a issues
+
+branch-workflow-commit:
+  # Validación estándar de workflow en commits
+  enabled: true             # Activado
+  strict: true              # Es estricto
+  validate_branch_name: true # Validar nombre de rama
+  validate_merge_conflicts: true # Validar conflictos
+  validate_branch_source: true # Validar origen de rama
+  require_linear_history: false # No requiere historia lineal
+
+branch-workflow-push:
+  # Validación estándar de workflow en push
+  enabled: true             # Activado en nivel standard
+  strict: true              # Es estricto
+  validate_protected: true  # Valida ramas protegidas
+  require_upstream: true    # Requiere upstream
+  require_pr: false         # No requiere PR (solo sugerido)
+  protected_branches:       # Ramas protegidas
+    - "main"
+    - "master"
+    - "develop"
 
 hooks:
   description: "Hooks estándar para proyectos híbridos"
