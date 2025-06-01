@@ -390,12 +390,12 @@ class QualityManager:
             # Leer el contenido del mensaje
             content = commit_msg_file.read_text().strip()
 
-            # Obtener la ruta absoluta del archivo de configuración
-            config_file = self.active_dir / 'commitlint.config.js'
+            # Obtener la ruta relativa del archivo de configuración
+            config_file = Path('.githooks/config/active/commitlint.config.js')
             if not config_file.exists():
                 return False, f"❌ No se encontró el archivo de configuración: {config_file}"
 
-            # Preparar argumentos para commitlint
+            # Preparar argumentos para commitlint usando rutas relativas
             args = ['--config', str(config_file), '--edit', str(commit_msg_file)]
 
             # Configurar el entorno para commitlint
