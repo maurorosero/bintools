@@ -61,33 +61,23 @@ PARSEABLE_METADATA_END -->
    - [Reglas de Validación](#reglas-de-validación)
    - [Integración con Git Hooks](#integración-con-git-hooks)
 
-7. [Workflows Completos End-to-End](#workflows-completos-end-to-end)
+7. [Quality Manager - Gestión de Calidad y Formatos](#quality-manager---gestión-de-calidad-y-formatos)
+   - [Introducción y Propósito](#introducción-y-propósito-4)
+   - [Niveles de Calidad](#niveles-de-calidad)
+   - [Formatos de Commit](#formatos-de-commit)
+   - [Hooks de Calidad](#hooks-de-calidad)
+   - [Detección Automática de Nivel](#detección-automática-de-nivel)
+   - [Transiciones entre Niveles](#transiciones-entre-niveles)
+   - [Impacto en el Workflow](#impacto-en-el-workflow)
+   - [Configuración y Personalización](#configuración-y-personalización)
+   - [Uso del Quality Manager](#uso-del-quality-manager)
+   - [Lints que no se implementan a nivel local](#lints-que-no-se-implementan-a-nivel-local-y-sus-razones)
+
+8. [Workflows Completos End-to-End](#workflows-completos-end-to-end)
    - [Workflow de Feature Development](#workflow-de-feature-development)
    - [Workflow de Hotfix](#workflow-de-hotfix)
    - [Workflow de Release](#workflow-de-release)
    - [Workflow Empresarial Completo](#workflow-empresarial-completo)
-
-8. [Configuración Avanzada](#configuración-avanzada)
-   - [Detección Automática de Contexto](#detección-automática-de-contexto)
-   - [Configuración de Tokens](#configuración-de-tokens)
-   - [Branch Protection Automática](#branch-protection-automática)
-   - [Validación Contextual](#validación-contextual)
-   - [Integración Básica con CI/CD](#integración-básica-con-cicd)
-   - [Configuración Git Estándar](#configuración-git-estándar)
-   - [Health Checks y Mantenimiento](#health-checks-y-mantenimiento)
-   - [Configuración de Aliases Git](#configuración-de-aliases-git)
-
-9. [Casos de Uso Avanzados](#casos-de-uso-avanzados)
-    - [Desarrollo Multi-repositorio](#desarrollo-multi-repositorio)
-    - [Equipos Distribuidos](#equipos-distribuidos)
-    - [Integración Empresarial](#integración-empresarial)
-    - [Automatización DevOps](#automatización-devops)
-
-10. [Troubleshooting y FAQ](#troubleshooting-y-faq)
-   - [Problemas Comunes](#problemas-comunes)
-   - [Diagnóstico de Errores](#diagnóstico-de-errores)
-   - [Preguntas Frecuentes](#preguntas-frecuentes)
-   - [Logs y Debugging](#logs-y-debugging)
 
 ---
 
@@ -206,6 +196,21 @@ Validador contextual que verifica operaciones Git antes de ejecutarlas. Implemen
 - Integración con git hooks (pre-commit, pre-push)
 - Prevención de operaciones riesgosas
 - Educación sobre mejores prácticas
+
+#### Quality Manager (`quality_manager.py`)
+
+**Propósito**: Gestión centralizada de calidad y formatos de commit
+
+Sistema inteligente que gestiona los niveles de calidad y formatos de commit de manera independiente, adaptándose al contexto del proyecto y proporcionando una experiencia consistente en todo el ecosistema.
+
+**Funcionalidades clave:**
+- Gestión de niveles de calidad (MINIMAL, STANDARD, ENTERPRISE)
+- Formatos de commit configurables (minimal, simple, conventional, semantic, angular)
+- Hooks de calidad integrados (format, exec, size, detect-secrets, commitlint)
+- Detección automática de nivel basada en contexto
+- Configuración independiente de metadatos del proyecto
+- Validación de mensajes de commit con reglas adaptativas
+- Sistema de hooks extensible y configurable
 
 ### Requisitos y Dependencias
 
@@ -3379,991 +3384,367 @@ pre-commit run branch-workflow-push
 
 ---
 
-## Workflows Completos End-to-End
+## Quality Manager - Gestión de Calidad y Formatos
 
-Esta sección demuestra cómo todas las herramientas del ecosistema Git Branch Tools trabajan juntas para crear workflows completos y eficientes. Los ejemplos muestran flujos de trabajo reales desde la concepción de una idea hasta su implementación en producción, adaptándose automáticamente al contexto del proyecto.
+### Introducción y Propósito
 
-### Workflow de Feature Development
+El Quality Manager es un componente crítico del ecosistema Git Branch Tools que implementa y orquesta un sistema robusto de control de calidad a través de hooks de pre-commit y validaciones automatizadas. Su propósito es garantizar la integridad del código y la consistencia en los commits mediante:
 
-El workflow de desarrollo de features es el más común en cualquier proyecto de software. Este flujo demuestra cómo crear, desarrollar, validar e integrar una nueva funcionalidad usando todo el ecosistema.
+- Un sistema de hooks pre-commit configurados en `.githooks/config` que ejecutan validaciones automáticas antes de cada commit
+- Validadores específicos para formato de código, mensajes de commit y estructura de ramas
+- Integración con herramientas de linting y formateo (black, flake8, isort, etc.)
+- Adaptación dinámica de las reglas según el contexto del proyecto (LOCAL/HYBRID/REMOTE)
+- Gestión centralizada de la configuración de calidad a través de `.githooks/quality_manager.py`
 
-#### Fase 1: Planificación y Configuración
+El componente proporciona una capa de validación local (pre-commit) que previene errores comunes y mantiene los estándares de calidad definidos, adaptándose automáticamente a las necesidades específicas de cada proyecto.
 
-**Configuración inicial del entorno:**
+Estas validaciones se ejecutan en la máquina del desarrollador antes de que los cambios sean registrados en el repositorio.
 
-```bash
-# 1. Verificar estado del ecosistema
-git-integration-manager.py status
-branch-git-helper.py status
-git-tokens.py get github-integration
+### Niveles de Calidad
 
-# 2. Asegurar configuración de tokens (si es necesario)
-git-tokens.py set github-integration
+El Quality Manager implementa tres niveles de calidad predefinidos:
 
-# 3. Verificar protecciones remotas
-git-integration-manager.py protection-status
+1. **MINIMAL**
+   - Ideal para proyectos personales o experimentales
+   - Validaciones básicas de formato y estilo
+   - Formato de commit simple y flexible
+   - Hooks esenciales habilitados
+
+2. **STANDARD**
+   - Recomendado para proyectos de equipo
+   - Validaciones completas de formato y estilo
+   - Formato de commit con scope y referencias
+   - Todos los hooks habilitados con configuración balanceada
+
+3. **ENTERPRISE**
+   - Diseñado para proyectos empresariales
+   - Validaciones estrictas y exhaustivas
+   - Formato de commit convencional completo
+   - Hooks con configuración estricta y auditoría
+
+### Formatos de Commit
+
+El sistema soporta múltiples formatos de commit, cada uno con sus propias reglas y validaciones:
+
+- **minimal**: Formato básico para commits simples
+- **simple**: Formato simple con scope y referencias
+- **conventional**: Formato convencional completo
+- **semantic**: Formato semántico con versionado
+- **angular**: Formato Angular con convenciones estrictas
+
+### Hooks de Calidad
+
+El Quality Manager gestiona varios tipos de hooks de calidad:
+
+1. **Format Hooks**
+
+   - `trailing-whitespace`: Elimina espacios en blanco al final de las líneas
+   - `end-of-file-fixer`: Asegura que los archivos terminen con una nueva línea
+   - `mixed-line-ending`: Normaliza los finales de línea
+   - `fix-byte-order-marker`: Corrige marcadores de orden de bytes UTF-8
+
+2. **Exec Hooks**
+
+   - `check-shebang`: Verifica que los scripts tengan shebang
+   - `check-executable`: Asegura que los ejecutables tengan permisos correctos
+
+3. **Size Hooks**
+
+   - Control de tamaño individual de archivos
+   - Control de tamaño total del commit (opcional)
+
+4. **Detect Secrets**
+
+   - Detección de secretos y credenciales
+   - Patrones excluibles configurables
+   - Validación de mensajes de commit
+
+5. **Commitlint**
+
+   - Validación de formato de mensajes de commit
+   - Reglas adaptativas según el nivel
+   - Soporte para referencias a issues
+
+### Detección Automática de Nivel
+
+El Quality Manager implementa un sistema inteligente de detección de nivel que considera:
+
+- Contexto del repositorio (LOCAL/HYBRID/REMOTE)
+- Número de contribuidores
+- Cantidad de commits
+- Presencia de CI/CD
+- Complejidad del proyecto
+
+### Niveles de Calidad
+
+El sistema define tres niveles principales de calidad, cada uno con sus propias características y requisitos:
+
+#### 1. Nivel Básico (basic)
+
+- **Objetivo**: Proyectos personales y pequeños
+
+- **Características**:
+
+  - Formato de commit: `minimal` o `simple`
+  - Hooks básicos de formato
+  - Control simple de tamaño de archivos
+  - Sin validación de secretos
+  - Commitlint en modo permisivo
+
+#### 2. Nivel Estándar (standard)
+
+- **Objetivo**: Proyectos colaborativos medianos
+
+- **Características**:
+
+  - Formato de commit: `conventional` o `semantic`
+  - Todos los hooks de formato
+  - Control de tamaño de archivos y commits
+  - Detección básica de secretos
+  - Commitlint con reglas moderadas
+  - Validación de referencias a issues
+
+#### 3. Nivel Empresarial (enterprise)
+
+- **Objetivo**: Proyectos grandes y críticos
+
+- **Características**:
+
+  - Formato de commit: `semantic` o `angular`
+  - Todos los hooks activados
+  - Control estricto de tamaños
+  - Detección avanzada de secretos
+  - Commitlint en modo estricto
+  - Validación obligatoria de referencias
+  - Integración con sistemas de tickets
+  - Auditoría de cambios sensibles
+
+### Adaptación Automática
+
+El sistema ajusta automáticamente el nivel basándose en:
+
+1. **Indicadores de Proyecto**:
+
+   - Número de contribuidores > 5 → Nivel Estándar
+   - Presencia de CI/CD → Nivel Estándar
+   - Más de 1000 commits → Nivel Empresarial
+   - Archivos sensibles detectados → Nivel Empresarial
+
+2. **Indicadores de Contexto**:
+
+   - LOCAL → Nivel Básico por defecto
+   - HYBRID → Nivel Estándar por defecto
+   - REMOTE → Nivel Empresarial por defecto
+
+3. **Indicadores de Complejidad**:
+
+   - Múltiples ramas protegidas → Nivel Estándar
+   - Workflows complejos → Nivel Empresarial
+   - Integración con sistemas externos → Nivel Empresarial
+
+### Transiciones entre Niveles
+
+El sistema maneja las transiciones entre niveles de forma segura:
+
+1. **Ascenso de Nivel**:
+
+   - Validación previa de requisitos
+   - Migración gradual de configuraciones
+   - Notificación a contribuidores
+   - Actualización de documentación
+
+2. **Descenso de Nivel**:
+
+   - Requiere confirmación explícita
+   - Backup de configuraciones
+   - Notificación a administradores
+   - Registro de auditoría
+
+### Impacto en el Workflow
+
+Cada nivel afecta el workflow de desarrollo de manera diferente:
+
+1. **Nivel Básico**:
+
+   - Flujo de trabajo ágil y rápido
+   - Validaciones mínimas
+   - Enfoque en productividad individual
+
+2. **Nivel Estándar**:
+
+   - Balance entre agilidad y control
+   - Validaciones moderadas
+   - Enfoque en colaboración
+
+3. **Nivel Empresarial**:
+
+   - Flujo de trabajo estructurado
+   - Validaciones exhaustivas
+   - Enfoque en calidad y seguridad
+
+### Configuración y Personalización
+
+La configuración se realiza a través de archivos YAML en `.githooks/config/levels/`:
+
+```yaml
+# Ejemplo de hooks.yaml
+hooks:
+  format:
+    trailing-whitespace: true
+    end-of-file-fixer: true
+    mixed-line-ending: true
+    fix-byte-order-marker: true
+  exec:
+    check-shebang: true
+    check-executable: true
+  size:
+    max_kb: 500
+    max_total_kb: 1000
+  detect-secrets:
+    enabled: true
+    exclude_patterns:
+      - "package-lock.json"
+      - "yarn.lock"
+      - ".*.min.js"
+  commitlint:
+    enabled: true
+    strict: false
+    allow_empty: true
+    allow_merge: true
+    require_references: false
 ```
 
-**Análisis del contexto del proyecto:**
+### Uso del Quality Manager
 
-```bash
-# El sistema detecta automáticamente:
-# - Contexto: HYBRID (equipo de 4 desarrolladores)
-# - Estructura: develop + feature branches
-# - CI/CD: GitHub Actions básico
-# - Protecciones: main y develop protegidas
-```
+#### Integración con pre-commit
 
-#### Fase 2: Creación de Feature Branch
+El Quality Manager se integra con pre-commit a través de un archivo `.pre-commit-config.yaml` en la raíz del proyecto. Este archivo define los hooks que se ejecutarán automáticamente antes de cada commit, siguiendo el nivel de calidad configurado.
 
-**Creación inteligente de la rama:**
+La configuración se realiza en dos niveles:
 
-```bash
-# Usar alias para máxima eficiencia
-git new-feature "sistema-notificaciones-push"
+1. **Configuración Base**:
 
-# El sistema ejecuta automáticamente:
-# 1. Detecta contexto HYBRID
-# 2. Selecciona 'develop' como rama base
-# 3. Sincroniza con remoto: git pull origin develop
-# 4. Crea rama: feature/sistema-notificaciones-push
-# 5. Configura upstream: git push -u origin feature/sistema-notificaciones-push
-# 6. Aplica validaciones moderadas
-```
-
-**Salida del sistema:**
-
-```bash
-🎭 Contexto detectado: HYBRID (equipo colaborativo)
-📊 Análisis del repositorio:
-   - Contribuidores: 4 (equipo pequeño)
-   - Commits: 234 (proyecto establecido)
-   - Remotos: 1 (origin configurado)
-   - CI/CD: Básico detectado (.github/workflows)
-
-⚖️ Modo balanceado: Productividad con orden
-
-🔍 Validando formato de branch... ✅
-📡 Sincronizando con remoto...
-   git fetch origin develop... ✅
-   git pull origin develop... ✅ (ya actualizado)
-
-📍 Rama base seleccionada: develop
-✅ Rama creada: feature/sistema-notificaciones-push
-🔄 Cambiado a feature/sistema-notificaciones-push
-📤 Configurando upstream tracking...
-   git push -u origin feature/sistema-notificaciones-push... ✅
-
-🎉 ¡Branch lista para colaboración!
-```
-
-#### Fase 3: Desarrollo Iterativo
-
-**Desarrollo con validación continua:**
-
-```bash
-# Desarrollo iterativo con commits validados
-echo "notification service" > src/notifications.py
-git add src/notifications.py
-git commit -m "[FEATURE] Añade servicio base de notificaciones"
-
-# El Branch Workflow Validator se ejecuta automáticamente:
-# - Valida formato de commit ✅
-# - Verifica rama apropiada ✅
-# - Confirma ausencia de conflictos ✅
-
-# Continuar desarrollo
-echo "push notification logic" >> src/notifications.py
-git add src/notifications.py
-git commit -m "[FEATURE] Implementa lógica de push notifications"
-
-# Añadir tests
-echo "notification tests" > tests/test_notifications.py
-git add tests/test_notifications.py
-git commit -m "[TEST] Añade tests para sistema de notificaciones"
-
-# Push automático (upstream ya configurado)
-git push
-```
-
-**Validación continua en acción:**
-
-```bash
-# Cada commit es validado automáticamente
-🔍 Resultados de Validación
-  ℹ️ Contexto detectado: HYBRID (nivel: moderate)
-  ✅ Nombre válido para rama feature: feature/sistema-notificaciones-push
-  ✅ Formato de commit válido: [FEATURE] Implementa lógica de push notifications
-  ✅ Rama creada correctamente desde 'develop'
-  ✅ No hay conflictos de merge pendientes
-
-✅ Todas las validaciones pasaron exitosamente
-```
-
-#### Fase 4: Integración y Pull Request
-
-**Integración automática con el ecosistema:**
-
-```bash
-# Integración completa usando Integration Manager
-git-integration-manager.py integrate feature/sistema-notificaciones-push --mode auto
-```
-
-**Proceso de integración automática:**
-
-```bash
-🎭 Git Integration Manager iniciado
-📍 Contexto detectado: HYBRID (equipo colaborativo)
-⚡ Capacidades disponibles: enhanced (APIs + Git CLI)
-
-🔍 VALIDACIÓN PRE-INTEGRACIÓN:
-   ✅ Rama actual: feature/sistema-notificaciones-push
-   ✅ Commits no pusheados: 0
-   ✅ Estado de sincronización: actualizado
-   ✅ Conflictos: ninguno detectado
-   ✅ Tests locales: pasando (si están configurados)
-
-📡 SINCRONIZACIÓN:
-   git fetch origin develop... ✅
-   Estado: rama base actualizada
-
-🚀 CREACIÓN DE PULL REQUEST:
-   🌐 Plataforma detectada: GitHub
-   📝 Título: "[AUTO] Integrate feature/sistema-notificaciones-push"
-   📋 Descripción:
+   ```yaml
+   # .pre-commit-config.yaml
+   repos:
+   - repo: local
+     hooks:
+     - id: quality-manager
+       name: Quality Manager Hook
+       entry: python .githooks/quality_manager.py
+       language: python
+       types: [python, text, yaml, json, markdown]
+       stages: [commit, push]
+       args: ["--hook-type", "format"]
    ```
-   ## Sistema de Notificaciones Push
 
-   ### Descripción
-   Implementa sistema completo de notificaciones push con:
-   - Servicio base de notificaciones
-   - Lógica de push notifications
-   - Tests unitarios completos
+2. **Hooks Específicos por Nivel**:
 
-   ### Commits incluidos:
-   - abc123f: [FEATURE] Añade servicio base de notificaciones
-   - def456a: [FEATURE] Implementa lógica de push notifications
-   - ghi789b: [TEST] Añade tests para sistema de notificaciones
+   - **Nivel Minimal**: Solo hooks básicos de formato
+   - **Nivel Standard**: Incluye validación de tamaño y secrets
+   - **Nivel Enterprise**: Todos los hooks activos
 
-   ### Checklist
-   - [x] Tests añadidos
-   - [x] Funcionalidad implementada
-   - [ ] Review de código pendiente
-   - [ ] Documentación actualizada
-   ```
+El Quality Manager automáticamente:
 
-✅ Pull Request creado: https://github.com/equipo/proyecto/pull/42
+- Detecta el nivel configurado
+- Activa/desactiva hooks según el nivel
+- Aplica las reglas definidas en `hooks.yaml`
+- Registra resultados en `.githooks/logs/`
 
-🎉 INTEGRACIÓN COMPLETADA:
-   📍 PR URL: https://github.com/equipo/proyecto/pull/42
-   📋 Próximos pasos:
-      1. Revisar y configurar reviewers manualmente
-      2. Monitorear CI/CD: https://github.com/equipo/proyecto/actions
-      3. Hacer merge manual tras aprobaciones
-```
+Los hooks disponibles incluyen:
 
-#### Fase 5: Review y Merge
+- Formateo de código
+- Validación de tamaño de archivos
+- Detección de secrets
+- Validación de mensajes de commit
+- Verificación de workflows de branch
 
-**Proceso de review colaborativo:**
+
+#### Comandos de Quality Manager
+
+El Quality Manager proporciona una interfaz de línea de comandos para gestionar los niveles de calidad y formatos de commit. Los siguientes comandos están disponibles:
 
 ```bash
-# El equipo revisa el PR creado automáticamente
-# - CI/CD se ejecuta automáticamente
-# - Tests pasan ✅
-# - Code review por compañeros
-# - Aprobación del PR
+# Listar formatos disponibles
+quality_manager.py list-formats
 
-# Merge manual tras aprobaciones
-# (El ecosistema puede automatizar esto en contextos REMOTE)
+# Aplicar nivel con detección automática
+quality_manager.py set-level --auto
+
+# Aplicar nivel específico
+quality_manager.py set-level --level standard
+
+# Aplicar nivel y formato específico
+quality_manager.py set-level --level enterprise --format conventional
+
+# Ver estado actual
+quality_manager.py show-status
+
+# Ejecutar hook específico
+quality_manager.py run-hook --hook-type commitlint
 ```
-
-#### Fase 6: Limpieza Post-merge
-
-**Limpieza automática del repositorio:**
-
-```bash
-# Después del merge, limpiar branches obsoletas
-git-integration-manager.py cleanup --execute
-
-📋 Acciones de limpieza: 1
-  • feature/sistema-notificaciones-push (mergeada, 0 días)
-
-✅ Limpieza completada:
-   🗑️ 1 rama eliminada
-   📊 Repositorio optimizado
-```
-
-### Workflow de Hotfix
-
-Los hotfixes requieren un flujo especial para correcciones urgentes en producción. Este workflow demuestra la gestión de emergencias con máxima eficiencia y seguridad.
-
-#### Situación: Vulnerabilidad Crítica Detectada
-
-**Detección y respuesta inmediata:**
-
-```bash
-# Situación: Vulnerabilidad de seguridad detectada en producción
-# Necesidad: Fix inmediato sin esperar el ciclo normal de desarrollo
-
-# 1. Verificar estado actual
-git branch-status
-# Rama actual: feature/nueva-funcionalidad (en desarrollo)
-
-# 2. Crear hotfix inmediatamente
-git new-hotfix "vulnerabilidad-auth-bypass"
-```
-
-**Creación automática de hotfix:**
-
-```bash
-🎭 Contexto detectado: HYBRID (equipo colaborativo)
-📊 Análisis del repositorio: [datos del proyecto]
-
-🚨 MODO HOTFIX ACTIVADO - Prioridad máxima
-
-🔍 Validando contexto de emergencia... ✅
-📡 Sincronizando con producción...
-   git fetch origin main... ✅
-   git pull origin main... ✅
-
-📍 Rama base seleccionada: main (producción)
-✅ Rama creada: hotfix/vulnerabilidad-auth-bypass
-🔄 Cambiado a hotfix/vulnerabilidad-auth-bypass
-📤 Configurando upstream tracking...
-   git push -u origin hotfix/vulnerabilidad-auth-bypass... ✅
-
-🚨 ¡Hotfix listo para desarrollo urgente!
-⏰ Tiempo total: 15 segundos
-```
-
-#### Desarrollo del Fix
-
-**Implementación rápida y segura:**
-
-```bash
-# Implementar fix de seguridad
-echo "security fix implementation" > src/auth/security_patch.py
-git add src/auth/security_patch.py
-git commit -m "[HOTFIX] Corrige vulnerabilidad de bypass en autenticación"
-
-# Añadir test de seguridad
-echo "security test" > tests/test_security_patch.py
-git add tests/test_security_patch.py
-git commit -m "[TEST] Añade test para fix de vulnerabilidad"
-
-# Push inmediato
-git push
-```
-
-#### Integración Urgente
-
-**Fast-track para producción:**
-
-```bash
-# Integración urgente con validaciones estrictas
-git-integration-manager.py integrate hotfix/vulnerabilidad-auth-bypass --mode auto
-```
-
-**Proceso acelerado:**
-
-```bash
-🚨 MODO HOTFIX DETECTADO - Fast-track activado
-
-🔍 VALIDACIÓN CRÍTICA:
-   ✅ Hotfix desde main: correcto
-   ✅ Commits de seguridad: validados
-   ✅ Tests de seguridad: incluidos
-   ✅ Sin conflictos: confirmado
-
-🚀 CREACIÓN DE PR URGENTE:
-   🌐 Plataforma: GitHub
-   📝 Título: "[HOTFIX] Vulnerabilidad auth bypass - URGENTE"
-   🏷️ Labels: hotfix, security, urgent
-   👥 Reviewers: @security-team, @lead-developer
-
-✅ PR urgente creado: https://github.com/equipo/proyecto/pull/43
-
-⚡ NOTIFICACIONES ENVIADAS:
-   📧 Email a security-team
-   💬 Slack #security-alerts
-   📱 SMS a on-call engineer
-
-🎯 PRÓXIMOS PASOS CRÍTICOS:
-   1. Review inmediato por security team
-   2. Merge tras aprobación de seguridad
-   3. Deploy automático a staging
-   4. Deploy manual a producción tras validación
-```
-
-### Workflow de Release
-
-El workflow de release coordina la preparación, validación y despliegue de nuevas versiones. Este proceso es crítico para mantener la calidad y estabilidad del software.
-
-#### Preparación de Release
-
-**Inicialización del proceso de release:**
-
-```bash
-# Preparar release v2.1.0
-git new-chore "preparar-release-v2.1.0"
-
-# Análisis de cambios desde último release
-git-integration-manager.py health-check
-```
-
-**Análisis de salud pre-release:**
-
-```bash
-📊 Reporte de Salud del Repositorio - Pre-Release
-====================================
-🌳 Total branches: 12
-✅ Branches activas: 8
-✅ Branches mergeadas: 4
-⚠️ Branches stale: 0
-👥 Contribuidores activos: 4
-📈 Score de salud: 92.5/100
-
-📋 ANÁLISIS DE RELEASE:
-   ✅ Todas las features mergeadas en develop
-   ✅ No hay branches stale
-   ✅ CI/CD pasando en develop
-   ✅ Tests de integración: 98% coverage
-
-🎯 RECOMENDACIÓN: Repositorio listo para release
-```
-
-#### Creación de Release Branch
-
-**Branch de release con validaciones especiales:**
-
-```bash
-# Crear branch de release desde develop
-branch-git-helper.py -p . release "v2.1.0" --no-sync
-
-# El sistema aplica validaciones especiales para releases:
-# - Verifica que develop esté estable
-# - Confirma que todas las features estén mergeadas
-# - Valida que no hay work-in-progress
-```
-
-#### Preparación y Validación
-
-**Proceso completo de preparación:**
-
-```bash
-# En la rama release/v2.1.0
-
-# 1. Actualizar versiones
-echo "2.1.0" > VERSION
-git add VERSION
-git commit -m "[RELEASE] Bump version to 2.1.0"
-
-# 2. Generar changelog
-echo "## v2.1.0 - $(date +%Y-%m-%d)" > CHANGELOG_NEW.md
-echo "- Sistema de notificaciones push" >> CHANGELOG_NEW.md
-echo "- Mejoras de seguridad" >> CHANGELOG_NEW.md
-cat CHANGELOG.md >> CHANGELOG_NEW.md
-mv CHANGELOG_NEW.md CHANGELOG.md
-git add CHANGELOG.md
-git commit -m "[RELEASE] Actualiza changelog para v2.1.0"
-
-# 3. Ejecutar tests completos
-git push
-# CI/CD ejecuta suite completa de tests
-
-# 4. Validación de release
-branch-workflow-validator.py release --target-branch release/v2.1.0
-```
-
-#### Integración de Release
-
-**Merge a main y develop:**
-
-```bash
-# Integrar release a main (producción)
-git-integration-manager.py integrate release/v2.1.0 --target main --mode auto
-
-# El sistema crea automáticamente:
-# 1. PR de release/v2.1.0 → main
-# 2. PR de release/v2.1.0 → develop (back-merge)
-# 3. Tag de versión v2.1.0
-# 4. Release notes automáticas
-```
-
-### Workflow Empresarial Completo
-
-En entornos empresariales, los workflows son más complejos e incluyen múltiples etapas de validación, aprobaciones y compliance. Este ejemplo muestra un workflow completo para una empresa con políticas estrictas.
-
-#### Contexto Empresarial
-
-**Configuración inicial del entorno empresarial:**
-
-```bash
-# Proyecto empresarial detectado automáticamente:
-# - 23 contribuidores
-# - 2,847 commits
-# - CI/CD complejo
-# - Múltiples entornos (dev, staging, prod)
-# - Compliance SOX requerido
-
-# Verificar configuración empresarial
-git-integration-manager.py status
-```
-
-**Estado del entorno empresarial:**
-
-```bash
-📊 Estado del Integration Manager - Entorno Empresarial
-===============================
-📍 Contexto: REMOTE (empresarial)
-⚡ Capacidades: enterprise (APIs + Compliance + Auditoría)
-🐙 GitHub Enterprise: ✅
-🔒 Compliance SOX: ✅
-🛡️ Security scanning: ✅
-📋 Audit logging: ✅
-```
-
-#### Configuración de Protecciones Empresariales
-
-**Aplicar políticas corporativas:**
-
-```bash
-# Configurar protecciones empresariales completas
-git-integration-manager.py setup-remote-protection --strategy remote --dry-run
-```
-
-**Configuración empresarial aplicada:**
-
-```bash
-🎯 Aplicando estrategia 'remote' en github-enterprise
-📊 Análisis del repositorio:
-   - Contribuidores: 23 (equipo grande)
-   - Commits: 2,847 (proyecto maduro)
-   - Compliance: SOX requerido
-
-📋 Configuración empresarial para github-enterprise:
-   Configuración:
-   - Require reviews: 2 mínimo (1 de arquitecto)
-   - Status checks: ci/tests, ci/security, ci/compliance, ci/performance
-   - Acceso restringido: Solo miembros autorizados
-   - Enforce admins: Sí (sin excepciones)
-   - Audit logging: Completo
-   - Compliance checks: SOX, GDPR
-
-🛡️ APLICANDO PROTECCIÓN EMPRESARIAL:
-   ✅ main: Protección máxima + compliance
-   ✅ master: Protección máxima + compliance
-   ✅ develop: Protección alta + reviews
-   ✅ staging: Protección media + tests
-   ✅ release: Protección alta + compliance
-
-🎉 CONFIGURACIÓN EMPRESARIAL COMPLETADA:
-   🔒 5 branches con protección empresarial
-   ✅ Compliance SOX establecido
-   📊 Auditoría completa activada
-   🛡️ Security scanning obligatorio
-```
-
-#### Desarrollo con Compliance
-
-**Feature development con auditoría completa:**
-
-```bash
-# Crear feature con validaciones empresariales
-git new-feature "microservicio-facturacion"
-```
-
-**Validaciones empresariales en acción:**
-
-```bash
-🎭 Contexto detectado: REMOTE (validación estricta)
-📊 Análisis del repositorio: [datos empresariales]
-
-🔒 Modo compliance: Políticas corporativas activadas
-
-🔍 VALIDACIONES CORPORATIVAS:
-   ✅ Formato de branch: Cumple estándares empresariales
-   ✅ Usuario autorizado: Permisos verificados en AD
-   ✅ Rama base: develop (política corporativa)
-   ✅ Naming convention: Aprobado por arquitectura
-   ✅ Compliance check: SOX requirements met
-
-📡 Sincronización empresarial...
-   git fetch origin develop... ✅
-   git fetch upstream develop... ✅ (si existe)
-   git pull origin develop... ✅
-
-📍 Rama base: develop (política corporativa)
-✅ Rama creada: feature/microservicio-facturacion
-🔄 Cambiado a feature/microservicio-facturacion
-📤 Configurando tracking completo...
-   git push -u origin feature/microservicio-facturacion... ✅
-🔗 Upstream tracking configurado (obligatorio para auditoría)
-
-🏢 CONFIGURACIÓN EMPRESARIAL APLICADA:
-   ✓ Trazabilidad completa habilitada
-   ✓ Integración con sistemas corporativos
-   ✓ Compliance con políticas de seguridad
-   ✓ Auditoría automática configurada
-   ✓ Logging de actividad activado
-
-📋 WORKFLOW CORPORATIVO ACTIVADO:
-   1. Desarrolla siguiendo estándares corporativos
-   2. Commits con formato obligatorio: [TIPO] TICKET-123: Descripción
-   3. Push automático con validaciones de seguridad
-   4. PR automático con plantilla corporativa
-   5. Revisión obligatoria de 2+ arquitectos
-   6. CI/CD completo (tests, security, performance, compliance)
-   7. Approval de DevOps + Security requerido
-   8. Merge automático tras compliance total
-```
-
-#### Integración Empresarial Completa
-
-**Proceso de integración con todas las validaciones:**
-
-```bash
-# Desarrollo completado, iniciar integración empresarial
-git-integration-manager.py integrate feature/microservicio-facturacion --mode enterprise
-```
-
-**Flujo empresarial completo:**
-
-```bash
-🏢 Git Integration Manager - Modo Empresarial
-📍 Contexto: REMOTE (compliance estricto)
-⚡ Capacidades: enterprise (APIs + Compliance + Auditoría)
-
-🔍 VALIDACIÓN PRE-INTEGRACIÓN EMPRESARIAL:
-   ✅ Rama: feature/microservicio-facturacion
-   ✅ Commits: Formato corporativo validado
-   ✅ Security scan: Sin vulnerabilidades
-   ✅ Compliance: SOX requirements met
-   ✅ Performance: Benchmarks pasados
-   ✅ Architecture review: Aprobado
-   ✅ Legal review: Compliance GDPR
-
-📡 SINCRONIZACIÓN EMPRESARIAL:
-   git fetch origin develop... ✅
-   git fetch upstream develop... ✅
-   Merge conflicts: Ninguno detectado
-
-🚀 CREACIÓN DE PR EMPRESARIAL:
-   🌐 Plataforma: GitHub Enterprise
-   📝 Título: "[ENTERPRISE] Microservicio de Facturación - TICKET-1234"
-   📋 Descripción: Plantilla corporativa aplicada
-   👥 Reviewers automáticos:
-      - @architecture-team (obligatorio)
-      - @security-team (obligatorio)
-      - @devops-team (obligatorio)
-      - @compliance-officer (obligatorio)
-   🏷️ Labels: enterprise, microservice, billing, compliance
-   📊 Métricas: Performance impact, security score, compliance rating
-
-✅ PR empresarial creado: https://github-enterprise.com/company/project/pull/156
-
-🔒 CONFIGURACIÓN DE COMPLIANCE:
-   📋 Branch protection: Máxima seguridad
-   🛡️ Required checks: 12 validaciones obligatorias
-   👥 Required reviewers: 4 mínimo (diferentes equipos)
-   ⏰ Review timeout: 48 horas máximo
-   📊 Compliance tracking: Activado
-   🔍 Audit trail: Completo
-
-🎯 PRÓXIMOS PASOS EMPRESARIALES:
-   1. Architecture review (SLA: 24h)
-   2. Security assessment (SLA: 12h)
-   3. Performance validation (SLA: 6h)
-   4. Compliance verification (SLA: 24h)
-   5. DevOps approval (SLA: 12h)
-   6. Automated merge tras todas las aprobaciones
-   7. Deployment automático a staging
-   8. Validation en staging environment
-   9. Approval para producción
-   10. Deployment controlado a producción
-
-📧 NOTIFICACIONES ENVIADAS:
-   - Stakeholders notificados
-   - Compliance team alertado
-   - Architecture board informado
-   - Security team en CC
-```
-
-#### Monitoreo y Auditoría
-
-**Seguimiento completo del proceso:**
-
-```bash
-# Monitorear estado del PR empresarial
-git-integration-manager.py status --pr 156
-
-📊 Estado del PR Empresarial #156
-================================
-🏢 Proyecto: company/project
-📝 Título: [ENTERPRISE] Microservicio de Facturación
-⏰ Creado: hace 2 horas
-👤 Autor: developer@company.com
-
-🔍 ESTADO DE VALIDACIONES:
-   ✅ CI/CD Pipeline: Pasado (12/12 checks)
-   ✅ Security Scan: Sin vulnerabilidades
-   ✅ Performance Test: Dentro de SLA
-   ⏳ Architecture Review: En progreso (18h restantes)
-   ⏳ Compliance Check: Pendiente (22h restantes)
-   ❌ DevOps Approval: Pendiente
-
-👥 ESTADO DE REVIEWS:
-   ✅ @senior-architect: Aprobado
-   ⏳ @security-lead: Review en progreso
-   ❌ @devops-manager: Pendiente
-   ❌ @compliance-officer: Pendiente
-
-📊 MÉTRICAS DE COMPLIANCE:
-   🛡️ Security Score: 98/100
-   ⚡ Performance Impact: +2ms (aceptable)
-   📋 Compliance Rating: SOX compliant
-   🔍 Code Quality: A+ (SonarQube)
-
-⏰ TIEMPO ESTIMADO PARA MERGE: 18-24 horas
-```
-
-Este conjunto de workflows demuestra cómo el ecosistema Git Branch Tools se adapta y escala desde proyectos simples hasta entornos empresariales complejos, manteniendo siempre la eficiencia y asegurando el cumplimiento de políticas y estándares de calidad.
-
----
-
-## Configuración Avanzada
-
-Esta sección cubre la configuración avanzada del ecosistema Git Branch Tools que está **actualmente implementada**. El ecosistema utiliza principalmente detección automática de contexto y configuración basada en el entorno Git existente.
-
-> **📋 NOTA IMPORTANTE:** Esta sección documenta **únicamente funcionalidades implementadas**. Las configuraciones avanzadas planificadas se desarrollarán en futuras versiones.
-
-### Detección Automática de Contexto
-
-> **✅ IMPLEMENTADO**: Sistema completo de detección de contexto
-
-El ecosistema Git Branch Tools detecta automáticamente el contexto de trabajo (LOCAL/HYBRID/REMOTE) analizando las características del repositorio y ajusta su comportamiento en consecuencia.
-
-#### ¿Cómo funciona la detección?
-
-**Criterios de Detección:**
-
-El sistema analiza múltiples factores para determinar el contexto:
-
-```bash
-# ✅ IMPLEMENTADO: Detección automática
-git-integration-manager.py status
-# → Analiza automáticamente:
-#   - Número de colaboradores
-#   - Configuración de remotes
-#   - Presencia de branch protection
-#   - Historial de commits
-#   - Configuración de CI/CD
-```
-
-**Contextos Detectados:**
-
-1. **LOCAL**: Proyectos personales o experimentales
-   - Pocos colaboradores (1-2)
-   - Sin branch protection configurada
-   - Historial de commits simple
-   - Validación permisiva y educativa
-
-2. **HYBRID**: Proyectos de equipo pequeño
-   - Colaboradores moderados (3-10)
-   - Branch protection básica
-   - Workflows de equipo establecidos
-   - Validación moderada con guías
-
-3. **REMOTE**: Proyectos empresariales o críticos
-   - Muchos colaboradores (10+)
-   - Branch protection estricta configurada
-   - Workflows complejos de CI/CD
-   - Validación estricta y compliance
-
-#### Verificación del Contexto Detectado
-
-```bash
-# ✅ IMPLEMENTADO: Verificar contexto actual
-git-integration-manager.py status
-# Salida ejemplo:
-# Contexto detectado: REMOTE
-# Nivel de validación: strict
-# Branch protection: habilitada
-# Colaboradores detectados: 15
-# CI/CD detectado: GitHub Actions
-```
-
-### Configuración de Tokens
-
-> **✅ IMPLEMENTADO**: Sistema completo de gestión de tokens
-
-El ecosistema utiliza `git-tokens.py` para gestionar de forma segura los tokens de autenticación para APIs de plataformas Git.
-
-#### Gestión de Tokens con Keyring
-
-**Configuración interactiva:**
-
-```bash
-# ✅ IMPLEMENTADO: Configuración interactiva de tokens
-git-tokens.py
-# → Modo interactivo para configurar tokens de forma segura
-```
-
-**Configuración por línea de comandos:**
-
-```bash
-# ✅ IMPLEMENTADO: Configuración específica por servicio
-git-tokens.py --service github --token "ghp_your_token_here"
-git-tokens.py --service gitlab --token "glpat_your_token_here"
-git-tokens.py --service gitea --token "gitea_your_token_here"
-```
-
-**Servicios soportados:**
-
-- GitHub (cloud)
-- GitLab (cloud y on-premise)
-- Gitea
-- Forgejo (cloud y on-premise)
-- Bitbucket (cloud y server)
-
-#### Variables de Entorno como Fallback
-
-**Para entornos CI/CD:**
-
-```bash
-# ✅ IMPLEMENTADO: Variables de entorno soportadas
-export GIT_TOKEN_GITHUB="ghp_xxxxxxxxxxxxxxxxxxxx"
-export GIT_TOKEN_GITLAB="glpat_xxxxxxxxxxxxxxxxxxxx"
-export GIT_TOKEN_GITEA="gitea_xxxxxxxxxxxxxxxxxxxx"
-export GIT_TOKEN_FORGEJO="forgejo_xxxxxxxxxxxxxxxxxxxx"
-export GIT_TOKEN_BITBUCKET="bitbucket_xxxxxxxxxxxxxxxxxxxx"
-```
-
-**Prioridad de configuración:**
-
-1. **Keyring del sistema** (más seguro, recomendado)
-2. **Variables de entorno** (fallback para CI/CD)
-
-### Branch Protection Automática
-
-> **✅ IMPLEMENTADO**: Configuración automática de branch protection
-
-El `git-integration-manager.py` puede configurar automáticamente branch protection en repositorios remotos cuando detecta contexto REMOTE.
-
-#### Configuración de Protección
-
-**Configurar protección remota:**
-
-```bash
-# ✅ IMPLEMENTADO: Configuración automática
-git-integration-manager.py setup-remote-protection --strategy remote
-# → Configura branch protection según mejores prácticas detectadas
-
-# ✅ IMPLEMENTADO: Configuración híbrida (local + remoto)
-git-integration-manager.py setup-remote-protection --strategy hybrid
-# → Combina validación local con protección remota
-
-# ✅ IMPLEMENTADO: Solo validación local
-git-integration-manager.py setup-remote-protection --strategy local
-# → Solo aplica validaciones locales
-```
-
-#### Verificación de Estado de Protección
-
-```bash
-# ✅ IMPLEMENTADO: Verificar estado actual
-git-integration-manager.py protection-status
-# → Muestra estado de branch protection
-
-# ✅ IMPLEMENTADO: Comparar local vs remoto
-git-integration-manager.py protection-status --compare
-# → Compara configuración local con remota
-
-# ✅ IMPLEMENTADO: Sincronizar reglas
-git-integration-manager.py sync-protection-rules
-# → Sincroniza reglas de protección
-```
-
-### Validación Contextual
-
-> **✅ IMPLEMENTADO**: Sistema de validación adaptativa
-
-El `branch-workflow-validator.py` implementa validación que se adapta automáticamente al contexto detectado.
 
 #### Validación de Commits
 
-```bash
-# ✅ IMPLEMENTADO: Validación de commits
-branch-workflow-validator.py commit
-# → Valida el último commit según el contexto
+La validación de commits se maneja directamente a través del Quality Manager, que proporciona una integración nativa con commitlint y soporta múltiples formatos de commit.
 
-# ✅ IMPLEMENTADO: Validación de push
-branch-workflow-validator.py push --target-branch main
-# → Valida antes de hacer push a una rama específica
-```
+##### Características Principales
 
-#### Niveles de Validación por Contexto
+- **Validación Multi-formato**: Soporta múltiples formatos de commit incluyendo:
+  - Conventional Commits
+  - Angular
+  - Custom (configurable)
+  - Semantic Release
 
-**LOCAL (Permisivo):**
-- Validación educativa con sugerencias
-- No bloquea operaciones
-- Proporciona guías de mejores prácticas
+- **Configuración Contextual**:
+  - Detecta automáticamente el formato requerido según el nivel de calidad
+  - Se adapta a las políticas de la rama actual
+  - Permite override manual cuando sea necesario
 
-**HYBRID (Moderado):**
-- Validación con advertencias
-- Bloquea operaciones riesgosas
-- Requiere confirmación para acciones críticas
+#### Lints que no se implementan a nivel local y sus razones
 
-**REMOTE (Estricto):**
-- Validación estricta
-- Bloquea operaciones no conformes
-- Requiere cumplimiento de políticas
+Algunas validaciones de calidad no se implementan a nivel local (pre-commit) por diversas razones técnicas y prácticas:
 
-### Integración Básica con CI/CD
+1. **Validaciones que requieren contexto global**
 
-> **✅ IMPLEMENTADO**: Workflows básicos de CI/CD
+   - Análisis de dependencias circulares
+   - Detección de duplicación de código a nivel proyecto
+   - Validación de cobertura de tests
+   - Razón: Requieren análisis del repositorio completo o dependencias externas
 
-El ecosistema se integra con sistemas CI/CD existentes a través de comandos que pueden ejecutarse en pipelines.
+2. **Validaciones de rendimiento**
 
-#### GitHub Actions
+   - Análisis estático complejo
+   - Escaneo de vulnerabilidades profundo
+   - Validación de arquitectura
+   - Razón: Son operaciones costosas que impactarían el flujo de trabajo local
 
-**Workflow básico implementado:**
+3. **Validaciones de integración**
 
-```yaml
-# ✅ IMPLEMENTADO: Workflow básico en .github/workflows/
-name: Branch Validation
-on: [push, pull_request]
+   - Compatibilidad con sistemas externos
+   - Validación de APIs
+   - Pruebas de integración
+   - Razón: Requieren acceso a entornos externos o servicios
 
-jobs:
-  validate:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Validate branch workflow
-        run: |
-          branch-workflow-validator.py commit
-          branch-workflow-validator.py push --target-branch ${{ github.ref_name }}
-      - name: Health check
-        run: git-integration-manager.py health-check
-```
+4. **Validaciones de seguridad avanzadas**
 
-#### Comandos para CI/CD
+   - Escaneo de dependencias
+   - Análisis de vulnerabilidades
+   - Auditoría de permisos
+   - Razón: Mejor ejecutadas en entornos controlados de CI/CD
 
-```bash
-# ✅ IMPLEMENTADO: Comandos disponibles para pipelines
-branch-workflow-validator.py commit                    # Validar commits
-branch-workflow-validator.py push --target-branch main # Validar push
-git-integration-manager.py health-check               # Verificar salud del repo
-git-integration-manager.py protection-status          # Verificar protección
-git-integration-manager.py cleanup --dry-run          # Mostrar limpieza pendiente
-```
+5. **Validaciones de documentación**
 
-### Configuración Git Estándar
+   - Generación de documentación
+   - Validación de enlaces
+   - Verificación de ejemplos
+   - Razón: Procesos que pueden ser lentos y no críticos para commits locales
 
-> **✅ IMPLEMENTADO**: Utiliza configuración Git existente
-
-El ecosistema respeta y utiliza la configuración Git estándar del usuario.
-
-#### Configuración de Usuario
-
-```bash
-# ✅ IMPLEMENTADO: Utiliza configuración Git existente
-git config --global user.name "Tu Nombre"
-git config --global user.email "tu.email@ejemplo.com"
-
-# El ecosistema lee automáticamente esta configuración
-```
-
-#### Configuración de Remotes
-
-```bash
-# ✅ IMPLEMENTADO: Detecta automáticamente remotes configurados
-git remote -v
-# → El ecosistema detecta automáticamente GitHub, GitLab, etc.
-```
-
-### Health Checks y Mantenimiento
-
-> **✅ IMPLEMENTADO**: Sistema de health checks
-
-El `git-integration-manager.py` proporciona análisis de salud del repositorio.
-
-#### Health Check Completo
-
-```bash
-# ✅ IMPLEMENTADO: Análisis completo de salud
-git-integration-manager.py health-check
-# → Analiza:
-#   - Estado de branches
-#   - Configuración de remotes
-#   - Branch protection
-#   - Historial de commits
-#   - Posibles problemas
-```
-
-#### Cleanup de Repositorio
-
-```bash
-# ✅ IMPLEMENTADO: Análisis de limpieza
-git-integration-manager.py cleanup --dry-run
-# → Muestra qué branches se pueden limpiar sin ejecutar cambios
-
-# ✅ IMPLEMENTADO: Ejecutar limpieza
-git-integration-manager.py cleanup
-# → Ejecuta limpieza de branches obsoletas
-```
-
-### Configuración de Aliases Git
-
-> **✅ IMPLEMENTADO**: Git aliases automáticos
-
-El `branch-git-helper.py` puede configurar aliases Git para facilitar el uso diario.
-
-#### Aliases Disponibles
-
-```bash
-# ✅ IMPLEMENTADO: Configuración automática de aliases
-# Los siguientes aliases se configuran automáticamente:
-
-git new-feature "nombre"    # Crear nueva feature branch
-git new-fix "nombre"        # Crear nueva fix branch
-git new-hotfix "nombre"     # Crear nueva hotfix branch
-git new-docs "nombre"       # Crear nueva docs branch
-git new-refactor "nombre"   # Crear nueva refactor branch
-git new-test "nombre"       # Crear nueva test branch
-git new-chore "nombre"      # Crear nueva chore branch
-git new-release "version"   # Crear nueva release branch
-```
-
-### Limitaciones Actuales
-
-> **📋 FUNCIONALIDADES NO IMPLEMENTADAS**
-
-Las siguientes funcionalidades están **planificadas** pero no implementadas:
-
-- ❌ Archivos de configuración YAML personalizados
-- ❌ Variables de entorno específicas del ecosistema
-- ❌ Configuración jerárquica por proyecto
-- ❌ Templates de configuración predefinidos
-- ❌ Configuración dinámica basada en branches
-- ❌ Integración avanzada con herramientas de calidad
-- ❌ Métricas y monitoreo automático
-- ❌ Notificaciones automáticas
-- ❌ Auto-remediation avanzada
-
-> **📋 RESUMEN DE CONFIGURACIÓN ACTUAL:**
->
-> **✅ Funcionalidades Implementadas:**
-> - Detección automática de contexto (LOCAL/HYBRID/REMOTE)
-> - Gestión segura de tokens con keyring del sistema
-> - Branch protection automática con múltiples estrategias
-> - Validación contextual adaptativa
-> - Health checks y cleanup básico
-> - Integración básica con CI/CD
-> - Git aliases automáticos
-> - Utilización de configuración Git estándar
->
-> **🎯 Filosofía Actual:**
-> El ecosistema prioriza la **detección automática** y **configuración por convención** sobre configuración explícita, proporcionando una experiencia que "funciona sin configuración" mientras permite personalización cuando es necesaria.
+6. **Validaciones de Formato y Estilo de Código**
+   - Linters específicos de lenguaje (pylint, eslint, tslint, etc.)
+   - Formateadores de código (black, prettier, etc.)
+   - Razón: La mayoría de editores e IDEs modernos ya incluyen estas herramientas integradas,
+     y los desarrolladores suelen tener sus propias configuraciones preferidas. Además,
+     ejecutarlos en pre-commit podría duplicar validaciones y ralentizar el flujo de trabajo.
 
 ---

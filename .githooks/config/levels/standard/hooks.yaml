@@ -130,5 +130,5 @@ hooks:
       - id: commit-format-validator
         name: "Commit Format Validator"
         description: "Valida el formato de los commits"
-        entry: .githooks/commitlint-wrapper.py
-        args: ["--config", ".githooks/config/active/commitlint.config.js"]
+        entry: .githooks/quality_manager.py
+        args: ["run-hook", "--hook-type", "commitlint"]

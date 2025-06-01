@@ -98,6 +98,7 @@ Lamento los inconvenientes que está causando la herramienta de edición. Una ve
     *   [Sección 6.1: Integración Opcional con `gum`](#sección-61-integración-opcional-con-gum)
     *   [Sección 6.2: Utilidad del Archivo de Logging](#sección-62-utilidad-del-archivo-de-logging)
 7.  [Parte 7: Contribución al Proyecto](#parte-7-contribución-al-proyecto)
+    *   [Sección 7.1: Guía de Contribución](#sección-71-guía-de-contribución)
 8.  [Parte 8: Licencia de Uso](#parte-8-licencia-de-uso)
 
 ## Parte 1: Fundamentos de los Entornos Virtuales en Python
