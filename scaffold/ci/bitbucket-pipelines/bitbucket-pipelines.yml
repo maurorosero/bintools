@@ -33,6 +33,10 @@ pipelines:
           name: Coverage
           script:
             - . pipelines/critical-validations.yml coverage
+      - step:
+          name: Metrics
+          script:
+            - . pipelines/update-metrics.yml
 
     develop:
       - step:
@@ -51,24 +55,40 @@ pipelines:
           name: Coverage
           script:
             - . pipelines/critical-validations.yml coverage
+      - step:
+          name: Metrics
+          script:
+            - . pipelines/update-metrics.yml
 
     "feature/*":
       - step:
           name: Lint (Minimal)
           script:
             - . pipelines/lint.yml
+      - step:
+          name: Metrics
+          script:
+            - . pipelines/update-metrics.yml
 
     "fix/*":
       - step:
           name: Lint (Minimal)
           script:
             - . pipelines/lint.yml
+      - step:
+          name: Metrics
+          script:
+            - . pipelines/update-metrics.yml
 
     "hotfix/*":
       - step:
           name: Lint (Minimal)
           script:
             - . pipelines/lint.yml
+      - step:
+          name: Metrics
+          script:
+            - . pipelines/update-metrics.yml
 
   pull-requests:
     '**':
@@ -88,3 +108,7 @@ pipelines:
           name: Coverage
           script:
             - . pipelines/critical-validations.yml coverage
+      - step:
+          name: Metrics
+          script:
+            - . pipelines/update-metrics.yml

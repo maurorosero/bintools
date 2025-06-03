@@ -1,0 +1,178 @@
+# Bitbucket Pipelines Metrics Configuration
+pipelines:
+  branches:
+    main:
+      - step:
+          name: Metrics
+          image: python:3.10
+          script:
+            - python -m pip install --upgrade pip
+            - pip install -r requirements-dev.txt
+            - pip install requests PyYAML radon safety bandit
+            - |
+              python -c "
+              from githooks.metrics_manager import MetricsManager
+              from githooks.quality_manager import QualityManager
+
+              manager = MetricsManager(QualityManager())
+              manager.run_all_metrics()  # Ejecuta todas las métricas activas según el nivel
+              "
+            - |
+              python -c "
+              from githooks.metrics_manager import MetricsManager
+              from githooks.quality_manager import QualityManager
+              manager = MetricsManager(QualityManager())
+              manager.update_readme_badges()
+              "
+            - |
+              git config --local user.email "bitbucket-pipelines@bitbucket.org"
+              git config --local user.name "Bitbucket Pipelines"
+              git add .metrics/ .badges/ README.md
+              git commit -m "[CI] Update metrics and badges" || exit 0
+              git push
+    develop:
+      - step:
+          name: Metrics
+          image: python:3.10
+          script:
+            - python -m pip install --upgrade pip
+            - pip install -r requirements-dev.txt
+            - pip install requests PyYAML radon safety bandit
+            - |
+              python -c "
+              from githooks.metrics_manager import MetricsManager
+              from githooks.quality_manager import QualityManager
+
+              manager = MetricsManager(QualityManager())
+              manager.run_all_metrics()  # Ejecuta todas las métricas activas según el nivel
+              "
+            - |
+              python -c "
+              from githooks.metrics_manager import MetricsManager
+              from githooks.quality_manager import QualityManager
+              manager = MetricsManager(QualityManager())
+              manager.update_readme_badges()
+              "
+            - |
+              git config --local user.email "bitbucket-pipelines@bitbucket.org"
+              git config --local user.name "Bitbucket Pipelines"
+              git add .metrics/ .badges/ README.md
+              git commit -m "[CI] Update metrics and badges" || exit 0
+              git push
+    'feature/*':
+      - step:
+          name: Metrics
+          image: python:3.10
+          script:
+            - python -m pip install --upgrade pip
+            - pip install -r requirements-dev.txt
+            - pip install requests PyYAML radon safety bandit
+            - |
+              python -c "
+              from githooks.metrics_manager import MetricsManager
+              from githooks.quality_manager import QualityManager
+
+              manager = MetricsManager(QualityManager())
+              manager.run_all_metrics()  # Ejecuta todas las métricas activas según el nivel
+              "
+            - |
+              python -c "
+              from githooks.metrics_manager import MetricsManager
+              from githooks.quality_manager import QualityManager
+              manager = MetricsManager(QualityManager())
+              manager.update_readme_badges()
+              "
+            - |
+              git config --local user.email "bitbucket-pipelines@bitbucket.org"
+              git config --local user.name "Bitbucket Pipelines"
+              git add .metrics/ .badges/ README.md
+              git commit -m "[CI] Update metrics and badges" || exit 0
+              git push
+    'fix/*':
+      - step:
+          name: Metrics
+          image: python:3.10
+          script:
+            - python -m pip install --upgrade pip
+            - pip install -r requirements-dev.txt
+            - pip install requests PyYAML radon safety bandit
+            - |
+              python -c "
+              from githooks.metrics_manager import MetricsManager
+              from githooks.quality_manager import QualityManager
+
+              manager = MetricsManager(QualityManager())
+              manager.run_all_metrics()  # Ejecuta todas las métricas activas según el nivel
+              "
+            - |
+              python -c "
+              from githooks.metrics_manager import MetricsManager
+              from githooks.quality_manager import QualityManager
+              manager = MetricsManager(QualityManager())
+              manager.update_readme_badges()
+              "
+            - |
+              git config --local user.email "bitbucket-pipelines@bitbucket.org"
+              git config --local user.name "Bitbucket Pipelines"
+              git add .metrics/ .badges/ README.md
+              git commit -m "[CI] Update metrics and badges" || exit 0
+              git push
+    'hotfix/*':
+      - step:
+          name: Metrics
+          image: python:3.10
+          script:
+            - python -m pip install --upgrade pip
+            - pip install -r requirements-dev.txt
+            - pip install requests PyYAML radon safety bandit
+            - |
+              python -c "
+              from githooks.metrics_manager import MetricsManager
+              from githooks.quality_manager import QualityManager
+
+              manager = MetricsManager(QualityManager())
+              manager.run_all_metrics()  # Ejecuta todas las métricas activas según el nivel
+              "
+            - |
+              python -c "
+              from githooks.metrics_manager import MetricsManager
+              from githooks.quality_manager import QualityManager
+              manager = MetricsManager(QualityManager())
+              manager.update_readme_badges()
+              "
+            - |
+              git config --local user.email "bitbucket-pipelines@bitbucket.org"
+              git config --local user.name "Bitbucket Pipelines"
+              git add .metrics/ .badges/ README.md
+              git commit -m "[CI] Update metrics and badges" || exit 0
+              git push
+  pull-requests:
+    '**':
+      - step:
+          name: Metrics
+          image: python:3.10
+          script:
+            - python -m pip install --upgrade pip
+            - pip install -r requirements-dev.txt
+            - pip install requests PyYAML radon safety bandit
+            - |
+              python -c "
+              from githooks.metrics_manager import MetricsManager
+              from githooks.quality_manager import QualityManager
+
+              manager = MetricsManager(QualityManager())
+              manager.run_all_metrics()  # Ejecuta todas las métricas activas según el nivel
+              "
+            - |
+              python -c "
+              from githooks.metrics_manager import MetricsManager
+              from githooks.quality_manager import QualityManager
+              manager = MetricsManager(QualityManager())
+              manager.update_readme_badges()
+              "
+            - |
+              git config --local user.email "bitbucket-pipelines@bitbucket.org"
+              git config --local user.name "Bitbucket Pipelines"
+              git add .metrics/ .badges/ README.md
+              git commit -m "[CI] Update metrics and badges" || exit 0
+              git push

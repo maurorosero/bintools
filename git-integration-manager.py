@@ -3906,21 +3906,43 @@ class CICDManager:
             print(f"{Fore.RED}❌ Plataforma no soportada: {platform}{Style.RESET_ALL}")
             return False
 
-        config_path = Path(self.project_path) / platform_folder
-        if config_path.exists() and not force:
-            print(f"{Fore.YELLOW}⚠️  Ya existe configuración en {config_path}{Style.RESET_ALL}")
+        # Verificar si ya existe configuración de CI
+        ci_path = Path(self.project_path) / "ci"
+        if ci_path.exists() and not force:
+            print(f"{Fore.YELLOW}⚠️  Ya existe configuración CI en {ci_path}{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}💡 Usa -f/--force para sobrescribir{Style.RESET_ALL}")
+            return False
+
+        # Verificar si ya existe configuración de plataforma
+        platform_path = Path(self.project_path) / platform_folder
+        if platform_path.exists() and not force:
+            print(f"{Fore.YELLOW}⚠️  Ya existe configuración en {platform_path}{Style.RESET_ALL}")
             print(f"{Fore.YELLOW}💡 Usa -f/--force para sobrescribir{Style.RESET_ALL}")
             return False
 
         # Aplicar configuración para cada tipo de proyecto
         print(f"\n{Fore.BLUE}📦 Aplicando configuración para {platform}...{Style.RESET_ALL}")
         try:
-            # Aquí va la lógica de aplicación para cada tipo
+            # Copiar carpeta ci/ del template
+            template_ci_path = Path(__file__).parent / "scaffold" / "ci" / "ci-projects"
+            if template_ci_path.exists():
+                print(f"{Fore.BLUE}📦 Copiando scripts CI...{Style.RESET_ALL}")
+                shutil.copytree(template_ci_path, ci_path, dirs_exist_ok=force)
+                print(f"{Fore.GREEN}✓ Scripts CI copiados{Style.RESET_ALL}")
+
+            # Copiar configuración específica de la plataforma
+            template_platform_path = Path(__file__).parent / "scaffold" / "ci" / platform_folder
+            if template_platform_path.exists():
+                print(f"{Fore.BLUE}📦 Copiando configuración de {platform}...{Style.RESET_ALL}")
+                shutil.copytree(template_platform_path, platform_path, dirs_exist_ok=force)
+                print(f"{Fore.GREEN}✓ Configuración de {platform} copiada{Style.RESET_ALL}")
+
             print(f"{Fore.GREEN}✓ Configuración aplicada exitosamente{Style.RESET_ALL}")
             print(f"\n{Fore.CYAN}📝 Resumen de cambios:{Style.RESET_ALL}")
             print(f"  • Plataforma: {platform}")
             print(f"  • Tipos: {', '.join(project_types)}")
-            print(f"  • Ubicación: {config_path}")
+            print(f"  • Scripts CI: {ci_path}")
+            print(f"  • Configuración: {platform_path}")
             return True
         except Exception as e:
             print(f"{Fore.RED}❌ Error al aplicar configuración: {e}{Style.RESET_ALL}")

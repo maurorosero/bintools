@@ -4,6 +4,7 @@
 include:
   - local: ci/lint.yml
   - local: ci/critical-validations.yml
+  - local: ci/update-metrics.yml
 
 # Configuración de workflow
 workflow:
