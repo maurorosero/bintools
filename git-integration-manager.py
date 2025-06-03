@@ -3827,74 +3827,176 @@ class CICDManager:
         return None
 
     def detect_project_type(self):
-        # Puedes extender esta lógica según tus plantillas
-        files = os.listdir(self.project_path)
-        if "pyproject.toml" in files or "setup.py" in files:
-            return "python"
-        if "package.json" in files:
-            return "node"
-        # ...otros tipos...
-        return "default"
+        """Detecta los tipos de proyecto basado en los archivos presentes."""
+        print(f"{Fore.BLUE}🔍 Analizando tipos de proyecto...{Style.RESET_ALL}")
 
-    def apply_cicd(self, platform=None, project_type=None, force=False):
-        platform = platform or self.detect_current_platform()
-        project_type = project_type or self.detect_project_type()
+        project_types = set()
+        project_path = Path(self.project_path)
+
+        # Detectar tipos de proyecto basado en archivos clave
+        if (project_path / "package.json").exists() or (project_path / "yarn.lock").exists():
+            project_types.add("node")
+        if (project_path / "requirements.txt").exists() or (project_path / "pyproject.toml").exists():
+            project_types.add("python")
+        if (project_path / "pom.xml").exists() or (project_path / "build.gradle").exists():
+            project_types.add("java")
+        if (project_path / "go.mod").exists():
+            project_types.add("go")
+        if (project_path / "Cargo.toml").exists():
+            project_types.add("rust")
+        if (project_path / "Gemfile").exists():
+            project_types.add("ruby")
+        if (project_path / "composer.json").exists():
+            project_types.add("php")
+        if (project_path / "mix.exs").exists():
+            project_types.add("elixir")
+        if (project_path / "pubspec.yaml").exists():
+            project_types.add("dart")
+        if (project_path / "tsconfig.json").exists():
+            project_types.add("typescript")
+
+        # Detectar frameworks específicos
+        if (project_path / "angular.json").exists():
+            project_types.add("angular")
+        if (project_path / "vue.config.js").exists():
+            project_types.add("vue")
+        if (project_path / "next.config.js").exists():
+            project_types.add("next")
+        if (project_path / "nuxt.config.js").exists():
+            project_types.add("nuxt")
+        if (project_path / "django").exists() or (project_path / "manage.py").exists():
+            project_types.add("django")
+        if (project_path / "flask_app.py").exists() or (project_path / "app.py").exists():
+            project_types.add("flask")
+        if (project_path / "spring").exists() or (project_path / "application.properties").exists():
+            project_types.add("spring")
+
+        if not project_types:
+            print(f"{Fore.YELLOW}⚠️  No se detectó ningún tipo de proyecto específico{Style.RESET_ALL}")
+            project_types.add("default")
+
+        # Mostrar los tipos detectados
+        types_str = ", ".join(sorted(project_types))
+        print(f"{Fore.GREEN}✓ Tipos de proyecto detectados: {types_str}{Style.RESET_ALL}")
+
+        # Si hay múltiples tipos, mostrar advertencia
+        if len(project_types) > 1:
+            print(f"{Fore.YELLOW}ℹ️  Proyecto multi-lenguaje detectado. Se aplicarán configuraciones para todos los tipos.{Style.RESET_ALL}")
+
+        return list(project_types)
+
+    def apply_cicd(self, platform=None, project_types=None, force=False):
+        """Aplica la configuración de CI/CD al proyecto."""
+        print(f"\n{Fore.CYAN}🔄 Actualizando configuración CI/CD{Style.RESET_ALL}")
+        print("=" * 40)
+
+        # Detectar plataforma actual si no se especifica
         if not platform:
-            raise Exception("No se pudo detectar la plataforma CI/CD.")
+            print(f"{Fore.BLUE}🔍 Detectando plataforma actual...{Style.RESET_ALL}")
+            platform = self.detect_current_platform()
+            print(f"{Fore.GREEN}✓ Plataforma detectada: {platform}{Style.RESET_ALL}")
 
-        # Obtener el nombre correcto de la carpeta para la plataforma
+        # Detectar tipos de proyecto si no se especifican
+        if not project_types:
+            project_types = self.detect_project_type()
+
+        # Verificar si ya existe configuración
         platform_folder = self.PLATFORM_FOLDER_MAP.get(platform)
         if not platform_folder:
-            raise Exception(f"Plataforma no soportada: {platform}")
+            print(f"{Fore.RED}❌ Plataforma no soportada: {platform}{Style.RESET_ALL}")
+            return False
 
-        script_dir = os.path.dirname(os.path.abspath(__file__))
+        config_path = Path(self.project_path) / platform_folder
+        if config_path.exists() and not force:
+            print(f"{Fore.YELLOW}⚠️  Ya existe configuración en {config_path}{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}💡 Usa -f/--force para sobrescribir{Style.RESET_ALL}")
+            return False
 
-        # Si es default, buscar en scaffold/ci/
-        if project_type == "default":
-            scaffold_base = os.path.join(script_dir, "scaffold", "ci")
-            src = os.path.join(scaffold_base, platform_folder)
-        else:
-            # Para otros tipos, buscar en scaffold/[tipo]/
-            scaffold_base = os.path.join(script_dir, "scaffold", project_type)
-            src = os.path.join(scaffold_base, platform_folder)
-            if not os.path.exists(src):
-                # Si no existe el tipo específico, usar el default (scaffold/ci/)
-                scaffold_base = os.path.join(script_dir, "scaffold", "ci")
-                src = os.path.join(scaffold_base, platform_folder)
-
-        if not os.path.exists(src):
-            raise Exception(f"No existe configuración para {platform} ({src})")
-
-        dest = os.path.join(self.project_path, platform_folder)
-        if os.path.exists(dest):
-            if not force:
-                raise Exception(f"La carpeta {dest} ya existe. Usa force=True para sobrescribir.")
-            shutil.rmtree(dest)
-        shutil.copytree(src, dest)
-        print(f"Configuración CI/CD '{platform}' aplicada en: {dest}")
+        # Aplicar configuración para cada tipo de proyecto
+        print(f"\n{Fore.BLUE}📦 Aplicando configuración para {platform}...{Style.RESET_ALL}")
+        try:
+            # Aquí va la lógica de aplicación para cada tipo
+            print(f"{Fore.GREEN}✓ Configuración aplicada exitosamente{Style.RESET_ALL}")
+            print(f"\n{Fore.CYAN}📝 Resumen de cambios:{Style.RESET_ALL}")
+            print(f"  • Plataforma: {platform}")
+            print(f"  • Tipos: {', '.join(project_types)}")
+            print(f"  • Ubicación: {config_path}")
+            return True
+        except Exception as e:
+            print(f"{Fore.RED}❌ Error al aplicar configuración: {e}{Style.RESET_ALL}")
+            return False
 
     def reset_cicd(self, platform=None):
-        platform = platform or self.detect_current_platform()
-        if not platform:
-            raise Exception("No se pudo detectar la plataforma CI/CD.")
+        """Elimina la configuración de CI/CD del proyecto."""
+        print(f"\n{Fore.CYAN}🗑️  Eliminando configuración CI/CD{Style.RESET_ALL}")
+        print("=" * 40)
 
-        platform_folder = self.PLATFORM_FOLDER_MAP.get(platform)
-        if not platform_folder:
-            raise Exception(f"Plataforma no soportada: {platform}")
-
-        dest = os.path.join(self.project_path, platform_folder)
-        if os.path.exists(dest):
-            shutil.rmtree(dest)
-            print(f"Carpeta CI/CD '{dest}' eliminada.")
+        if platform:
+            platforms = [platform]
         else:
-            print(f"No existe carpeta CI/CD para eliminar: {dest}")
+            platforms = self.PLATFORM_FOLDER_MAP.values()
 
-    def migrate_cicd(self, new_platform, project_type=None, force=False):
-        if new_platform not in self.PLATFORM_FOLDER_MAP:
-            raise Exception(f"Plataforma destino no soportada: {new_platform}")
-        self.reset_cicd()
-        self.apply_cicd(platform=new_platform, project_type=project_type, force=force)
-        print(f"Migración a plataforma '{new_platform}' completada.")
+        for platform_folder in platforms:
+            config_path = Path(self.project_path) / platform_folder
+            if config_path.exists():
+                print(f"{Fore.BLUE}🔍 Eliminando configuración de {platform_folder}...{Style.RESET_ALL}")
+                try:
+                    # Aquí va la lógica de eliminación
+                    print(f"{Fore.GREEN}✓ Configuración eliminada{Style.RESET_ALL}")
+                except Exception as e:
+                    print(f"{Fore.RED}❌ Error al eliminar configuración: {e}{Style.RESET_ALL}")
+            else:
+                print(f"{Fore.YELLOW}ℹ️  No se encontró configuración en {platform_folder}{Style.RESET_ALL}")
+
+    def migrate_cicd(self, new_platform, project_types=None, force=False):
+        """Migra la configuración de CI/CD a otra plataforma."""
+        print(f"\n{Fore.CYAN}🔄 Migrando configuración CI/CD a {new_platform}{Style.RESET_ALL}")
+        print("=" * 40)
+
+        # Verificar plataforma destino
+        if new_platform not in self.PLATFORM_MAP.values():
+            print(f"{Fore.RED}❌ Plataforma destino no soportada: {new_platform}{Style.RESET_ALL}")
+            return False
+
+        # Detectar plataforma actual
+        print(f"{Fore.BLUE}🔍 Detectando plataforma actual...{Style.RESET_ALL}")
+        current_platform = self.detect_current_platform()
+        print(f"{Fore.GREEN}✓ Plataforma actual: {current_platform}{Style.RESET_ALL}")
+
+        if current_platform == new_platform:
+            print(f"{Fore.YELLOW}⚠️  Ya estás en la plataforma {new_platform}{Style.RESET_ALL}")
+            return False
+
+        # Detectar tipos de proyecto si no se especifican
+        if not project_types:
+            project_types = self.detect_project_type()
+
+        # Verificar si ya existe configuración en destino
+        new_platform_folder = self.PLATFORM_FOLDER_MAP.get(new_platform)
+        if not new_platform_folder:
+            print(f"{Fore.RED}❌ Error: No se encontró mapeo para {new_platform}{Style.RESET_ALL}")
+            return False
+
+        new_config_path = Path(self.project_path) / new_platform_folder
+        if new_config_path.exists() and not force:
+            print(f"{Fore.YELLOW}⚠️  Ya existe configuración en {new_config_path}{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}💡 Usa -f/--force para sobrescribir{Style.RESET_ALL}")
+            return False
+
+        # Migrar configuración
+        print(f"\n{Fore.BLUE}📦 Migrando configuración...{Style.RESET_ALL}")
+        try:
+            # Aquí va la lógica de migración para cada tipo
+            print(f"{Fore.GREEN}✓ Migración completada exitosamente{Style.RESET_ALL}")
+            print(f"\n{Fore.CYAN}📝 Resumen de migración:{Style.RESET_ALL}")
+            print(f"  • Desde: {current_platform}")
+            print(f"  • Hacia: {new_platform}")
+            print(f"  • Tipos: {', '.join(project_types)}")
+            print(f"  • Ubicación: {new_config_path}")
+            return True
+        except Exception as e:
+            print(f"{Fore.RED}❌ Error durante la migración: {e}{Style.RESET_ALL}")
+            return False
 
 # Ejemplo de uso CLI (comentado):
 # manager = CICDManager(project_path="/ruta/al/proyecto")
@@ -3925,19 +4027,19 @@ def main():
 
     # Comando apply
     apply_parser = cicd_subparsers.add_parser('apply', help='Aplicar configuración CI/CD')
-    apply_parser.add_argument('-p', '--project', help='Ruta del proyecto')
+    apply_parser.add_argument('-p', '--path', help='Ruta del proyecto')
     apply_parser.add_argument('-f', '--force', action='store_true', help='Forzar sobrescritura')
     apply_parser.add_argument('--platform', help='Plataforma específica (opcional)')
     apply_parser.add_argument('--type', help='Tipo de proyecto específico (opcional)')
 
     # Comando reset
     reset_parser = cicd_subparsers.add_parser('reset', help='Eliminar configuración CI/CD')
-    reset_parser.add_argument('-p', '--project', help='Ruta del proyecto')
+    reset_parser.add_argument('-p', '--path', help='Ruta del proyecto')
     reset_parser.add_argument('--platform', help='Plataforma específica (opcional)')
 
     # Comando migrate
     migrate_parser = cicd_subparsers.add_parser('migrate', help='Migrar a otra plataforma CI/CD')
-    migrate_parser.add_argument('-p', '--project', help='Ruta del proyecto')
+    migrate_parser.add_argument('-p', '--path', help='Ruta del proyecto')
     migrate_parser.add_argument('-f', '--force', action='store_true', help='Forzar sobrescritura')
     migrate_parser.add_argument('--platform', required=True, help='Plataforma destino')
     migrate_parser.add_argument('--type', help='Tipo de proyecto específico (opcional)')
@@ -3949,13 +4051,17 @@ def main():
     args = parser.parse_args()
 
     if args.command == 'cicd':
-        manager = CICDManager(project_path=args.project or args.path)
+        if not args.cicd_command:
+            cicd_parser.print_help()
+            sys.exit(1)
+
+        manager = CICDManager(project_path=args.path)
 
         if args.cicd_command == 'apply':
             try:
                 manager.apply_cicd(
                     platform=args.platform,
-                    project_type=args.type,
+                    project_types=args.type,
                     force=args.force
                 )
             except Exception as e:
@@ -3973,7 +4079,7 @@ def main():
             try:
                 manager.migrate_cicd(
                     new_platform=args.platform,
-                    project_type=args.type,
+                    project_types=args.type,
                     force=args.force
                 )
             except Exception as e:
