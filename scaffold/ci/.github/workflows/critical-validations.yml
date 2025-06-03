@@ -1,0 +1,107 @@
+name: Critical Validations
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+
+jobs:
+  lint:
+    name: Code Linting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+      - name: Run pre-commit
+        run: |
+          pre-commit run --all-files
+
+  security_audit:
+    name: Security Audit
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install pip-audit
+        run: pip install pip-audit
+      - name: Run security audit
+        run: |
+          pip-audit --format json > security-report.json
+          # Verificar umbral de severidad
+          if grep -q '"severity": "CRITICAL"' security-report.json; then
+            echo "Critical vulnerabilities found"
+            exit 1
+          fi
+      - name: Upload security report
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-report
+          path: security-report.json
+
+  license_check:
+    name: License Verification
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install license-checker
+        run: pip install pip-licenses
+      - name: Check licenses
+        run: |
+          pip-licenses --format json > license-report.json
+          # Verificar licencias no permitidas
+          if grep -q '"License": "GPL"' license-report.json; then
+            echo "Found GPL license - not allowed"
+            exit 1
+          fi
+      - name: Upload license report
+        uses: actions/upload-artifact@v3
+        with:
+          name: license-report
+          path: license-report.json
+
+  coverage:
+    name: Code Coverage
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov
+          pip install -r requirements-dev.txt
+      - name: Run tests with coverage
+        run: |
+          pytest --cov=./ --cov-report=xml
+      - name: Check coverage threshold
+        run: |
+          if [ $(grep -o 'line-rate="[0-9.]*"' coverage.xml | cut -d'"' -f2) -lt 0.8 ]; then
+            echo "Coverage below 80%"
+            exit 1
+          fi
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: coverage.xml

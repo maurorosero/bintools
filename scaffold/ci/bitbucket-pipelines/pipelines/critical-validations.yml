@@ -1,0 +1,53 @@
+# Bitbucket Pipelines Critical Validations
+
+security_audit:
+  name: Security Audit
+  caches:
+    - pip
+    - venv
+  script:
+    - source venv/bin/activate
+    - pip install pip-audit
+    - pip-audit --format json > security-report.json
+    - |
+      if grep -q '"severity": "CRITICAL"' security-report.json; then
+        echo "Critical vulnerabilities found"
+        exit 1
+      fi
+  artifacts:
+    - security-report.json
+
+license_check:
+  name: License Check
+  caches:
+    - pip
+    - venv
+  script:
+    - source venv/bin/activate
+    - pip install pip-licenses
+    - pip-licenses --format json > license-report.json
+    - |
+      if grep -q '"License": "GPL"' license-report.json; then
+        echo "Found GPL license - not allowed"
+        exit 1
+      fi
+  artifacts:
+    - license-report.json
+
+coverage:
+  name: Coverage
+  caches:
+    - pip
+    - venv
+  script:
+    - source venv/bin/activate
+    - pip install pytest pytest-cov
+    - pip install -r requirements-dev.txt
+    - pytest --cov=./ --cov-report=xml
+    - |
+      if [ $(grep -o 'line-rate="[0-9.]*"' coverage.xml | cut -d'"' -f2) -lt 0.8 ]; then
+        echo "Coverage below 80%"
+        exit 1
+      fi
+  artifacts:
+    - coverage.xml
