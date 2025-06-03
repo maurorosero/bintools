@@ -1,0 +1,146 @@
+# Configuración de métricas y badges
+# Este archivo define las métricas disponibles y su comportamiento por nivel
+
+metrics:
+  # Métricas básicas (MINIMAL)
+  build:
+    enabled: true
+    level: MINIMAL
+    badge_template: "https://img.shields.io/badge/build-{status}-{color}"
+    threshold: null
+    description: "Estado del build"
+    command: "echo 'Build passing'"
+    extract: "status=passing"
+
+  # Métricas estándar (STANDARD)
+  test:
+    enabled: true
+    level: STANDARD
+    badge_template: "https://img.shields.io/badge/tests-{passed}/{total}-{color}"
+    threshold: 80.0
+    description: "Cobertura de tests"
+    command: "pytest --cov=./ --cov-report=term-missing"
+    extract: |
+      COVERAGE=$(grep -o 'TOTAL.*[0-9]*%' test_report.txt | grep -o '[0-9]*%' | tr -d '%')
+      TESTS_PASSED=$(grep -o '[0-9]* passed' test_report.txt | grep -o '[0-9]*')
+      TESTS_TOTAL=$(grep -o '[0-9]* collected' test_report.txt | grep -o '[0-9]*')
+      echo "$COVERAGE"
+      echo "passed=$TESTS_PASSED" >&2
+      echo "total=$TESTS_TOTAL" >&2
+
+  coverage:
+    enabled: true
+    level: STANDARD
+    badge_template: "https://img.shields.io/badge/coverage-{percentage}%25-{color}"
+    threshold: 80.0
+    description: "Cobertura de código"
+    command: "pytest --cov=./ --cov-report=term-missing"
+    extract: "grep -o 'TOTAL.*[0-9]*%' | grep -o '[0-9]*%' | tr -d '%'"
+
+  quality:
+    enabled: true
+    level: STANDARD
+    badge_template: "https://img.shields.io/badge/quality-{grade}-{color}"
+    threshold: 8.0
+    description: "Calidad del código"
+    command: "flake8 . && pylint ."
+    extract: "grep -o 'Your code has been rated at [0-9]*\\.[0-9]*' | grep -o '[0-9]*\\.[0-9]*'"
+
+  # Métricas enterprise (ENTERPRISE)
+  complexity:
+    enabled: true
+    level: ENTERPRISE
+    badge_template: "https://img.shields.io/badge/complexity-{score}-{color}"
+    threshold: 10.0
+    description: "Complejidad ciclomática"
+    command: "radon cc . -a -nc"
+    extract: "grep -o 'Average complexity: [0-9]*\\.[0-9]*' | grep -o '[0-9]*\\.[0-9]*'"
+
+  security:
+    enabled: true
+    level: ENTERPRISE
+    badge_template: "https://img.shields.io/badge/security-{status}-{color}"
+    threshold: 0.0
+    description: "Vulnerabilidades de seguridad"
+    command: "safety check && bandit -r ."
+    extract: |
+      VULNS=$(grep -o 'Vulnerabilities found: [0-9]*' | grep -o '[0-9]*')
+      echo "$VULNS"
+      echo "status=$(if [ $VULNS -eq 0 ]; then echo 'secure'; else echo 'vulnerable'; fi)" >&2
+
+# Configuración de reportes
+reports:
+  # Formato de reportes por nivel
+  MINIMAL:
+    format: "text"
+    include: ["build"]
+    output: "console"
+
+  STANDARD:
+    format: "markdown"
+    include: ["build", "test", "coverage", "quality"]
+    output: "file"
+    file: "METRICS.md"
+
+  ENTERPRISE:
+    format: "html"
+    include: ["build", "test", "coverage", "quality", "complexity", "security"]
+    output: "file"
+    file: "docs/metrics.html"
+
+# Configuración de badges
+badges:
+  # Estilo de badges por nivel
+  MINIMAL:
+    style: "flat"
+    color_scheme:
+      passing: "green"
+      failing: "red"
+      unknown: "gray"
+
+  STANDARD:
+    style: "flat-square"
+    color_scheme:
+      passing: "brightgreen"
+      warning: "yellow"
+      failing: "red"
+      unknown: "lightgray"
+
+  ENTERPRISE:
+    style: "for-the-badge"
+    color_scheme:
+      passing: "success"
+      warning: "important"
+      failing: "critical"
+      unknown: "inactive"
+
+# Configuración de umbrales
+thresholds:
+  # Umbrales por nivel
+  MINIMAL:
+    build:
+      passing: true
+
+  STANDARD:
+    test:
+      min_coverage: 80.0
+      min_passed: 90.0
+    coverage:
+      min_percentage: 80.0
+    quality:
+      min_score: 8.0
+
+  ENTERPRISE:
+    test:
+      min_coverage: 90.0
+      min_passed: 95.0
+    coverage:
+      min_percentage: 90.0
+    quality:
+      min_score: 9.0
+    complexity:
+      max_average: 10.0
+      max_per_file: 15.0
+    security:
+      max_vulnerabilities: 0
+      max_severity: "medium"
