@@ -3796,106 +3796,193 @@ class WorkflowOrchestrator:
 
             print()  # Línea en blanco entre branches
 
+class CICDManager:
+    PLATFORM_MAP = {
+        "gitlab.com": "gitlab",
+        "github.com": "github",
+        "gitea.io": "gitea",
+        "forgejo.org": "forgejo",
+        "bitbucket.org": "bitbucket"
+    }
+
+    # Mapeo de plataformas a sus nombres de carpeta
+    PLATFORM_FOLDER_MAP = {
+        "gitlab": ".gitlab",
+        "github": ".github",
+        "gitea": ".gitea",
+        "forgejo": ".forgejo",
+        "bitbucket": "bitbucket-pipelines"
+    }
+
+    def __init__(self, project_path=None):
+        self.project_path = os.path.abspath(project_path or os.getcwd())
+
+    def detect_current_platform(self):
+        remotes = subprocess.check_output(
+            ["git", "-C", self.project_path, "remote", "-v"], encoding="utf-8"
+        )
+        for domain, platform in self.PLATFORM_MAP.items():
+            if domain in remotes:
+                return platform
+        return None
+
+    def detect_project_type(self):
+        # Puedes extender esta lógica según tus plantillas
+        files = os.listdir(self.project_path)
+        if "pyproject.toml" in files or "setup.py" in files:
+            return "python"
+        if "package.json" in files:
+            return "node"
+        # ...otros tipos...
+        return "default"
+
+    def apply_cicd(self, platform=None, project_type=None, force=False):
+        platform = platform or self.detect_current_platform()
+        project_type = project_type or self.detect_project_type()
+        if not platform:
+            raise Exception("No se pudo detectar la plataforma CI/CD.")
+
+        # Obtener el nombre correcto de la carpeta para la plataforma
+        platform_folder = self.PLATFORM_FOLDER_MAP.get(platform)
+        if not platform_folder:
+            raise Exception(f"Plataforma no soportada: {platform}")
+
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+
+        # Si es default, buscar en scaffold/ci/
+        if project_type == "default":
+            scaffold_base = os.path.join(script_dir, "scaffold", "ci")
+            src = os.path.join(scaffold_base, platform_folder)
+        else:
+            # Para otros tipos, buscar en scaffold/[tipo]/
+            scaffold_base = os.path.join(script_dir, "scaffold", project_type)
+            src = os.path.join(scaffold_base, platform_folder)
+            if not os.path.exists(src):
+                # Si no existe el tipo específico, usar el default (scaffold/ci/)
+                scaffold_base = os.path.join(script_dir, "scaffold", "ci")
+                src = os.path.join(scaffold_base, platform_folder)
+
+        if not os.path.exists(src):
+            raise Exception(f"No existe configuración para {platform} ({src})")
+
+        dest = os.path.join(self.project_path, platform_folder)
+        if os.path.exists(dest):
+            if not force:
+                raise Exception(f"La carpeta {dest} ya existe. Usa force=True para sobrescribir.")
+            shutil.rmtree(dest)
+        shutil.copytree(src, dest)
+        print(f"Configuración CI/CD '{platform}' aplicada en: {dest}")
+
+    def reset_cicd(self, platform=None):
+        platform = platform or self.detect_current_platform()
+        if not platform:
+            raise Exception("No se pudo detectar la plataforma CI/CD.")
+
+        platform_folder = self.PLATFORM_FOLDER_MAP.get(platform)
+        if not platform_folder:
+            raise Exception(f"Plataforma no soportada: {platform}")
+
+        dest = os.path.join(self.project_path, platform_folder)
+        if os.path.exists(dest):
+            shutil.rmtree(dest)
+            print(f"Carpeta CI/CD '{dest}' eliminada.")
+        else:
+            print(f"No existe carpeta CI/CD para eliminar: {dest}")
+
+    def migrate_cicd(self, new_platform, project_type=None, force=False):
+        if new_platform not in self.PLATFORM_FOLDER_MAP:
+            raise Exception(f"Plataforma destino no soportada: {new_platform}")
+        self.reset_cicd()
+        self.apply_cicd(platform=new_platform, project_type=project_type, force=force)
+        print(f"Migración a plataforma '{new_platform}' completada.")
+
+# Ejemplo de uso CLI (comentado):
+# manager = CICDManager(project_path="/ruta/al/proyecto")
+# manager.apply_cicd(force=True)
+# manager.reset_cicd()
+# manager.migrate_cicd("github", force=True)
+
 def main():
     """Función principal del Integration Manager."""
-    parser = argparse.ArgumentParser(
-        description="Git Integration Manager - Orquestador de workflows Git",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Ejemplos de uso:
-  %(prog)s integrate feature/login                    # Integrar feature completa (cwd)
-  %(prog)s integrate feature/login --dry-run          # Ver qué haría sin ejecutar
-  %(prog)s integrate feature/login --mode api         # Usar APIs si están disponibles
-  %(prog)s -p /path/to/project health-check          # Analizar salud del repo específico
-  %(prog)s --path ../mi-proyecto cleanup             # Limpiar branches en otro proyecto
-  %(prog)s cleanup --execute                         # Limpiar branches (ejecutar)
-  %(prog)s setup-remote-protection --strategy hybrid # Configurar protección remota
-  %(prog)s protection-status --compare               # Ver estado de protección
-  %(prog)s protection-status --json                  # Salida en formato JSON
-  %(prog)s sync-protection-rules --direction local-to-remote # Sincronizar reglas
-        """
-    )
+    parser = argparse.ArgumentParser(description="Git Integration Manager")
+    parser.add_argument('-p', '--path', help='Ruta del repositorio')
+    parser.add_argument('--mode', choices=['dry-run', 'local', 'api', 'auto'], default='local')
+    parser.add_argument('--dry-run', action='store_true')
+    parser.add_argument('--execute', action='store_true')
+    parser.add_argument('--platform', help='Plataforma Git (github, gitlab-c, gitlab-o, gitea, forgejo, bitbucket-c, bitbucket-o)')
+    parser.add_argument('--host', help='Host para servicios on-premise (ej: gitlab.empresa.com)')
+    parser.add_argument('--strategy', choices=['local', 'hybrid', 'remote'], help='Estrategia de protección a aplicar')
+    parser.add_argument('--direction', choices=['local-to-remote', 'remote-to-local'], default='local-to-remote')
+    parser.add_argument('--compare', action='store_true')
+    parser.add_argument('--json', action='store_true')
+    parser.add_argument('--commit-format', help='Formato de commit (opcional, para set-quality-level)')
 
-    parser.add_argument(
-        'action',
-        choices=['integrate', 'health-check', 'cleanup', 'status', 'setup-remote-protection', 'protection-status', 'sync-protection-rules', 'quality-status', 'set-quality-level', 'list-commit-formats'],
-        help='Acción a ejecutar'
-    )
+    subparsers = parser.add_subparsers(dest='command', help='Comandos disponibles')
 
-    parser.add_argument(
-        'branch_name',
-        nargs='?',
-        help='Nombre de la branch para integrar'
-    )
+    # Agregar cicd como un comando principal
+    cicd_parser = subparsers.add_parser('cicd', help='Gestionar configuración CI/CD')
+    cicd_subparsers = cicd_parser.add_subparsers(dest='cicd_command', help='Comandos CI/CD')
 
-    parser.add_argument(
-        '-p', '--path',
-        type=Path,
-        default=None,
-        help='Ruta del proyecto Git (por defecto: directorio actual)'
-    )
+    # Comando apply
+    apply_parser = cicd_subparsers.add_parser('apply', help='Aplicar configuración CI/CD')
+    apply_parser.add_argument('-p', '--project', help='Ruta del proyecto')
+    apply_parser.add_argument('-f', '--force', action='store_true', help='Forzar sobrescritura')
+    apply_parser.add_argument('--platform', help='Plataforma específica (opcional)')
+    apply_parser.add_argument('--type', help='Tipo de proyecto específico (opcional)')
 
-    parser.add_argument(
-        '--mode',
-        choices=['dry-run', 'local', 'api', 'auto'],
-        default='local',
-        help='Modo de operación'
-    )
+    # Comando reset
+    reset_parser = cicd_subparsers.add_parser('reset', help='Eliminar configuración CI/CD')
+    reset_parser.add_argument('-p', '--project', help='Ruta del proyecto')
+    reset_parser.add_argument('--platform', help='Plataforma específica (opcional)')
 
-    parser.add_argument(
-        '--dry-run',
-        action='store_true',
-        help='Solo mostrar qué haría sin ejecutar'
-    )
+    # Comando migrate
+    migrate_parser = cicd_subparsers.add_parser('migrate', help='Migrar a otra plataforma CI/CD')
+    migrate_parser.add_argument('-p', '--project', help='Ruta del proyecto')
+    migrate_parser.add_argument('-f', '--force', action='store_true', help='Forzar sobrescritura')
+    migrate_parser.add_argument('--platform', required=True, help='Plataforma destino')
+    migrate_parser.add_argument('--type', help='Tipo de proyecto específico (opcional)')
 
-    parser.add_argument(
-        '--execute',
-        action='store_true',
-        help='Ejecutar acciones (para cleanup)'
-    )
-
-    parser.add_argument(
-        '--platform',
-        help='Plataforma Git (github, gitlab-c, gitlab-o, gitea, forgejo, bitbucket-c, bitbucket-o)'
-    )
-
-    parser.add_argument(
-        '--host',
-        help='Host para servicios on-premise (ej: gitlab.empresa.com)'
-    )
-
-    # Nuevos argumentos para configuración automática del remoto
-    parser.add_argument(
-        '--strategy',
-        choices=['local', 'hybrid', 'remote'],
-        help='Estrategia de protección a aplicar'
-    )
-
-    parser.add_argument(
-        '--direction',
-        choices=['local-to-remote', 'remote-to-local'],
-        default='local-to-remote',
-        help='Dirección de sincronización de reglas'
-    )
-
-    parser.add_argument(
-        '--compare',
-        action='store_true',
-        help='Comparar configuración local vs remota'
-    )
-
-    parser.add_argument(
-        '--json',
-        action='store_true',
-        help='Mostrar salida en formato JSON (útil para scripts/debugging)'
-    )
-
-    parser.add_argument(
-        '--commit-format',
-        help='Formato de commit (opcional, para set-quality-level)'
-    )
+    # Agregar los otros subparsers existentes
+    integrate_parser = subparsers.add_parser('integrate', help='Integrar rama feature')
+    integrate_parser.add_argument('branch_name', nargs='?', help='Nombre de la branch para integrar')
 
     args = parser.parse_args()
+
+    if args.command == 'cicd':
+        manager = CICDManager(project_path=args.project or args.path)
+
+        if args.cicd_command == 'apply':
+            try:
+                manager.apply_cicd(
+                    platform=args.platform,
+                    project_type=args.type,
+                    force=args.force
+                )
+            except Exception as e:
+                print(f"Error al aplicar CI/CD: {e}")
+                sys.exit(1)
+
+        elif args.cicd_command == 'reset':
+            try:
+                manager.reset_cicd(platform=args.platform)
+            except Exception as e:
+                print(f"Error al resetear CI/CD: {e}")
+                sys.exit(1)
+
+        elif args.cicd_command == 'migrate':
+            try:
+                manager.migrate_cicd(
+                    new_platform=args.platform,
+                    project_type=args.type,
+                    force=args.force
+                )
+            except Exception as e:
+                print(f"Error al migrar CI/CD: {e}")
+                sys.exit(1)
+
+        else:
+            cicd_parser.print_help()
+            sys.exit(1)
 
     try:
         # Usar la ruta especificada o el directorio actual
@@ -3928,7 +4015,7 @@ Ejemplos de uso:
 
         orchestrator = WorkflowOrchestrator(repo_path=project_path, args=args)
 
-        if args.action == 'integrate':
+        if args.command == 'integrate':
             if not args.branch_name:
                 print(f"{Fore.RED}❌ Error: Se requiere nombre de branch para integrar{Style.RESET_ALL}")
                 sys.exit(1)
@@ -3937,7 +4024,7 @@ Ejemplos de uso:
             success = orchestrator.integrate_feature(args.branch_name, mode)
             sys.exit(0 if success else 1)
 
-        elif args.action == 'health-check':
+        elif args.command == 'health-check':
             metrics = orchestrator.analyze_repository_health()
 
             print(f"\n{Fore.CYAN}📊 Reporte de Salud del Repositorio{Style.RESET_ALL}")
@@ -3948,7 +4035,7 @@ Ejemplos de uso:
             print(f"{Fore.BLUE}👥 Contribuidores: {Fore.YELLOW}{metrics.contributors}{Style.RESET_ALL}")
             print(f"{Fore.BLUE}📈 Score de salud: {Fore.GREEN}{metrics.health_score:.1f}/100{Style.RESET_ALL}")
 
-        elif args.action == 'cleanup':
+        elif args.command == 'cleanup':
             actions = orchestrator.cleanup_repository(dry_run=not args.execute)
 
             if actions:
@@ -3958,7 +4045,7 @@ Ejemplos de uso:
             else:
                 print(f"\n{Fore.GREEN}✅ No se necesita limpieza{Style.RESET_ALL}")
 
-        elif args.action == 'status':
+        elif args.command == 'status':
             print(f"\n{Fore.CYAN}📊 Estado del Integration Manager{Style.RESET_ALL}")
             print("=" * 35)
             print(f"{Fore.BLUE}📍 Contexto: {Fore.YELLOW}{orchestrator.context}{Style.RESET_ALL}")
@@ -3966,7 +4053,7 @@ Ejemplos de uso:
             print(f"{Fore.BLUE}🐙 GitHub API: {'✅' if orchestrator.platform_api else '❌'}{Style.RESET_ALL}")
             print(f"{Fore.BLUE}🦊 Git CLI: {'✅' if orchestrator.api_caps.capabilities['git_cli'] else '❌'}{Style.RESET_ALL}")
 
-        elif args.action == 'setup-remote-protection':
+        elif args.command == 'setup-remote-protection':
             if not args.strategy:
                 print(f"{Fore.RED}❌ Error: Se requiere estrategia para configurar protección{Style.RESET_ALL}")
                 sys.exit(1)
@@ -3975,7 +4062,7 @@ Ejemplos de uso:
             success = orchestrator.apply_strategy(strategy_name, dry_run=args.dry_run)
             sys.exit(0 if success else 1)
 
-        elif args.action == 'protection-status':
+        elif args.command == 'protection-status':
             status = orchestrator.get_protection_status(compare_with_local=args.compare)
 
             if args.json:
@@ -4041,12 +4128,12 @@ Ejemplos de uso:
                     else:
                         print(f"\n{Fore.YELLOW}⚠️  No hay branches protegidas en el repositorio{Style.RESET_ALL}")
 
-        elif args.action == 'sync-protection-rules':
+        elif args.command == 'sync-protection-rules':
             direction = args.direction
             success = orchestrator.sync_protection_rules(direction, dry_run=args.dry_run)
             sys.exit(0 if success else 1)
 
-        elif args.action == 'quality-status':
+        elif args.command == 'quality-status':
             qm = QualityManager(project_path)
             config = qm.get_current_configuration()
             if args.json:
@@ -4060,7 +4147,7 @@ Ejemplos de uso:
                 else:
                     print(f"{Fore.YELLOW} (No hay configuración activa){Style.RESET_ALL}")
 
-        elif args.action == 'set-quality-level':
+        elif args.command == 'set-quality-level':
             if not args.branch_name:
                  print(f"{Fore.RED}❌ Error: Se requiere un nivel (branch_name) para set-quality-level{Style.RESET_ALL}")
                  sys.exit(1)
@@ -4072,7 +4159,7 @@ Ejemplos de uso:
                  print(f"{Fore.RED}❌ Error al aplicar nivel: {e}{Style.RESET_ALL}")
                  sys.exit(1)
 
-        elif args.action == 'list-commit-formats':
+        elif args.command == 'list-commit-formats':
              qm = QualityManager(project_path)
              formats = qm.list_available_formats()
              if args.json:

@@ -1,0 +1,46 @@
+# Bitbucket Pipelines Lint Configuration
+
+image: python:3.10
+
+pipelines:
+  branches:
+    main:
+      - step:
+          name: Lint (Enterprise)
+          script:
+            - pip install safety
+            - safety check
+            - if [ -f "package.json" ]; then npm audit; fi
+            # Implementar análisis completo de seguridad
+            # Implementar análisis de complejidad
+            # Generar documentación
+    develop:
+      - step:
+          name: Lint (Standard)
+          script:
+            - pip install safety
+            - safety check
+            - if [ -f "package.json" ]; then npm audit; fi
+            # Implementar análisis básico de seguridad
+            # Verificar cobertura de tests
+    "feature/*":
+      - step:
+          name: Lint (Minimal)
+          script:
+            - pip install safety
+            - safety check
+            - if [ -f "package.json" ]; then npm audit; fi
+    "fix/*":
+      - step:
+          name: Lint (Minimal)
+          script:
+            - pip install safety
+            - safety check
+            - if [ -f "package.json" ]; then npm audit; fi
+    "hotfix/*":
+      - step:
+          name: Lint (Minimal)
+          script:
+            - pip install safety
+            - safety check
+            - if [ -f "package.json" ]; then npm audit; fi

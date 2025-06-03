@@ -1,0 +1,69 @@
+# GitHub Actions Lint Configuration
+name: Lint
+
+on:
+  push:
+    branches: [ main, develop, 'feature/*', 'fix/*', 'hotfix/*' ]
+  pull_request:
+    branches: [ main, develop ]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  detect-context:
+    runs-on: ubuntu-latest
+    outputs:
+      context: ${{ steps.set-context.outputs.context }}
+    steps:
+      - id: set-context
+        run: |
+          if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
+            echo "context=ENTERPRISE" >> $GITHUB_OUTPUT
+          elif [[ $GITHUB_REF == 'refs/heads/develop' ]]; then
+            echo "context=STANDARD" >> $GITHUB_OUTPUT
+          else
+            echo "context=MINIMAL" >> $GITHUB_OUTPUT
+          fi
+
+  lint:
+    needs: detect-context
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      # Validaciones mínimas (siempre)
+      - name: Python package vulnerabilities
+        run: |
+          pip install safety
+          safety check
+
+      - name: Node.js vulnerabilities
+        if: always() && hashFiles('package.json') != ''
+        run: |
+          npm audit
+
+      # Validaciones estándar (develop)
+      - name: Basic security analysis
+        if: needs.detect-context.outputs.context == 'STANDARD' || needs.detect-context.outputs.context == 'ENTERPRISE'
+        run: |
+          # Implementar análisis básico de seguridad
+
+      - name: Test coverage
+        if: needs.detect-context.outputs.context == 'STANDARD' || needs.detect-context.outputs.context == 'ENTERPRISE'
+        run: |
+          # Verificar cobertura de tests
+
+      # Validaciones enterprise (main)
+      - name: Full security analysis
+        if: needs.detect-context.outputs.context == 'ENTERPRISE'
+        run: |
+          # Implementar análisis completo de seguridad
+
+      - name: Complexity analysis
+        if: needs.detect-context.outputs.context == 'ENTERPRISE'
+        run: |
+          # Implementar análisis de complejidad
+
+      - name: Documentation generation
+        if: needs.detect-context.outputs.context == 'ENTERPRISE'
+        run: |
+          # Generar documentación

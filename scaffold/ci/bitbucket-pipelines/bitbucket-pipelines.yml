@@ -1,0 +1,36 @@
+# Bitbucket Pipelines Configuration
+# Este archivo es el punto de entrada principal para Bitbucket Pipelines
+# Incluye el pipeline de lint
+
+pipelines:
+  default:
+    - step:
+        name: Lint
+        script:
+          - . pipelines/lint.yml
+  branches:
+    main:
+      - step:
+          name: Lint (Enterprise)
+          script:
+            - . pipelines/lint.yml
+    develop:
+      - step:
+          name: Lint (Standard)
+          script:
+            - . pipelines/lint.yml
+    "feature/*":
+      - step:
+          name: Lint (Minimal)
+          script:
+            - . pipelines/lint.yml
+    "fix/*":
+      - step:
+          name: Lint (Minimal)
+          script:
+            - . pipelines/lint.yml
+    "hotfix/*":
+      - step:
+          name: Lint (Minimal)
+          script:
+            - . pipelines/lint.yml

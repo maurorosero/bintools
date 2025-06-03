@@ -1,0 +1,19 @@
+# GitLab CI/CD Configuration
+# Este archivo es el punto de entrada principal para GitLab CI/CD
+# Incluye el pipeline de lint
+
+include:
+  - local: ci/lint.yml
+
+stages:
+  - lint
+
+# Configuración de workflow
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH =~ /^feature\/.*$/
+    - if: $CI_COMMIT_BRANCH =~ /^fix\/.*$/
+    - if: $CI_COMMIT_BRANCH =~ /^hotfix\/.*$/
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"

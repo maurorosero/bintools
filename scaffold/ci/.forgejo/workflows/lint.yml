@@ -1,0 +1,65 @@
+# Forgejo Actions Lint Configuration
+name: Lint
+
+on:
+  push:
+    branches: [ main, develop, 'feature/*', 'fix/*', 'hotfix/*' ]
+  pull_request:
+    branches: [ main, develop ]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      # Detectar contexto basado en la rama
+      - name: Set context
+        id: context
+        run: |
+          if [[ $FORGEJO_REF == 'refs/heads/main' ]]; then
+            echo "CONTEXT=ENTERPRISE" >> $FORGEJO_ENV
+          elif [[ $FORGEJO_REF == 'refs/heads/develop' ]]; then
+            echo "CONTEXT=STANDARD" >> $FORGEJO_ENV
+          else
+            echo "CONTEXT=MINIMAL" >> $FORGEJO_ENV
+          fi
+
+      # Validaciones mínimas (siempre)
+      - name: Python package vulnerabilities
+        run: |
+          pip install safety
+          safety check
+
+      - name: Node.js vulnerabilities
+        if: always() && hashFiles('package.json') != ''
+        run: |
+          npm audit
+
+      # Validaciones estándar (develop)
+      - name: Basic security analysis
+        if: env.CONTEXT == 'STANDARD' || env.CONTEXT == 'ENTERPRISE'
+        run: |
+          # Implementar análisis básico de seguridad
+
+      - name: Test coverage
+        if: env.CONTEXT == 'STANDARD' || env.CONTEXT == 'ENTERPRISE'
+        run: |
+          # Verificar cobertura de tests
+
+      # Validaciones enterprise (main)
+      - name: Full security analysis
+        if: env.CONTEXT == 'ENTERPRISE'
+        run: |
+          # Implementar análisis completo de seguridad
+
+      - name: Complexity analysis
+        if: env.CONTEXT == 'ENTERPRISE'
+        run: |
+          # Implementar análisis de complejidad
+
+      - name: Documentation generation
+        if: env.CONTEXT == 'ENTERPRISE'
+        run: |
+          # Generar documentación

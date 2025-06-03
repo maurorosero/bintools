@@ -1,0 +1,41 @@
+# GitLab CI Lint Configuration
+
+variables:
+  CONTEXT: $CI_COMMIT_BRANCH
+
+before_script:
+  # Detectar contexto basado en la rama
+  - |
+    if [[ $CI_COMMIT_BRANCH == 'main' ]]; then
+      export CONTEXT=ENTERPRISE
+    elif [[ $CI_COMMIT_BRANCH == 'develop' ]]; then
+      export CONTEXT=STANDARD
+    else
+      export CONTEXT=MINIMAL
+    fi
+
+lint:
+  stage: lint
+  script:
+    # Validaciones mínimas (siempre)
+    - pip install safety
+    - safety check
+    - |
+      if [ -f "package.json" ]; then
+        npm audit
+      fi
+
+    # Validaciones estándar (develop)
+    - |
+      if [[ $CONTEXT == 'STANDARD' || $CONTEXT == 'ENTERPRISE' ]]; then
+        # Implementar análisis básico de seguridad
+        # Verificar cobertura de tests
+      fi
+
+    # Validaciones enterprise (main)
+    - |
+      if [[ $CONTEXT == 'ENTERPRISE' ]]; then
+        # Implementar análisis completo de seguridad
+        # Implementar análisis de complejidad
+        # Generar documentación
+      fi
