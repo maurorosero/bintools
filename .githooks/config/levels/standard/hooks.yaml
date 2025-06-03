@@ -50,6 +50,8 @@ branch-workflow-commit:
   validate_merge_conflicts: true # Validar conflictos
   validate_branch_source: true # Validar origen de rama
   require_linear_history: false # No requiere historia lineal
+  require_signed_commits: true # Requiere commits firmados
+  require_gpg_verification: true # Requiere verificación GPG
 
 branch-workflow-push:
   # Validación estándar de workflow en push

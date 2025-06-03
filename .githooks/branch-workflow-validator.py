@@ -388,6 +388,36 @@ class BranchValidator:
 
         return ValidationResult(True, f"Pull Request no requerido para '{target_branch}'")
 
+    def validate_gpg_verification(self) -> ValidationResult:
+        """Valida la configuración GPG para commits firmados."""
+        if not self.config.get('require_gpg_verification', False):
+            return ValidationResult(True, "Verificación GPG no requerida en este nivel")
+
+        try:
+            # Verificar configuración local de commit.gpgsign
+            success, stdout, stderr = self.git_repo.run_command(
+                ['git', 'config', '--local', 'commit.gpgsign'],
+                check=False
+            )
+
+            if not success or stdout.strip() != 'true':
+                return ValidationResult(
+                    False,
+                    "❌ Verificación GPG falló: commit.gpgsign debe estar configurado como 'true' localmente",
+                    "error"
+                )
+
+            return ValidationResult(
+                True,
+                "✅ Verificación GPG: commit.gpgsign está configurado correctamente"
+            )
+        except Exception as e:
+            return ValidationResult(
+                False,
+                f"❌ Error en verificación GPG: {str(e)}",
+                "error"
+            )
+
     def run_validation_suite(self, operation: OperationType, **kwargs) -> List[ValidationResult]:
         """Ejecuta suite completa de validaciones según la operación."""
         results = []
@@ -406,6 +436,8 @@ class BranchValidator:
                 results.append(self.validate_branch_name(current_branch))
                 results.append(self.validate_branch_source(current_branch))
             results.append(self.validate_merge_conflicts())
+            # Agregar validación GPG
+            results.append(self.validate_gpg_verification())
 
         elif operation == OperationType.PUSH:
             target_branch = kwargs.get("target_branch", current_branch)
