@@ -1,36 +1,90 @@
 # Bitbucket Pipelines Configuration
 # Este archivo es el punto de entrada principal para Bitbucket Pipelines
-# Incluye el pipeline de lint
+
+image: python:3.10
+
+definitions:
+  caches:
+    pip: ~/.cache/pip
+    venv: venv/
 
 pipelines:
   default:
     - step:
-        name: Lint
+        name: Lint (Minimal)
         script:
           - . pipelines/lint.yml
+
   branches:
     main:
       - step:
           name: Lint (Enterprise)
           script:
             - . pipelines/lint.yml
+      - step:
+          name: Security Audit
+          script:
+            - . pipelines/critical-validations.yml security_audit
+      - step:
+          name: License Check
+          script:
+            - . pipelines/critical-validations.yml license_check
+      - step:
+          name: Coverage
+          script:
+            - . pipelines/critical-validations.yml coverage
+
     develop:
       - step:
           name: Lint (Standard)
           script:
             - . pipelines/lint.yml
+      - step:
+          name: Security Audit
+          script:
+            - . pipelines/critical-validations.yml security_audit
+      - step:
+          name: License Check
+          script:
+            - . pipelines/critical-validations.yml license_check
+      - step:
+          name: Coverage
+          script:
+            - . pipelines/critical-validations.yml coverage
+
     "feature/*":
       - step:
           name: Lint (Minimal)
           script:
             - . pipelines/lint.yml
+
     "fix/*":
       - step:
           name: Lint (Minimal)
           script:
             - . pipelines/lint.yml
+
     "hotfix/*":
       - step:
           name: Lint (Minimal)
           script:
             - . pipelines/lint.yml
+
+  pull-requests:
+    '**':
+      - step:
+          name: Lint
+          script:
+            - . pipelines/lint.yml
+      - step:
+          name: Security Audit
+          script:
+            - . pipelines/critical-validations.yml security_audit
+      - step:
+          name: License Check
+          script:
+            - . pipelines/critical-validations.yml license_check
+      - step:
+          name: Coverage
+          script:
+            - . pipelines/critical-validations.yml coverage

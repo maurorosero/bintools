@@ -1,46 +1,52 @@
 # Bitbucket Pipelines Lint Configuration
 
-image: python:3.10
+variables:
+  CONTEXT: $BITBUCKET_BRANCH
 
-pipelines:
-  branches:
-    main:
-      - step:
-          name: Lint (Enterprise)
-          script:
-            - pip install safety
-            - safety check
-            - if [ -f "package.json" ]; then npm audit; fi
-            # Implementar análisis completo de seguridad
-            # Implementar análisis de complejidad
-            # Generar documentación
-    develop:
-      - step:
-          name: Lint (Standard)
-          script:
-            - pip install safety
-            - safety check
-            - if [ -f "package.json" ]; then npm audit; fi
-            # Implementar análisis básico de seguridad
-            # Verificar cobertura de tests
-    "feature/*":
-      - step:
-          name: Lint (Minimal)
-          script:
-            - pip install safety
-            - safety check
-            - if [ -f "package.json" ]; then npm audit; fi
-    "fix/*":
-      - step:
-          name: Lint (Minimal)
-          script:
-            - pip install safety
-            - safety check
-            - if [ -f "package.json" ]; then npm audit; fi
-    "hotfix/*":
-      - step:
-          name: Lint (Minimal)
-          script:
-            - pip install safety
-            - safety check
-            - if [ -f "package.json" ]; then npm audit; fi
+before_script:
+  # Detectar contexto basado en la rama
+  - |
+    if [[ $BITBUCKET_BRANCH == 'main' ]]; then
+      export CONTEXT=ENTERPRISE
+    elif [[ $BITBUCKET_BRANCH == 'develop' ]]; then
+      export CONTEXT=STANDARD
+    else
+      export CONTEXT=MINIMAL
+    fi
+
+lint:
+  name: Lint
+  caches:
+    - pip
+    - venv
+  script:
+    - python -m venv venv
+    - source venv/bin/activate
+    - pip install --upgrade pip
+    - pip install -r requirements-dev.txt
+    - pre-commit run --all-files
+  artifacts:
+    - .pre-commit-reports/
+
+  # Validaciones mínimas (siempre)
+  - pip install safety
+  - safety check
+  - |
+    if [ -f "package.json" ]; then
+      npm audit
+    fi
+
+  # Validaciones estándar (develop)
+  - |
+    if [[ $CONTEXT == 'STANDARD' || $CONTEXT == 'ENTERPRISE' ]]; then
+      # Implementar análisis básico de seguridad
+      # Verificar cobertura de tests
+    fi
+
+  # Validaciones enterprise (main)
+  - |
+    if [[ $CONTEXT == 'ENTERPRISE' ]]; then
+      # Implementar análisis completo de seguridad
+      # Implementar análisis de complejidad
+      # Generar documentación
+    fi
