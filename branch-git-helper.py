@@ -161,6 +161,139 @@ class GitRepository:
                 return True
         return False
 
+    def get_branch_state(self, branch_name: str = None) -> str:
+        """
+        Determina el estado de una rama (WIP o MERGED).
+
+        Args:
+            branch_name: Nombre de la rama a verificar. Si es None, usa la rama actual.
+
+        Returns:
+            str: "WIP" si la rama tiene commits no mergeados o está marcada como WIP,
+                 "MERGED" si todos sus commits están mergeados en la rama base,
+                 o None si hay error.
+        """
+        branch = branch_name or self.get_current_branch()
+        if not branch:
+            return None
+
+        # Primero verificar si hay un estado forzado en las notas
+        success, stdout, _ = self.run_command(["git", "notes", "show", "HEAD"])
+        if success and stdout:
+            for line in stdout.split('\n'):
+                if line.startswith('branch_state:'):
+                    forced_state = line.split(':', 1)[1].strip()
+                    if forced_state in ['WIP', 'MERGED']:
+                        return forced_state
+
+        # Si no hay estado forzado, verificar por commits
+        # Obtener la rama base según el tipo de branch
+        branch_type = branch.split('/')[0] if '/' in branch else None
+        base_branch = None
+
+        if branch_type in BRANCH_TYPES:
+            for base in BRANCH_TYPES[branch_type]["base_branch_priority"]:
+                if self.branch_exists(base):
+                    base_branch = base
+                    break
+
+        # Si no se encontró rama base, usar main/master
+        if not base_branch:
+            for base in ["main", "master"]:
+                if self.branch_exists(base):
+                    base_branch = base
+                    break
+
+        if not base_branch:
+            return None
+
+        # Verificar si hay commits únicos en la rama
+        success, stdout, _ = self.run_command([
+            "git", "rev-list", "--left-right", "--count",
+            f"{base_branch}...{branch}"
+        ])
+
+        if not success or not stdout:
+            return None
+
+        try:
+            # El formato es "X Y" donde X son commits en base_branch que no están en branch
+            # y Y son commits en branch que no están en base_branch
+            _, unique_commits = map(int, stdout.split())
+            return "WIP" if unique_commits > 0 else "MERGED"
+        except (ValueError, IndexError):
+            return None
+
+    def get_branch_info(self, branch_name: str = None) -> Dict:
+        """
+        Obtiene información detallada de una rama.
+
+        Args:
+            branch_name: Nombre de la rama. Si es None, usa la rama actual.
+
+        Returns:
+            Dict con información de la rama:
+            {
+                "name": str,
+                "state": str,  # "WIP" o "MERGED"
+                "type": str,   # tipo de branch (feature, fix, etc.)
+                "base": str,   # rama base
+                "last_commit": str,  # último commit
+                "last_commit_date": str,  # fecha del último commit
+                "unique_commits": int  # número de commits únicos
+            }
+        """
+        branch = branch_name or self.get_current_branch()
+        if not branch:
+            return None
+
+        info = {
+            "name": branch,
+            "state": self.get_branch_state(branch),
+            "type": branch.split('/')[0] if '/' in branch else None,
+            "base": None,
+            "last_commit": None,
+            "last_commit_date": None,
+            "unique_commits": 0
+        }
+
+        # Obtener rama base
+        if info["type"] in BRANCH_TYPES:
+            for base in BRANCH_TYPES[info["type"]]["base_branch_priority"]:
+                if self.branch_exists(base):
+                    info["base"] = base
+                    break
+
+        if not info["base"]:
+            for base in ["main", "master"]:
+                if self.branch_exists(base):
+                    info["base"] = base
+                    break
+
+        # Obtener último commit
+        success, stdout, _ = self.run_command([
+            "git", "log", "-1", "--format=%H|%ai", branch
+        ])
+        if success and stdout:
+            commit_hash, commit_date = stdout.split('|')
+            info["last_commit"] = commit_hash
+            info["last_commit_date"] = commit_date
+
+        # Obtener número de commits únicos
+        if info["base"]:
+            success, stdout, _ = self.run_command([
+                "git", "rev-list", "--left-right", "--count",
+                f"{info['base']}...{branch}"
+            ])
+            if success and stdout:
+                try:
+                    _, unique_commits = map(int, stdout.split())
+                    info["unique_commits"] = unique_commits
+                except (ValueError, IndexError):
+                    pass
+
+        return info
+
 class ContextDetector:
     """Detector automático de contexto de desarrollo."""
 
@@ -170,23 +303,39 @@ class ContextDetector:
     def detect_context(self) -> str:
         """
         Detecta automáticamente el contexto de desarrollo.
+        Primero verifica si hay un contexto forzado, luego usa la detección automática.
 
         Returns:
             str: "LOCAL", "HYBRID", o "REMOTE"
         """
-        contributors = self.git_repo.get_contributor_count()
-        commits = self.git_repo.get_commit_count()
+        # Verificar si hay un contexto forzado
+        success, stdout, _ = self.git_repo.run_command(["git", "notes", "show", "HEAD"])
+        if success and stdout:
+            for line in stdout.split('\n'):
+                if line.startswith('forced_context:'):
+                    forced_context = line.split(':', 1)[1].strip()
+                    if forced_context in ['LOCAL', 'HYBRID', 'REMOTE']:
+                        return forced_context
+
+        # Si no hay contexto forzado, usar detección automática
         remotes = self.git_repo.get_remote_count()
-        has_ci = self.git_repo.detect_ci_presence()
         has_develop = self.git_repo.branch_exists("develop")
         has_staging = self.git_repo.branch_exists("staging")
+        contributors = self.git_repo.get_contributor_count()
 
-        # Lógica de detección
-        if remotes == 0:
+        # Es LOCAL si cumple cualquiera de estas condiciones:
+        # 1. No tiene remotos
+        # 2. No tiene ni develop ni staging
+        # 3. Tiene menos de 2 contribuidores
+        if (remotes == 0 or
+            (not has_develop and not has_staging) or
+            contributors < 2):
             return "LOCAL"
-        elif contributors <= 2 and commits < 100 and not has_ci:
-            return "HYBRID"
-        elif has_ci or has_staging or contributors > 5:
+
+        # Si no es LOCAL, determinar entre HYBRID y REMOTE
+        has_ci = self.git_repo.detect_ci_presence()
+
+        if has_ci or contributors > 2:  # Más de 2 contribuidores o tiene CI
             return "REMOTE"
         else:
             return "HYBRID"
@@ -334,6 +483,17 @@ class BranchHelper:
             print(f"{Fore.RED}❌ Error al crear la rama: {error}{Style.RESET_ALL}")
             return False
 
+        # Establecer estado WIP usando git notes
+        print(f"{Fore.CYAN}📝 Estableciendo estado WIP...{Style.RESET_ALL}")
+        success, _, error = self.git_repo.run_command([
+            "git", "notes", "add", "-m", "branch_state:WIP", "HEAD"
+        ])
+        if not success:
+            print(f"{Fore.YELLOW}⚠️  No se pudo establecer estado WIP: {error}{Style.RESET_ALL}")
+            print(f"{Fore.BLUE}💡 La rama se creó pero sin estado WIP explícito{Style.RESET_ALL}")
+        else:
+            print(f"{Fore.GREEN}✅ Estado WIP establecido{Style.RESET_ALL}")
+
         print(f"{Fore.GREEN}✅ Rama '{full_branch_name}' creada exitosamente{Style.RESET_ALL}")
 
         # Configurar upstream si es necesario
@@ -351,6 +511,7 @@ class BranchHelper:
         print(f"\n{Fore.MAGENTA}🎉 ¡Listo para trabajar!{Style.RESET_ALL}")
         print(f"{Fore.BLUE}📝 Rama actual: {full_branch_name}{Style.RESET_ALL}")
         print(f"{Fore.BLUE}🎯 Contexto: {context} - {BRANCH_TYPES[branch_type]['description']}{Style.RESET_ALL}")
+        print(f"{Fore.BLUE}📊 Estado: {Fore.YELLOW}WIP{Style.RESET_ALL}")
 
         return True
 
@@ -404,6 +565,12 @@ class AliasManager:
             'new-test': f'!python {script_path} test',
             'new-chore': f'!python {script_path} chore',
             'branch-status': f'!python {script_path} status',
+            # Aliases para el comando state
+            'state': f'!python {script_path} state',
+            'merged': f'!python {script_path} state merged',
+            'merged-d': f'!python {script_path} state merged -d',
+            'merged-r': f'!python {script_path} state merged -r',
+            'merged-rd': f'!python {script_path} state merged -r -d',
             # Aliases adicionales para trabajo con proyectos específicos
             'new-feature-in': f'!f() {{ python {script_path} -p "$1" feature "$2"; }}; f',
             'new-fix-in': f'!f() {{ python {script_path} -p "$1" fix "$2"; }}; f',
@@ -452,8 +619,11 @@ class AliasManager:
     def uninstall_aliases(cls) -> bool:
         """Desinstala los aliases del sistema."""
         aliases = [
+            # Aliases de creación de ramas
             'new-feature', 'new-fix', 'new-hotfix', 'new-docs',
             'new-refactor', 'new-test', 'new-chore', 'branch-status',
+            # Aliases de estado
+            'state', 'merged', 'merged-d', 'merged-r', 'merged-rd',
             # Aliases multi-proyecto
             'new-feature-in', 'new-fix-in', 'branch-status-in'
         ]
@@ -488,13 +658,28 @@ def show_status(repo_path: Path = None):
         context = context_detector.detect_context()
         context_info = context_detector.get_context_info(context)
         current_branch = git_repo.get_current_branch()
+        branch_info = git_repo.get_branch_info(current_branch) if current_branch else None
 
         print(f"\n{Fore.CYAN}🔍 Estado del Repositorio{Style.RESET_ALL}")
         print(f"{Fore.BLUE}📁 Proyecto: {Fore.YELLOW}{git_repo.repo_path}{Style.RESET_ALL}")
-        print(f"{Fore.BLUE}📍 Rama actual: {Fore.YELLOW}{current_branch}{Style.RESET_ALL}")
+
+        if current_branch:
+            print(f"{Fore.BLUE}📍 Rama actual: {Fore.YELLOW}{current_branch}{Style.RESET_ALL}")
+            if branch_info:
+                state_color = Fore.GREEN if branch_info["state"] == "MERGED" else Fore.YELLOW
+                print(f"{Fore.BLUE}📊 Estado: {state_color}{branch_info['state']}{Style.RESET_ALL}")
+                if branch_info["type"]:
+                    print(f"{Fore.BLUE}🎯 Tipo: {Fore.YELLOW}{branch_info['type']}{Style.RESET_ALL}")
+                if branch_info["base"]:
+                    print(f"{Fore.BLUE}📌 Base: {Fore.YELLOW}{branch_info['base']}{Style.RESET_ALL}")
+                if branch_info["unique_commits"] > 0:
+                    print(f"{Fore.BLUE}📝 Commits únicos: {Fore.YELLOW}{branch_info['unique_commits']}{Style.RESET_ALL}")
+                if branch_info["last_commit_date"]:
+                    print(f"{Fore.BLUE}🕒 Último commit: {Fore.YELLOW}{branch_info['last_commit_date']}{Style.RESET_ALL}")
+
         print(f"{Fore.BLUE}🎯 Contexto: {Fore.YELLOW}{context}{Style.RESET_ALL}")
         print(f"{Fore.BLUE}👥 Contribuidores: {context_info['contributors']}{Style.RESET_ALL}")
-        print(f"{Fore.BLUE}📝 Commits: {context_info['commits']}{Style.RESET_ALL}")
+        print(f"{Fore.BLUE}📝 Commits totales: {context_info['commits']}{Style.RESET_ALL}")
         print(f"{Fore.BLUE}🔗 Remotos: {context_info['remotes']}{Style.RESET_ALL}")
         print(f"{Fore.BLUE}🤖 CI/CD: {'Sí' if context_info['has_ci'] else 'No'}{Style.RESET_ALL}")
 
@@ -514,53 +699,131 @@ def show_status(repo_path: Path = None):
 def main():
     """Función principal del script."""
     parser = argparse.ArgumentParser(
-        description="Branch Git Helper - Gestión inteligente de branches con detección automática de contexto",
+        description="""Branch Git Helper - Sistema inteligente de gestión de branches con detección automática de contexto.
+
+Este script proporciona una interfaz unificada para crear y gestionar branches de Git,
+adaptándose automáticamente al contexto del proyecto (LOCAL, HYBRID, REMOTE).
+
+Estados de Rama:
+  - WIP (Work In Progress): Rama en desarrollo activo
+  - MERGED: Rama cuyos commits han sido mergeados a su rama base
+
+Contextos:
+  - LOCAL: Se detecta si:
+    * No tiene remotos configurados, O
+    * No tiene ni develop ni staging, O
+    * Tiene menos de 2 contribuidores
+  - HYBRID: Se detecta si:
+    * Tiene remotos configurados, Y
+    * Tiene develop o staging, Y
+    * Tiene 2 o más contribuidores, Y
+    * No tiene CI/CD configurado
+  - REMOTE: Se detecta si:
+    * Tiene remotos configurados, Y
+    * Tiene develop o staging, Y
+    * Tiene 2 o más contribuidores, Y
+    * Tiene CI/CD configurado
+
+Tipos de Rama:
+  - feature: Nuevas características y funcionalidades
+  - fix: Correcciones de errores y bugs
+  - hotfix: Correcciones urgentes en producción
+  - docs: Documentación y cambios en docs
+  - refactor: Refactorización sin cambios funcionales
+  - test: Añadir o mejorar tests
+  - chore: Tareas de mantenimiento y build""",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Ejemplos de uso:
-  %(prog)s feature "nueva-autenticacion"     # Crear rama de feature (proyecto actual)
-  %(prog)s fix "corregir-validacion"         # Crear rama de fix (proyecto actual)
-  %(prog)s hotfix "vulnerabilidad-critica"   # Crear rama de hotfix (proyecto actual)
-  %(prog)s -p ../mi-proyecto feature "login" # Crear rama en otro proyecto
+  # Creación de ramas (proyecto actual)
+  %(prog)s feature "nueva-autenticacion"     # Crear rama de feature
+  %(prog)s fix "corregir-validacion"         # Crear rama de fix
+  %(prog)s hotfix "vulnerabilidad-critica"   # Crear rama de hotfix
+  %(prog)s docs "actualizar-readme"          # Crear rama de documentación
+  %(prog)s refactor "optimizar-queries"      # Crear rama de refactorización
+  %(prog)s test "cobertura-api"              # Crear rama de tests
+  %(prog)s chore "actualizar-deps"           # Crear rama de mantenimiento
+
+  # Opciones para creación de ramas
+  %(prog)s feature "login" --no-push         # Crear sin push automático
+  %(prog)s fix "bug" --no-sync               # Crear sin sincronizar con remoto
+  %(prog)s -p ../mi-proyecto feature "login" # Crear en otro proyecto
+
+  # Gestión de estado de ramas
+  %(prog)s state merged                      # Marcar rama como mergeada
+  %(prog)s state merged -d                   # Mergear y eliminar rama
+  %(prog)s state merged -r                   # Reemplazar rama base (solo LOCAL)
+  %(prog)s state merged -r -d                # Reemplazar y eliminar rama
+
+  # Gestión de contexto
+  %(prog)s force-context LOCAL               # Forzar contexto LOCAL
+  %(prog)s force-context HYBRID              # Forzar contexto HYBRID
+  %(prog)s force-context REMOTE              # Forzar contexto REMOTE
+  %(prog)s force-context AUTO                # Restaurar detección automática
+
+  # Información y estado
+  %(prog)s status                            # Mostrar estado del repositorio
   %(prog)s --repo-path /path/to/repo status  # Estado de repositorio específico
-  %(prog)s status                            # Mostrar estado del repositorio actual
+
+  # Gestión de aliases
   %(prog)s install-aliases                   # Instalar aliases persistentes
   %(prog)s uninstall-aliases                 # Remover aliases
 
-Aliases para proyecto actual (funcionan desde cualquier directorio):
-  git new-feature "descripción"              # Crear feature en proyecto actual
-  git new-fix "descripción"                  # Crear fix en proyecto actual
-  git new-hotfix "descripción"               # Crear hotfix en proyecto actual
-  git branch-status                          # Estado del proyecto actual
+Aliases para proyecto actual:
+  git new-feature "descripción"              # Crear feature
+  git new-fix "descripción"                  # Crear fix
+  git new-hotfix "descripción"               # Crear hotfix
+  git new-docs "descripción"                 # Crear rama de docs
+  git new-refactor "descripción"             # Crear rama de refactor
+  git new-test "descripción"                 # Crear rama de tests
+  git new-chore "descripción"                # Crear rama de mantenimiento
+  git branch-status                          # Estado del proyecto
+
+  # Aliases para gestión de estado
+  git state merged                           # Marcar rama como mergeada
+  git merged-d                              # Mergear y eliminar rama
+  git merged-r                              # Reemplazar rama base (solo LOCAL)
+  git merged-rd                             # Reemplazar y eliminar rama
 
 Aliases para proyectos específicos:
-  git new-feature-in /path/to/project "desc" # Crear feature en proyecto específico
-  git new-fix-in ../mi-proyecto "desc"       # Crear fix en proyecto específico
-  git branch-status-in /path/to/project      # Estado de proyecto específico
-        """
-    )
+  git new-feature-in /path/to/project "desc" # Crear feature en proyecto
+  git new-fix-in ../mi-proyecto "desc"       # Crear fix en proyecto
+  git branch-status-in /path/to/project      # Estado de proyecto
+
+Notas:
+  - Las ramas nuevas se crean en estado WIP
+  - El estado WIP se mantiene hasta que los commits se mergean
+  - El contexto se detecta automáticamente según la configuración
+  - Se pueden forzar contextos específicos según necesidades
+  - Los aliases permiten acceso rápido desde cualquier directorio
+  - El comando state permite cambiar el estado de una rama a MERGED
+  - La opción --replace solo está disponible en contexto LOCAL
+  - La opción --replace no se puede usar con ramas hotfix
+  - La opción --delete elimina la rama después de un merge exitoso
+        """)
 
     parser.add_argument(
         'action',
+        choices=['status', 'force-context', 'state', 'help', 'install-aliases', 'uninstall-aliases'] + list(BRANCH_TYPES.keys()),
         help='Acción a realizar o tipo de branch a crear'
     )
 
     parser.add_argument(
         'description',
         nargs='?',
-        help='Descripción de la rama (requerido para tipos de branch)'
+        help='Descripción de la rama (requerido para tipos de branch) o estado (merged/wip) para el comando state'
     )
 
     parser.add_argument(
         '--no-push',
         action='store_true',
-        help='No hacer push automático al remoto'
+        help='No hacer push automático al remoto (útil para desarrollo local)'
     )
 
     parser.add_argument(
         '--no-sync',
         action='store_true',
-        help='No sincronizar con remoto antes de crear rama'
+        help='No sincronizar con remoto antes de crear rama (útil para conexión lenta)'
     )
 
     parser.add_argument(
@@ -568,6 +831,18 @@ Aliases para proyectos específicos:
         type=Path,
         default=Path.cwd(),
         help='Ruta del repositorio Git (por defecto: directorio actual)'
+    )
+
+    parser.add_argument(
+        '-d', '--delete',
+        action='store_true',
+        help='Eliminar la rama de trabajo después de un merge exitoso'
+    )
+
+    parser.add_argument(
+        '-r', '--replace',
+        action='store_true',
+        help='Reemplazar completamente la rama base con la rama de trabajo (solo en contexto LOCAL, no aplica para hotfix)'
     )
 
     args = parser.parse_args()
@@ -584,6 +859,151 @@ Aliases para proyectos específicos:
     if args.action == 'uninstall-aliases':
         success = AliasManager.uninstall_aliases()
         sys.exit(0 if success else 1)
+
+    if args.action == 'state':
+        if not args.description or args.description not in ['merged', 'wip']:
+            print(f"{Fore.RED}❌ Estado inválido. Use: merged o wip{Style.RESET_ALL}")
+            sys.exit(1)
+
+        try:
+            git_repo = GitRepository(args.repo_path)
+            current_branch = git_repo.get_current_branch()
+
+            if not current_branch:
+                print(f"{Fore.RED}❌ No se pudo determinar la rama actual{Style.RESET_ALL}")
+                sys.exit(1)
+
+            # Verificar que no estamos en una rama protegida
+            branch_type = current_branch.split('/')[0] if '/' in current_branch else None
+            if not branch_type or branch_type not in BRANCH_TYPES:
+                print(f"{Fore.RED}❌ No se puede cambiar estado de ramas sin tipo (main, master, etc){Style.RESET_ALL}")
+                sys.exit(1)
+
+            # Verificar contexto LOCAL para --replace
+            if args.replace:
+                context_detector = ContextDetector(git_repo)
+                context = context_detector.detect_context()
+                if context != "LOCAL":
+                    print(f"{Fore.RED}❌ El modificador --replace solo está disponible en contexto LOCAL{Style.RESET_ALL}")
+                    sys.exit(1)
+
+                # Verificar que --replace no se use con hotfix
+                if branch_type == 'hotfix':
+                    print(f"{Fore.RED}❌ El modificador --replace no puede usarse con ramas hotfix{Style.RESET_ALL}")
+                    sys.exit(1)
+
+            # Obtener rama base según el tipo
+            base_branch = None
+            for base in BRANCH_TYPES[branch_type]["base_branch_priority"]:
+                if git_repo.branch_exists(base):
+                    base_branch = base
+                    break
+
+            if not base_branch:
+                print(f"{Fore.RED}❌ No se encontró rama base para {branch_type}{Style.RESET_ALL}")
+                sys.exit(1)
+
+            if args.description == 'merged':
+                # Guardar nombre de la rama actual para posible eliminación
+                working_branch = current_branch
+
+                # Cambiar a rama base
+                print(f"{Fore.CYAN}🔄 Cambiando a rama base '{base_branch}'...{Style.RESET_ALL}")
+                success, _, error = git_repo.run_command(["git", "checkout", base_branch])
+                if not success:
+                    print(f"{Fore.RED}❌ Error al cambiar a rama base: {error}{Style.RESET_ALL}")
+                    sys.exit(1)
+
+                if args.replace:
+                    # Verificar que no hay cambios sin commitear en la rama base
+                    success, output, _ = git_repo.run_command(["git", "status", "--porcelain"])
+                    if output.strip():
+                        print(f"{Fore.RED}❌ Hay cambios sin commitear en {base_branch}. Por favor, haga commit o stash de los cambios antes de usar --replace{Style.RESET_ALL}")
+                        sys.exit(1)
+
+                    # Hacer reset hard a la rama de trabajo
+                    print(f"{Fore.CYAN}🔄 Reemplazando '{base_branch}' con '{working_branch}'...{Style.RESET_ALL}")
+                    success, _, error = git_repo.run_command(["git", "reset", "--hard", working_branch])
+                    if not success:
+                        print(f"{Fore.RED}❌ Error al reemplazar rama: {error}{Style.RESET_ALL}")
+                        sys.exit(1)
+
+                    print(f"{Fore.GREEN}✅ Rama {base_branch} reemplazada exitosamente con {working_branch}{Style.RESET_ALL}")
+                else:
+                    # Hacer merge normal
+                    print(f"{Fore.CYAN}🔄 Haciendo merge de '{working_branch}' a '{base_branch}'...{Style.RESET_ALL}")
+                    success, _, error = git_repo.run_command(["git", "merge", working_branch])
+                    if not success:
+                        print(f"{Fore.YELLOW}⚠️  Conflictos detectados. Resuelva los conflictos y luego:{Style.RESET_ALL}")
+                        print(f"{Fore.BLUE}   git add .{Style.RESET_ALL}")
+                        print(f"{Fore.BLUE}   git commit -m \"Merge {working_branch} a {base_branch}\"{Style.RESET_ALL}")
+                        sys.exit(1)
+
+                # Actualizar estado usando git notes
+                print(f"{Fore.CYAN}📝 Actualizando estado a MERGED...{Style.RESET_ALL}")
+                success, _, error = git_repo.run_command([
+                    "git", "notes", "add", "-m", "branch_state:MERGED", "HEAD"
+                ])
+                if not success:
+                    print(f"{Fore.YELLOW}⚠️  No se pudo actualizar estado: {error}{Style.RESET_ALL}")
+                else:
+                    print(f"{Fore.GREEN}✅ Estado actualizado a MERGED{Style.RESET_ALL}")
+
+                # Mostrar resumen
+                print(f"\n{Fore.MAGENTA}🎉 {'Reemplazo' if args.replace else 'Merge'} completado{Style.RESET_ALL}")
+                print(f"{Fore.BLUE}📝 Rama: {working_branch}{Style.RESET_ALL}")
+                print(f"{Fore.BLUE}📌 Base: {base_branch}{Style.RESET_ALL}")
+                print(f"{Fore.BLUE}📊 Estado: {Fore.GREEN}MERGED{Style.RESET_ALL}")
+
+                # Eliminar rama si se solicitó y la operación fue exitosa
+                if args.delete:
+                    print(f"\n{Fore.CYAN}🗑️  Eliminando rama '{working_branch}'...{Style.RESET_ALL}")
+                    success, _, error = git_repo.run_command(["git", "branch", "-d", working_branch])
+                    if success:
+                        print(f"{Fore.GREEN}✅ Rama eliminada exitosamente{Style.RESET_ALL}")
+                    else:
+                        print(f"{Fore.YELLOW}⚠️  No se pudo eliminar la rama: {error}{Style.RESET_ALL}")
+                        print(f"{Fore.BLUE}   Si está seguro, puede forzar la eliminación con:{Style.RESET_ALL}")
+                        print(f"{Fore.BLUE}   git branch -D {working_branch}{Style.RESET_ALL}")
+
+            # TODO: Implementar cambio a WIP si se necesita
+
+            sys.exit(0)
+
+        except Exception as e:
+            print(f"{Fore.RED}❌ Error inesperado: {e}{Style.RESET_ALL}")
+            sys.exit(1)
+
+    if args.action == 'force-context':
+        if not args.description or args.description not in ['LOCAL', 'HYBRID', 'REMOTE', 'AUTO']:
+            print(f"{Fore.RED}❌ Contexto inválido. Use: LOCAL, HYBRID, REMOTE, o AUTO{Style.RESET_ALL}")
+            sys.exit(1)
+
+        try:
+            git_repo = GitRepository(args.repo_path)
+            if args.description == 'AUTO':
+                # Eliminar la nota de contexto forzado si existe
+                success, _, error = git_repo.run_command(["git", "notes", "remove", "HEAD"])
+                if success:
+                    print(f"{Fore.GREEN}✅ Contexto restaurado a detección automática{Style.RESET_ALL}")
+                else:
+                    print(f"{Fore.YELLOW}ℹ️  No había contexto forzado que eliminar{Style.RESET_ALL}")
+            else:
+                # Guardar el contexto forzado en una nota de Git
+                success, _, error = git_repo.run_command(
+                    ["git", "notes", "add", "-m", f"forced_context:{args.description}", "HEAD"]
+                )
+                if success:
+                    print(f"{Fore.GREEN}✅ Contexto forzado a {args.description}{Style.RESET_ALL}")
+                else:
+                    print(f"{Fore.RED}❌ Error al forzar contexto: {error}{Style.RESET_ALL}")
+
+            # Mostrar el nuevo estado
+            show_status(args.repo_path)
+            sys.exit(0 if success else 1)
+        except Exception as e:
+            print(f"{Fore.RED}❌ Error inesperado: {e}{Style.RESET_ALL}")
+            sys.exit(1)
 
     # Crear rama
     if args.action in BRANCH_TYPES:
