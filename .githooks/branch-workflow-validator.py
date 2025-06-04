@@ -201,12 +201,17 @@ class ContextDetector:
         has_develop = self.git_repo.branch_exists("develop")
         has_staging = self.git_repo.branch_exists("staging")
 
-        # Lógica de detección
-        if remotes == 0:
+        # Es LOCAL si cumple cualquiera de estas condiciones:
+        # 1. No tiene remotos
+        # 2. No tiene ni develop ni staging
+        # 3. Tiene menos de 2 contribuidores
+        if (remotes == 0 or
+            (not has_develop and not has_staging) or
+            contributors < 2):
             return "LOCAL"
-        elif contributors <= 2 and commits < 100 and not has_ci:
-            return "HYBRID"
-        elif has_ci or has_staging or contributors > 5:
+
+        # Si no es LOCAL, determinar entre HYBRID y REMOTE
+        if has_ci or contributors > 2:  # Más de 2 contribuidores o tiene CI
             return "REMOTE"
         else:
             return "HYBRID"
