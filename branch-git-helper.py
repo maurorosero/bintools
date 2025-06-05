@@ -1068,6 +1068,29 @@ def show_status(repo_path: Path = None):
         protected = context_info['config']['protected_branches']
         print(f"{Fore.BLUE}🛡️  Ramas protegidas: {', '.join(protected)}{Style.RESET_ALL}")
 
+        # Obtener y mostrar la configuración de commitlint
+        commitlint_config_path = Path('.githooks/config/active/hooks.yaml')
+        if commitlint_config_path.exists():
+            try:
+                # Usar ruamel.yaml si está disponible, sino el yaml estándar
+                try:
+                    from ruamel.yaml import YAML
+                    yaml = YAML()
+                except ImportError:
+                    import yaml
+
+                with open(commitlint_config_path, 'r') as f:
+                    hooks_config = yaml.safe_load(f)
+
+                commitlint_enabled = hooks_config.get('commitlint', {}).get('enabled', False)
+                commitlint_strict = hooks_config.get('commitlint', {}).get('strict', False)
+
+                print(f"{Fore.BLUE}📝 Formato de Commit: {Fore.YELLOW}Commitlint{' (Estricto)' if commitlint_strict else ' (Permisivo)' if commitlint_enabled else ' (Deshabilitado)'}{Style.RESET_ALL}")
+            except Exception as e:
+                print(f"{Fore.YELLOW}⚠️  No se pudo leer la configuración de commitlint: {e}{Style.RESET_ALL}")
+        else:
+            print(f"{Fore.YELLOW}⚠️  Archivo de configuración de commitlint no encontrado en .githooks/config/active/hooks.yaml{Style.RESET_ALL}")
+
         # Verificar cambios pendientes
         if git_repo.has_uncommitted_changes():
             print(f"{Fore.YELLOW}⚠️  Hay cambios sin confirmar{Style.RESET_ALL}")
@@ -1087,26 +1110,25 @@ Este script proporciona una interfaz unificada para crear y gestionar branches d
 adaptándose automáticamente al contexto del proyecto (LOCAL, HYBRID, REMOTE).
 
 Estados de Rama:
-  - WIP (Work In Progress): Rama en desarrollo activo.
-  - MERGED: Rama cuyos commits han sido mergeados a su rama base.
-  - DELETED: Rama eliminada localmente pero mantenida en remoto como backup (señalizada con tags).
+  - WIP (Work In Progress): Rama en desarrollo activo
+  - MERGED: Rama cuyos commits han sido mergeados a su rama base
+  - DELETED: Rama eliminada localmente pero mantenida en remoto como backup
 
 Contextos:
   - LOCAL: Se detecta si:
     * No tiene remotos configurados, O
     * No tiene ni develop ni staging, O
-    * Tiene menos de 2 contribuidores y no tiene CI.
-    * (En LOCAL, las validaciones son permisivas y el remoto es principalmente un respaldo).
+    * Tiene menos de 2 contribuidores
   - HYBRID: Se detecta si:
     * Tiene remotos configurados, Y
     * Tiene develop o staging, Y
     * Tiene 2 o más contribuidores, Y
-    * No tiene CI/CD configurado.
+    * No tiene CI/CD configurado
   - REMOTE: Se detecta si:
     * Tiene remotos configurados, Y
     * Tiene develop o staging, Y
     * Tiene 2 o más contribuidores, Y
-    * Tiene CI/CD configurado.
+    * Tiene CI/CD configurado
 
 Tipos de Rama:
   - feature: Nuevas características y funcionalidades
@@ -1134,11 +1156,10 @@ Ejemplos de uso:
   %(prog)s -p ../mi-proyecto feature "login" # Crear en otro proyecto
 
   # Gestión de estado de ramas
-  %(prog)s state merged                      # Marcar rama como mergeada y señalizar en remoto
-  %(prog)s state deleted                     # Marcar rama como eliminada localmente y señalizar en remoto
-  %(prog)s state wip                         # Forzar estado WIP (limpia tags de estado remoto)
-  %(prog)s state merged -d                   # Mergear, señalizar merge y eliminación local, y borrar rama local
-  %(prog)s state deleted -d                  # Señalizar eliminación local y borrar rama local
+  %(prog)s state merged                      # Marcar rama como mergeada
+  %(prog)s state deleted                     # Marcar rama como eliminada
+  %(prog)s state merged -d                   # Mergear y eliminar rama
+  %(prog)s state deleted -d                  # Marcar como eliminada y borrar local
 
   # Gestión de contexto
   %(prog)s force-context LOCAL               # Forzar contexto LOCAL
@@ -1151,7 +1172,7 @@ Ejemplos de uso:
   %(prog)s --repo-path /path/to/repo status  # Estado de repositorio específico
 
   # Gestión de aliases
-  %(prog)s install-aliases                   # Instalar aliases persistentes
+  %(prog)s install-aliases                   # Instalar aliases de Git persistentes
   %(prog)s uninstall-aliases                 # Remover aliases
 
 Aliases para proyecto actual:
@@ -1167,9 +1188,8 @@ Aliases para proyecto actual:
   # Aliases para gestión de estado
   git state merged                           # Marcar rama como mergeada
   git state deleted                          # Marcar rama como eliminada
-  git state wip                              # Forzar estado WIP
-  git merged-d                              # Mergear, señalizar merge y eliminación local, y borrar rama local
-  git deleted-d                             # Señalizar eliminación local y borrar rama local
+  git merged-d                              # Mergear y eliminar rama
+  git deleted-d                             # Marcar como eliminada y borrar local
 
 Aliases para proyectos específicos:
   git new-feature-in /path/to/project "desc" # Crear feature en proyecto
@@ -1177,289 +1197,122 @@ Aliases para proyectos específicos:
   git branch-status-in /path/to/project      # Estado de proyecto
 
 Notas:
-  - Las ramas nuevas se crean en estado WIP.
-  - Los tags (`merged-` y `deleted-`) se usan para señalizar el estado final de las ramas en el remoto.
-  - Las `git notes` se usan para el seguimiento del estado local.
-  - El contexto se detecta automáticamente según la configuración del repositorio.
-  - Se pueden forzar contextos específicos.
-  - Los aliases permiten acceso rápido desde cualquier directorio.
-  - La opción `-d` (`--delete`) elimina la rama localmente después de marcar su estado.
-  - Las ramas eliminadas localmente permanecen en el remoto como backup (señalizadas por tags).
-  - CI/CD aplica principalmente en la rama 'main' (o 'master') en el remoto.
-  - La verificación GPG se requiere como buena práctica en todos los contextos (con warnings en LOCAL/HYBRID si no está configurada).
-        """
-        ) # Cierre del ArgumentParser principal
+  - Las ramas nuevas se crean en estado WIP
+  - El estado WIP se mantiene hasta que los commits se mergean
+  - El contexto se detecta automáticamente según la configuración
+  - Se pueden forzar contextos específicos según necesidades
+  - Los aliases permiten acceso rápido desde cualquier directorio
+  - El comando state permite cambiar el estado de una rama
+  - La opción --delete elimina la rama después de marcar su estado
+  - Los tags se propagan al remoto para mantener consistencia
+  - CI/CD solo aplica en la rama main
+        """)
 
-        subparsers = parser.add_subparsers(dest='action', help='Acciones disponibles')
-
-        # Comando 'state' para gestionar el estado de las ramas
-        state_parser = subparsers.add_parser(
-            'state',
-            help='Gestionar el estado de la rama actual (WIP, MERGED, DELETED).',
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
-Estados disponibles:
-  merged: Marca la rama como mergeada a su rama base.
-          Si se usa con -d, se borrará localmente después de marcarla y empujar los tags.
-  deleted: Marca la rama como eliminada localmente.
-           Si se usa con -d, se borrará localmente después de marcarla y empujar los tags.
-  wip: Marca la rama como 'Work In Progress', limpiando tags de estado final si existen.
-
-Ejemplos:
-  %(prog)s state merged                       # Marcar como mergeada, dejar local
-  %(prog)s state merged -d                    # Mergear, señalar merge/delete y borrar local
-  %(prog)s state deleted                      # Señalar eliminada local, dejar local
-  %(prog)s state deleted -d                   # Señalar eliminada local y borrar local
-  %(prog)s state wip                          # Forzar estado WIP
-        """
+        parser.add_argument(
+            '-p', '--repo-path',
+            type=Path,
+            help='Ruta al repositorio Git (por defecto, el directorio actual).',
+            default=Path.cwd()
         )
+
+        subparsers = parser.add_subparsers(dest='action', help='Acciones disponibles', required=True)
+
+        # Subparser para el comando 'state'
+        state_parser = subparsers.add_parser('state', help='Gestión del estado de ramas.')
         state_parser.add_argument(
             'description',
+            type=str,
             choices=['merged', 'deleted', 'wip'],
-            help='El estado a establecer (merged, deleted, wip).'
+            help='Estado a establecer para la rama (merged, deleted, o wip).'
         )
         state_parser.add_argument(
             '-d', '--delete',
             action='store_true',
-            help='Elimina la rama local después de marcar su estado.'
-        )
-        state_parser.add_argument(
-            '--replace',
-            action='store_true',
-            help=argparse.SUPPRESS # Ocultar de la ayuda por defecto, para uso interno o futuro
+            help='Eliminar la rama local después de marcar su estado.'
         )
 
-        # Argumentos que se aplican a los subparsers que usan description, --delete, etc.
-        # Estos deben ser definidos en los subparsers individuales o en un ArgumentParser padre que los propague
-        # Sin embargo, para la estructura actual con subparsers, se redefinen en cada uno si es necesario.
+        # Subparser para el comando 'status'
+        status_parser = subparsers.add_parser('status', help='Muestra el estado del repositorio y las ramas.')
 
-        # Para los comandos 'feature', 'fix', etc., que antes usaban argumentos globales,
-        # ahora cada uno de esos comandos necesitará su propio parser y sus argumentos.
-        # Por simplicidad en esta corrección de sintaxis, se reintroducen los argumentos comunes
-        # que la estructura previa parecía aplicar a todos los subparsers de facto.
-        # Esto puede requerir refactorización posterior para una estructura más limpia con subparsers.
+        # Subparser para los comandos de creación de ramas
+        for branch_type in BRANCH_TYPES.keys():
+            create_parser = subparsers.add_parser(branch_type, help=f'Crear una rama de tipo {branch_type}.')
+            create_parser.add_argument(
+                'description',
+                type=str,
+                help='Descripción de la rama.'
+            )
+            create_parser.add_argument(
+                '--no-push',
+                action='store_true',
+                help='No hacer push automático al remoto al crear la rama.'
+            )
+            create_parser.add_argument(
+                '--no-sync',
+                action='store_true',
+                help='No sincronizar la rama base con el remoto antes de crear la rama.'
+            )
 
-        # Argumentos para los comandos de creación de ramas (feature, fix, etc.)
-        # Estos NO deben estar dentro del parser principal si se usan subparsers como se está haciendo.
-        # En su lugar, se deberían definir subparsers para 'feature', 'fix', etc.,
-        # y cada uno de esos subparsers tendría sus propios argumentos.
+        # Subparser para el comando 'force-context'
+        force_context_parser = subparsers.add_parser('force-context', help='Forzar el contexto de desarrollo.')
+        force_context_parser.add_argument(
+            'context',
+            type=str,
+            choices=['LOCAL', 'HYBRID', 'REMOTE', 'AUTO'],
+            help='Contexto a forzar (LOCAL, HYBRID, REMOTE, o AUTO para restaurar).'
+        )
 
-        # Dado el error, voy a eliminar las líneas de argumentos que estaban duplicando la definición del main parser
-        # y que se estaban añadiendo de forma incorrecta después del epilog.
-        # parser.add_argument('description', nargs='?', default=None,
-        #                       help='Descripción de la rama')
-        # parser.add_argument('--delete', '-d', action='store_true',
-        #                       help='Eliminar la rama después de la acción')
-        # parser.add_argument('--replace', '-r', action='store_true',
-        #                       help='Reemplazar rama base en lugar de merge')
-        # parser.add_argument('--no-sync', action='store_true',
-        #                       help='No sincronizar con remoto al crear rama')
-        # parser.add_argument('--dry-run', action='store_true',
-        #                       help='Mostrar acciones sin ejecutarlas')
-        # parser.add_argument('--force', '-f', action='store_true',
-        #                       help='Forzar operación sin confirmación')
-        # parser.add_argument('--context', choices=['LOCAL', 'HYBRID', 'REMOTE', 'AUTO'],
-        #                       help='Forzar contexto específico')
+        # Subparser para el comando 'install-aliases'
+        install_aliases_parser = subparsers.add_parser('install-aliases', help='Instalar aliases de Git persistentes.')
+
+        # Subparser para el comando 'uninstall-aliases'
+        uninstall_aliases_parser = subparsers.add_parser('uninstall-aliases', help='Desinstalar aliases de Git persistentes.')
 
         args = parser.parse_args()
-        # Ajustar la inicialización de GitRepository para manejar args.repo_path opcionalmente
-        # El `args.repo_path` puede no existir si no se define en todos los subparsers.
-        # Una solución robusta es que todos los subparsers lo incluyan, o manejarlo con getattr.
-        repo_path_arg = getattr(args, 'repo_path', None)
-        git_repo = GitRepository(repo_path_arg if repo_path_arg else None)
+
+        # Inicializar GitRepository y BranchHelper
+        git_repo = GitRepository(args.repo_path)
         branch_helper = BranchHelper(git_repo)
-
-        # Detectar contexto (solo si no se forzó) -- esta lógica podría ir en BranchHelper o ContextDetector
         context_detector = ContextDetector(git_repo)
-        # Asegurarse de que args.context esté disponible, si no, usa la detección automática
-        context = getattr(args, 'context', None) or context_detector.detect_context()
-        context_info = context_detector.get_context_info(context)
 
-        if args.action == 'feature':
-            if not args.description:
-                print(f"{Fore.RED}❌ Error: Se requiere descripción para crear rama{Style.RESET_ALL}")
-                sys.exit(1)
-
-            options = {
-                'no_sync': args.no_sync,
-                'force': args.force
-            }
-            if not branch_helper.create_branch('feature', args.description, options):
-                sys.exit(1)
-
-        elif args.action == 'fix':
-            if not args.description:
-                print(f"{Fore.RED}❌ Error: Se requiere descripción para crear rama{Style.RESET_ALL}")
-                sys.exit(1)
-
-            options = {
-                'no_sync': args.no_sync,
-                'force': args.force
-            }
-            if not branch_helper.create_branch('fix', args.description, options):
-                sys.exit(1)
-
-        elif args.action == 'hotfix':
-            if not args.description:
-                print(f"{Fore.RED}❌ Error: Se requiere descripción para crear rama{Style.RESET_ALL}")
-                sys.exit(1)
-
-            options = {
-                'no_sync': args.no_sync,
-                'force': args.force
-            }
-            if not branch_helper.create_branch('hotfix', args.description, options):
-                sys.exit(1)
-
-        elif args.action == 'docs':
-            if not args.description:
-                print(f"{Fore.RED}❌ Error: Se requiere descripción para crear rama{Style.RESET_ALL}")
-                sys.exit(1)
-
-            options = {
-                'no_sync': args.no_sync,
-                'force': args.force
-            }
-            if not branch_helper.create_branch('docs', args.description, options):
-                sys.exit(1)
-
-        elif args.action == 'refactor':
-            if not args.description:
-                print(f"{Fore.RED}❌ Error: Se requiere descripción para crear rama{Style.RESET_ALL}")
-                sys.exit(1)
-
-            options = {
-                'no_sync': args.no_sync,
-                'force': args.force
-            }
-            if not branch_helper.create_branch('refactor', args.description, options):
-                sys.exit(1)
-
-        elif args.action == 'test':
-            if not args.description:
-                print(f"{Fore.RED}❌ Error: Se requiere descripción para crear rama{Style.RESET_ALL}")
-                sys.exit(1)
-
-            options = {
-                'no_sync': args.no_sync,
-                'force': args.force
-            }
-            if not branch_helper.create_branch('test', args.description, options):
-                sys.exit(1)
-
-        elif args.action == 'chore':
-            if not args.description:
-                print(f"{Fore.RED}❌ Error: Se requiere descripción para crear rama{Style.RESET_ALL}")
-                sys.exit(1)
-
-            options = {
-                'no_sync': args.no_sync,
-                'force': args.force
-            }
-            if not branch_helper.create_branch('chore', args.description, options):
-                sys.exit(1)
-
-        elif args.action == 'delete':
-            current_branch = git_repo.get_current_branch()
-            if not current_branch:
-                print(f"{Fore.RED}❌ Error: No hay rama actual{Style.RESET_ALL}")
-                sys.exit(1)
-
-            # Verificar si la rama existe en remoto
-            success, stdout, _ = git_repo.run_command(["git", "ls-remote", "--heads", "origin", current_branch])
-            branch_exists_remote = success and stdout.strip()
-
-            # Eliminar rama local
-            print(f"\n{Fore.CYAN}🗑️  Eliminando rama '{current_branch}'...{Style.RESET_ALL}")
-            success, _, error = git_repo.run_command(["git", "branch", "-d", current_branch])
-            if success:
-                print(f"{Fore.GREEN}✅ Rama eliminada exitosamente{Style.RESET_ALL}")
-                # Si existe en remoto, marcarla como DELETED
-                if branch_exists_remote:
-                    print(f"{Fore.CYAN}📝 Marcando rama remota como DELETED...{Style.RESET_ALL}")
-                    if git_repo.set_branch_state(current_branch, "DELETED"):
-                        print(f"{Fore.GREEN}✅ Estado actualizado a DELETED{Style.RESET_ALL}")
-                    else:
-                        print(f"{Fore.YELLOW}⚠️  No se pudo actualizar estado{Style.RESET_ALL}")
-            else:
-                print(f"{Fore.YELLOW}⚠️  No se pudo eliminar la rama: {error}{Style.RESET_ALL}")
-                if args.force:
-                    print(f"{Fore.CYAN}🔄 Intentando eliminación forzada...{Style.RESET_ALL}")
-                    success, _, error = git_repo.run_command(["git", "branch", "-D", current_branch])
-                    if success:
-                        print(f"{Fore.GREEN}✅ Rama eliminada forzadamente{Style.RESET_ALL}")
-                        # Si existe en remoto, marcarla como DELETED
-                        if branch_exists_remote:
-                            print(f"{Fore.CYAN}📝 Marcando rama remota como DELETED...{Style.RESET_ALL}")
-                            if git_repo.set_branch_state(current_branch, "DELETED"):
-                                print(f"{Fore.GREEN}✅ Estado actualizado a DELETED{Style.RESET_ALL}")
-                            else:
-                                print(f"{Fore.YELLOW}⚠️  No se pudo actualizar estado{Style.RESET_ALL}")
-                    else:
-                        print(f"{Fore.RED}❌ Error al eliminar forzadamente: {error}{Style.RESET_ALL}")
-                else:
-                    print(f"{Fore.BLUE}💡 Para forzar la eliminación, use --force o -f.{Style.RESET_ALL}")
-            sys.exit(0 if success else 1)
-
-        elif args.action == 'list':
+        if args.action == 'status':
             show_status(args.repo_path)
-
-        elif args.action == 'sync':
-            print(f"{Fore.CYAN}🔄 Sincronizando estados de ramas...{Style.RESET_ALL}")
-            repo_helper = BranchHelper(git_repo)
-            actions = repo_helper.sync_branch_states(args.dry_run)
-            if actions['deleted_remotes'] or actions['created_tags'] or actions['deleted_tags']:
-                print(f"\n{Fore.GREEN}✅ Sincronización completada.{Style.RESET_ALL}")
-                if args.dry_run:
-                    print(f"{Fore.BLUE} (Modo Dry Run: No se realizaron cambios reales){Style.RESET_ALL}")
-            else:
-                print(f"{Fore.BLUE}💡 No se requirieron acciones de sincronización{Style.RESET_ALL}")
-
-        elif args.action == 'force-context':
-            if not args.description or args.description not in ['LOCAL', 'HYBRID', 'REMOTE', 'AUTO']:
-                print(f"{Fore.RED}❌ Contexto inválido. Use: LOCAL, HYBRID, REMOTE, o AUTO{Style.RESET_ALL}")
-                sys.exit(1)
-            context_detector.force_context(args.description)
-            print(f"{Fore.GREEN}✅ Contexto forzado a '{args.description}'{Style.RESET_ALL}")
-
-        elif args.action == 'install-aliases':
-            AliasManager.install_aliases()
-
-        elif args.action == 'uninstall-aliases':
-            AliasManager.uninstall_aliases()
-
         elif args.action == 'state':
-            if not args.description or args.description not in ['merged', 'deleted', 'wip']:
-                # Esto ya es manejado por choices, pero se mantiene como doble chequeo.
-                print(f"{Fore.RED}❌ Estado inválido. Use: merged, deleted, o wip{Style.RESET_ALL}")
+            # Logic for 'state' command
+            current_branch = git_repo.get_current_branch()
+
+            if not current_branch:
+                print(f"{Fore.RED}❌ No se pudo determinar la rama actual{Style.RESET_ALL}")
                 sys.exit(1)
 
-            try:
-                git_repo = GitRepository(args.repo_path)
-                branch_helper = BranchHelper(git_repo)
-                current_branch = git_repo.get_current_branch()
+            state = args.description.upper()
+            options = {
+                'delete': args.delete,
+            }
 
-                if not current_branch:
-                    print(f"{Fore.RED}❌ No se pudo determinar la rama actual. Asegúrese de estar en una rama válida.{Style.RESET_ALL}")
-                    sys.exit(1)
-
-                state = args.description.upper() # Convertir a mayúsculas para consistencia interna
-
-                options = {
-                    'delete': args.delete
-                    # 'replace': args.replace # No se usa directamente en este flujo de state
-                }
-
-                success = branch_helper.mark_branch_state(current_branch, state, options)
-                sys.exit(0 if success else 1)
-
-            except Exception as e:
-                print(f"{Fore.RED}❌ Error inesperado al gestionar el estado de la rama: {e}{Style.RESET_ALL}")
-                sys.exit(1)
-
-        else:
-            print(f"{Fore.RED}❌ Acción '{args.action}' no reconocida{Style.RESET_ALL}")
-            sys.exit(1)
+            success = branch_helper.mark_branch_state(current_branch, state, options)
+            sys.exit(0 if success else 1)
+        elif args.action in BRANCH_TYPES.keys():
+            # Logic for branch creation commands (feature, fix, etc.)
+            options = {
+                'no_push': args.no_push,
+                'no_sync': args.no_sync
+            }
+            success = branch_helper.create_branch(args.action, args.description, options)
+            sys.exit(0 if success else 1)
+        elif args.action == 'force-context':
+            if args.context == 'AUTO':
+                context_detector.run_command(["git", "notes", "remove", "HEAD"], check=False)
+                print(f"{Fore.GREEN}✅ Contexto restaurado a detección automática.{Style.RESET_ALL}")
+            else:
+                context_detector.force_context(args.context)
+            sys.exit(0)
+        elif args.action == 'install-aliases':
+            success = AliasManager.install_aliases()
+            sys.exit(0 if success else 1)
+        elif args.action == 'uninstall-aliases':
+            success = AliasManager.uninstall_aliases()
+            sys.exit(0 if success else 1)
 
     except KeyboardInterrupt:
         print(f"\n{Fore.YELLOW}⚠️  Operación cancelada por el usuario{Style.RESET_ALL}")

@@ -4039,7 +4039,8 @@ def main():
     parser.add_argument('--direction', choices=['local-to-remote', 'remote-to-local'], default='local-to-remote')
     parser.add_argument('--compare', action='store_true')
     parser.add_argument('--json', action='store_true')
-    parser.add_argument('--commit-format', help='Formato de commit (opcional, para set-quality-level)')
+    parser.add_argument('--commit-format', help='Formato de commit a establecer (ej. conventional.js)')
+    parser.add_argument('--level', choices=['minimal', 'standard', 'strict'], help='Nivel de calidad a aplicar (solo si se usa --commit-format sin subcomando)')
 
     subparsers = parser.add_subparsers(dest='command', help='Comandos disponibles')
 
@@ -4069,6 +4070,19 @@ def main():
     # Agregar los otros subparsers existentes
     integrate_parser = subparsers.add_parser('integrate', help='Integrar rama feature')
     integrate_parser.add_argument('branch_name', nargs='?', help='Nombre de la branch para integrar')
+
+    # Subparser para el comando 'set-quality-level'
+    set_quality_level_parser = subparsers.add_parser('set-quality-level', help='Establecer el nivel de calidad y formato de commit.')
+    set_quality_level_parser.add_argument(
+        '--level',
+        choices=['minimal', 'standard', 'strict'],
+        required=True,
+        help='Nivel de calidad a aplicar (minimal, standard, strict)'
+    )
+    set_quality_level_parser.add_argument(
+        '--commit-format',
+        help='Formato de commit a aplicar (ej. conventional.js)'
+    )
 
     args = parser.parse_args()
 
@@ -4276,16 +4290,31 @@ def main():
                     print(f"{Fore.YELLOW} (No hay configuración activa){Style.RESET_ALL}")
 
         elif args.command == 'set-quality-level':
-            if not args.branch_name:
-                 print(f"{Fore.RED}❌ Error: Se requiere un nivel (branch_name) para set-quality-level{Style.RESET_ALL}")
-                 sys.exit(1)
             qm = QualityManager(project_path)
+            
+            # 1. Obtener el formato de commit actual
+            current_config = qm.get_current_configuration()
+            current_commit_format = current_config.get('commit_format', 'N/A')
+            current_level = current_config.get('level', 'N/A')
+            print(f"{Fore.CYAN}⚙️  Configuración de calidad actual: Nivel {current_level}, Formato de commit: {current_commit_format}{Style.RESET_ALL}")
+
+            # 2. Intentar aplicar el nuevo nivel y formato
             try:
-                 result = qm.apply_configuration(args.branch_name, args.commit_format)
-                 print(f"{Fore.GREEN}✅ Nivel {result['level']} (commit format: {result['commit_format']}) aplicado.{Style.RESET_ALL}")
+                new_commit_format_to_apply = args.commit_format if args.commit_format else current_commit_format
+                level_to_apply = args.level # Este es requerido por el subparser
+
+                result = qm.apply_configuration(level_to_apply, new_commit_format_to_apply)
+                new_commit_format = result.get('commit_format', 'N/A')
+                new_level = result.get('level', 'N/A')
+
+                # 3. Mostrar mensaje de confirmación
+                print(f"{Fore.GREEN}✅ Configuración de calidad cambiada a: Nivel {new_level}, Formato de commit: {new_commit_format}{Style.RESET_ALL}")
+                if current_commit_format != new_commit_format:
+                    print(f"{Fore.BLUE}ℹ️  El formato de commit cambió de '{current_commit_format}' a '{new_commit_format}'.{Style.RESET_ALL}")
+                sys.exit(0)
             except Exception as e:
-                 print(f"{Fore.RED}❌ Error al aplicar nivel: {e}{Style.RESET_ALL}")
-                 sys.exit(1)
+                print(f"{Fore.RED}❌ Error al aplicar el nivel de calidad o formato de commit: {e}{Style.RESET_ALL}")
+                sys.exit(1)
 
         elif args.command == 'list-commit-formats':
              qm = QualityManager(project_path)
@@ -4300,6 +4329,56 @@ def main():
 
     except Exception as e:
         print(f"{Fore.RED}❌ Error: {e}{Style.RESET_ALL}")
+        sys.exit(1)
+
+    # Lógica para manejar el argumento --commit-format directamente
+    if args.commit_format and not args.command:
+        project_path = args.path or Path.cwd()
+        try:
+            import importlib.util
+            qm_path = project_path / ".githooks" / "quality_manager.py"
+            if qm_path.exists():
+                spec = importlib.util.spec_from_file_location("quality_manager", qm_path)
+                qm_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(qm_module)
+                QualityManager = qm_module.QualityManager
+            else:
+                print(f"{Fore.RED}❌ Error: No se encontró el módulo de QualityManager en {qm_path}{Style.RESET_ALL}")
+                sys.exit(1)
+        except Exception as e:
+            print(f"{Fore.RED}❌ Error al importar QualityManager: {e}{Style.RESET_ALL}")
+            sys.exit(1)
+
+        qm = QualityManager(project_path)
+        
+        # 1. Obtener el formato de commit actual
+        current_config = qm.get_current_configuration()
+        current_commit_format = current_config.get('commit_format', 'N/A')
+        current_level = current_config.get('level', 'N/A')
+        print(f"{Fore.CYAN}⚙️  Configuración de calidad actual: Nivel {current_level}, Formato de commit: {current_commit_format}{Style.RESET_ALL}")
+
+        # 2. Intentar aplicar el nuevo formato
+        try:
+            # Usar el nivel proporcionado por --level o el actual, o 'standard' como fallback
+            level_to_apply = args.level if args.level else current_level
+            if level_to_apply == 'N/A': # Si sigue siendo N/A, usar standard
+                level_to_apply = 'standard'
+                print(f"{Fore.YELLOW}⚠️  No se detectó un nivel de calidad activo. Usando 'standard' por defecto.{Style.RESET_ALL}")
+
+            result = qm.apply_configuration(level_to_apply, args.commit_format)
+            new_commit_format = result.get('commit_format', 'N/A')
+            new_level = result.get('level', 'N/A')
+
+            # 3. Mostrar mensaje de confirmación
+            print(f"{Fore.GREEN}✅ Formato de commit cambiado a: {new_commit_format}{Style.RESET_ALL}")
+            if current_commit_format != new_commit_format:
+                print(f"{Fore.BLUE}ℹ️  El formato de commit cambió de '{current_commit_format}' a '{new_commit_format}'.{Style.RESET_ALL}")
+            sys.exit(0)
+        except Exception as e:
+            print(f"{Fore.RED}❌ Error al aplicar el formato de commit: {e}{Style.RESET_ALL}")
+            sys.exit(1)
+    elif not args.command and not args.commit_format: # Si no se especificó ningún comando ni --commit-format
+        parser.print_help()
         sys.exit(1)
 
 if __name__ == '__main__':

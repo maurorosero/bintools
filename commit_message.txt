@@ -1,0 +1,21 @@
+feat: Implementación integral de gestión de estados de rama y mejoras de calidad
+
+Esta implementación introduce un sistema robusto para gestionar el ciclo de vida de las ramas de trabajo,
+alineado con la visión 'LOCAL' de un repositorio donde el remoto sirve principalmente como respaldo.
+
+Cambios principales:
+- **Gestión de Estados de Rama**: Se implementan los estados `WIP`, `MERGED` y `DELETED` para las ramas de trabajo.
+  - El estado se gestiona localmente con `git notes` y se propaga al remoto mediante tags ligeros (`merged-<branch-name>`, `deleted-<branch-name>`).
+  - Se añade un mecanismo para eliminar tags de estado cuando una rama vuelve a `WIP`.
+- **Comando `state` en `branch-git-helper.py`**: Nuevo subcomando para marcar ramas como `merged` o `deleted`, incluyendo la opción `-d` para eliminar la rama local después de marcar su estado.
+- **Refactorización de `argparse`**: La función `main` de `branch-git-helper.py` ha sido refactorizada para usar `subparsers`, lo que mejora la estructura de los comandos y resuelve errores previos.
+- **Actualización de Aliases**: Se han añadido nuevos aliases en `AliasManager` para los comandos de gestión de estado (`git state merged`, `git merged-d`, etc.).
+- **Configuración de Contexto 'LOCAL'**:
+  - Se ajustan `CONTEXT_CONFIGS` y `VALIDATION_CONFIGS` para el contexto `LOCAL` en `branch-git-helper.py`.
+  - Se mantiene la compatibilidad con la rama `master` en las ramas protegidas.
+  - Se requiere la verificación GPG en todos los contextos como buena práctica de seguridad, mostrando warnings en `LOCAL`/`HYBRID` si no está configurada.
+  - Se reafirma que el CI/CD aplica solo en la rama `main` (o `master`) en el contexto `LOCAL`.
+- **Mejoras en `show_status`**: El comando `branch-status` ahora muestra la configuración de `commitlint` activa.
+- **Gestión de Formato de Commit en `git-integration-manager.py`**: El comando `git-integration-manager.py --commit-format <formato>` ahora detecta y muestra el formato activo antes de aplicar el nuevo, y confirma el cambio con un mensaje informativo.
+
+Estas mejoras permiten una gestión más clara y automatizada de las ramas de trabajo, a la vez que mantienen la flexibilidad necesaria para el contexto de desarrollo 'LOCAL'. 
