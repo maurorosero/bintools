@@ -1,0 +1,165 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Verification System Definition
+# --------------------------
+# IMPERATIVE - MUST BE LOADED FIRST IN EVERY SESSION
+# This system ensures permanent MDC compliance across all sessions
+
+# System State Definition
+# ---------------------
+state_definition:
+  session_id: string
+  verification_active: boolean
+  last_verification: timestamp
+  active_rules: array
+  pending_confirmations: array
+  violation_count: integer
+  recovery_mode: boolean
+
+# Permanent Verification Protocol
+# ----------------------------
+verification_protocol:
+  session_startup:
+    priority: "HIGHEST"
+    required_actions:
+      - "Load ALL .mdc files"
+      - "Verify system state"
+      - "Initialize verification system"
+      - "Activate continuous monitoring"
+    validation_rules:
+      - "ALL .mdc files MUST be loaded"
+      - "System state MUST be valid"
+      - "Verification MUST be active"
+    failure_action:
+      - "STOP ALL OPERATIONS"
+      - "Notify user of system failure"
+      - "Wait for explicit user instruction"
+
+  continuous_verification:
+    check_points:
+      - "before_message_processing"
+      - "before_code_edit"
+      - "before_command_execution"
+      - "before_file_creation"
+      - "before_rule_application"
+    validation_rules:
+      - "Current state MUST be valid"
+      - "NO active violations allowed"
+      - "ALL rules MUST be compliant"
+    failure_action:
+      - "STOP current action"
+      - "Notify user of violation"
+      - "Wait for explicit user instruction"
+
+# Action Verification Protocol
+# -------------------------
+action_verification:
+  code_edit:
+    required_steps:
+      - "Describe changes in detail"
+      - "Wait for explicit confirmation"
+      - "Verify against MDC"
+      - "Proceed only with explicit approval"
+    validation_rules:
+      - "Description MUST be detailed"
+      - "Confirmation MUST be explicit"
+      - "Changes MUST comply with MDC"
+    failure_action:
+      - "STOP edit proposal"
+      - "Notify user of violation"
+      - "Wait for explicit instruction"
+
+  command_execution:
+    required_steps:
+      - "Verify command necessity"
+      - "Validate against MDC"
+      - "Get explicit confirmation"
+      - "Proceed only with approval"
+    validation_rules:
+      - "Command MUST be necessary"
+      - "Execution MUST comply with MDC"
+      - "Confirmation MUST be explicit"
+    failure_action:
+      - "STOP command execution"
+      - "Notify user of violation"
+      - "Wait for explicit instruction"
+
+# Violation Detection and Recovery
+# -----------------------------
+violation_handling:
+  detection:
+    triggers:
+      - "rule_violation_attempt"
+      - "unverified_action"
+      - "assumed_approval"
+      - "flexible_interpretation"
+    action_rules:
+      - "IMMEDIATELY STOP current action"
+      - "Log violation with context"
+      - "Notify user of specific violation"
+      - "Enter recovery mode"
+      - "Wait for explicit user instruction"
+
+  recovery:
+    required_steps:
+      - "Stop ALL operations"
+      - "Log recovery action"
+      - "Verify system state"
+      - "Wait for user instruction"
+    validation_rules:
+      - "ALL operations MUST stop"
+      - "System state MUST be verified"
+      - "User MUST provide explicit instruction"
+    completion_requirements:
+      - "Explicit user approval"
+      - "System state verification"
+      - "Rule compliance confirmation"
+
+# Session Persistence Protocol
+# -------------------------
+session_persistence:
+  state_tracking:
+    required_data:
+      - "session_id"
+      - "verification_state"
+      - "active_rules"
+      - "violation_history"
+    validation_rules:
+      - "State MUST be maintained"
+      - "History MUST be logged"
+      - "Rules MUST be tracked"
+    update_rules:
+      - "Update on state change"
+      - "Log all violations"
+      - "Track rule compliance"
+
+# Implementation Rules
+# ------------------
+implementation_rules:
+  - "This system MUST be loaded FIRST in every session"
+  - "This system CANNOT be overridden"
+  - "System MUST maintain state between sessions"
+  - "System MUST stop ALL operations if compliance cannot be guaranteed"
+  - "System MUST verify ALL actions against MDC"
+  - "System MUST require explicit user confirmation for ALL actions"
+  - "System MUST log ALL violations and recovery actions"
+
+# Usage Rules
+# ----------
+usage_rules:
+  - "System MUST be active in EVERY session"
+  - "System MUST verify ALL actions"
+  - "System MUST maintain state"
+  - "System MUST log ALL violations"
+  - "System MUST require explicit confirmation"
+  - "System MUST stop on ANY violation"
+  - "System MUST wait for explicit user instruction"
+
+# REMINDER: THIS SYSTEM IS IMPERATIVE AND MUST BE ACTIVE IN EVERY SESSION
+# ---------------------------------------------------------------------
+# This system ensures that Claude 3.7 follows MDC rules strictly and permanently
+# across all sessions. It cannot be disabled or overridden without explicit
+# user authorization and system verification.

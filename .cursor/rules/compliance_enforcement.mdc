@@ -1,3 +1,13 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Compliance Enforcement System (CES)
+# =================================
+# IMPERATIVE - CRITICAL SYSTEM COMPONENT
+# This file defines the infallible system for rule compliance enforcement.
+# DO NOT MODIFY WITHOUT EXPLICIT USER AUTHORIZATION.
 # Compliance Enforcement System (CES)
 # =================================
 # IMPERATIVE - CRITICAL SYSTEM COMPONENT
@@ -22,14 +32,14 @@ verification_protocol:
   initial_load:
     priority: "HIGHEST"
     required_files:
-      - "config/session_startup.mdc.def"
-      - "config/interaction_protocols.mdc.def"
-      - "config/learned-memories.mdc.def"
-      - "config/commit_standards.mdc.def"
-      - "config/ci_cd_commit_policy.mdc.def"
-      - "config/cli_banner_standard.mdc.def"
-      - "config/create_rules.mdc.def"
-      - "config/memory.mdc.def"
+      - ".cursor/rules/session_startup.mdc"
+      - ".cursor/rules/interaction_protocols.mdc"
+      - ".cursor/rules/learned-memories.mdc"
+      - ".cursor/rules/commit_standards.mdc"
+      - ".cursor/rules/ci_cd_commit_policy.mdc"
+      - ".cursor/rules/cli_banner_standard.mdc"
+      - ".cursor/rules/create_rules.mdc"
+      - ".cursor/rules/memory.mdc"
     validation_rules:
       - "ALL files MUST exist"
       - "ALL files MUST be loadable"
@@ -150,15 +160,19 @@ implementation_rules:
   - "This system CANNOT be overridden"
   - "Modification requires explicit user authorization"
   - "System MUST stop ALL operations if compliance cannot be guaranteed"
+  - "System MUST verify ALL .mdc files in .cursor/rules/"
+  - "System MUST maintain complete verification and violation logs"
 
 # Usage Rules
 # ----------
 usage_rules:
   - "System MUST be loaded at session start"
-  - "System MUST verify ALL .mdc files"
+  - "System MUST verify ALL .mdc files in .cursor/rules/"
   - "System MUST monitor ALL actions"
   - "System can ONLY be overridden by explicit user instruction"
   - "System MUST maintain complete verification and violation logs"
 
 # REMINDER: THIS SYSTEM IS IMPERATIVE AND TAKES PRECEDENCE OVER ALL OTHER SYSTEMS
 # -----------------------------------------------------------------------------
+# This system MUST verify ALL .mdc files in .cursor/rules/ directory
+# No operations can proceed without successful verification of ALL required files
