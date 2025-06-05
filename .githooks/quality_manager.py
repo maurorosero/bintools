@@ -14,6 +14,7 @@ from typing import Dict, Optional, List, Tuple, Any
 from enum import Enum
 import traceback
 import os
+import re
 
 class QualityLevel(Enum):
     """Niveles de calidad disponibles."""
@@ -395,6 +396,17 @@ class QualityManager:
             if not config_file.exists():
                 return False, f"❌ No se encontró el archivo de configuración: {config_file}"
 
+            # Leer los tipos permitidos del archivo de configuración
+            config_content = config_file.read_text()
+            type_pattern = r"'type-enum':\s*\[\s*2\s*,\s*'always'\s*,\s*\[(.*?)\]\]"
+            type_match = re.search(type_pattern, config_content, re.DOTALL)
+            if not type_match:
+                return False, "❌ No se pudieron encontrar los tipos permitidos en la configuración"
+            
+            # Extraer y limpiar los tipos permitidos
+            allowed_types = [t.strip().strip("'") for t in type_match.group(1).split(',')]
+            allowed_types_str = ", ".join(allowed_types)
+
             # Preparar argumentos para commitlint usando rutas relativas
             args = ['--config', str(config_file), '--edit', str(commit_msg_file)]
 
@@ -433,10 +445,10 @@ class QualityManager:
                 # error_msg.append(f"- allow_empty: {config.get('allow_empty', True)}")
                 # error_msg.append(f"- allow_merge: {config.get('allow_merge', True)}")
 
-                # Añadir sugerencia de formato
+                # Añadir sugerencia de formato con tipos dinámicos
                 error_msg.append("\nFormato esperado:")
                 error_msg.append("[TAG] (#Issue) Descripción")
-                error_msg.append("\nTags permitidos: FIX, FEAT, DOCS, CHORE, CI")
+                error_msg.append(f"\nTags permitidos: {allowed_types_str}")
 
                 if not error_msg:
                     error_msg.append("Error desconocido en la validación del commit")

@@ -1,1 +1,1 @@
-/home/mrosero/bin/scaffold/commit-format/commitlint.config.simple.js.def
+/home/mrosero/bin/scaffold/commit-format/commitlint.config.conventional.js.def
