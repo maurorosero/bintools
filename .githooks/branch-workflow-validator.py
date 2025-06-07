@@ -248,11 +248,18 @@ class BranchValidator:
         self.git_repo = git_repo
         self.context_detector = ContextDetector(git_repo)
         self.context = self.context_detector.detect_context()
-        self.config = VALIDATION_CONFIGS[self.context]
+        sys.stdout.write(f"[DEBUG branch-workflow-validator] Detected context: {self.context}\n")
+        try:
+            self.validation_config = VALIDATION_CONFIGS[self.context]
+            sys.stdout.write(f"[DEBUG branch-workflow-validator] Validation config for {self.context}: {self.validation_config}\n")
+        except KeyError as e:
+            sys.stderr.write(f"[DEBUG branch-workflow-validator] KeyError getting validation config for context {self.context}: {e}\n")
+            sys.stderr.write("[DEBUG branch-workflow-validator] Assigning default 'LOCAL' validation config.\n")
+            self.validation_config = VALIDATION_CONFIGS["LOCAL"] # Asignar una configuración por defecto
 
     def validate_branch_name(self, branch_name: str) -> ValidationResult:
         """Valida el formato del nombre de una rama."""
-        if not self.config["enforce_branch_naming"]:
+        if not self.validation_config["enforce_branch_naming"]:
             return ValidationResult(True, f"Validación de nombres deshabilitada en contexto {self.context}")
 
         # Verificar si es una rama principal válida
@@ -276,24 +283,24 @@ class BranchValidator:
         message = (f"Nombre de rama '{branch_name}' no sigue las convenciones.\n"
                   f"Formatos esperados: {', '.join(expected_formats)}")
 
-        if self.config["level"] == ValidationLevel.STRICT:
+        if self.validation_config["level"] == ValidationLevel.STRICT:
             return ValidationResult(False, message, "error")
         else:
             return ValidationResult(True, message, "warning")
 
     def validate_protected_branch_operation(self, operation: OperationType, branch_name: str) -> ValidationResult:
         """Valida operaciones en ramas protegidas."""
-        protected_branches = self.config["protected_branches"]
+        protected_branches = self.validation_config["protected_branches"]
 
         if branch_name not in protected_branches:
             return ValidationResult(True, f"Rama '{branch_name}' no está protegida")
 
         # Validaciones específicas por operación
         if operation == OperationType.PUSH:
-            if not self.config["allow_direct_push_to_main"]:
+            if not self.validation_config["allow_direct_push_to_main"]:
                 message = f"Push directo a rama protegida '{branch_name}' no permitido. Usar Pull Request."
 
-                if self.config["level"] == ValidationLevel.STRICT:
+                if self.validation_config["level"] == ValidationLevel.STRICT:
                     return ValidationResult(False, message, "error")
                 else:
                     return ValidationResult(True, message, "warning")
@@ -306,7 +313,7 @@ class BranchValidator:
 
     def validate_upstream_tracking(self, branch_name: str = None) -> ValidationResult:
         """Valida que la rama tenga upstream tracking configurado."""
-        if not self.config["require_upstream"]:
+        if not self.validation_config["require_upstream"]:
             return ValidationResult(True, "Upstream tracking no requerido en este contexto")
 
         branch = branch_name or self.git_repo.get_current_branch()
@@ -318,7 +325,7 @@ class BranchValidator:
         else:
             message = f"Rama '{branch}' no tiene upstream tracking. Usar: git push -u origin {branch}"
 
-            if self.config["level"] == ValidationLevel.STRICT:
+            if self.validation_config["level"] == ValidationLevel.STRICT:
                 return ValidationResult(False, message, "error")
             else:
                 return ValidationResult(True, message, "warning")
@@ -363,7 +370,7 @@ class BranchValidator:
 
         message = f"Rama '{branch_name}' debería crearse desde: {' o '.join(expected_bases)}"
 
-        if self.config["level"] == ValidationLevel.STRICT:
+        if self.validation_config["level"] == ValidationLevel.STRICT:
             return ValidationResult(False, message, "error")
         else:
             return ValidationResult(True, message, "warning")
@@ -380,13 +387,13 @@ class BranchValidator:
 
     def validate_pr_requirement(self, target_branch: str) -> ValidationResult:
         """Valida si se requiere Pull Request para la operación."""
-        if not self.config["require_pr"]:
+        if not self.validation_config["require_pr"]:
             return ValidationResult(True, "Pull Request no requerido en este contexto")
 
-        if target_branch in self.config["protected_branches"]:
+        if target_branch in self.validation_config["protected_branches"]:
             message = f"Se requiere Pull Request para cambios en '{target_branch}'"
 
-            if self.config["level"] == ValidationLevel.STRICT:
+            if self.validation_config["level"] == ValidationLevel.STRICT:
                 return ValidationResult(False, message, "error")
             else:
                 return ValidationResult(True, message, "warning")
@@ -395,7 +402,7 @@ class BranchValidator:
 
     def validate_gpg_verification(self) -> ValidationResult:
         """Valida la configuración GPG para commits firmados."""
-        if not self.config.get('require_gpg_verification', False):
+        if not self.validation_config.get('require_gpg_verification', False):
             return ValidationResult(True, "Verificación GPG no requerida en este nivel")
 
         try:
@@ -431,7 +438,7 @@ class BranchValidator:
         # Información de contexto
         results.append(ValidationResult(
             True,
-            f"Contexto detectado: {self.context} (nivel: {self.config['level'].value})",
+            f"Contexto detectado: {self.context} (nivel: {self.validation_config['level'].value})",
             "info"
         ))
 
@@ -545,16 +552,16 @@ Ejemplos de uso:
 
         # Override nivel si se especifica strict
         if args.strict:
-            validator.config["level"] = ValidationLevel.STRICT
+            validator.validation_config["level"] = ValidationLevel.STRICT
 
         # Comando status especial
         if args.operation == 'status':
             print(f"\n{Fore.CYAN}🔍 Estado del Validador de Workflow{Style.RESET_ALL}")
             print(f"{Fore.BLUE}📍 Contexto: {Fore.YELLOW}{validator.context}{Style.RESET_ALL}")
-            print(f"{Fore.BLUE}⚖️  Nivel de validación: {Fore.YELLOW}{validator.config['level'].value}{Style.RESET_ALL}")
-            print(f"{Fore.BLUE}🛡️  Ramas protegidas: {', '.join(validator.config['protected_branches'])}{Style.RESET_ALL}")
-            print(f"{Fore.BLUE}🔗 Require upstream: {'Sí' if validator.config['require_upstream'] else 'No'}{Style.RESET_ALL}")
-            print(f"{Fore.BLUE}📋 Require PR: {'Sí' if validator.config['require_pr'] else 'No'}{Style.RESET_ALL}")
+            print(f"{Fore.BLUE}⚖️  Nivel de validación: {Fore.YELLOW}{validator.validation_config['level'].value}{Style.RESET_ALL}")
+            print(f"{Fore.BLUE}🛡️  Ramas protegidas: {', '.join(validator.validation_config['protected_branches'])}{Style.RESET_ALL}")
+            print(f"{Fore.BLUE}🔗 Require upstream: {'Sí' if validator.validation_config['require_upstream'] else 'No'}{Style.RESET_ALL}")
+            print(f"{Fore.BLUE}📋 Require PR: {'Sí' if validator.validation_config['require_pr'] else 'No'}{Style.RESET_ALL}")
             return
 
         # Mapear operaciones

@@ -597,10 +597,20 @@ class ContextDetector:
 
     def get_context_info(self, context: str) -> Dict:
         """Obtiene información detallada del contexto detectado."""
+        sys.stdout.write(f"[DEBUG ContextDetector.get_context_info] Context received: {context}\n")
         contributors = self.git_repo.get_contributor_count()
         commits = self.git_repo.get_commit_count()
         remotes = self.git_repo.get_remote_count()
         has_ci = self.git_repo.detect_ci_presence()
+
+        config_to_use = {}
+        try:
+            config_to_use = CONTEXT_CONFIGS[context]
+            sys.stdout.write(f"[DEBUG ContextDetector.get_context_info] Using config for {context}: {config_to_use}\n")
+        except KeyError as e:
+            sys.stderr.write(f"[DEBUG ContextDetector.get_context_info] KeyError getting config for context {context}: {e}\n")
+            sys.stderr.write("[DEBUG ContextDetector.get_context_info] Defaulting to LOCAL config.\n")
+            config_to_use = CONTEXT_CONFIGS["LOCAL"]
 
         return {
             "context": context,
@@ -608,7 +618,7 @@ class ContextDetector:
             "commits": commits,
             "remotes": remotes,
             "has_ci": has_ci,
-            "config": CONTEXT_CONFIGS[context]
+            "config": config_to_use
         }
 
     def force_context(self, context: str):
@@ -787,22 +797,34 @@ class BranchHelper:
             bool: True si el estado se estableció correctamente.
         """
         if state not in ['WIP', 'MERGED', 'DELETED']:
-            print(f"{Fore.RED}❌ Estado inválido: {state}. Use: WIP, MERGED, o DELETED.{Style.RESET_ALL}")
+            sys.stderr.write(f"{Fore.RED}❌ Estado inválido: {state}. Use: WIP, MERGED, o DELETED.\n{Style.RESET_ALL}")
             return False
 
         if not self.git_repo.branch_exists(branch_name):
-            print(f"{Fore.RED}❌ La rama '{branch_name}' no existe localmente.{Style.RESET_ALL}")
+            sys.stderr.write(f"{Fore.RED}❌ La rama '{branch_name}' no existe localmente.\n{Style.RESET_ALL}")
             return False
 
         # Verificar que no estamos en una rama protegida (main/master)
-        protected_branches = self.context_detector.get_context_info(self.context_detector.detect_context())['protected_branches']
+        detected_context = self.context_detector.detect_context()
+        sys.stdout.write(f"[DEBUG mark_branch_state] Detected context: {detected_context}\n")
+        context_info = self.context_detector.get_context_info(detected_context)
+        sys.stdout.write(f"[DEBUG mark_branch_state] Context info: {context_info}\n")
+
+        protected_branches = []
+        try:
+            protected_branches = context_info['config']['protected_branches']
+            sys.stdout.write(f"[DEBUG mark_branch_state] Protected branches: {protected_branches}\n")
+        except KeyError as e:
+            sys.stderr.write(f"{Fore.YELLOW}⚠️  Advertencia: Error al acceder a 'protected_branches' en la configuración del contexto '{detected_context}': {e}. Asumiendo lista vacía.\n{Style.RESET_ALL}")
+            protected_branches = []
+
         if branch_name in protected_branches:
-            print(f"{Fore.RED}❌ No se puede cambiar el estado de una rama protegida ({branch_name}).{Style.RESET_ALL}")
+            sys.stderr.write(f"{Fore.RED}❌ No se puede cambiar el estado de una rama protegida ({branch_name}).\n{Style.RESET_ALL}")
             return False
 
         current_branch = self.git_repo.get_current_branch()
         if not current_branch:
-            print(f"{Fore.RED}❌ No se pudo determinar la rama actual. Asegúrese de estar en un repositorio válido.{Style.RESET_ALL}")
+            sys.stderr.write(f"{Fore.RED}❌ No se pudo determinar la rama actual. Asegúrese de estar en un repositorio válido.\n{Style.RESET_ALL}")
             return False
 
         base_branch = None
@@ -819,7 +841,7 @@ class BranchHelper:
                     break
 
         if not base_branch:
-            print(f"{Fore.RED}❌ No se pudo determinar una rama base válida para '{branch_name}'.{Style.RESET_ALL}")
+            sys.stderr.write(f"{Fore.RED}❌ No se pudo determinar una rama base válida para '{branch_name}'.\n{Style.RESET_ALL}")
             return False
 
         # --- Lógica principal para MERGED y DELETED ---
