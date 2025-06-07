@@ -4291,7 +4291,7 @@ def main():
 
         elif args.command == 'set-quality-level':
             qm = QualityManager(project_path)
-            
+
             # 1. Obtener el formato de commit actual
             current_config = qm.get_current_configuration()
             current_commit_format = current_config.get('commit_format', 'N/A')
@@ -4350,7 +4350,7 @@ def main():
             sys.exit(1)
 
         qm = QualityManager(project_path)
-        
+
         # 1. Obtener el formato de commit actual
         current_config = qm.get_current_configuration()
         current_commit_format = current_config.get('commit_format', 'N/A')
