@@ -2765,10 +2765,29 @@ class UniversalProtectionManager:
             return {"status": "dry_run", "config": adapted_config}
 
         # Aplicar a branches protegidas según estrategia
-        protected_branches = self._get_protected_branches_for_strategy(strategy_name)
+        target_protected_branches = set(self._get_protected_branches_for_strategy(strategy_name))
+        current_protected_branches = set(self.api.list_protected_branches())
+
+        branches_to_protect = target_protected_branches - current_protected_branches
+        branches_to_unprotect = current_protected_branches - target_protected_branches
+
         results = []
 
-        for branch in protected_branches:
+        # Proteger nuevas ramas
+        for branch in branches_to_protect:
+            print(f"🛡️  Aplicando protección a '{branch}'...")
+            result = self.api.apply_protection(branch, adapted_config)
+            results.append(result)
+
+        # Desproteger ramas que ya no deberían estarlo
+        for branch in branches_to_unprotect:
+            print(f"🗑️  Quitando protección de '{branch}'...")
+            result = self.api.remove_protection(branch)
+            results.append(result)
+
+        # Actualizar protección en ramas que ya están protegidas y deben seguir estándolo
+        for branch in current_protected_branches.intersection(target_protected_branches):
+            print(f"🔄 Actualizando protección de '{branch}'...")
             result = self.api.apply_protection(branch, adapted_config)
             results.append(result)
 
@@ -4083,6 +4102,31 @@ def main():
         '--commit-format',
         help='Formato de commit a aplicar (ej. conventional.js)'
     )
+
+    # --- Comandos Adicionales ---
+    subparsers.add_parser('health-check', help='Analiza la salud del repositorio.')
+
+    cleanup_parser = subparsers.add_parser('cleanup', help='Limpia ramas obsoletas (usar con --execute).')
+    cleanup_parser.add_argument('--execute', action='store_true', help='Ejecuta la limpieza.')
+
+    subparsers.add_parser('status', help='Muestra el estado del Integration Manager.')
+
+    setup_remote_parser = subparsers.add_parser('setup-remote-protection', help='Configura la protección de ramas en el remoto (usar con --strategy).')
+    setup_remote_parser.add_argument('--strategy', choices=['local', 'hybrid', 'remote'], required=True, help='Estrategia a aplicar.')
+    setup_remote_parser.add_argument('--dry-run', action='store_true', help='Solo muestra los cambios, no los aplica.')
+
+    protection_status_parser = subparsers.add_parser('protection-status', help='Muestra el estado de protección de las ramas (usar con --compare).')
+    protection_status_parser.add_argument('--compare', action='store_true', help='Compara la configuración remota con la local.')
+
+    sync_rules_parser = subparsers.add_parser('sync-protection-rules', help='Sincroniza las reglas de protección (usar con --direction).')
+    sync_rules_parser.add_argument('--direction', choices=['local-to-remote', 'remote-to-local'], default='local-to-remote', help='Dirección de la sincronización.')
+    sync_rules_parser.add_argument('--dry-run', action='store_true', help='Solo muestra los cambios, no los aplica.')
+
+    quality_status_parser = subparsers.add_parser('quality-status', help='Muestra el estado de calidad (nivel y formato).')
+    quality_status_parser.add_argument('--json', action='store_true', help='Muestra la salida en formato JSON.')
+
+    list_formats_parser = subparsers.add_parser('list-commit-formats', help='Lista los formatos de commit disponibles.')
+    list_formats_parser.add_argument('--json', action='store_true', help='Muestra la salida en formato JSON.')
 
     args = parser.parse_args()
 
