@@ -16,6 +16,27 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from enum import Enum # Importar Enum
 
+# Importar QualityManager
+try:
+    import importlib.util
+    qm_path = Path(__file__).parent / ".githooks" / "quality_manager.py"
+    if qm_path.exists():
+        spec = importlib.util.spec_from_file_location("quality_manager", qm_path)
+        qm_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(qm_module)
+        QualityManager = qm_module.QualityManager
+    else:
+        # Fallback si no se encuentra QualityManager
+        class QualityManager:
+            def __init__(self, *args, **kwargs): pass
+            def get_current_configuration(self): return {'status': 'no_config', 'commit_format': 'N/A'}
+        print(f"{Fore.YELLOW}⚠️  Advertencia: No se encontró quality_manager.py. El estado de calidad no se mostrará.{Style.RESET_ALL}")
+except Exception as e:
+    class QualityManager:
+        def __init__(self, *args, **kwargs): pass
+        def get_current_configuration(self): return {'status': 'error_importing', 'commit_format': 'Error de importación'}
+    print(f"{Fore.YELLOW}⚠️  Advertencia: Error al importar quality_manager.py: {e}. El estado de calidad no se mostrará.{Style.RESET_ALL}")
+
 # Opcional: Colorama para mejor experiencia visual
 try:
     from colorama import Fore, Style, init as colorama_init
@@ -821,14 +842,14 @@ class BranchHelper:
 
             # Si el merge fue exitoso
             print(f"{Fore.GREEN}✅ Merge de '{branch_name}' en '{base_branch}' completado.{Style.RESET_ALL}")
-            
+
             # Establecer estado MERGED (esto empujará el tag merged- al remoto)
             print(f"{Fore.CYAN}📝 Marcando estado a MERGED para '{branch_name}'...{Style.RESET_ALL}")
             success_set_state = self.git_repo.set_branch_state(branch_name, "MERGED", push_to_remote_tags=True)
             if not success_set_state:
                 print(f"{Fore.YELLOW}⚠️  No se pudo establecer el estado MERGED para '{branch_name}'.{Style.RESET_ALL}")
                 return False
-            
+
             # Si se solicita borrar localmente, ADEMÁS, se crea el tag deleted- y se elimina localmente
             if options.get('delete', False):
                 print(f"{Fore.CYAN}📝 Marcando estado a DELETED (debido a eliminación local) para '{branch_name}'...{Style.RESET_ALL}")
@@ -847,7 +868,7 @@ class BranchHelper:
                 else:
                     print(f"{Fore.YELLOW}⚠️  No se pudo eliminar la rama '{branch_name}' localmente: {error_delete}{Style.RESET_ALL}")
                     print(f"{Fore.BLUE}💡 La rama puede tener commits no mergeados. Use 'git branch -D {branch_name}' para forzar la eliminación.{Style.RESET_ALL}")
-            
+
             print(f"\n{Fore.MAGENTA}🎉 Proceso de MERGE y marcación de estado completado para '{branch_name}'.{Style.RESET_ALL}")
             return True
 
@@ -890,7 +911,7 @@ class BranchHelper:
                 return False
             print(f"\n{Fore.MAGENTA}🎉 Estado de '{branch_name}' marcado como WIP.{Style.RESET_ALL}")
             return True
-        
+
         return False # Fallback si no se cumple ninguna condición
 
 class AliasManager:
@@ -1068,28 +1089,26 @@ def show_status(repo_path: Path = None):
         protected = context_info['config']['protected_branches']
         print(f"{Fore.BLUE}🛡️  Ramas protegidas: {', '.join(protected)}{Style.RESET_ALL}")
 
-        # Obtener y mostrar la configuración de commitlint
-        commitlint_config_path = Path('.githooks/config/active/hooks.yaml')
-        if commitlint_config_path.exists():
-            try:
-                # Usar ruamel.yaml si está disponible, sino el yaml estándar
-                try:
-                    from ruamel.yaml import YAML
-                    yaml = YAML()
-                except ImportError:
-                    import yaml
+        # Obtener y mostrar la configuración de commitlint usando QualityManager
+        try:
+            qm = QualityManager(repo_path)
+            quality_config = qm.get_current_configuration()
 
-                with open(commitlint_config_path, 'r') as f:
-                    hooks_config = yaml.safe_load(f)
+            commit_format_status = quality_config.get('commit_format', 'N/A')
+            quality_level_status = quality_config.get('level', 'N/A')
 
-                commitlint_enabled = hooks_config.get('commitlint', {}).get('enabled', False)
-                commitlint_strict = hooks_config.get('commitlint', {}).get('strict', False)
+            if quality_config['status'] == 'active':
+                print(f"{Fore.BLUE}📝 Formato de Commit: {Fore.YELLOW}{commit_format_status.title()}{Style.RESET_ALL}")
+                print(f"{Fore.BLUE}📊 Nivel de Calidad: {Fore.YELLOW}{quality_level_status.title()}{Style.RESET_ALL}")
+            elif quality_config['status'] == 'no_config':
+                print(f"{Fore.YELLOW}⚠️  No hay configuración de calidad activa (incluido formato de commit).{Style.RESET_ALL}")
+            elif quality_config['status'] == 'error_importing':
+                print(f"{Fore.RED}❌ Error al cargar el gestor de calidad. No se pudo obtener el formato de commit.{Style.RESET_ALL}")
+            else: # error_reading_file o unknown
+                 print(f"{Fore.YELLOW}⚠️  Estado del formato de commit: {commit_format_status.title()}.{Style.RESET_ALL}")
 
-                print(f"{Fore.BLUE}📝 Formato de Commit: {Fore.YELLOW}Commitlint{' (Estricto)' if commitlint_strict else ' (Permisivo)' if commitlint_enabled else ' (Deshabilitado)'}{Style.RESET_ALL}")
-            except Exception as e:
-                print(f"{Fore.YELLOW}⚠️  No se pudo leer la configuración de commitlint: {e}{Style.RESET_ALL}")
-        else:
-            print(f"{Fore.YELLOW}⚠️  Archivo de configuración de commitlint no encontrado en .githooks/config/active/hooks.yaml{Style.RESET_ALL}")
+        except Exception as e:
+            print(f"{Fore.RED}❌ Error al obtener el formato de commit: {e}{Style.RESET_ALL}")
 
         # Verificar cambios pendientes
         if git_repo.has_uncommitted_changes():

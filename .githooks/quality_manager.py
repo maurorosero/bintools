@@ -396,17 +396,6 @@ class QualityManager:
             if not config_file.exists():
                 return False, f"❌ No se encontró el archivo de configuración: {config_file}"
 
-            # Leer los tipos permitidos del archivo de configuración
-            config_content = config_file.read_text()
-            type_pattern = r"'type-enum':\s*\[\s*2\s*,\s*'always'\s*,\s*\[(.*?)\]\]"
-            type_match = re.search(type_pattern, config_content, re.DOTALL)
-            if not type_match:
-                return False, "❌ No se pudieron encontrar los tipos permitidos en la configuración"
-            
-            # Extraer y limpiar los tipos permitidos
-            allowed_types = [t.strip().strip("'") for t in type_match.group(1).split(',')]
-            allowed_types_str = ", ".join(allowed_types)
-
             # Preparar argumentos para commitlint usando rutas relativas
             args = ['--config', str(config_file), '--edit', str(commit_msg_file)]
 
@@ -439,16 +428,6 @@ class QualityManager:
                 error_msg.append("---")
                 error_msg.append(content)
                 error_msg.append("---")
-
-                error_msg.append("\nConfiguración actual:")
-                # error_msg.append(f"- strict: {config.get('strict', False)}")
-                # error_msg.append(f"- allow_empty: {config.get('allow_empty', True)}")
-                # error_msg.append(f"- allow_merge: {config.get('allow_merge', True)}")
-
-                # Añadir sugerencia de formato con tipos dinámicos
-                error_msg.append("\nFormato esperado:")
-                error_msg.append("[TAG] (#Issue) Descripción")
-                error_msg.append(f"\nTags permitidos: {allowed_types_str}")
 
                 if not error_msg:
                     error_msg.append("Error desconocido en la validación del commit")
@@ -626,7 +605,30 @@ class QualityManager:
         target = self.active_dir / 'commitlint.config.js'
         if target.exists():
             target.unlink()
-        target.symlink_to(format_path)
+
+        # Determinar el nombre del formato final para inyectar en la configuración
+        format_name_to_inject = commit_format if commit_format else format_path.stem.replace('commitlint.config.', '').replace('.js.def', '')
+
+        # Leer el contenido del archivo de formato fuente
+        original_content = format_path.read_text(encoding='utf-8')
+
+        # Inyectar la propiedad activeFormat en el objeto module.exports
+        # Buscar la línea "module.exports = {"
+        module_exports_pattern = r"module\.exports\s*=\s*{"
+        match = re.search(module_exports_pattern, original_content)
+
+        if match:
+            insertion_point = match.end()
+            # Asegurarse de que la inyección sea dentro del objeto y bien formateada
+            injected_property = f"\n  activeFormat: '{format_name_to_inject}',"
+            content_to_write = original_content[:insertion_point] + injected_property + original_content[insertion_point:]
+        else:
+            # Fallback si no se encuentra el patrón (no debería pasar si los templates son correctos)
+            print(f"\n⚠️  Advertencia: No se pudo inyectar 'activeFormat' en {format_path.name}. Verifique el template.")
+            content_to_write = original_content # Escribir el contenido original sin la inyección
+
+        # Copiar el contenido modificado al archivo de destino
+        target.write_text(content_to_write, encoding='utf-8')
 
         # Retornar información sobre la configuración aplicada
         return {
@@ -678,13 +680,29 @@ class QualityManager:
                 config['level'] = level.value
                 break
 
-        # Detectar formato actual
-        if (self.active_dir / 'commitlint.config.js').exists():
-            current_format = (self.active_dir / 'commitlint.config.js').resolve()
-            for format_name, format_info in self.list_available_formats().items():
-                if current_format.samefile(Path(format_info['path'])):
-                    config['commit_format'] = format_name
-                    break
+        # Detectar formato actual leyendo la propiedad 'activeFormat' del archivo JavaScript
+        commitlint_config_file = self.active_dir / 'commitlint.config.js'
+        if commitlint_config_file.exists():
+            try:
+                file_content = commitlint_config_file.read_text(encoding='utf-8')
+
+                # Buscar la propiedad activeFormat
+                format_pattern = r"activeFormat:\s*'([^']+)'"
+                match = re.search(format_pattern, file_content)
+
+                if match:
+                    config['commit_format'] = match.group(1)
+                else:
+                    # Fallback para compatibilidad si la propiedad no existe (versiones antiguas o cambios manuales)
+                    current_format_path = commitlint_config_file.resolve()
+                    for format_name, format_info in self.list_available_formats().items():
+                        if current_format_path.samefile(Path(format_info['path'])) and current_format_path.suffix == '.def': # Solo si es un enlace simbólico a un .def original
+                            config['commit_format'] = format_name
+                            break
+                    if not config['commit_format']:
+                        config['commit_format'] = 'unknown' # Si no se puede determinar
+            except Exception:
+                config['commit_format'] = 'error_reading_file' # Manejo de errores de lectura
 
         return config
 
