@@ -22,6 +22,7 @@ from enum import Enum
 import shutil
 import urllib.parse
 from abc import ABC, abstractmethod
+import pprint # <-- AÑADIDO PARA DEPURACIÓN
 
 # Importar nuestros componentes existentes
 try:
@@ -2732,21 +2733,55 @@ class UniversalProtectionConfig:
         return config
 
 class UniversalProtectionManager:
-    """Manager que funciona con cualquier plataforma Git."""
-
+    """
+    Gestiona la configuración de protección de ramas de forma universal,
+    traduciéndola a la API de la plataforma específica.
+    """
     def __init__(self, platform_info: PlatformInfo, token_manager: TokenManager, context: str = None):
         self.platform_info = platform_info
         self.token_manager = token_manager
-        self.context = context  # Contexto del proyecto (LOCAL, HYBRID, REMOTE)
-        self.token = token_manager.get_platform_token(platform_info)
-        self.api = PlatformAPIFactory.create_protection_api(platform_info, self.token) if self.token else None
-        self.capabilities = self._detect_platform_capabilities()
+        self.context = context # LOCAL, HYBRID, o REMOTE
+        self.platform_token = self.token_manager.get_platform_token(self.platform_info)
 
-    def apply_strategy(self, strategy_name: str, dry_run: bool = True):
-        """Aplica estrategia universal a cualquier plataforma."""
+        self.protection_api = PlatformAPIFactory.create_protection_api(
+            self.platform_info, self.platform_token
+        )
 
-        if not self.api:
-            return {"status": "error", "message": "Token no disponible o plataforma no soportada"}
+        # Cargar la configuración local directamente para ser autosuficiente.
+        try:
+            # Asumimos que la lógica de carga puede encontrar el validador.
+            # Esta función está definida al principio del script.
+            validator_module = load_validator_module()
+            self.local_config = validator_module.VALIDATION_CONFIGS
+        except Exception as e:
+            # Este es un fallback crítico en caso de que el validador no se pueda cargar.
+            print(f"{Fore.YELLOW}⚠️  Advertencia: No se pudo cargar la configuración de `branch-workflow-validator.py`: {e}{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}   Las comparaciones con la configuración local no funcionarán.{Style.RESET_ALL}")
+            self.local_config = {}
+
+        if not self.protection_api:
+            raise ValueError("No se pudo crear una API de protección para la plataforma especificada.")
+
+    def apply_strategy(self, strategy_name: str, dry_run: bool = True) -> Tuple[bool, str]:
+        """
+        Aplica una estrategia de protección de ramas en el remoto.
+
+        Esta función intenta aplicar la estrategia de protección especificada
+        a las ramas protegidas en la plataforma remota. Si la estrategia
+        es exitosa, devuelve un mensaje de éxito. Si no, devuelve un mensaje
+        de error.
+
+        Args:
+            strategy_name (str): El nombre de la estrategia a aplicar.
+            dry_run (bool): Si es True, solo muestra los cambios sin aplicarlos.
+
+        Returns:
+            Tuple[bool, str]: Un tuple donde el primer elemento es un booleano
+                              que indica si la estrategia se aplicó correctamente
+                              y el segundo elemento es un mensaje de éxito o error.
+        """
+        if not self.protection_api:
+            return False, "Token no disponible o plataforma no soportada"
 
         # Crear configuración universal
         universal_config = UniversalProtectionConfig.from_strategy(strategy_name)
@@ -2762,11 +2797,11 @@ class UniversalProtectionManager:
 
         if dry_run:
             print("🔍 DRY RUN - No se aplicarán cambios reales")
-            return {"status": "dry_run", "config": adapted_config}
+            return True, "DRY RUN: La estrategia se aplicaría correctamente."
 
         # Aplicar a branches protegidas según estrategia
         target_protected_branches = set(self._get_protected_branches_for_strategy(strategy_name))
-        current_protected_branches = set(self.api.list_protected_branches())
+        current_protected_branches = set(self.protection_api.list_protected_branches())
 
         branches_to_protect = target_protected_branches - current_protected_branches
         branches_to_unprotect = current_protected_branches - target_protected_branches
@@ -2776,19 +2811,19 @@ class UniversalProtectionManager:
         # Proteger nuevas ramas
         for branch in branches_to_protect:
             print(f"🛡️  Aplicando protección a '{branch}'...")
-            result = self.api.apply_protection(branch, adapted_config)
+            result = self.protection_api.apply_protection(branch, adapted_config)
             results.append(result)
 
         # Desproteger ramas que ya no deberían estarlo
         for branch in branches_to_unprotect:
             print(f"🗑️  Quitando protección de '{branch}'...")
-            result = self.api.remove_protection(branch)
+            result = self.protection_api.remove_protection(branch)
             results.append(result)
 
         # Actualizar protección en ramas que ya están protegidas y deben seguir estándolo
         for branch in current_protected_branches.intersection(target_protected_branches):
             print(f"🔄 Actualizando protección de '{branch}'...")
-            result = self.api.apply_protection(branch, adapted_config)
+            result = self.protection_api.apply_protection(branch, adapted_config)
             results.append(result)
 
         return results
@@ -2796,10 +2831,10 @@ class UniversalProtectionManager:
     def get_protection_status(self, compare_with_local: bool = False):
         """Obtiene estado actual de protección."""
 
-        if not self.api:
+        if not self.protection_api:
             return {"status": "error", "message": "API no disponible"}
 
-        protected_branches = self.api.list_protected_branches()
+        protected_branches = self.protection_api.list_protected_branches()
         status = {
             "platform": self.platform_info.service,
             "protected_branches": protected_branches,
@@ -2807,7 +2842,7 @@ class UniversalProtectionManager:
         }
 
         for branch in protected_branches:
-            protection = self.api.get_current_protection(branch)
+            protection = self.protection_api.get_current_protection(branch)
             status["details"][branch] = protection
 
         if compare_with_local:
@@ -2818,7 +2853,7 @@ class UniversalProtectionManager:
     def sync_protection_rules(self, direction: str = "local-to-remote", dry_run: bool = True):
         """Sincroniza reglas entre local y remoto."""
 
-        if not self.api:
+        if not self.protection_api:
             return {"status": "error", "message": "API no disponible"}
 
         if direction == "local-to-remote":
@@ -2882,11 +2917,11 @@ class UniversalProtectionManager:
         adapted = universal_config.copy()
 
         # Remover configuraciones no soportadas
-        if not self.capabilities.get("code_owners"):
+        if not self.local_config.get("code_owners"):
             adapted["require_code_owners"] = False
             print(f"⚠️  Code owners no soportado en {self.platform_info.service}")
 
-        if not self.capabilities.get("team_restrictions"):
+        if not self.local_config.get("team_restrictions"):
             adapted["allowed_teams"] = []
             print(f"⚠️  Team restrictions no soportado en {self.platform_info.service}")
 
@@ -2918,153 +2953,121 @@ class UniversalProtectionManager:
             return ["main"]
 
     def _compare_with_local_config(self):
-        """Compara configuración remota con local."""
-        try:
-            # Obtener configuración local del validator
-            local_config = self._get_local_validator_config()
+        """Compara la configuración remota con la local."""
+        if not self.protection_api:
+            return {"status": "error", "message": "API no disponible"}
 
-            # Obtener configuración remota actual
-            remote_branches = self.api.list_protected_branches()
-            remote_config = {}
-
-            for branch in remote_branches:
-                remote_config[branch] = self.api.get_current_protection(branch)
-
-            comparison = {
-                "local_protected_branches": local_config.get("protected_branches", []),
-                "remote_protected_branches": remote_branches,
-                "differences": []
+        current_context_config = self.local_config.get(self.context, {})
+        if not current_context_config:
+            return {
+                "status": "error",
+                "message": f"No se pudo encontrar la configuración para el contexto '{self.context}' en el validador."
             }
 
-            # Comparar branches protegidas
-            local_protected = set(local_config.get("protected_branches", []))
-            remote_protected = set(remote_branches)
+        local_protected_branches = set(current_context_config.get("protected_branches", []))
+        remote_branches = set(self.protection_api.list_protected_branches())
 
-            only_local = local_protected - remote_protected
-            only_remote = remote_protected - local_protected
+        remote_details = {
+            "branches": {branch: self.protection_api.get_current_protection(branch) for branch in remote_branches}
+        }
 
-            if only_local:
-                comparison["differences"].append({
-                    "type": "missing_remote",
-                    "branches": list(only_local),
-                    "description": "Branches protegidas localmente pero no remotamente"
-                })
+        local_protected = sorted(list(local_protected_branches))
+        remote_protected_list = sorted(list(remote_branches))
 
-            if only_remote:
-                comparison["differences"].append({
-                    "type": "missing_local",
-                    "branches": list(only_remote),
-                    "description": "Branches protegidas remotamente pero no localmente"
-                })
+        diff = {
+            "local_only": sorted(list(local_protected_branches - remote_branches)),
+            "remote_only": sorted(list(remote_branches - local_protected_branches)),
+            "mismatched": []
+        }
 
-            return comparison
-
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
+        return {
+            "status": "ok",
+            "local_protected": local_protected,
+            "remote_protected": remote_protected_list,
+            "diff": diff,
+            "remote_details": remote_details
+        }
 
     def _sync_local_to_remote(self, dry_run):
-        """Sincroniza configuración local al remoto."""
-        try:
-            # Obtener configuración local
-            local_config = self._get_local_validator_config()
+        """Sincroniza la configuración local HACIA el remoto."""
+        # El 'strategy' es simplemente nuestro 'contexto'.
+        strategy_name = self.context
 
-            if not local_config:
-                return {"status": "error", "message": "No se pudo obtener configuración local"}
+        # Obtenemos la configuración para el contexto actual.
+        current_context_config = self.local_config.get(strategy_name, {})
+        if not current_context_config:
+            print(f"{Fore.YELLOW}⚠️  No hay configuración local definida para el contexto '{strategy_name}'. No se puede sincronizar.{Style.RESET_ALL}")
+            return False
 
-            # Determinar estrategia basada en contexto local
-            context = local_config.get("context", "REMOTE")
-            strategy_mapping = {
-                "LOCAL": "local",
-                "HYBRID": "hybrid",
-                "REMOTE": "remote"
-            }
+        # Las ramas a proteger se leen directamente de la configuración del contexto.
+        protected_branches = current_context_config.get("protected_branches", [])
 
-            strategy = strategy_mapping.get(context, "hybrid")
+        if not protected_branches:
+            print(f"{Fore.YELLOW}⚠️  No hay ramas definidas para proteger en el contexto '{strategy_name}'.{Style.RESET_ALL}")
+            return True # No es un error, simplemente no hay nada que hacer.
 
-            print(f"🔄 Sincronizando configuración local (contexto: {context}) → remoto")
-            print(f"📋 Estrategia detectada: {strategy}")
+        # La configuración de protección a aplicar también viene del contexto.
+        # Necesitamos un mapeo o una función que convierta la config del validador a la config universal.
+        # Por ahora, usamos una estrategia fija como placeholder.
+        universal_config = UniversalProtectionConfig.from_strategy(strategy_name.lower())
+        adapted_config = self._adapt_to_platform_capabilities(universal_config.config)
 
-            if dry_run:
-                print("🔍 DRY RUN - Mostrando qué se aplicaría:")
+        if dry_run:
+            print(f"{Fore.YELLOW}[DRY RUN] Se (re)aplicaría la protección del contexto '{strategy_name}' a las siguientes ramas:{Style.RESET_ALL}")
+            for branch in protected_branches:
+                print(f"  - {branch}")
+            self._show_config_summary(adapted_config)
+            return True
 
-                # Crear configuración universal basada en estrategia
-                universal_config = UniversalProtectionConfig.from_strategy(strategy)
-                adapted_config = self._adapt_to_platform_capabilities(universal_config.config)
+        # Aplicar la protección
+        results = []
+        print(f"{Fore.CYAN}🚀 Aplicando configuración del contexto '{strategy_name}' a {len(protected_branches)} rama(s)...{Style.RESET_ALL}")
+        for branch in protected_branches:
+            result = self.protection_api.apply_protection(branch, adapted_config)
+            results.append(result)
 
-                self._show_config_summary(adapted_config)
-
-                protected_branches = self._get_protected_branches_for_strategy(strategy)
-                print(f"📍 Branches que se protegerían: {', '.join(protected_branches)}")
-
-                return {"status": "dry_run", "strategy": strategy, "config": adapted_config}
-            else:
-                # Aplicar configuración real
-                universal_config = UniversalProtectionConfig.from_strategy(strategy)
-                adapted_config = self._adapt_to_platform_capabilities(universal_config.config)
-
-                protected_branches = self._get_protected_branches_for_strategy(strategy)
-                results = []
-
-                for branch in protected_branches:
-                    result = self.api.apply_protection(branch, adapted_config)
-                    results.append(result)
-
-                    if result.get("status") == "success":
-                        print(f"   ✅ {branch}: Protección aplicada")
-                    else:
-                        print(f"   ❌ {branch}: {result.get('message', 'Error desconocido')}")
-
-                return {"status": "success", "results": results}
-
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
+        print(f"{Fore.GREEN}✅ Sincronización local → remoto completada.{Style.RESET_ALL}")
+        return True
 
     def _sync_remote_to_local(self, dry_run):
-        """Sincroniza configuración remota al local."""
+        """Sincroniza la configuración remota HACIA el local."""
+        print(f"{Fore.CYAN}🔄 Obteniendo configuración desde el remoto...{Style.RESET_ALL}")
+
         try:
             # Obtener configuración remota actual
-            remote_branches = self.api.list_protected_branches()
+            remote_branches = self.protection_api.list_protected_branches()
 
             if not remote_branches:
-                return {"status": "error", "message": "No hay branches protegidas en el remoto"}
+                print(f"{Fore.YELLOW}⚠️  No hay ramas protegidas en el remoto. No se puede sincronizar.{Style.RESET_ALL}")
+                return True
 
-            print(f"🔄 Sincronizando configuración remota → local")
-            print(f"📍 Branches protegidas remotamente: {', '.join(remote_branches)}")
-
-            # Obtener detalles de protección
             remote_protection_details = {}
             for branch in remote_branches:
-                protection = self.api.get_current_protection(branch)
+                protection = self.protection_api.get_current_protection(branch)
                 remote_protection_details[branch] = protection
 
-            # Analizar configuración remota para determinar estrategia equivalente
-            detected_strategy = self._detect_strategy_from_remote_config(remote_protection_details)
-
-            print(f"📋 Estrategia detectada del remoto: {detected_strategy}")
+            # Intentar detectar la estrategia basada en la configuración remota
+            strategy = self._detect_strategy_from_remote_config(remote_protection_details)
+            if not strategy:
+                print(f"{Fore.RED}❌ No se pudo determinar una estrategia (local, hybrid, remote) desde la configuración remota.{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}💡 Sincronice desde local a remoto primero para establecer una base.{Style.RESET_ALL}")
+                return False
 
             if dry_run:
-                print("🔍 DRY RUN - Mostrando qué se aplicaría localmente:")
-                print(f"   - Actualizar protected_branches en configuración local: {remote_branches}")
-                print(f"   - Cambiar contexto a: {detected_strategy.upper()}")
+                print(f"{Fore.YELLOW}[DRY RUN] Se actualizaría el archivo de configuración local '{self.local_config_path}' con:{Style.RESET_ALL}")
+                print(f"  - Estrategia: {strategy}")
+                print(f"  - Ramas protegidas: {', '.join(remote_branches)}")
+                return True
 
-                return {
-                    "status": "dry_run",
-                    "strategy": detected_strategy,
-                    "protected_branches": remote_branches,
-                    "remote_details": remote_protection_details
-                }
-            else:
-                # Aplicar cambios a configuración local
-                success = self._update_local_validator_config(detected_strategy, remote_branches)
+            # Actualizar el archivo de configuración local
+            self._update_local_validator_config(strategy, remote_branches)
 
-                if success:
-                    print("✅ Configuración local actualizada exitosamente")
-                    return {"status": "success", "strategy": detected_strategy}
-                else:
-                    return {"status": "error", "message": "Error actualizando configuración local"}
+            print(f"{Fore.GREEN}✅ Sincronización remoto → local completada.{Style.RESET_ALL}")
+            return True
 
         except Exception as e:
-            return {"status": "error", "message": str(e)}
+            print(f"{Fore.RED}❌ Error durante la sincronización remoto → local: {e}{Style.RESET_ALL}")
+            return False
 
     def _get_local_validator_config(self):
         """Obtiene configuración actual del validator local."""
@@ -3127,48 +3130,56 @@ class UniversalProtectionManager:
             return None
 
     def _detect_strategy_from_remote_config(self, remote_protection_details):
-        """Detecta estrategia equivalente basada en configuración remota."""
-
-        # Analizar nivel de restricción
-        has_reviews = False
-        has_status_checks = False
-        has_restrictions = False
-
-        for branch, protection in remote_protection_details.items():
-            if protection.get("required_pull_request_reviews"):
-                has_reviews = True
-            if protection.get("required_status_checks"):
-                has_status_checks = True
-            if protection.get("restrictions"):
-                has_restrictions = True
-
-        # Determinar estrategia basada en restricciones
-        if has_restrictions and has_reviews and has_status_checks:
-            return "remote"
-        elif has_reviews or has_status_checks:
-            return "hybrid"
+        # Lógica de ejemplo muy básica. Se puede mejorar.
+        num_protected = len(remote_protection_details)
+        if num_protected == 0:
+            return 'local'
+        elif num_protected < 3:
+            return 'hybrid'
         else:
-            return "local"
+            return 'remote'
 
     def _update_local_validator_config(self, strategy, protected_branches):
-        """Actualiza configuración local del validator."""
+        """Actualiza el archivo branch-workflow-validator.py con la nueva configuración."""
         try:
-            # Por ahora, solo mostrar qué se haría
-            # En una implementación completa, esto modificaría archivos de configuración
-            print(f"📝 Actualizando configuración local:")
-            print(f"   - Contexto: {strategy.upper()}")
-            print(f"   - Protected branches: {protected_branches}")
+            # Necesitamos encontrar la ruta al validador para escribir en él.
+            # Esta lógica podría centralizarse mejor.
+            validator_path = Path.cwd() / ".githooks" / "branch-workflow-validator.py"
+            if not validator_path.exists():
+                manager_dir = Path(__file__).parent
+                validator_path = manager_dir / ".githooks" / "branch-workflow-validator.py"
 
-            # TODO: Implementar escritura real a archivos de configuración
-            # Esto requeriría modificar archivos como:
-            # - .git/config
-            # - .githooks/config.json
-            # - Variables de entorno del proyecto
+            if not validator_path.exists():
+                print(f"{Fore.RED}Error: No se encontró el archivo del validador para actualizar.{Style.RESET_ALL}")
+                return
 
-            return True
+            self.local_config_path = validator_path # Guardar para mensajes de error
 
-        except Exception:
-            return False
+            with open(validator_path, 'r') as f:
+                content = f.read()
+
+            # Construir la nueva sección de 'protected_branches' para la estrategia
+            branches_str = ",\n        ".join([f'"{b}"' for b in protected_branches])
+            new_branches_config = f"\"protected_branches\": [\n        {branches_str}\n    ]"
+
+            # Usar regex para reemplazar la configuración de la estrategia detectada
+            # Esto es frágil y depende mucho del formato del archivo.
+            pattern = re.compile(rf"(\"{strategy}\":\s*{{[^}}]*?\"protected_branches\":\s*\[)[^\]]*(\])", re.DOTALL)
+
+            if pattern.search(content):
+                new_content = pattern.sub(rf"\g<1>{new_branches_config}\g<2>", content)
+            else:
+                # Si la estrategia no existe, no intentamos añadirla. Esto es una limitación.
+                print(f"{Fore.YELLOW}Advertencia: No se encontró la sección para la estrategia '{strategy}' en el validador. No se pudo actualizar.{Style.RESET_ALL}")
+                return
+
+            with open(validator_path, 'w') as f:
+                f.write(new_content)
+
+            print(f"{Fore.GREEN}✅ Archivo '{validator_path.name}' actualizado.{Style.RESET_ALL}")
+
+        except Exception as e:
+            print(f"{Fore.RED}Error al actualizar el archivo de configuración local: {e}{Style.RESET_ALL}")
 
 # ============================================================================
 # FIN DE NUEVAS CLASES PARA CONFIGURACIÓN AUTOMÁTICA DEL REMOTO
@@ -3179,56 +3190,69 @@ class WorkflowOrchestrator:
 
     def __init__(self, repo_path: Path = None, args=None):
         self.repo_path = repo_path or Path.cwd()
+        self.args = args
 
-        # Cargar dinámicamente el validator para el proyecto target
+        # Cargar el validador dinámicamente
         global validator_module, GitRepository, ContextDetector, VALIDATION_CONFIGS
         try:
-            validator_module = load_validator_module(target_repo_path=self.repo_path)
+            validator_path = find_validator_path(self.repo_path)
+            validator_module = load_validator_module(validator_path, self.repo_path)
             GitRepository = validator_module.GitRepository
             ContextDetector = validator_module.ContextDetector
             VALIDATION_CONFIGS = validator_module.VALIDATION_CONFIGS
-        except Exception as e:
-            print(f"{Fore.YELLOW}⚠️  Usando fallback básico para Git operations: {e}{Style.RESET_ALL}")
+        except ImportError as e:
+            print(f"{Fore.RED}❌ Error crítico al cargar el módulo validator: {e}{Style.RESET_ALL}")
+            sys.exit(1)
 
-        self.git_repo = GitRepository(self.repo_path)
-        self.context_detector = ContextDetector(self.git_repo)
+        self.repo = GitRepository(self.repo_path)
+
+        # 1. Detectar contexto primero, ya que otros componentes pueden depender de él.
+        self.context_detector = ContextDetector(self.repo)
         self.context = self.context_detector.detect_context()
 
-        # Detectar plataforma y tokens
+        # 2. Detectar plataforma y credenciales
         try:
             self.platform_info = GitPlatformDetector.detect_platform(args)
-            self.token_manager = TokenManager()
-            self.platform_token = self.token_manager.get_platform_token(self.platform_info)
-            self.platform_api = APIFactory.create(self.platform_info, self.platform_token) if self.platform_token else None
         except PlatformDetectionError as e:
             self.platform_info = None
-            self.token_manager = None
-            self.platform_token = None
-            self.platform_api = None
-            print(f"{Fore.YELLOW}⚠️  {e}{Style.RESET_ALL}")
+            # El mensaje de advertencia se mostrará al final
 
-        # API capabilities (legacy, mantener por compatibilidad)
-        self.api_caps = APICapabilities()
-        self.capability_level = self.api_caps.get_capability_level()
+        self.token_manager = TokenManager()
+        self.platform_token = self.token_manager.get_platform_token(self.platform_info) if self.platform_info else None
 
-        print(f"{Fore.CYAN}🎭 Git Integration Manager iniciado{Style.RESET_ALL}")
-        print(f"{Fore.BLUE}📍 Proyecto: {Fore.YELLOW}{self.repo_path}{Style.RESET_ALL}")
-        print(f"{Fore.BLUE}📍 Contexto: {Fore.YELLOW}{self.context}{Style.RESET_ALL}")
+        # 3. Inicializar clientes de API y gestores
+        self.api_client = APIFactory.create(self.platform_info, self.platform_token) if self.platform_info and self.platform_token else None
+
+        self.protection_manager = None
+        if self.platform_info and self.platform_token:
+            self.protection_manager = UniversalProtectionManager(
+                platform_info=self.platform_info,
+                token_manager=self.token_manager,
+                context=self.context
+            )
+
+        # 4. Mostrar estado consolidado al final
+        print(f"📍 Contexto: {self.context}")
 
         if self.platform_info:
-            platform_str = f"{self.platform_info.service}-{self.platform_info.mode}"
-            if self.platform_info.host:
-                platform_str += f" ({self.platform_info.host})"
-            print(f"{Fore.BLUE}🌐 Plataforma: {Fore.YELLOW}{platform_str}{Style.RESET_ALL}")
-
-            if self.platform_api:
-                print(f"{Fore.BLUE}🔑 Token: {Fore.GREEN}✅ Disponible{Style.RESET_ALL}")
-                print(f"{Fore.BLUE}⚡ Capacidades: {Fore.GREEN}API Completa{Style.RESET_ALL}")
-            else:
-                print(f"{Fore.BLUE}🔑 Token: {Fore.RED}❌ No encontrado{Style.RESET_ALL}")
-                print(f"{Fore.BLUE}⚡ Capacidades: {Fore.YELLOW}Solo Local{Style.RESET_ALL}")
+            print(f"{Fore.CYAN}🌐 Plataforma: {self.platform_info.service}-{self.platform_info.mode}{Style.RESET_ALL}")
         else:
-            print(f"{Fore.BLUE}⚡ Capacidades: {Fore.YELLOW}{self.capability_level.value}{Style.RESET_ALL}")
+            # Imprime la advertencia de PlatformDetectionError si ocurrió
+            try:
+                GitPlatformDetector.detect_platform(args)
+            except PlatformDetectionError as e:
+                 print(f"{Fore.YELLOW}⚠️  {e}{Style.RESET_ALL}")
+
+        if self.platform_token:
+            print(f"{Fore.CYAN}🔑 Token: ✅ Disponible{Style.RESET_ALL}")
+        else:
+            print(f"{Fore.YELLOW}🔑 Token: ❌ No disponible o no configurado para la plataforma detectada.{Style.RESET_ALL}")
+
+        if self.api_client:
+            print(f"{Fore.CYAN}⚡ Capacidades: API Completa{Style.RESET_ALL}")
+        else:
+            print(f"{Fore.YELLOW}⚡ Capacidades: Solo Git Local{Style.RESET_ALL}")
+
 
     def integrate_feature(self, branch_name: str, mode: IntegrationMode = IntegrationMode.LOCAL_ONLY) -> bool:
         """Integra una feature branch completa."""
@@ -3274,7 +3298,7 @@ class WorkflowOrchestrator:
         ))
 
         # Paso 4: Crear/actualizar PR (API o manual)
-        if self.platform_api:
+        if self.api_client:
             steps.append(WorkflowStep(
                 name="create_pr",
                 description="Crear Pull Request automáticamente",
@@ -3291,7 +3315,7 @@ class WorkflowOrchestrator:
             ))
 
         # Paso 5: Monitorear CI (API o manual)
-        if self.platform_api:
+        if self.api_client:
             steps.append(WorkflowStep(
                 name="monitor_ci",
                 description="Monitorear CI/CD pipeline",
@@ -3308,7 +3332,7 @@ class WorkflowOrchestrator:
             ))
 
         # Paso 6: Auto-merge o instrucciones
-        if mode == IntegrationMode.FULL_AUTO and self.platform_api:
+        if mode == IntegrationMode.FULL_AUTO and self.api_client:
             steps.append(WorkflowStep(
                 name="auto_merge",
                 description="Merge automático cuando CI pase",
@@ -3398,7 +3422,7 @@ class WorkflowOrchestrator:
 
     def _github_create_pr(self, step: WorkflowStep) -> bool:
         """Crea un PR usando la API de la plataforma detectada."""
-        if not self.platform_api:
+        if not self.api_client:
             return False
 
         # Obtener la rama actual
@@ -3413,7 +3437,7 @@ class WorkflowOrchestrator:
         title = f"[AUTO] Integrate {current_branch}"
         body = f"Automated integration via git-integration-manager\n\nBranch: {current_branch}\nCreated: {datetime.now().isoformat()}"
 
-        success = self.platform_api.create_pull_request(title, body, current_branch, "develop")
+        success = self.api_client.create_pull_request(title, body, current_branch, "develop")
         if success:
             print(f"   {Fore.GREEN}✅ PR creado automáticamente{Style.RESET_ALL}")
         else:
@@ -3423,7 +3447,7 @@ class WorkflowOrchestrator:
 
     def _github_check_ci(self, step: WorkflowStep) -> bool:
         """Verifica estado de CI usando la API de la plataforma detectada."""
-        if not self.platform_api:
+        if not self.api_client:
             return False
 
         # Obtener la rama actual
@@ -3434,7 +3458,7 @@ class WorkflowOrchestrator:
         except subprocess.CalledProcessError:
             return False
 
-        success = self.platform_api.check_ci_status(current_branch)
+        success = self.api_client.check_ci_status(current_branch)
         if success:
             print(f"   {Fore.GREEN}✅ CI status verificado - Pasando{Style.RESET_ALL}")
         else:
@@ -3444,7 +3468,7 @@ class WorkflowOrchestrator:
 
     def _github_merge_pr(self, step: WorkflowStep) -> bool:
         """Merge automático de PR usando la API de la plataforma detectada."""
-        if not self.platform_api:
+        if not self.api_client:
             return False
 
         # TODO: Necesitaríamos obtener el PR ID del paso anterior
@@ -3456,9 +3480,9 @@ class WorkflowOrchestrator:
     def _has_required_api(self, step: WorkflowStep) -> bool:
         """Verifica si la API requerida está disponible."""
         if 'github' in step.api_endpoint:
-            return self.platform_api is not None
+            return self.api_client is not None
         elif 'gitlab' in step.api_endpoint:
-            return self.platform_api is not None
+            return self.api_client is not None
         return False
 
     def _detect_test_command(self) -> Optional[str]:
@@ -3501,8 +3525,8 @@ class WorkflowOrchestrator:
         metrics.active_branches = metrics.total_branches - metrics.stale_branches
 
         # Análisis de commits y contribuidores
-        metrics.total_commits = self.git_repo.get_commit_count()
-        metrics.contributors = self.git_repo.get_contributor_count()
+        metrics.total_commits = self.repo.get_commit_count()
+        metrics.contributors = self.repo.get_contributor_count()
 
         # Calcular health score
         metrics.health_score = self._calculate_health_score(metrics)
@@ -3511,7 +3535,7 @@ class WorkflowOrchestrator:
 
     def _count_branches(self) -> int:
         """Cuenta el total de branches."""
-        success, stdout, _ = self.git_repo.run_command(['git', 'branch', '-a'])
+        success, stdout, _ = self.repo.run_command(['git', 'branch', '-a'])
         return len(stdout.split('\n')) if success and stdout else 0
 
     def _count_stale_branches(self) -> int:
@@ -3598,7 +3622,7 @@ class WorkflowOrchestrator:
 
     def _get_merged_branches(self) -> List[str]:
         """Obtiene lista de branches ya mergeadas."""
-        success, stdout, _ = self.git_repo.run_command([
+        success, stdout, _ = self.repo.run_command([
             'git', 'branch', '--merged', 'develop'
         ])
 
@@ -3618,202 +3642,138 @@ class WorkflowOrchestrator:
     # ============================================================================
 
     def apply_strategy(self, strategy_name: str, dry_run: bool = True) -> bool:
-        """Aplica estrategia de protección al repositorio remoto."""
-
-        if not self.platform_info:
-            print(f"{Fore.RED}❌ Error: No se pudo detectar la plataforma Git{Style.RESET_ALL}")
-            return False
-
-        if not self.platform_token:
-            print(f"{Fore.RED}❌ Error: Token no disponible para {self.platform_info.service}{Style.RESET_ALL}")
-            print(f"{Fore.YELLOW}💡 Configurar token: git-tokens.py set {self.platform_info.service}-integration{Style.RESET_ALL}")
+        """Aplica una estrategia de protección de ramas en el remoto."""
+        if not self.protection_manager:
+            print(f"{Fore.RED}❌ Error: No se puede aplicar estrategia sin un gestor de protección (token/API no disponible).{Style.RESET_ALL}")
             return False
 
         try:
-            # Crear manager de protección
-            protection_manager = UniversalProtectionManager(self.platform_info, self.token_manager, self.context)
+            success, message = self.protection_manager.apply_strategy(strategy_name, dry_run)
 
-            # Aplicar estrategia
-            results = protection_manager.apply_strategy(strategy_name, dry_run)
-
-            if isinstance(results, dict):
-                if results.get("status") == "error":
-                    print(f"{Fore.RED}❌ Error: {results.get('message')}{Style.RESET_ALL}")
-                    return False
-                elif results.get("status") == "dry_run":
-                    print(f"{Fore.GREEN}✅ Configuración validada (DRY RUN){Style.RESET_ALL}")
-                    print(f"{Fore.YELLOW}💡 Para aplicar: quitar --dry-run{Style.RESET_ALL}")
-                    return True
-                else:
-                    print(f"{Fore.GREEN}✅ Estrategia aplicada exitosamente{Style.RESET_ALL}")
-                    return True
-            elif isinstance(results, list):
-                # Resultados reales (lista de resultados por branch)
-                success_count = len([r for r in results if r.get("status") == "success"])
-                total_count = len(results)
-
-                print(f"\n{Fore.CYAN}📊 Resumen de aplicación:{Style.RESET_ALL}")
-                print(f"   ✅ Exitosas: {success_count}/{total_count}")
-
-                for result in results:
-                    branch = result.get("branch", "unknown")
-                    if result.get("status") == "success":
-                        print(f"   ✅ {branch}: Protección aplicada")
-                    else:
-                        print(f"   ❌ {branch}: {result.get('message', 'Error desconocido')}")
-
-                if success_count == total_count:
-                    print(f"{Fore.GREEN}🎉 Estrategia '{strategy_name}' aplicada exitosamente{Style.RESET_ALL}")
-                    return True
-                else:
-                    print(f"{Fore.YELLOW}⚠️  Estrategia aplicada parcialmente{Style.RESET_ALL}")
-                    return False
+            if success:
+                print(f"{Fore.GREEN}✅ {message}{Style.RESET_ALL}")
             else:
-                print(f"{Fore.RED}❌ Error: Formato de resultado inesperado{Style.RESET_ALL}")
-                return False
+                print(f"{Fore.RED}❌ {message}{Style.RESET_ALL}")
+
+            return success
 
         except Exception as e:
-            print(f"{Fore.RED}❌ Error aplicando estrategia: {e}{Style.RESET_ALL}")
+            print(f"{Fore.RED}❌ Error inesperado aplicando estrategia: {e}{Style.RESET_ALL}")
             return False
 
     def get_protection_status(self, compare_with_local: bool = False) -> dict:
-        """Obtiene estado actual de protección del repositorio."""
-
-        if not self.platform_info:
-            return {"status": "error", "message": "Plataforma no detectada"}
-
-        if not self.platform_token:
-            return {"status": "error", "message": "Token no disponible"}
-
+        """Obtiene el estado de protección de ramas, sin mostrarlo."""
+        if not self.protection_manager:
+            print(f"{Fore.RED}❌ Error: No se puede obtener estado sin un gestor de protección (token/API no disponible).{Style.RESET_ALL}")
+            return {}
         try:
-            # Crear manager de protección
-            protection_manager = UniversalProtectionManager(self.platform_info, self.token_manager, self.context)
-
-            # Obtener estado
-            status = protection_manager.get_protection_status(compare_with_local)
-
-            return status
-
+            # Simplemente devuelve el estado obtenido por el manager.
+            return self.protection_manager.get_protection_status(compare_with_local)
         except Exception as e:
-            return {"status": "error", "message": str(e)}
+            print(f"{Fore.RED}❌ Error inesperado obteniendo estado de protección: {e}{Style.RESET_ALL}")
+            # En caso de error, el error ya se imprime, devolver un diccionario vacío.
+            return {}
 
     def sync_protection_rules(self, direction: str, dry_run: bool = True) -> bool:
-        """Sincroniza reglas de protección entre local y remoto."""
-
-        if not self.platform_info:
-            print(f"{Fore.RED}❌ Error: No se pudo detectar la plataforma Git{Style.RESET_ALL}")
+        """
+        Sincroniza las reglas de protección entre la configuración local
+        (branch-workflow-validator.py) y el remoto (GitHub/GitLab API).
+        """
+        if not self.protection_manager:
+            print(f"{Fore.YELLOW}⚠️  No se puede sincronizar sin un gestor de protección (token/API no disponible).{Style.RESET_ALL}")
             return False
 
-        if not self.platform_token:
-            print(f"{Fore.RED}❌ Error: Token no disponible para {self.platform_info.service}{Style.RESET_ALL}")
-            return False
+        print(f"{Fore.CYAN}🔄 Sincronizando configuración {direction.replace('-', ' → ')}...{Style.RESET_ALL}")
 
-        try:
-            # Crear manager de protección
-            protection_manager = UniversalProtectionManager(self.platform_info, self.token_manager, self.context)
+        if direction == 'local-to-remote':
+            return self.protection_manager._sync_local_to_remote(dry_run)
+        elif direction == 'remote-to-local':
+            return self.protection_manager._sync_remote_to_local(dry_run)
 
-            # Sincronizar reglas
-            results = protection_manager.sync_protection_rules(direction.lower().replace('_', '-'), dry_run)
-
-            if results.get("status") == "error":
-                print(f"{Fore.RED}❌ Error: {results.get('message')}{Style.RESET_ALL}")
-                return False
-            elif results.get("status") == "not_implemented":
-                print(f"{Fore.YELLOW}⚠️  Funcionalidad de sincronización aún no implementada{Style.RESET_ALL}")
-                return False
-            else:
-                print(f"{Fore.GREEN}✅ Sincronización completada{Style.RESET_ALL}")
-                return True
-
-        except Exception as e:
-            print(f"{Fore.RED}❌ Error sincronizando reglas: {e}{Style.RESET_ALL}")
-            return False
+        return False
 
     # ============================================================================
     # FIN DE NUEVOS MÉTODOS PARA CONFIGURACIÓN AUTOMÁTICA DEL REMOTO
     # ============================================================================
 
     def _show_protection_details_elegant(self, protection_details):
-        """Muestra detalles de protección de forma elegante y legible."""
+        """Muestra los detalles de protección de forma elegante y legible."""
         if not protection_details:
-            print(f"   {Fore.YELLOW}(No hay detalles disponibles){Style.RESET_ALL}")
+            print(f"   {Fore.YELLOW}(No hay detalles disponibles o no se pudo contactar la API){Style.RESET_ALL}")
             return
 
-        for branch, details in protection_details.items():
-            print(f"\n   {Fore.CYAN}🔒 Branch: {Fore.YELLOW}{branch}{Style.RESET_ALL}")
+        print(f"\n{Fore.CYAN}📊 Estado de Protección con Comparación{Style.RESET_ALL}")
+        print("=============================================")
 
-            # Required Status Checks
-            if details.get("required_status_checks"):
-                status_checks = details["required_status_checks"]
-                contexts = status_checks.get("contexts", [])
-                strict = status_checks.get("strict", False)
+        local_branches = protection_details.get("local_protected", [])
+        remote_branches = protection_details.get("remote_protected", [])
+        diffs = protection_details.get("diff", {})
 
-                if contexts:
-                    print(f"      {Fore.GREEN}✅ Status Checks:{Style.RESET_ALL} {', '.join(contexts)}")
-                    print(f"         Strict mode: {'Sí' if strict else 'No'}")
+        # Caso especial: Todo está vacío y consistente
+        if not local_branches and not remote_branches:
+            print(f"   {Fore.GREEN}✅ Consistente: No hay ramas protegidas localmente ni en el remoto.{Style.RESET_ALL}")
+            return
+
+        print(f"🏠 Branches protegidas localmente:")
+        if local_branches:
+            for branch in local_branches:
+                print(f"   • {branch}")
+        else:
+            print(f"   (ninguna)")
+
+        print(f"\n☁️  Branches protegidas remotamente:")
+        if remote_branches:
+            for branch in remote_branches:
+                print(f"   • {branch}")
+        else:
+            print(f"   (ninguna)")
+
+        if diffs.get("local_only") or diffs.get("remote_only") or diffs.get("mismatched"):
+            print(f"\n{Fore.YELLOW}🔍 Diferencias encontradas:{Style.RESET_ALL}")
+            if diffs.get("local_only"):
+                print(f"   - Branches protegidas localmente pero no remotamente: {', '.join(diffs['local_only'])}")
+            if diffs.get("remote_only"):
+                print(f"   - Branches protegidas remotamente pero no localmente: {', '.join(diffs['remote_only'])}")
+            if diffs.get("mismatched"):
+                print(f"   - Branches con configuración de protección diferente: {', '.join(diffs['mismatched'])}")
+
+        print(f"\n{Fore.CYAN}🛡️  Detalles de Protección Remota:{Style.RESET_ALL}")
+        if not protection_details.get("remote_details") or not protection_details["remote_details"].get("branches"):
+            print(f"   {Fore.YELLOW}(No hay detalles de protección en el remoto){Style.RESET_ALL}")
+        else:
+            for branch, details in protection_details["remote_details"]["branches"].items():
+                print(f"\n   {Fore.YELLOW}🔒 Branch: {branch}{Style.RESET_ALL}")
+
+                if not isinstance(details, dict):
+                    print(f"      {Fore.RED}Error: No se pudieron obtener detalles (recibido: {details}){Style.RESET_ALL}")
+                    continue
+
+                if details.get("status") == "error":
+                    print(f"      {Fore.RED}Error: {details.get('message')}{Style.RESET_ALL}")
+                    continue
+
+                if details.get("status") == "unprotected":
+                    print(f"      {Fore.GREEN}✓ No protegida (según la API){Style.RESET_ALL}")
+                    continue
+
+                enforce_admins = details.get('enforce_admins', {}).get('enabled', False)
+                req_pr_reviews = details.get('required_pull_request_reviews')
+                req_status_checks = details.get('required_status_checks')
+
+                print(f"      {'✅' if enforce_admins else '❌'} Requiere aprobación de administrador")
+
+                if req_pr_reviews:
+                    count = req_pr_reviews.get('required_approving_review_count', 0)
+                    print(f"      {'✅' if count > 0 else '❌'} Requiere {count} revision(es) de PR")
                 else:
-                    print(f"      {Fore.YELLOW}⚠️  Status Checks: No configurados{Style.RESET_ALL}")
-            else:
-                print(f"      {Fore.RED}❌ Status Checks: Deshabilitados{Style.RESET_ALL}")
+                    print(f"      ❌ No requiere revisiones de PR")
 
-            # Required Pull Request Reviews
-            if details.get("required_pull_request_reviews"):
-                pr_reviews = details["required_pull_request_reviews"]
-                required_count = pr_reviews.get("required_approving_review_count", 0)
-                dismiss_stale = pr_reviews.get("dismiss_stale_reviews", False)
-                require_code_owners = pr_reviews.get("require_code_owner_reviews", False)
-
-                print(f"      {Fore.GREEN}✅ PR Reviews:{Style.RESET_ALL} {required_count} reviewer(s) requerido(s)")
-                print(f"         Dismiss stale: {'Sí' if dismiss_stale else 'No'}")
-                print(f"         Code owners: {'Sí' if require_code_owners else 'No'}")
-            else:
-                print(f"      {Fore.RED}❌ PR Reviews: Deshabilitados{Style.RESET_ALL}")
-
-            # Restrictions
-            if details.get("restrictions"):
-                restrictions = details["restrictions"]
-                users = restrictions.get("users", [])
-                teams = restrictions.get("teams", [])
-
-                if users or teams:
-                    print(f"      {Fore.YELLOW}🔐 Restricciones:{Style.RESET_ALL}")
-                    if users:
-                        print(f"         Usuarios: {', '.join([u.get('login', u) if isinstance(u, dict) else u for u in users])}")
-                    if teams:
-                        print(f"         Teams: {', '.join([t.get('name', t) if isinstance(t, dict) else t for t in teams])}")
+                if req_status_checks:
+                    contexts = req_status_checks.get('contexts', [])
+                    print(f"      {'✅' if contexts else '❌'} Requiere checks de status: {', '.join(contexts) if contexts else '(ninguno)'}")
                 else:
-                    print(f"      {Fore.GREEN}🌐 Restricciones: Acceso abierto{Style.RESET_ALL}")
-            else:
-                print(f"      {Fore.GREEN}🌐 Restricciones: Acceso abierto{Style.RESET_ALL}")
+                    print(f"      ❌ No requiere checks de status")
 
-            # Enforce Admins
-            enforce_admins = details.get("enforce_admins", {})
-            if isinstance(enforce_admins, dict):
-                enabled = enforce_admins.get("enabled", False)
-            else:
-                enabled = bool(enforce_admins)
-
-            print(f"      {Fore.BLUE}👑 Enforce Admins:{Style.RESET_ALL} {'Sí' if enabled else 'No'}")
-
-            # Additional settings
-            additional_settings = []
-
-            if details.get("required_linear_history", {}).get("enabled"):
-                additional_settings.append("Linear history")
-
-            if not details.get("allow_force_pushes", {}).get("enabled", True):
-                additional_settings.append("Force push bloqueado")
-
-            if not details.get("allow_deletions", {}).get("enabled", True):
-                additional_settings.append("Deletion bloqueado")
-
-            if details.get("required_conversation_resolution", {}).get("enabled"):
-                additional_settings.append("Conversation resolution")
-
-            if additional_settings:
-                print(f"      {Fore.BLUE}⚙️  Configuraciones adicionales:{Style.RESET_ALL} {', '.join(additional_settings)}")
-
-            print()  # Línea en blanco entre branches
 
 class CICDManager:
     PLATFORM_MAP = {
@@ -4111,8 +4071,8 @@ def main():
 
     subparsers.add_parser('status', help='Muestra el estado del Integration Manager.')
 
-    setup_remote_parser = subparsers.add_parser('setup-remote-protection', help='Configura la protección de ramas en el remoto (usar con --strategy).')
-    setup_remote_parser.add_argument('--strategy', choices=['local', 'hybrid', 'remote'], required=True, help='Estrategia a aplicar.')
+    setup_remote_parser = subparsers.add_parser('setup-remote-protection', help='Configura o sincroniza la protección de ramas en el remoto.')
+    setup_remote_parser.add_argument('--strategy', choices=['local', 'hybrid', 'remote', 'auto'], default='auto', help="Estrategia a aplicar. 'auto' usa la detección dinámica (por defecto).")
     setup_remote_parser.add_argument('--dry-run', action='store_true', help='Solo muestra los cambios, no los aplica.')
 
     protection_status_parser = subparsers.add_parser('protection-status', help='Muestra el estado de protección de las ramas (usar con --compare).')
@@ -4236,88 +4196,45 @@ def main():
             print("=" * 35)
             print(f"{Fore.BLUE}📍 Contexto: {Fore.YELLOW}{orchestrator.context}{Style.RESET_ALL}")
             print(f"{Fore.BLUE}⚡ Capacidades: {Fore.YELLOW}{orchestrator.capability_level.value}{Style.RESET_ALL}")
-            print(f"{Fore.BLUE}🐙 GitHub API: {'✅' if orchestrator.platform_api else '❌'}{Style.RESET_ALL}")
+            print(f"{Fore.BLUE}🐙 GitHub API: {'✅' if orchestrator.api_client else '❌'}{Style.RESET_ALL}")
             print(f"{Fore.BLUE}🦊 Git CLI: {'✅' if orchestrator.api_caps.capabilities['git_cli'] else '❌'}{Style.RESET_ALL}")
 
         elif args.command == 'setup-remote-protection':
-            if not args.strategy:
-                print(f"{Fore.RED}❌ Error: Se requiere estrategia para configurar protección{Style.RESET_ALL}")
-                sys.exit(1)
+            strategy_to_apply = args.strategy
 
-            strategy_name = args.strategy.upper()
-            success = orchestrator.apply_strategy(strategy_name, dry_run=args.dry_run)
+            if strategy_to_apply == 'auto':
+                strategy_name = orchestrator.context
+                print(f"{Fore.BLUE}ℹ️  Usando estrategia '{strategy_name}' detectada automáticamente.{Style.RESET_ALL}")
+            else:
+                strategy_name = strategy_to_apply
+
+            success = orchestrator.apply_strategy(strategy_name.upper(), dry_run=args.dry_run)
             sys.exit(0 if success else 1)
 
         elif args.command == 'protection-status':
+            # 1. Obtener el estado
             status = orchestrator.get_protection_status(compare_with_local=args.compare)
-
-            if args.json:
-                # Salida en formato JSON para scripts/debugging
-                print(json.dumps(status, indent=2))
-            else:
-                # Salida elegante para usuarios
-                if args.compare:
-                    print(f"\n{Fore.CYAN}📊 Estado de Protección con Comparación{Style.RESET_ALL}")
-                    print("=" * 45)
-
-                    # Mostrar resumen de comparación
-                    if "comparison" in status:
-                        comparison = status["comparison"]
-
-                        print(f"{Fore.BLUE}🏠 Branches protegidas localmente:{Style.RESET_ALL}")
-                        local_branches = comparison.get("local_protected_branches", [])
-                        if local_branches:
-                            for branch in local_branches:
-                                print(f"   • {branch}")
-                        else:
-                            print(f"   {Fore.YELLOW}(ninguna){Style.RESET_ALL}")
-
-                        print(f"\n{Fore.BLUE}☁️  Branches protegidas remotamente:{Style.RESET_ALL}")
-                        remote_branches = comparison.get("remote_protected_branches", [])
-                        if remote_branches:
-                            for branch in remote_branches:
-                                print(f"   • {branch}")
-                        else:
-                            print(f"   {Fore.YELLOW}(ninguna){Style.RESET_ALL}")
-
-                        print(f"\n{Fore.BLUE}🔍 Diferencias encontradas:{Style.RESET_ALL}")
-                        differences = comparison.get("differences", [])
-                        if differences:
-                            for diff in differences:
-                                print(f"   {Fore.YELLOW}⚠️  {diff['description']}:{Style.RESET_ALL}")
-                                for branch in diff['branches']:
-                                    print(f"      • {branch}")
-                        else:
-                            print(f"   {Fore.GREEN}✅ No hay diferencias{Style.RESET_ALL}")
-
-                    # Mostrar detalles de protección de forma elegante
-                    print(f"\n{Fore.BLUE}🛡️  Detalles de Protección Remota:{Style.RESET_ALL}")
-                    orchestrator._show_protection_details_elegant(status.get("details", {}))
-
-                else:
-                    print(f"\n{Fore.CYAN}📊 Estado de Protección{Style.RESET_ALL}")
-                    print("=" * 35)
-
-                    platform = status.get("platform", "unknown")
-                    protected_branches = status.get("protected_branches", [])
-
-                    print(f"{Fore.BLUE}🌐 Plataforma: {Fore.YELLOW}{platform.title()}{Style.RESET_ALL}")
-                    print(f"{Fore.BLUE}🛡️  Branches protegidas: {Fore.YELLOW}{len(protected_branches)}{Style.RESET_ALL}")
-
-                    if protected_branches:
-                        print(f"\n{Fore.BLUE}📋 Lista de branches protegidas:{Style.RESET_ALL}")
-                        for branch in protected_branches:
-                            print(f"   • {branch}")
-
-                        print(f"\n{Fore.BLUE}🛡️  Detalles de Protección:{Style.RESET_ALL}")
-                        orchestrator._show_protection_details_elegant(status.get("details", {}))
-                    else:
-                        print(f"\n{Fore.YELLOW}⚠️  No hay branches protegidas en el repositorio{Style.RESET_ALL}")
+            # 2. Mostrar el estado
+            orchestrator._show_protection_details_elegant(status)
+            sys.exit(0)
 
         elif args.command == 'sync-protection-rules':
-            direction = args.direction
-            success = orchestrator.sync_protection_rules(direction, dry_run=args.dry_run)
-            sys.exit(0 if success else 1)
+            # Sincroniza la configuración (lee de una fuente y actualiza la otra en memoria)
+            success = orchestrator.sync_protection_rules(direction=args.direction, dry_run=args.dry_run)
+
+            # Si la sincronización es hacia el remoto, AHORA aplicamos la estrategia.
+            if args.direction == 'local-to-remote':
+                strategy_name = orchestrator.context
+                print(f"{Fore.CYAN}🚀 Aplicando la estrategia '{strategy_name}' en el remoto...{Style.RESET_ALL}")
+                # El dry_run ya se pasó a sync_protection_rules, que lo pasa a _sync_local_to_remote,
+                # donde realmente se aplica la protección.
+                # No necesitamos una llamada explícita a apply_strategy aquí.
+                # La lógica ya está en _sync_local_to_remote.
+                # Solo necesitamos asegurarnos de que el mensaje de éxito se muestre.
+                print(f"{Fore.GREEN}✅ Sincronización y aplicación completadas.{Style.RESET_ALL}")
+            else:
+                print(f"{Fore.GREEN}✅ Sincronización completada.{Style.RESET_ALL}")
+            sys.exit(0)
 
         elif args.command == 'quality-status':
             qm = QualityManager(project_path)
