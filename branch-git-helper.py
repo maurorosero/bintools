@@ -768,9 +768,8 @@ class BranchHelper:
 
         print(f"{Fore.GREEN}✅ Rama '{full_branch_name}' creada exitosamente{Style.RESET_ALL}")
 
-        # Configurar upstream si es necesario
-        config = context_info['config']
-        if config['auto_push'] and context_info['remotes'] > 0 and not options.get('no_push', False):
+        # Configurar upstream si es necesario, basado en la existencia de un remoto y la opción --no-remote
+        if context_info['remotes'] > 0 and not options.get('no_remote', False):
             print(f"{Fore.CYAN}📤 Configurando upstream y haciendo push inicial...{Style.RESET_ALL}")
             success, _, error = self.git_repo.run_command(["git", "push", "-u", "origin", full_branch_name])
             if success:
@@ -1196,7 +1195,7 @@ Ejemplos de uso:
   %(prog)s chore "actualizar-deps"           # Crear rama de mantenimiento
 
   # Opciones para creación de ramas
-  %(prog)s feature "login" --no-push         # Crear sin push automático
+  %(prog)s feature "login" --no-remote       # Crear sin configurar el upstream remoto
   %(prog)s fix "bug" --no-sync               # Crear sin sincronizar con remoto
   %(prog)s -p ../mi-proyecto feature "login" # Crear en otro proyecto
 
@@ -1288,9 +1287,9 @@ Notas:
                 help='Descripción de la rama.'
             )
             create_parser.add_argument(
-                '--no-push',
+                '--no-remote',
                 action='store_true',
-                help='No hacer push automático al remoto al crear la rama.'
+                help='No configurar el seguimiento remoto (upstream) aunque exista un remoto.'
             )
             create_parser.add_argument(
                 '--no-sync',
@@ -1340,7 +1339,7 @@ Notas:
         elif args.action in BRANCH_TYPES.keys():
             # Logic for branch creation commands (feature, fix, etc.)
             options = {
-                'no_push': args.no_push,
+                'no_remote': args.no_remote,
                 'no_sync': args.no_sync
             }
             success = branch_helper.create_branch(args.action, args.description, options)
