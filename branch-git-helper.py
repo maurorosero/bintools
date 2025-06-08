@@ -224,6 +224,28 @@ class GitRepository:
         success, stdout, _ = self.run_command(["git", "status", "--porcelain"])
         return bool(stdout.strip()) if success else False
 
+    def has_upstream_tracking(self, branch_name: str = None) -> bool:
+        """Verifica si una rama tiene upstream tracking configurado."""
+        branch = branch_name or self.get_current_branch()
+        if not branch:
+            return False
+        success, _, _ = self.run_command(
+            ["git", "rev-parse", "--abbrev-ref", f"{branch}@{{upstream}}"],
+            check=False
+        )
+        return success
+
+    def is_branch_ahead_of(self, branch1: str, branch2: str) -> bool:
+        """Verifica si branch1 está adelante de branch2."""
+        success, stdout, _ = self.run_command(
+            ["git", "rev-list", "--count", f"{branch2}..{branch1}"],
+            check=False
+        )
+        try:
+            return int(stdout) > 0 if success else False
+        except (ValueError, TypeError):
+            return False
+
     def detect_ci_presence(self) -> bool:
         """Detecta la presencia de archivos CI/CD."""
         ci_indicators = [
@@ -239,6 +261,22 @@ class GitRepository:
             if (self.repo_path / indicator).exists():
                 return True
         return False
+
+    def get_last_commit_author(self, branch_name: str = None) -> Optional[str]:
+        """Obtiene el autor del último commit en una rama."""
+        branch = branch_name or self.get_current_branch()
+        if not branch:
+            return None
+        success, stdout, _ = self.run_command(["git", "log", "-1", f"--format=%an", branch])
+        return stdout if success else None
+
+    def get_last_commit_date(self, branch_name: str = None) -> Optional[str]:
+        """Obtiene la fecha relativa del último commit en una rama."""
+        branch = branch_name or self.get_current_branch()
+        if not branch:
+            return None
+        success, stdout, _ = self.run_command(["git", "log", "-1", f"--format=%ar", branch])
+        return stdout if success else None
 
     def get_branch_state(self, branch_name: str = None) -> Optional[str]:
         """
@@ -388,85 +426,54 @@ class GitRepository:
         return True
 
     def get_branch_info(self, branch_name: str = None) -> Dict:
-        """
-        Obtiene información detallada de una rama, incluyendo su estado funcional.
-
-        Args:
-            branch_name: Nombre de la rama. Si es None, usa la rama actual.
-
-        Returns:
-            Dict con información de la rama:
-            {
-                "name": str,
-                "state": str,  # "WIP", "MERGED", o "DELETED"
-                "type": str,   # tipo de branch (feature, fix, etc.)
-                "base": str,   # rama base
-                "last_commit": str,  # último commit
-                "last_commit_date": str,  # fecha del último commit
-                "unique_commits": int,  # número de commits únicos
-                "tags": List[str]  # tags de estado asociados a la rama
-            }
-        """
+        """Obtiene un diccionario completo con información de la rama."""
         branch = branch_name or self.get_current_branch()
         if not branch:
-            return None
+            return {"error": "No se pudo determinar la rama actual"}
+
+        branch_type = branch.split('/')[0] if '/' in branch else 'uncategorized'
+
+        # Determinar la rama base
+        base_branch = None
+        if branch_type in BRANCH_TYPES:
+            for base in BRANCH_TYPES[branch_type]["base_branch_priority"]:
+                if self.branch_exists(base):
+                    base_branch = base
+                    break
+
+        if not base_branch:
+            for base in ["develop", "main", "master"]:
+                if self.branch_exists(base):
+                    base_branch = base
+                    break
+
+        # Calcular commits únicos contra la rama base
+        unique_commits = 0
+        if base_branch:
+            success, stdout, _ = self.run_command(
+                ["git", "rev-list", "--count", f"{base_branch}..{branch}"],
+                check=False
+            )
+            if success and stdout.isdigit():
+                unique_commits = int(stdout)
 
         info = {
             "name": branch,
-            "state": self.get_branch_state(branch), # Usar el nuevo método
-            "type": branch.split('/')[0] if '/' in branch else None,
-            "base": None,
-            "last_commit": None,
-            "last_commit_date": None,
-            "unique_commits": 0,
-            "tags": []
+            "type": branch_type,
+            "base": base_branch,
+            "state": self.get_branch_state(branch),
+            "last_commit_author": self.get_last_commit_author(branch),
+            "last_commit_date": self.get_last_commit_date(branch),
+            "has_upstream": self.has_upstream_tracking(branch),
+            "is_ahead": self.is_branch_ahead_of(branch, "origin/" + branch) if self.has_upstream_tracking(branch) else False,
+            "is_behind": self.is_branch_ahead_of("origin/" + branch, branch) if self.has_upstream_tracking(branch) else False,
+            "contributors": self.get_contributor_count(),
+            "unique_commits": unique_commits
         }
-
-        # Obtener tags de estado asociados
-        success, stdout, _ = self.run_command(["git", "tag", "-l", f"merged-{branch}", f"deleted-{branch}"])
-        if success and stdout:
-            info["tags"] = stdout.split()
-
-        # Obtener rama base
-        if info["type"] in BRANCH_TYPES:
-            for base in BRANCH_TYPES[info["type"]]["base_branch_priority"]:
-                if self.branch_exists(base):
-                    info["base"] = base
-                    break
-
-        if not info["base"]:
-            for base in ["main", "master"]:
-                if self.branch_exists(base):
-                    info["base"] = base
-                    break
-
-        # Obtener último commit
-        success, stdout, _ = self.run_command([
-            "git", "log", "-1", "--format=%H|%ai", branch
-        ])
-        if success and stdout:
-            commit_hash, commit_date = stdout.split('|')
-            info["last_commit"] = commit_hash
-            info["last_commit_date"] = commit_date
-
-        # Obtener número de commits únicos
-        if info["base"]:
-            success, stdout, _ = self.run_command([
-                "git", "rev-list", "--left-right", "--count",
-                f"{info['base']}...{branch}"
-            ])
-            if success and stdout:
-                try:
-                    _, unique_commits = map(int, stdout.split())
-                    info["unique_commits"] = unique_commits
-                except (ValueError, IndexError):
-                    pass
-
         return info
 
     def sync_branch_states(self, dry_run: bool = False) -> Dict[str, List[str]]:
-        """
-        Sincroniza los estados de las ramas entre local y remoto.
+        """Sincroniza el estado de las branches (WIP, MERGED) entre local y remoto.
 
         Args:
             dry_run: Si es True, solo muestra las acciones que se realizarían sin ejecutarlas
@@ -595,34 +602,31 @@ class ContextDetector:
         else:
             return "HYBRID"
 
-    def get_context_info(self, context: str) -> Dict:
-        """Obtiene información detallada del contexto detectado."""
-        sys.stdout.write(f"[DEBUG ContextDetector.get_context_info] Context received: {context}\n")
-        contributors = self.git_repo.get_contributor_count()
-        commits = self.git_repo.get_commit_count()
-        remotes = self.git_repo.get_remote_count()
-        has_ci = self.git_repo.detect_ci_presence()
+    def get_context_info(self, context: Optional[str] = None) -> Dict[str, any]:
+        """Obtiene la configuración completa para un contexto dado, incluyendo datos dinámicos."""
+        if not context:
+            context = self.detect_context()
 
-        config_to_use = {}
         try:
-            config_to_use = CONTEXT_CONFIGS[context]
-            sys.stdout.write(f"[DEBUG ContextDetector.get_context_info] Using config for {context}: {config_to_use}\n")
-        except KeyError as e:
-            sys.stderr.write(f"[DEBUG ContextDetector.get_context_info] KeyError getting config for context {context}: {e}\n")
-            sys.stderr.write("[DEBUG ContextDetector.get_context_info] Defaulting to LOCAL config.\n")
-            config_to_use = CONTEXT_CONFIGS["LOCAL"]
+            # Obtener la configuración estática
+            static_config = CONTEXT_CONFIGS[context].copy()
+        except KeyError:
+            # Fallback a LOCAL si el contexto no se encuentra
+            static_config = CONTEXT_CONFIGS.get("LOCAL", {}).copy()
 
-        return {
-            "context": context,
-            "contributors": contributors,
-            "commits": commits,
-            "remotes": remotes,
-            "has_ci": has_ci,
-            "config": config_to_use
+        # Construir el diccionario de retorno combinando datos dinámicos y estáticos
+        full_info = {
+            'contributors': self.git_repo.get_contributor_count(),
+            'commits': self.git_repo.get_commit_count(),
+            'remotes': self.git_repo.get_remote_count(),
+            'has_ci': self.git_repo.detect_ci_presence(),
+            'config': static_config  # Anidar la configuración estática para mantener compatibilidad
         }
 
+        return full_info
+
     def force_context(self, context: str):
-        """Forza el contexto actual a uno específico."""
+        """Fuerza un contexto específico para el resto de la sesión."""
         self.git_repo.run_command(["git", "notes", "add", "-m", f"forced_context:{context}", "HEAD"])
         print(f"{Fore.GREEN}✅ Contexto forzado a '{context}'{Style.RESET_ALL}")
 
@@ -806,14 +810,11 @@ class BranchHelper:
 
         # Verificar que no estamos en una rama protegida (main/master)
         detected_context = self.context_detector.detect_context()
-        sys.stdout.write(f"[DEBUG mark_branch_state] Detected context: {detected_context}\n")
         context_info = self.context_detector.get_context_info(detected_context)
-        sys.stdout.write(f"[DEBUG mark_branch_state] Context info: {context_info}\n")
 
         protected_branches = []
         try:
             protected_branches = context_info['config']['protected_branches']
-            sys.stdout.write(f"[DEBUG mark_branch_state] Protected branches: {protected_branches}\n")
         except KeyError as e:
             sys.stderr.write(f"{Fore.YELLOW}⚠️  Advertencia: Error al acceder a 'protected_branches' en la configuración del contexto '{detected_context}': {e}. Asumiendo lista vacía.\n{Style.RESET_ALL}")
             protected_branches = []
@@ -1102,14 +1103,17 @@ def show_status(repo_path: Path = None):
                     print(f"{Fore.BLUE}🕒 Último commit: {Fore.YELLOW}{branch_info['last_commit_date']}{Style.RESET_ALL}")
 
         print(f"{Fore.BLUE}🎯 Contexto: {Fore.YELLOW}{context}{Style.RESET_ALL}")
-        print(f"{Fore.BLUE}👥 Contribuidores: {context_info['contributors']}{Style.RESET_ALL}")
-        print(f"{Fore.BLUE}📝 Commits totales: {context_info['commits']}{Style.RESET_ALL}")
-        print(f"{Fore.BLUE}🔗 Remotos: {context_info['remotes']}{Style.RESET_ALL}")
-        print(f"{Fore.BLUE}🤖 CI/CD: {'Sí' if context_info['has_ci'] else 'No'}{Style.RESET_ALL}")
+        print(f"{Fore.BLUE}👥 Contribuidores: {Fore.YELLOW}{context_info['contributors']}{Style.RESET_ALL}")
+        print(f"{Fore.BLUE}📝 Commits totales: {Fore.YELLOW}{context_info['commits']}{Style.RESET_ALL}")
+        print(f"{Fore.BLUE}🔗 Remotos: {Fore.YELLOW}{context_info['remotes']}{Style.RESET_ALL}")
+        print(f"{Fore.BLUE}🤖 CI/CD: {Fore.YELLOW}{'Sí' if context_info['has_ci'] else 'No'}{Style.RESET_ALL}")
 
         # Mostrar ramas protegidas
-        protected = context_info['config']['protected_branches']
-        print(f"{Fore.BLUE}🛡️  Ramas protegidas: {', '.join(protected)}{Style.RESET_ALL}")
+        try:
+            protected = context_info['config']['protected_branches']
+            print(f"{Fore.BLUE}🛡️  Ramas protegidas: {Fore.YELLOW}{', '.join(protected)}{Style.RESET_ALL}")
+        except KeyError:
+            print(f"{Fore.YELLOW}⚠️  No se pudieron determinar las ramas protegidas para el contexto '{context}'.{Style.RESET_ALL}")
 
         # Obtener y mostrar la configuración de commitlint usando QualityManager
         try:
@@ -1176,7 +1180,7 @@ Tipos de Rama:
   - fix: Correcciones de errores y bugs
   - hotfix: Correcciones urgentes en producción
   - docs: Documentación y cambios en docs
-  - refactor: Refactorización sin cambios funcionales
+  - refactor: Refactorización de código sin cambios funcionales
   - test: Añadir o mejorar tests
   - chore: Tareas de mantenimiento y build""",
             formatter_class=argparse.RawDescriptionHelpFormatter,
