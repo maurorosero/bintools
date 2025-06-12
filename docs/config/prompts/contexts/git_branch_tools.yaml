@@ -1,0 +1,119 @@
+name: git_branch_tools
+description: Contexto específico para el manual del ecosistema Git Branch Tools
+type: user_guide
+focus:
+  - Detección automática de contexto (LOCAL/HYBRID/REMOTE)
+  - Adaptación contextual de validaciones y workflows
+  - Ejemplos de uso
+  - Integración con APIs de plataformas Git
+  - Sistema de fallbacks elegantes
+  - Workflows end-to-end completos
+
+sections:
+  - name: introduccion
+    required: true
+    focus:
+      - Visión general del ecosistema
+      - Filosofía y principios de diseño
+      - Componentes principales
+      - Adaptabilidad contextual
+
+  - name: componentes
+    required: true
+    focus:
+      - Git Tokens Manager
+      - Branch Git Helper
+      - Git Integration Manager
+      - Branch Workflow Validator
+      - Quality Manager
+
+  - name: workflows
+    required: true
+    focus:
+      - Feature Development
+      - Hotfix
+      - Release
+      - Empresarial
+
+  - name: contextos
+    required: true
+    focus:
+      - LOCAL (proyectos personales)
+      - HYBRID (equipos pequeños)
+      - REMOTE (empresarial)
+
+  - name: integracion
+    required: true
+    focus:
+      - APIs de plataformas Git
+      - CI/CD
+      - Hooks
+      - Validaciones
+
+style:
+  language: es
+  tone: técnico pero accesible
+  examples: abundantes y prácticos
+  diagrams: incluidos cuando relevante
+  code_blocks: con explicaciones detalladas
+
+  # Especificación de formato de párrafos
+  paragraphs:
+    - type: "introduction"
+      format: "clear and concise"
+      max_length: "3-4 sentences"
+      content: "overview and purpose"
+      style: "blockquote"
+      use_cases:
+        - "Inicio de secciones principales"
+        - "Resumen de componentes"
+        - "Visión general de funcionalidades"
+
+    - type: "technical"
+      format: "structured"
+      structure:
+        - "problem statement"
+        - "solution approach"
+        - "implementation details"
+      max_length: "5-7 sentences"
+      style: "normal"
+      use_cases:
+        - "Explicación de componentes"
+        - "Descripción de workflows"
+        - "Detalles de implementación"
+
+    - type: "example"
+      format: "practical"
+      structure:
+        - "context"
+        - "code example"
+        - "explanation"
+      max_length: "4-6 sentences"
+      style: "code block"
+      use_cases:
+        - "Ejemplos de uso"
+        - "Casos de uso comunes"
+        - "Integración con otras herramientas"
+
+    - type: "note"
+      format: "highlighted"
+      style: "blockquote"
+      max_length: "2-3 sentences"
+      use_cases:
+        - "Advertencias importantes"
+        - "Consejos de uso"
+        - "Información crítica"
+        - "Limitaciones conocidas"
+
+  # Especificación de formato general
+  formatting:
+    - Use clear headings (H2 for sections, H3 for subsections)
+    - Include code blocks with language specification
+    - Use tables for structured data
+    - Include diagrams using Mermaid
+    - Use blockquotes for important notes
+    - Keep paragraphs focused and concise
+    - Use lists for sequential steps or options
+    - Include examples after each concept
+    - Use consistent terminology throughout
+    - Include cross-references when relevant

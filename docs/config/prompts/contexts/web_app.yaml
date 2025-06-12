@@ -1,0 +1,20 @@
+prompt: |
+  Estás documentando una aplicación web. La documentación debe:
+
+  1. Enfocarse en la experiencia del usuario final
+  2. Incluir instrucciones de instalación y despliegue
+  3. Documentar la configuración del servidor y base de datos
+  4. Proporcionar guías de configuración de entorno
+  5. Incluir ejemplos de uso de la interfaz
+  6. Documentar características principales y flujos de trabajo
+  7. Explicar la gestión de usuarios y permisos
+  8. Proporcionar guías de solución de problemas
+
+  Consideraciones específicas:
+  - Incluir capturas de pantalla de la interfaz (usando placeholders)
+  - Documentar requisitos del sistema
+  - Explicar opciones de configuración
+  - Proporcionar ejemplos de integración con servicios externos
+  - Incluir guías de seguridad y mejores prácticas
+  - Documentar procesos de backup y recuperación
+  - Mencionar consideraciones de rendimiento y escalabilidad

@@ -1,0 +1,235 @@
+name: git_branch_tools
+description: Prompt personalizado para el manual del ecosistema Git Branch Tools
+type: user_guide
+
+style:
+  # Estilo de redacción
+  writing_style:
+    tone: "técnico pero directo"
+    paragraph_style: "conciso y descriptivo"
+    sentence_structure: "simple y directa"
+    technical_terms: "definidos en contexto"
+    examples: "prácticos y realistas"
+
+    introduction:
+      format: |
+        # 📚 {main_title}
+
+        ## 📑 Tabla de Contenidos
+
+        {toc_content}
+
+        ## 🎯 Introducción
+
+        ### Visión General
+
+        {tool_name} es {role} diseñado para {main_purpose}. {key_feature}. {specific_capabilities}. {manifestation}.
+
+        ### 🧠 Filosofía y Principios
+
+        **{principle_name}**
+
+        {principle_description}
+
+        **{next_principle}**
+
+        {next_principle_description}
+      style:
+        main_title: "conciso y descriptivo"
+        vision_general:
+          structure: |
+            {tool_definition}. {key_feature}. {capabilities}. {manifestation}.
+          length: "3-4 oraciones"
+          tone: "técnico pero accesible"
+        principles:
+          format: "título en negrita + párrafo explicativo"
+          style: "descriptivo y técnico"
+          length: "2-3 oraciones por principio"
+
+  # Estructura del documento
+  document_structure:
+    required_elements:
+      - main_title: "con emoji 📚"
+      - table_of_contents: "después del título principal"
+      - introduction: "sección inicial"
+      - main_sections: "componentes, workflows, etc."
+      - subsections: "según la sección"
+
+  # Tabla de Contenidos
+  table_of_contents:
+    format: |
+      ## 📑 Tabla de Contenidos
+
+      - [🎯 Introducción](#-introducción)
+        - [Visión General](#visión-general)
+        - [Filosofía y Principios](#-filosofía-y-principios)
+        - [Arquitectura](#-arquitectura)
+      - [🔧 Componentes](#-componentes)
+        - [Branch Git Helper 🌿](#branch-git-helper-)
+        - [Git Integration Manager 🔌](#git-integration-manager-)
+        - [Branch Workflow Validator ✅](#branch-workflow-validator-)
+        - [Quality Manager 🎯](#quality-manager-)
+      - [🔄 Workflows](#-workflows)
+        - [Feature Development](#feature-development)
+        - [Hotfix](#hotfix)
+        - [Release](#release)
+        - [Empresarial](#empresarial)
+      - [🌍 Contextos](#-contextos)
+        - [LOCAL](#local)
+        - [HYBRID](#hybrid)
+        - [REMOTE](#remote)
+      - [🔌 Integración](#-integración)
+        - [APIs de Plataformas Git](#apis-de-plataformas-git)
+        - [CI/CD](#cicd)
+        - [Hooks](#hooks)
+        - [Validaciones](#validaciones)
+    style:
+      main_title: "con emoji 📚"
+      toc_header: "con emoji 📑"
+      toc_content: "enlaces markdown con emojis"
+    structure:
+      sections:
+        - introduction:
+            emoji: "🎯"
+            subsections:
+              - vision_general
+              - filosofia
+              - arquitectura
+        - components:
+            emoji: "🔧"
+            subsections:
+              - branch_git_helper:
+                  emoji: "🌿"
+              - git_integration_manager:
+                  emoji: "🔌"
+              - branch_workflow_validator:
+                  emoji: "✅"
+              - quality_manager:
+                  emoji: "🎯"
+        - workflows:
+            emoji: "🔄"
+            subsections:
+              - feature_development
+              - hotfix
+              - release
+              - empresarial
+        - contexts:
+            emoji: "🌍"
+            subsections:
+              - local
+              - hybrid
+              - remote
+        - integration:
+            emoji: "🔌"
+            subsections:
+              - platform_apis
+              - cicd
+              - hooks
+              - validations
+
+  # Patrones de contenido
+  content_patterns:
+    tool_section:
+      format: |
+        ### {tool_name} {emoji}
+
+        {description}
+
+        #### Comandos Disponibles:
+
+        ```bash
+        # {category}
+        {command}                    # {explanation}
+        ```
+
+        #### Notas Importantes:
+
+        - {note}
+
+        #### {section_title}:
+
+        - **{term}**: {definition}
+      required_elements:
+        - description: "un párrafo conciso"
+        - commands: "agrupados por categoría"
+        - notes: "lista de puntos importantes"
+        - definitions: "estados y tipos"
+      style:
+        description: "técnico pero accesible"
+        commands: "prácticos y claros"
+        notes: "directas y concisas"
+        definitions: "específicas y breves"
+
+    command_section:
+      format: |
+        #### Comandos Disponibles:
+
+        ```bash
+        # {category}
+        {command}                    # {explanation}
+        ```
+      style:
+        comment_alignment: "left"
+        command_alignment: "left"
+        explanation_style: "breve y directa"
+        category_style: "descriptivo y conciso"
+
+    notes_section:
+      format: |
+        #### Notas Importantes:
+
+        - {note}
+      style:
+        bullet_style: "simple"
+        note_style: "directa y concisa"
+        max_length: "una línea por nota"
+
+    definition_section:
+      format: |
+        #### {section_title}:
+
+        - **{term}**: {definition}
+      style:
+        term_style: "en mayúsculas para estados, minúsculas para tipos"
+        definition_style: "concisa y descriptiva"
+
+sections:
+  - name: introduccion
+    required: true
+    focus:
+      - Visión general del ecosistema
+      - Filosofía y principios de diseño
+      - Componentes principales
+      - Adaptabilidad contextual
+
+  - name: componentes
+    required: true
+    focus:
+      - Git Tokens Manager
+      - Branch Git Helper
+      - Git Integration Manager
+      - Branch Workflow Validator
+      - Quality Manager
+
+  - name: workflows
+    required: true
+    focus:
+      - Feature Development
+      - Hotfix
+      - Release
+      - Empresarial
+
+  - name: contextos
+    required: true
+    focus:
+      - LOCAL (proyectos personales)
+      - HYBRID (equipos pequeños)
+      - REMOTE (empresarial)
+
+  - name: integracion
+    required: true
+    focus:
+      - APIs de plataformas Git
+      - CI/CD
+      - Hooks
+      - Validaciones

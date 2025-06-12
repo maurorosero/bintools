@@ -1,0 +1,133 @@
+# Configuración base para análisis de documentación
+default_analysis:
+  # Análisis que se aplica a todos los documentos
+  common:
+    tools:
+      - ast  # Análisis de árbol sintáctico
+      - docstring  # Análisis de docstrings
+      - metadata  # Análisis de metadatos
+    checks:
+      - function_signatures  # Firma de funciones
+      - parameters  # Parámetros
+      - docstrings  # Documentación
+      - imports  # Importaciones
+      - class_definitions  # Definiciones de clases
+      - metadata_completeness  # Completitud de metadatos
+
+  # Análisis específico por tipo de documento
+  document_types:
+    readme:
+      tools:
+        - markdown  # Análisis de estructura markdown
+        - metadata  # Análisis de metadatos
+        - badges  # Análisis de badges
+      checks:
+        - section_coverage  # Cobertura de secciones
+        - example_coverage  # Cobertura de ejemplos
+        - metadata_completeness  # Completitud de metadatos
+        - badge_status  # Estado de badges
+        - cross_references  # Referencias cruzadas
+      required_sections:
+        - title
+        - description
+        - installation
+        - usage
+        - license
+      optional_sections:
+        - badges
+        - table_of_contents
+        - contributing
+        - examples
+        - api_reference
+        - troubleshooting
+
+    api_docs:
+      tools:
+        - ast
+        - docstring
+        - type_hints
+      checks:
+        - api_coverage
+        - parameter_documentation
+        - return_type_documentation
+        - example_coverage
+        - cross_references
+      required_sections:
+        - overview
+        - authentication
+        - endpoints
+        - models
+        - examples
+      optional_sections:
+        - rate_limits
+        - error_handling
+        - webhooks
+        - sdk_reference
+
+    cli_docs:
+      tools:
+        - ast
+        - docstring
+        - cli_parser
+      checks:
+        - command_coverage
+        - option_documentation
+        - example_coverage
+        - cross_references
+      required_sections:
+        - overview
+        - installation
+        - commands
+        - examples
+      optional_sections:
+        - configuration
+        - environment_variables
+        - troubleshooting
+        - advanced_usage
+
+    user_guide:
+      tools:
+        - markdown
+        - metadata
+        - workflow
+      checks:
+        - section_coverage
+        - example_coverage
+        - step_by_step_guides
+        - cross_references
+      required_sections:
+        - introduction
+        - getting_started
+        - basic_usage
+        - advanced_topics
+      optional_sections:
+        - tutorials
+        - best_practices
+        - troubleshooting
+        - faq
+
+# Configuración de detección de cambios
+change_detection:
+  tools:
+    - git  # Historial de cambios
+    - ast  # Análisis de árbol sintáctico
+    - docstring  # Análisis de docstrings
+  checks:
+    - function_changes  # Cambios en funciones
+    - parameter_changes  # Cambios en parámetros
+    - docstring_changes  # Cambios en documentación
+    - import_changes  # Cambios en importaciones
+    - class_changes  # Cambios en clases
+
+# Configuración de validación
+validation:
+  tools:
+    - ast
+    - docstring
+    - markdown
+  checks:
+    - required_sections  # Secciones requeridas
+    - metadata_format  # Formato de metadatos
+    - code_blocks  # Bloques de código
+    - cross_references  # Referencias cruzadas
+    - image_placeholders  # Placeholders de imágenes

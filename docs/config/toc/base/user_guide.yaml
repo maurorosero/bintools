@@ -1,0 +1,68 @@
+sections:
+  - title: "Introducción"
+    required: true
+    subsections:
+      - "Visión General"
+      - "Características Principales"
+      - "Requisitos del Sistema"
+      - "Instalación"
+
+  - title: "Comenzando"
+    required: true
+    subsections:
+      - "Configuración Inicial"
+      - "Primeros Pasos"
+      - "Interfaz de Usuario"
+      - "Navegación Básica"
+
+  - title: "Características"
+    required: true
+    subsections:
+      - "Funcionalidades Principales"
+      - "Configuración Avanzada"
+      - "Personalización"
+      - "Integración con Otros Sistemas"
+
+  - title: "Guías de Uso"
+    required: true
+    subsections:
+      - "Casos de Uso Comunes"
+      - "Flujos de Trabajo"
+      - "Mejores Prácticas"
+      - "Ejemplos Detallados"
+
+  - title: "Solución de Problemas"
+    required: true
+    subsections:
+      - "Problemas Comunes"
+      - "Preguntas Frecuentes"
+      - "Diagnóstico de Errores"
+      - "Contacto y Soporte"
+
+  - title: "Referencia"
+    required: false
+    subsections:
+      - "Glosario de Términos"
+      - "Atajos de Teclado"
+      - "Archivos de Configuración"
+      - "Logs y Diagnóstico"
+
+  - title: "Apéndices"
+    required: false
+    subsections:
+      - "Historial de Versiones"
+      - "Notas de Actualización"
+      - "Recursos Adicionales"
+      - "Contribución"
+
+metadata:
+  required:
+    - title
+    - description
+    - version
+    - last_updated
+  optional:
+    - author
+    - contributors
+    - license
+    - support_contact

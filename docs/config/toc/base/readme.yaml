@@ -1,0 +1,43 @@
+structure:
+  - section: "Introducción"
+    required: true
+    subsections:
+      - "Descripción"
+      - "Características"
+      - "Capturas"
+    metadata:
+      - "purpose"
+      - "technology"
+      - "status"
+
+  - section: "Comenzando"
+    required: true
+    subsections:
+      - "Requisitos"
+      - "Instalación"
+      - "Configuración"
+
+  - section: "Uso"
+    required: true
+    subsections:
+      - "Uso Básico"
+      - "Ejemplos"
+      - "Casos de Uso Avanzados"
+
+  - section: "Solución de Problemas"
+    required: true
+    subsections:
+      - "Problemas Comunes"
+      - "FAQ"
+      - "Soporte"
+
+  - section: "Contribución"
+    required: false
+    subsections:
+      - "Guía de Contribución"
+      - "Código de Conducta"
+
+  - section: "Licencia"
+    required: true
+    subsections:
+      - "Información de Licencia"

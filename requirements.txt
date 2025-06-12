@@ -16,13 +16,13 @@ pandas>=1.5.0                    # Análisis y manipulación de datos estructura
 python-dateutil>=2.8.2           # Extensiones útiles para el módulo datetime de Python
 
 # --- Formatos de datos y configuración ---
-pyyaml>=6.0                      # Manejo de archivos YAML para configuración y almacenamiento de datos
+pyyaml>=6.0.1                    # Manejo de archivos YAML para configuración y almacenamiento de datos
 
 # --- Servidores web y APIs ---
 uvicorn>=0.15.0                  # Servidor ASGI de alto rendimiento (usado con FastAPI/Starlette)
 
 # --- Herramientas de gestión de claves ---
-keyring>=23.0.0                  # Gestión de claves para Python
+keyring>=24.3.1                  # Gestión de claves para Python
 
 # --- Entorno de Consola ---
 rich>=13.0.0                     # Formateo de texto enriquecido en la terminal (colores, estilos, tablas, spinners, etc.)
@@ -38,9 +38,16 @@ python-gnupg>=0.5.0              # Librería para manejar GPG (GnuPG)
 # --- Interacción con APIs para sistemas de control de versiones ---
 PyGithub>=2.6.1                  # Cliente Python para la API REST de GitHub v3
 python-gitlab>=3.15.0            # Cliente Python para la API REST de GitLab v4
-python-gitea>=1.20.0             # Cliente Python para la API REST de Gitea v1.20.0
+gitea>=1.0.0                     # Cliente Python para la API REST de Gitea
 atlassian-python-api>=3.15.0     # Cliente Python para la API REST de Atlassian v3.15.0
 
 # --- TOML Parsing/Writing ---
 tomli; python_version < '3.11'   # Parser para archivos TOML (necesario para Python < 3.11)
 tomli-w                          # Librería para escribir archivos TOML
+
+# --- Dependencias principales ---
+anthropic>=0.18.1                # Cliente Python para la API de Anthropic Claude
+click>=8.1.7                     # Librería para crear interfaces de línea de comandos
+
+# --- Dependencias para análisis de código ---
+astroid>=2.15.0                  # Para análisis de código Python

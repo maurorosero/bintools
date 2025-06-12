@@ -1,0 +1,277 @@
+# Configuración específica para análisis de Git Branch Tools
+git_branch_tools_analysis:
+  # Análisis específico para la guía de usuario
+  user_guide:
+    tools:
+      - markdown  # Análisis de estructura markdown
+      - metadata  # Análisis de metadatos
+      - workflow  # Análisis de flujos de trabajo
+      - git  # Análisis de integración git
+    checks:
+      - section_coverage  # Cobertura de secciones
+      - example_coverage  # Cobertura de ejemplos
+      - workflow_coverage  # Cobertura de flujos de trabajo
+      - metadata_completeness  # Completitud de metadatos
+      - cross_references  # Referencias cruzadas
+      - image_placeholders  # Placeholders de imágenes
+    required_sections:
+      - introduction
+      - getting_started
+      - workflows
+      - contexts
+      - integration
+      - examples
+    optional_sections:
+      - configuration
+      - troubleshooting
+      - advanced_topics
+      - best_practices
+
+  # Herramientas específicas a analizar
+  tools:
+    branch-git-helper:
+      path: branch-git-helper.py
+      type: cli_tool
+      analysis:
+        - detect_new_functions
+        - analyze_parameters
+        - check_docstrings
+        - validate_metadata
+        - detect_new_commands
+        - analyze_validation_rules
+        - analyze_context_detection
+
+    git-integration-manager:
+      path: git-integration-manager.py
+      type: integration_tool
+      analysis:
+        - detect_new_functions
+        - analyze_parameters
+        - check_docstrings
+        - validate_metadata
+        - detect_new_commands
+        - analyze_workflows
+        - analyze_integrations
+
+    branch-workflow-validator:
+      path: .githooks/branch-workflow-validator.py
+      type: hook_tool
+      analysis:
+        - detect_new_functions
+        - analyze_parameters
+        - check_docstrings
+        - validate_metadata
+        - analyze_validation_rules
+        - check_hook_integration
+
+  # Métodos de detección específicos
+  detection_methods:
+    code_analysis:
+      tools:
+        - ast  # Análisis de árbol sintáctico
+        - docstring  # Análisis de docstrings
+        - git  # Historial de cambios
+        - cli  # Análisis de comandos CLI
+      checks:
+        - function_signatures  # Firma de funciones
+        - parameters  # Parámetros
+        - docstrings  # Documentación
+        - imports  # Importaciones
+        - class_definitions  # Definiciones de clases
+        - command_definitions  # Definiciones de comandos
+        - hook_integration  # Integración con hooks
+        - validation_rules  # Reglas de validación
+        - context_detection  # Detección de contexto
+
+    documentation_analysis:
+      tools:
+        - markdown  # Análisis de estructura
+        - metadata  # Análisis de metadatos
+        - workflow  # Análisis de flujos de trabajo
+      checks:
+        - section_coverage  # Cobertura de secciones
+        - example_coverage  # Cobertura de ejemplos
+        - metadata_completeness  # Completitud de metadatos
+        - workflow_coverage  # Cobertura de flujos de trabajo
+        - cross_references  # Referencias cruzadas
+        - image_placeholders  # Placeholders de imágenes
+        - context_coverage  # Cobertura de contextos
+
+  # Validación específica
+  validation:
+    tools:
+      - ast
+      - docstring
+      - markdown
+      - git
+    checks:
+      - required_sections  # Secciones requeridas
+      - metadata_format  # Formato de metadatos
+      - code_blocks  # Bloques de código
+      - cross_references  # Referencias cruzadas
+      - image_placeholders  # Placeholders de imágenes
+      - command_validation  # Validación de comandos
+      - hook_validation  # Validación de hooks
+      - workflow_validation  # Validación de flujos de trabajo
+      - context_validation  # Validación de contextos
+
+name: git_branch_tools
+description: Configuración de análisis para el manual del ecosistema Git Branch Tools
+type: analysis
+
+# Análisis de estructura
+structure_analysis:
+  required_elements:
+    - main_title: "con emoji 📚"
+    - table_of_contents: "después del título"
+    - content: "secciones principales"
+  toc_validation:
+    required:
+      - header: "## 📑 Tabla de Contenidos"
+      - sections: "con emojis"
+      - subsections: "indentados"
+    style:
+      section_format: "- [{emoji} {title}](#{anchor})"
+      subsection_format: "  - [{title}](#{anchor})"
+      emoji_usage: "requerido en secciones principales"
+      indentation: "2 espacios para subsections"
+
+# Análisis de introducción
+introduction_analysis:
+  required_elements:
+    main_title:
+      format: "# 📚 {title}"
+      style: "conciso y descriptivo"
+    introduction:
+      format: "## 🎯 Introducción"
+      style: "claro y directo"
+    vision_general:
+      format: "### Visión General"
+      style: "técnico pero accesible"
+      length: "3-4 oraciones"
+      components:
+        - tool_definition
+        - key_feature
+        - capabilities
+        - manifestation
+    philosophy:
+      format: "### 🧠 Filosofía y Principios"
+      style: "técnico y descriptivo"
+      principles:
+        format: "**{title}**\n\n{description}"
+        style:
+          title: "conciso y descriptivo"
+          description: "2-3 oraciones"
+
+# Validación de estructura
+structure_validation:
+  introduction:
+    required:
+      - main_title
+      - introduction
+      - vision_general
+      - philosophy
+    style:
+      main_title: "conciso y descriptivo"
+      vision_general: "técnico pero accesible"
+      philosophy: "técnico y descriptivo"
+    flow:
+      - tool_definition
+      - key_features
+      - capabilities
+      - principles
+
+# Validación de TOC
+toc_validation:
+  structure:
+    required:
+      - main_title
+      - toc_header
+      - sections
+      - subsections
+    format:
+      main_title: "# 📚 {title}"
+      toc_header: "## 📑 Tabla de Contenidos"
+      section: "- [{emoji} {title}](#{anchor})"
+      subsection: "  - [{title}](#{anchor})"
+  style:
+    emoji:
+      main_title: "📚"
+      toc_header: "📑"
+      sections: "requerido"
+      subsections: "opcional"
+    indentation:
+      sections: "0 espacios"
+      subsections: "2 espacios"
+    anchors:
+      format: "minúsculas con guiones"
+      style: "consistente"
+
+# Validación de contenido
+content_validation:
+  sections:
+    required:
+      - introduction
+      - components
+      - workflows
+      - contexts
+      - integration
+  style:
+    title: "con emoji"
+    content: "técnico pero accesible"
+    examples: "prácticos y claros"
+subsections:
+  required:
+    - description
+    - commands
+    - notes
+    - definitions
+  style:
+    description: "concisa y clara"
+    commands: "formato bash"
+    notes: "lista de puntos"
+    definitions: "términos en negrita"
+
+# Validación de estilo
+style_validation:
+  general:
+    language: "es"
+    tone: "técnico pero accesible"
+    emoji_usage: "consistente"
+  sections:
+    title:
+      format: "en formato título"
+      case: "primera letra en mayúscula"
+  emoji:
+    position: "antes del título"
+    required: "solo en secciones principales"
+subsections:
+  title:
+    format: "en formato título"
+    case: "primera letra en mayúscula"
+  emoji:
+    position: "antes del título"
+    required: "solo si especificado"
+indentation:
+  section: "0 espacios"
+  subsection: "2 espacios"
+  style: "espacios (no tabs)"
+links:
+  format: "markdown"
+  style:
+    section: "- [{emoji} {title}](#{anchor})"
+    subsection: "  - [{title}](#{anchor})"
+  emoji:
+    section: "requerido"
+    subsection: "opcional"
+
+metadata:
+  required: true
+  format:
+    name: "string"
+    description: "string"
+    type: "string"
+  style:
+    language: "es"
+    tone: "técnico pero accesible"
+    emoji_usage: "consistente"

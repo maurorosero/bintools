@@ -1,0 +1,22 @@
+# Configuración por defecto del modelo
+default:
+  model: "claude-4-sonnet-20250514"  # Modelo por defecto
+  max_tokens: 4000
+  temperature: 0.7
+
+# Configuraciones específicas por tipo de documento
+document_types:
+  readme:
+    model: "claude-3-7-sonnet-20250219"
+    max_tokens: 4000
+    temperature: 0.8
+
+  user_guide:
+    model: "claude-4-opus-20250514"
+    max_tokens: 8000
+    temperature: 0.9
+
+  api_docs:
+    model: "claude-4-sonnet-20250514"
+    max_tokens: 6000
+    temperature: 0.9

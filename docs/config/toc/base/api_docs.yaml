@@ -1,0 +1,85 @@
+sections:
+  - title: "Introducción"
+    required: true
+    subsections:
+      - "Visión General"
+      - "Características Principales"
+      - "Requisitos"
+      - "Instalación y Configuración"
+
+  - title: "Autenticación"
+    required: true
+    subsections:
+      - "Métodos de Autenticación"
+      - "Tokens y Credenciales"
+      - "Seguridad"
+      - "Límites de Tasa"
+
+  - title: "Endpoints"
+    required: true
+    subsections:
+      - "Convenciones de API"
+      - "Formato de Respuesta"
+      - "Códigos de Estado"
+      - "Paginación"
+
+  - title: "Recursos"
+    required: true
+    subsections:
+      - "Modelos de Datos"
+      - "Tipos de Datos"
+      - "Validación"
+      - "Relaciones"
+
+  - title: "Guías de Uso"
+    required: true
+    subsections:
+      - "Ejemplos de Uso"
+      - "Mejores Prácticas"
+      - "Patrones Comunes"
+      - "Casos de Uso"
+
+  - title: "Referencia de API"
+    required: true
+    subsections:
+      - "Endpoints por Recurso"
+      - "Parámetros de Consulta"
+      - "Cuerpos de Solicitud"
+      - "Respuestas"
+
+  - title: "Webhooks"
+    required: false
+    subsections:
+      - "Configuración"
+      - "Eventos"
+      - "Formato de Payload"
+      - "Seguridad"
+
+  - title: "SDKs y Bibliotecas"
+    required: false
+    subsections:
+      - "Python"
+      - "JavaScript"
+      - "Java"
+      - "Otros Lenguajes"
+
+  - title: "Solución de Problemas"
+    required: true
+    subsections:
+      - "Errores Comunes"
+      - "Depuración"
+      - "Límites y Cuotas"
+      - "Soporte"
+
+metadata:
+  required:
+    - title
+    - description
+    - version
+    - base_url
+    - authentication_type
+  optional:
+    - rate_limits
+    - sdk_versions
+    - changelog
+    - support_contact

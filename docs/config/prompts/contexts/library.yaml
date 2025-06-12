@@ -1,0 +1,19 @@
+prompt: |
+  Estás documentando una biblioteca Python. La documentación debe:
+
+  1. Enfocarse en la API pública de la biblioteca
+  2. Incluir ejemplos de importación y uso básico
+  3. Documentar todas las clases, métodos y funciones públicas
+  4. Proporcionar ejemplos de código para casos de uso comunes
+  5. Explicar la instalación y dependencias
+  6. Incluir guías de migración si hay cambios importantes
+  7. Documentar la configuración y opciones disponibles
+  8. Proporcionar ejemplos de integración con frameworks comunes
+
+  Consideraciones específicas:
+  - Usar docstrings en formato reStructuredText o Google Style
+  - Incluir tipos de datos usando type hints
+  - Documentar excepciones que pueden ser lanzadas
+  - Proporcionar ejemplos de manejo de errores
+  - Incluir notas sobre rendimiento y mejores prácticas
+  - Mencionar alternativas y cuándo usar cada una

@@ -1,0 +1,33 @@
+prompt: |
+  Genera documentación enfocada en una herramienta de línea de comandos:
+
+  1. Instalación:
+     - Requisitos del sistema
+     - Comandos de instalación
+     - Verificación de la instalación
+     - Dependencias necesarias
+
+  2. Uso:
+     - Comandos principales
+     - Opciones y argumentos
+     - Ejemplos de uso común
+     - Casos de uso avanzados
+     - Formato de salida
+
+  3. Configuración:
+     - Archivos de configuración
+     - Variables de entorno
+     - Personalización
+     - Perfiles de usuario
+
+  4. Solución de problemas:
+     - Errores comunes
+     - Preguntas frecuentes
+     - Contacto y soporte
+     - Logs y diagnóstico
+
+  5. Ejemplos de uso:
+     - Incluir ejemplos con diferentes opciones
+     - Mostrar salidas de ejemplo
+     - Explicar casos de uso reales
+     - Incluir ejemplos de integración

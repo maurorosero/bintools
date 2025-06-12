@@ -1,0 +1,274 @@
+name: git_branch_tools
+description: Configuración de la tabla de contenidos para el manual del ecosistema Git Branch Tools
+type: table_of_contents
+
+format:
+  # Estructura del documento
+  document_structure:
+    required:
+      - main_title: "con emoji 📚"
+      - table_of_contents: "después del título"
+      - content: "secciones principales"
+
+  # Tabla de Contenidos
+  table_of_contents:
+    required: true
+    format:
+      header: "## 📑 Tabla de Contenidos"
+      sections:
+        - format: "- [{emoji} {title}](#{anchor})"
+          required: true
+          style:
+            emoji: "requerido"
+            title: "en formato título"
+            anchor: "en minúsculas con guiones"
+        - format: "  - [{title}](#{anchor})"
+          required: false
+          style:
+            indent: "2 espacios"
+            title: "sin emoji"
+            anchor: "en minúsculas con guiones"
+
+  # Secciones principales
+  main_sections:
+    introduction:
+      emoji: "🎯"
+      required: true
+      subsections:
+        - vision_general
+        - filosofia
+        - arquitectura
+    components:
+      emoji: "🔧"
+      required: true
+      subsections:
+        - branch_git_helper:
+            emoji: "🌿"
+        - git_integration_manager:
+            emoji: "🔌"
+        - branch_workflow_validator:
+            emoji: "✅"
+        - quality_manager:
+            emoji: "🎯"
+    workflows:
+      emoji: "🔄"
+      required: true
+      subsections:
+        - feature_development
+        - hotfix
+        - release
+        - empresarial
+    contexts:
+      emoji: "🌍"
+      required: true
+      subsections:
+        - local
+        - hybrid
+        - remote
+    integration:
+      emoji: "🔌"
+      required: true
+      subsections:
+        - platform_apis
+        - cicd
+        - hooks
+        - validations
+
+sections:
+  - name: introduccion
+    title: "Introducción"
+    emoji: "🎯"
+    required: true
+    subsections:
+      - name: vision_general
+        title: "Visión General"
+        required: true
+      - name: filosofia
+        title: "Filosofía y Principios"
+        required: true
+      - name: arquitectura
+        title: "Arquitectura"
+        required: true
+
+  - name: componentes
+    title: "Componentes"
+    emoji: "🔧"
+    required: true
+    subsections:
+      - name: branch_git_helper
+        title: "Branch Git Helper"
+        emoji: "🌿"
+        required: true
+      - name: git_integration_manager
+        title: "Git Integration Manager"
+        emoji: "🔌"
+        required: true
+      - name: branch_workflow_validator
+        title: "Branch Workflow Validator"
+        emoji: "✅"
+        required: true
+      - name: quality_manager
+        title: "Quality Manager"
+        emoji: "🎯"
+        required: true
+
+  - name: workflows
+    title: "Workflows"
+    emoji: "🔄"
+    required: true
+    subsections:
+      - name: feature_development
+        title: "Feature Development"
+        required: true
+      - name: hotfix
+        title: "Hotfix"
+        required: true
+      - name: release
+        title: "Release"
+        required: true
+      - name: empresarial
+        title: "Empresarial"
+        required: true
+
+  - name: contextos
+    title: "Contextos"
+    emoji: "🌍"
+    required: true
+    subsections:
+      - name: local
+        title: "LOCAL"
+        required: true
+      - name: hybrid
+        title: "HYBRID"
+        required: true
+      - name: remote
+        title: "REMOTE"
+        required: true
+
+  - name: integracion
+    title: "Integración"
+    emoji: "🔌"
+    required: true
+    subsections:
+      - name: platform_apis
+        title: "APIs de Plataformas Git"
+        required: true
+      - name: cicd
+        title: "CI/CD"
+        required: true
+      - name: hooks
+        title: "Hooks"
+        required: true
+      - name: validations
+        title: "Validaciones"
+        required: true
+
+style:
+  # Estilo general
+  general:
+    language: "es"
+    tone: "técnico pero accesible"
+    emoji_usage: "consistente en secciones principales"
+
+  # Estilo de secciones
+  section:
+    title:
+      format: "en formato título"
+      case: "primera letra en mayúscula"
+    emoji:
+      position: "antes del título"
+      required: "solo en secciones principales"
+    anchor:
+      format: "minúsculas con guiones"
+      case: "lowercase"
+
+  # Estilo de subsections
+  subsection:
+    title:
+      format: "en formato título"
+      case: "primera letra en mayúscula"
+    emoji:
+      position: "antes del título"
+      required: "solo si especificado"
+    anchor:
+      format: "minúsculas con guiones"
+      case: "lowercase"
+
+  # Estilo de indentación
+  indentation:
+    section: "0 espacios"
+    subsection: "2 espacios"
+    style: "espacios (no tabs)"
+
+  # Estilo de enlaces
+  links:
+    format: "markdown"
+    style:
+      section: "- [{emoji} {title}](#{anchor})"
+      subsection: "  - [{title}](#{anchor})"
+    emoji:
+      section: "requerido"
+      subsection: "opcional"
+
+metadata:
+  required: true
+  fields:
+    - name: purpose
+      description: Descripción concisa del propósito del documento
+      required: true
+    - name: technology
+      description: Tecnologías principales utilizadas
+      required: true
+    - name: status
+      description: Estado del documento (Development/Beta/Stable/Archived)
+      required: true
+      values: [Development, Beta, Stable, Archived]
+    - name: format
+      description: Especificaciones de formato para cada sección
+      required: true
+      sections:
+        - name: "introduccion"
+          paragraph_type: "introduction"
+          media:
+            - type: "diagram"
+              format: "mermaid"
+              required: true
+            - type: "example"
+              format: "code"
+              required: false
+        - name: "componentes"
+          paragraph_type: "technical"
+          media:
+            - type: "diagram"
+              format: "mermaid"
+              required: true
+            - type: "example"
+              format: "code"
+              required: true
+        - name: "workflows"
+          paragraph_type: "technical"
+          media:
+            - type: "diagram"
+              format: "mermaid"
+              required: true
+            - type: "example"
+              format: "code"
+              required: true
+        - name: "contextos"
+          paragraph_type: "technical"
+          media:
+            - type: "table"
+              format: "markdown"
+              required: true
+            - type: "example"
+              format: "code"
+              required: true
+        - name: "integracion"
+          paragraph_type: "technical"
+          media:
+            - type: "diagram"
+              format: "mermaid"
+              required: true
+            - type: "example"
+              format: "code"
+              required: true
