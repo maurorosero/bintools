@@ -627,15 +627,28 @@ class QualityManager:
                         line_lower = line.lower()
 
                         # Buscar tag Check heading (insensible a mayúsculas/minúsculas y espacios)
-                        if not check_heading_found and re.search(r'check\s*heading', line_lower):
-                            check_heading_found = True
-                            in_header = True
-                            if ':' in line:
-                                _, exceptions = line.split(':', 1)
-                                excluded_metadata = {
-                                    exc.strip() for exc in exceptions.split(',')
-                                }
-                            continue
+                        # El tag puede estar en una línea que empieza con # o en una línea dentro del header
+                        if not check_heading_found:
+                            # Primero intentar con el patrón exacto
+                            if re.search(r'^check\s*heading$', line_lower):
+                                check_heading_found = True
+                                in_header = True
+                                if ':' in line:
+                                    _, exceptions = line.split(':', 1)
+                                    excluded_metadata = {
+                                        exc.strip() for exc in exceptions.split(',')
+                                    }
+                                continue
+                            # Si no coincide, intentar con el patrón más flexible
+                            elif re.search(r'check\s*heading', line_lower):
+                                check_heading_found = True
+                                in_header = True
+                                if ':' in line:
+                                    _, exceptions = line.split(':', 1)
+                                    excluded_metadata = {
+                                        exc.strip() for exc in exceptions.split(',')
+                                    }
+                                continue
 
                         # Si encontramos el tag, todas las líneas siguientes son parte del header
                         # hasta que encontremos una línea que no sea un comentario o una línea vacía
