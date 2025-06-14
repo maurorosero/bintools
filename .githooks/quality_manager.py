@@ -622,8 +622,8 @@ class QualityManager:
                         line = line.lstrip('#').strip()
                         line_lower = line.lower()
 
-                        # Buscar tag Check heading
-                        if not check_heading_found and re.search(r'Check heading', line, re.IGNORECASE):
+                        # Buscar tag Check heading (insensible a mayúsculas/minúsculas)
+                        if not check_heading_found and re.search(r'check\s+heading', line_lower):
                             check_heading_found = True
                             if ':' in line:
                                 _, exceptions = line.split(':', 1)
@@ -632,7 +632,7 @@ class QualityManager:
                                 }
                             continue
 
-                        # Buscar metadatos
+                        # Buscar metadatos en todas las líneas de comentario
                         for meta_type, variants in METADATA_VARIANTS.items():
                             if f'no-{meta_type}' in excluded_metadata:
                                 continue
