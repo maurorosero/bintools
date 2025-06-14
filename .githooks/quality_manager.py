@@ -519,15 +519,11 @@ class QualityManager:
             return False, f"❌ Configuración inválida: check_heading_lines debe ser un entero positivo, se recibió {check_heading_lines}"
 
         try:
-            # Obtener archivos modificados
-            result = subprocess.run(['git', 'diff', '--cached', '--name-only', '--diff-filter=ACMR'],
-                                  capture_output=True, text=True)
-            if result.returncode != 0:
-                return False, f"❌ Error al obtener archivos modificados: {result.stderr}"
+            # Obtener archivos a validar de los argumentos de línea de comandos
+            files = sys.argv[1:] if len(sys.argv) > 1 else []
 
-            files = result.stdout.strip().split('\n')
-            if not files or files[0] == '':
-                return True, "✅ No hay archivos modificados para validar"
+            if not files:
+                return True, "✅ No hay archivos para validar"
 
             errors = []
             warnings = []
@@ -558,7 +554,11 @@ class QualityManager:
                     continue
 
                 # Verificar si el archivo requiere validación
-                content = path.read_text(encoding='utf-8')
+                try:
+                    content = path.read_text(encoding='utf-8')
+                except UnicodeDecodeError:
+                    continue
+
                 lines = content.split('\n')[:check_heading_lines]
 
                 # Determinar el tipo de archivo
@@ -566,7 +566,7 @@ class QualityManager:
                 is_bash = path.suffix == '.sh' or (path.suffix == '' and content.startswith('#!/bin/bash'))
 
                 if not (is_python or is_bash):
-                    continue  # No es un archivo que requiera validación
+                    continue
 
                 # Buscar tag Check heading y extraer metadatos
                 check_heading_found = False
@@ -574,96 +574,111 @@ class QualityManager:
                 metadata = {}
 
                 if is_python:
-                    # Procesar archivo Python
+                    # Procesar archivo Python usando la lógica de docstring que ya funcionaba
                     in_docstring = False
                     docstring_lines = []
+                    first_docstring_processed = False
+
+                    # Patrones regex compilados para mejor rendimiento
+                    check_heading_pattern = re.compile(r'(?i)check\s*heading')
+                    metadata_pattern = re.compile(r'^\s*([^:]+?)\s*:\s*(.+?)\s*$', re.IGNORECASE)
 
                     for line in lines:
-                        # Detectar inicio y fin de docstring
-                        if '"""' in line:
-                            if not in_docstring:
-                                in_docstring = True
-                                docstring_lines = []
-                            else:
+                        # Buscar inicio de docstring
+                        if '"""' in line and not in_docstring and not first_docstring_processed:
+                            in_docstring = True
+                            docstring_lines = []
+                            # Si el docstring termina en la misma línea, procesarlo
+                            if line.count('"""') == 2:
                                 in_docstring = False
-                                # Procesar las líneas del docstring
-                                for doc_line in docstring_lines:
-                                    doc_line_lower = doc_line.lower()
-                                    # Buscar tag Check heading
-                                    if not check_heading_found and re.search(r'Check heading', doc_line, re.IGNORECASE):
+                                first_docstring_processed = True
+                                docstring_content = line.split('"""')[1].strip()
+                                if docstring_content:
+                                    docstring_lines.append(docstring_content)
+                            continue
+
+                        # Buscar fin de docstring
+                        if in_docstring and '"""' in line:
+                            in_docstring = False
+                            first_docstring_processed = True
+                            # Procesar las líneas del docstring
+                            for doc_line in docstring_lines:
+                                # Buscar tag Check heading
+                                if not check_heading_found:
+                                    if check_heading_pattern.search(doc_line):
                                         check_heading_found = True
                                         if ':' in doc_line:
                                             _, exceptions = doc_line.split(':', 1)
                                             excluded_metadata = {
                                                 exc.strip() for exc in exceptions.split(',')
                                             }
-                                    # Buscar metadatos
+                                        continue
+
+                                # Buscar metadatos usando regex
+                                match = metadata_pattern.match(doc_line)
+                                if match:
+                                    key, value = match.groups()
+                                    key = key.lower().strip()
+                                    value = value.strip()
+                                    # Verificar si la clave coincide con algún metadato requerido
                                     for meta_type, variants in METADATA_VARIANTS.items():
                                         if f'no-{meta_type}' in excluded_metadata:
                                             continue
-                                        for variant in variants:
-                                            pattern = rf'\b{variant}\b\s*:'
-                                            if re.search(pattern, doc_line_lower):
-                                                metadata[meta_type] = doc_line.strip()
-                                                break
+                                        if key in variants:
+                                            metadata[meta_type] = value
+                                            break
                             continue
 
-                        if in_docstring:
-                            docstring_lines.append(line)
+                        # Agregar línea al docstring si estamos dentro de uno
+                        if in_docstring and not first_docstring_processed:
+                            docstring_lines.append(line.strip())
 
                 else:  # is_bash
-                    # Procesar archivo bash
-                    in_header = False
+                    # Procesar archivo bash usando lógica específica para comentarios
+                    header_lines = []
+
+                    # Patrones regex compilados para mejor rendimiento
+                    check_heading_pattern = re.compile(r'^\s*check\s*heading\s*$', re.IGNORECASE)
+                    metadata_pattern = re.compile(r'^\s*([^:]+?)\s*:\s*(.+?)\s*$', re.IGNORECASE)
+
+                    # Primero recolectar todas las líneas de comentario hasta encontrar una línea no comentario
                     for line in lines:
-                        # Ignorar líneas que no son comentarios
                         if not line.strip().startswith('#'):
+                            break
+                        # Remover el # y espacios al inicio
+                        clean_line = line.lstrip('#').strip()
+                        if clean_line:  # Solo agregar líneas no vacías
+                            header_lines.append(clean_line)
+
+                    # Procesar las líneas del header
+                    for line in header_lines:
+                        # Buscar tag Check heading
+                        if not check_heading_found and check_heading_pattern.search(line):
+                            check_heading_found = True
+                            if ':' in line:
+                                _, exceptions = line.split(':', 1)
+                                excluded_metadata = {
+                                    exc.strip() for exc in exceptions.split(',')
+                                }
                             continue
 
-                        # Remover el # inicial y espacios
-                        line = line.lstrip('#').strip()
-                        if not line:  # Ignorar líneas vacías
-                            continue
-
-                        line_lower = line.lower()
-
-                        # Buscar tag Check heading (insensible a mayúsculas/minúsculas y espacios)
-                        # El tag puede estar en una línea que empieza con # o en una línea dentro del header
-                        if not check_heading_found:
-                            # Primero intentar con el patrón exacto
-                            if re.search(r'^check\s*heading$', line_lower):
-                                check_heading_found = True
-                                in_header = True
-                                if ':' in line:
-                                    _, exceptions = line.split(':', 1)
-                                    excluded_metadata = {
-                                        exc.strip() for exc in exceptions.split(',')
-                                    }
-                                continue
-                            # Si no coincide, intentar con el patrón más flexible
-                            elif re.search(r'check\s*heading', line_lower):
-                                check_heading_found = True
-                                in_header = True
-                                if ':' in line:
-                                    _, exceptions = line.split(':', 1)
-                                    excluded_metadata = {
-                                        exc.strip() for exc in exceptions.split(',')
-                                    }
-                                continue
-
-                        # Si encontramos el tag, todas las líneas siguientes son parte del header
-                        # hasta que encontremos una línea que no sea un comentario o una línea vacía
-                        if in_header:
-                            # Buscar metadatos en todas las líneas de comentario
-                            for meta_type, variants in METADATA_VARIANTS.items():
-                                if f'no-{meta_type}' in excluded_metadata:
-                                    continue
-                                for variant in variants:
-                                    pattern = rf'\b{variant}\b\s*:'
-                                    if re.search(pattern, line_lower):
-                                        metadata[meta_type] = line.strip()
+                        # Si encontramos el tag, procesar todas las líneas como metadatos
+                        if check_heading_found:
+                            match = metadata_pattern.match(line)
+                            if match:
+                                key, value = match.groups()
+                                key = key.lower().strip()
+                                value = value.strip()
+                                # Verificar si la clave coincide con algún metadato requerido
+                                for meta_type, variants in METADATA_VARIANTS.items():
+                                    if f'no-{meta_type}' in excluded_metadata:
+                                        continue
+                                    if key in variants:
+                                        metadata[meta_type] = value
                                         break
 
                 if not check_heading_found:
+                    errors.append(f"❌ {path}: No se encontró el tag Check heading")
                     continue  # No requiere validación
 
                 # Validar metadatos obligatorios
@@ -685,6 +700,7 @@ class QualityManager:
             elif warnings:
                 return True, '\n'.join(warnings)
             return True, "✅ Validación de headers completada"
+
         except Exception as e:
             return False, f"❌ Error en validación de headers: {str(e)}"
 
@@ -933,9 +949,18 @@ if __name__ == '__main__':
     # Subparser para run-hook
     run_hook_parser = subparsers.add_parser('run-hook', help='Ejecuta un hook específico según el tipo y la configuración activa.')
     run_hook_parser.add_argument('--hook-type', required=True, help='Tipo de hook a ejecutar (de HookType)')
-    run_hook_parser.add_argument('commit_msg_file', nargs='?', help='Archivo del mensaje de commit (opcional)')
+    run_hook_parser.add_argument('files', nargs='*', help='Archivos a validar')
 
-    args = parser.parse_args()
+    # Configurar el parser para ignorar argumentos desconocidos
+    parser._optionals.title = 'Opciones'
+    parser._optionals.description = 'Opciones disponibles'
+    parser._optionals.argument_default = argparse.SUPPRESS
+
+    # Parsear argumentos ignorando los desconocidos
+    args, unknown = parser.parse_known_args()
+    if unknown:
+        print(f"⚠️  Argumentos adicionales ignorados: {unknown}", file=sys.stderr)
+
     manager = QualityManager(Path.cwd())
 
     if args.action == 'list-formats':
@@ -967,12 +992,16 @@ if __name__ == '__main__':
         if not args.hook_type:
             print("❌ Error: Se requiere especificar --hook-type")
             sys.exit(1)
-        # Si se proporciona un archivo de commit, lo usamos (se pasa como argumento opcional en el subparser de run-hook)
-        if args.commit_msg_file:
-             sys.argv = [sys.argv[0], args.commit_msg_file]
+        # Usar los archivos pasados como argumentos
+        if hasattr(args, 'files'):
+            sys.argv = [sys.argv[0]] + args.files
         success, message = manager.run_hook(args.hook_type)
-        print(message)
-        sys.exit(0 if success else 1)
+        if not success or '❌' in message:
+            print(message, file=sys.stderr)
+            sys.exit(1)
+        if '⚠️' in message:
+            print(message, file=sys.stderr)
+        sys.exit(0)
 
     else:
         parser.print_usage()

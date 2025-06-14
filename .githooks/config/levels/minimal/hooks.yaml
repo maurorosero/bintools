@@ -51,4 +51,4 @@ branch-workflow-push:
 header-validator:
   # Validación básica de headers
   enabled: true             # Activado con configuración mínima
-  check_heading_lines: 5    # Menos líneas para el nivel minimal
+  check_heading_lines: 25   # Menos líneas para el nivel minimal

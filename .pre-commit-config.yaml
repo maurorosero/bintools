@@ -114,7 +114,8 @@ repos:
         entry: .githooks/quality_manager.py run-hook --hook-type header-validator
         language: python
         additional_dependencies: [PyYAML]
-        stages: [commit-msg]
+        stages: [pre-commit]
         pass_filenames: true
+        always_run: true
         verbose: true
         description: "Valida los headers de los archivos según las especificaciones"

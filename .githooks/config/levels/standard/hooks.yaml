@@ -68,7 +68,7 @@ branch-workflow-push:
 header-validator:
   # Validación de headers
   enabled: true             # Activado
-  check_heading_lines: 8    # Líneas para el nivel standard
+  check_heading_lines: 35   # Líneas para el nivel standard
 
 hooks:
   description: "Hooks estándar para proyectos híbridos"

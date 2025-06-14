@@ -94,7 +94,7 @@ branch-workflow-push:
 header-validator:
   # Validación estricta de headers
   enabled: true             # Activado
-  check_heading_lines: 15   # Más líneas para el nivel enterprise
+  check_heading_lines: 35   # Más líneas para el nivel enterprise
 
 hooks:
   description: "Hooks enterprise para proyectos remotos"
