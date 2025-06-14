@@ -224,38 +224,39 @@ class QualityManager:
             elif hook == HookType.SIZE:
                 return self._run_size_hooks(config)
             elif hook == HookType.DETECT_SECRETS:
-                (success, msg) = self._run_detect_secrets(config)
+                success, msg = self._run_detect_secrets(config)
                 if not success:
                     with open(log_file, "w") as f:
-                         f.write(msg)
-                    print(msg, file=sys.stderr)
-                return (success, msg)
+                        f.write(msg)
+                return success, msg
             elif hook == HookType.COMMITLINT:
-                 (success, msg) = self._run_commitlint(config)
-                 if not success:
-                     with open(log_file, "w") as f:
-                         f.write(msg)
-                     print(msg, file=sys.stderr)
-                 return (success, msg)
+                success, msg = self._run_commitlint(config)
+                if not success:
+                    with open(log_file, "w") as f:
+                        f.write(msg)
+                return success, msg
             elif hook == HookType.BRANCH_WORKFLOW_COMMIT:
-                 return self._run_branch_workflow_commit(config)
+                return self._run_branch_workflow_commit(config)
             elif hook == HookType.BRANCH_WORKFLOW_PUSH:
-                 return self._run_branch_workflow_push(config)
+                return self._run_branch_workflow_push(config)
             elif hook == HookType.HEADER_VALIDATOR:
-                 return self._run_header_validator(config)
+                success, msg = self._run_header_validator(config)
+                # No imprimir el mensaje aquí, ya que se maneja dentro de _run_header_validator
+                if not success:
+                    with open(log_file, "w") as f:
+                        f.write(msg)
+                return success, msg
 
         except ValueError as e:
-             err_msg = f"❌ Error: {str(e)}"
-             with open(log_file, "w") as f:
-                 f.write(err_msg)
-             print(err_msg, file=sys.stderr)
-             return False, err_msg
+            err_msg = f"❌ Error: {str(e)}"
+            with open(log_file, "w") as f:
+                f.write(err_msg)
+            return False, err_msg
         except Exception as e:
-             err_msg = f"❌ Error inesperado: {str(e)}"
-             with open(log_file, "w") as f:
-                 f.write(err_msg)
-             print(err_msg, file=sys.stderr)
-             return False, err_msg
+            err_msg = f"❌ Error inesperado: {str(e)}"
+            with open(log_file, "w") as f:
+                f.write(err_msg)
+            return False, err_msg
 
     def _run_format_hooks(self, config: dict) -> Tuple[bool, str]:
         """Ejecuta los hooks de formato."""
@@ -525,10 +526,13 @@ class QualityManager:
             if not files:
                 return True, "✅ No hay archivos para validar"
 
-            errors = []
-            warnings = []
+            # Usar sets para errores y advertencias para evitar duplicados desde el inicio
+            all_errors = set()
+            all_warnings = set()
+            processed_files = set()
+            file_results = {}  # Para almacenar el resultado de cada archivo
 
-            # Metadatos y sus variantes (case-insensitive)
+            # Mapeo de metadatos y sus variantes (case-insensitive)
             METADATA_VARIANTS = {
                 'version': {'version', 'versión', 'release', 'v', '@version', '@release'},
                 'description': {'description', 'descripción', 'desc', 'about', '@description', '@desc'},
@@ -562,15 +566,21 @@ class QualityManager:
                 required_metadata = {'version', 'description', 'created', 'modified', 'author'}
                 optional_metadata = set()
 
+            # Procesar según el tipo de archivo
             for file_path in files:
                 path = Path(file_path)
-                if not path.exists():
+                if not path.exists() or str(path) in processed_files:
                     continue
 
-                # Verificar si el archivo requiere validación
+                processed_files.add(str(path))
+                file_errors = set()
+                file_warnings = set()
+
                 try:
                     content = path.read_text(encoding='utf-8')
                 except UnicodeDecodeError:
+                    file_errors.add(f"❌ {path}: Error de codificación al leer el archivo")
+                    file_results[str(path)] = {'status': 'error', 'errors': file_errors, 'warnings': file_warnings}
                     continue
 
                 lines = content.split('\n')[:check_heading_lines]
@@ -586,7 +596,8 @@ class QualityManager:
                 # Si no se encontró, buscar patrones como *.js.*, *.py.*, etc.
                 if not file_type:
                     for ext, type_name in FILE_TYPES.items():
-                        if file_name.endswith(ext + '.def') or file_name.endswith(ext + '.template'):
+                        # Buscar el patrón .js. o .py. en el nombre del archivo
+                        if f"{ext}." in file_name:
                             file_type = type_name
                             break
                 # Si aún no se encontró, verificar si es un script bash
@@ -594,7 +605,7 @@ class QualityManager:
                     file_type = 'bash'
 
                 # Patrones regex compilados para mejor rendimiento
-                check_heading_pattern = re.compile(r'(?i)Check\s*Header(?:\s+\.([a-z0-9]+))?')
+                check_heading_pattern = re.compile(r'(?i)Check\s*Head(?:er|ing)(?:\s+\.([a-z0-9]+))?')
                 metadata_pattern = re.compile(r'^\s*(?:@)?([a-zA-Z0-9-]+)(?:\s*:\s*|\s+)(.+?)\s*$', re.IGNORECASE)
 
                 # Buscar tag Check heading y extraer metadatos
@@ -732,47 +743,93 @@ class QualityManager:
 
                     # Si no se encontró el tag o el tipo de archivo no es soportado, continuar
                     if not check_heading_found or not file_type:
-                        print(f"❌ {path}: No se encontró Check heading o tipo de archivo no soportado", file=sys.stderr)
+                        error_msg = f"❌ {path}: No se encontró Check heading o tipo de archivo no soportado"
+                        file_errors.add(error_msg)
+                        file_results[str(path)] = {'status': 'error', 'errors': file_errors, 'warnings': file_warnings}
                         continue
-
-                    print(f"\n🔍 Validando metadatos para {path}:", file=sys.stderr)
-                    print(f"📝 Metadatos encontrados: {metadata}", file=sys.stderr)
-                    print(f"📝 Metadatos requeridos: {required_metadata}", file=sys.stderr)
-                    print(f"📝 Metadatos opcionales: {optional_metadata}", file=sys.stderr)
-                    print(f"📝 Metadatos excluidos: {excluded_metadata}", file=sys.stderr)
 
                     # Validar metadatos obligatorios
                     for meta_type in required_metadata:
                         if f'no-{meta_type}' in excluded_metadata:
-                            print(f"ℹ️ {path}: Metadato {meta_type} excluido explícitamente", file=sys.stderr)
                             continue
                         if meta_type not in metadata:
-                            print(f"❌ {path}: Falta metadato obligatorio '{meta_type}'", file=sys.stderr)
-                            errors.append(f"❌ {path}: Falta metadato obligatorio '{meta_type}'")
+                            error_msg = f"❌ {path}: Falta metadato obligatorio '{meta_type}'"
+                            file_errors.add(error_msg)
 
                     # Validar metadatos opcionales
                     for meta_type in optional_metadata:
                         if f'no-{meta_type}' in excluded_metadata:
-                            print(f"ℹ️ {path}: Metadato opcional {meta_type} excluido explícitamente", file=sys.stderr)
                             continue
                         if meta_type not in metadata:
-                            print(f"⚠️ {path}: Falta metadato opcional '{meta_type}'", file=sys.stderr)
-                            warnings.append(f"⚠️ {path}: Falta metadato opcional '{meta_type}'")
+                            file_warnings.add(f"⚠️ {path}: Falta metadato opcional '{meta_type}'")
 
-            if errors:
-                print("\n❌ Errores encontrados:", file=sys.stderr)
-                for error in errors:
-                    print(error, file=sys.stderr)
-                return False, '\n'.join(errors + warnings)
-            elif warnings:
+                    # Guardar el resultado del archivo
+                    if file_errors:
+                        file_results[str(path)] = {'status': 'error', 'errors': file_errors, 'warnings': file_warnings}
+                    elif file_warnings:
+                        file_results[str(path)] = {'status': 'warning', 'errors': set(), 'warnings': file_warnings}
+                    else:
+                        file_results[str(path)] = {'status': 'success', 'errors': set(), 'warnings': set()}
+
+                    # Agregar errores y advertencias al conjunto global
+                    all_errors.update(file_errors)
+                    all_warnings.update(file_warnings)
+
+            # Preparar mensaje de retorno
+            if all_errors:
+                # Construir mensaje con el estado de cada archivo
+                messages = []
+                # Primero mostrar los archivos exitosos
+                for file_path, result in sorted(file_results.items()):
+                    if result['status'] == 'success':
+                        messages.append(f"✅ {file_path}: Validación exitosa")
+                    elif result['status'] == 'warning':
+                        messages.append(f"⚠️ {file_path}: {', '.join(sorted(result['warnings']))}")
+                    elif result['status'] == 'error':
+                        # Asegurarnos de que cada error se muestre una sola vez
+                        error_messages = sorted(result['errors'])
+                        if error_messages:  # Solo agregar si hay errores
+                            messages.extend(error_messages)
+
+                # Unir todos los mensajes con saltos de línea
+                error_message = '\n'.join(messages)
+
+                # Solo imprimir el mensaje, no retornarlo (el hook lo imprimirá)
+                print("\nResultados de la validación:", file=sys.stderr)
+                print(error_message, file=sys.stderr)
+
+                # Retornar un mensaje simple para el hook
+                return False, "Validación de headers falló"
+            elif all_warnings:
+                # Construir mensaje con el estado de cada archivo
+                messages = []
+                # Primero mostrar los archivos exitosos
+                for file_path, result in sorted(file_results.items()):
+                    if result['status'] == 'success':
+                        messages.append(f"✅ {file_path}: Validación exitosa")
+                    elif result['status'] == 'warning':
+                        messages.append(f"⚠️ {file_path}: {', '.join(sorted(result['warnings']))}")
+
+                warning_message = '\n'.join(messages)
                 print("\n⚠️ Advertencias encontradas:", file=sys.stderr)
-                for warning in warnings:
-                    print(warning, file=sys.stderr)
-                return True, '\n'.join(warnings)
-            return True, "✅ Validación de headers completada"
+                print(warning_message, file=sys.stderr)
+                return True, "Validación de headers completada con advertencias"
+
+            # Si no hay errores ni advertencias, todos los archivos pasaron
+            success_messages = []
+            for file_path in sorted(files):
+                if str(file_path) in file_results and file_results[str(file_path)]['status'] == 'success':
+                    success_messages.append(f"✅ {file_path}: Validación exitosa")
+
+            success_message = '\n'.join(success_messages)
+            print("\n✅ Validación completada:", file=sys.stderr)
+            print(success_message, file=sys.stderr)
+            return True, "Validación de headers completada exitosamente"
 
         except Exception as e:
-            return False, f"❌ Error en validación de headers: {str(e)}"
+            error_msg = f"❌ Error en validación de headers: {str(e)}"
+            print(error_msg, file=sys.stderr)
+            return False, error_msg
 
     def list_available_formats(self) -> Dict[str, dict]:
         """
