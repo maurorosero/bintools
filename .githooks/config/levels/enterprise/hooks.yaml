@@ -81,8 +81,8 @@ branch-workflow-push:
     - "main"
     - "master"
     - "develop"
-    - "staging"
-    - "release"
+    - "release/*"
+    - "hotfix/*"
   require_status_checks:    # Requiere checks de estado
     - "ci"
     - "lint"
@@ -90,6 +90,11 @@ branch-workflow-push:
     - "security"
   require_branch_up_to_date: true # Requiere rama actualizada
   require_conversation_resolution: true # Requiere resolución de conversaciones
+
+header-validator:
+  # Validación estricta de headers
+  enabled: true             # Activado
+  check_heading_lines: 15   # Más líneas para el nivel enterprise
 
 hooks:
   description: "Hooks enterprise para proyectos remotos"

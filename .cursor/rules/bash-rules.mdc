@@ -14,7 +14,7 @@ priority: high
 ```bash
 #!/usr/bin/env bash
 # -*- coding: utf-8 -*-
-#
+# Check Heading
 # Copyright (C) <YYYY> MAURO ROSERO PÉREZ
 #
 # Script Name: <nombre_archivo>.sh

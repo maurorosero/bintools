@@ -13,6 +13,7 @@ priority: high
 ## 1. Estructura del Archivo JavaScript
 ```javascript
 /**
+ * Check Heading
  * Copyright (C) <YYYY> MAURO ROSERO PÉREZ
  *
  * File Name: <nombre_archivo>.js

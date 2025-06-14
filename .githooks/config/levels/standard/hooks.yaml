@@ -59,11 +59,16 @@ branch-workflow-push:
   strict: true              # Es estricto
   validate_protected: true  # Valida ramas protegidas
   require_upstream: true    # Requiere upstream
-  require_pr: false         # No requiere PR (solo sugerido)
+  require_pr: true          # Requiere PR
   protected_branches:       # Ramas protegidas
     - "main"
     - "master"
     - "develop"
+
+header-validator:
+  # Validación de headers
+  enabled: true             # Activado
+  check_heading_lines: 8    # Líneas para el nivel standard
 
 hooks:
   description: "Hooks estándar para proyectos híbridos"

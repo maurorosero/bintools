@@ -47,3 +47,8 @@ branch-workflow-push:
   validate_protected: false # No valida ramas protegidas
   require_upstream: false   # No requiere upstream
   require_pr: false         # No requiere PR
+
+header-validator:
+  # Validación básica de headers
+  enabled: true             # Activado con configuración mínima
+  check_heading_lines: 5    # Menos líneas para el nivel minimal

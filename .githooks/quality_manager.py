@@ -2,8 +2,19 @@
 # -*- coding: utf-8 -*-
 
 """
+Check Heading
+Copyright (C) <2025> MAURO ROSERO PÉREZ (ROSERO ONE DEVELOPMENT)
+
+Script Name: quality_manager.py
+version: 0.1.0
+description: Gestiona los niveles de calidad y formatos de commit de manera independiente.
+created: 2025-06-14
+modified: 2025-06-14
+author: Mauro Rosero Pérez <mauro@rosero.one>
+"""
+
+"""
 Quality Manager para el ecosistema Git Branch Manager.
-Gestiona los niveles de calidad y formatos de commit de manera independiente.
 """
 
 import yaml
@@ -31,6 +42,7 @@ class HookType(Enum):
     COMMITLINT = 'commitlint'
     BRANCH_WORKFLOW_COMMIT = 'branch-workflow-commit'
     BRANCH_WORKFLOW_PUSH = 'branch-workflow-push'
+    HEADER_VALIDATOR = 'header-validator'  # Nuevo tipo de hook
 
 class QualityManager:
     """Gestiona los niveles de calidad y formatos de commit."""
@@ -121,7 +133,8 @@ class QualityManager:
 
         # Validar estructura de hooks
         required_sections = ['format', 'exec', 'size', 'detect-secrets',
-                           'commitlint', 'branch-workflow-commit', 'branch-workflow-push']
+                           'commitlint', 'branch-workflow-commit', 'branch-workflow-push',
+                           'header-validator']  # Agregar la nueva sección
 
         for section in required_sections:
             if section not in self.active_config['hooks']:
@@ -227,6 +240,8 @@ class QualityManager:
                  return self._run_branch_workflow_commit(config)
             elif hook == HookType.BRANCH_WORKFLOW_PUSH:
                  return self._run_branch_workflow_push(config)
+            elif hook == HookType.HEADER_VALIDATOR:
+                 return self._run_header_validator(config)
 
         except ValueError as e:
              err_msg = f"❌ Error: {str(e)}"
@@ -481,6 +496,134 @@ class QualityManager:
             return True, "✅ Validación de workflow"
         except Exception as e:
             return False, f"❌ Validación de workflow: {str(e)}"
+
+    def _run_header_validator(self, config: dict) -> Tuple[bool, str]:
+        """
+        Ejecuta el hook de validación de headers.
+
+        Args:
+            config: Configuración del hook que puede incluir:
+                - enabled: bool - Si el hook está habilitado
+                - check_heading_lines: int - Número de líneas a revisar para el tag Check heading
+
+        Returns:
+            Tuple[bool, str]: (éxito, mensaje)
+        """
+        if not config.get('enabled', True):
+            return True, "✅ Validación de headers deshabilitada"
+
+        # Obtener el número de líneas a revisar, con valor por defecto de 10
+        check_heading_lines = config.get('check_heading_lines', 10)
+        if not isinstance(check_heading_lines, int) or check_heading_lines < 1:
+            return False, f"❌ Configuración inválida: check_heading_lines debe ser un entero positivo, se recibió {check_heading_lines}"
+
+        try:
+            # Obtener archivos modificados
+            result = subprocess.run(['git', 'diff', '--cached', '--name-only', '--diff-filter=ACMR'],
+                                  capture_output=True, text=True)
+            if result.returncode != 0:
+                return False, f"❌ Error al obtener archivos modificados: {result.stderr}"
+
+            files = result.stdout.strip().split('\n')
+            if not files or files[0] == '':
+                return True, "✅ No hay archivos modificados para validar"
+
+            errors = []
+            warnings = []
+
+            # Metadatos y sus variantes (case-insensitive)
+            METADATA_VARIANTS = {
+                'version': {'version', 'versión', 'release', 'v'},
+                'description': {'description', 'descripción', 'desc', 'about'},
+                'created': {'created', 'created at', 'creation date', 'creation', 'date created'},
+                'modified': {'modified', 'modified at', 'updated', 'updated at',
+                            'last modified', 'last updated', 'modification date', 'update date'},
+                'author': {'author', 'autor', 'by', 'created by', 'maintainer', 'maintained by'}
+            }
+
+            # Determinar metadatos obligatorios según el nivel
+            current_level = self.get_current_configuration().get('level', 'minimal')
+
+            if current_level == 'minimal':
+                required_metadata = {'version', 'description', 'created'}
+                optional_metadata = {'modified', 'author'}
+            else:  # standard o enterprise
+                required_metadata = {'version', 'description', 'created', 'modified', 'author'}
+                optional_metadata = set()
+
+            for file_path in files:
+                path = Path(file_path)
+                if not path.exists():
+                    continue
+
+                # Verificar si el archivo requiere validación
+                content = path.read_text(encoding='utf-8')
+                lines = content.split('\n')[:check_heading_lines]
+
+                # Buscar tag Check heading y extraer metadatos
+                check_heading_found = False
+                excluded_metadata = set()
+                metadata = {}
+                in_docstring = False
+                docstring_lines = []
+
+                for line in lines:
+                    # Detectar inicio y fin de docstring
+                    if '"""' in line:
+                        if not in_docstring:
+                            in_docstring = True
+                            docstring_lines = []
+                        else:
+                            in_docstring = False
+                            # Procesar las líneas del docstring
+                            for doc_line in docstring_lines:
+                                doc_line_lower = doc_line.lower()
+                                # Buscar tag Check heading
+                                if not check_heading_found and re.search(r'Check heading', doc_line, re.IGNORECASE):
+                                    check_heading_found = True
+                                    if ':' in doc_line:
+                                        _, exceptions = doc_line.split(':', 1)
+                                        excluded_metadata = {
+                                            exc.strip() for exc in exceptions.split(',')
+                                        }
+                                # Buscar metadatos
+                                for meta_type, variants in METADATA_VARIANTS.items():
+                                    if f'no-{meta_type}' in excluded_metadata:
+                                        continue
+                                    for variant in variants:
+                                        pattern = rf'\b{variant}\b\s*:'
+                                        if re.search(pattern, doc_line_lower):
+                                            metadata[meta_type] = doc_line.strip()
+                                            break
+                        continue
+
+                    if in_docstring:
+                        docstring_lines.append(line)
+
+                if not check_heading_found:
+                    continue  # No requiere validación
+
+                # Validar metadatos obligatorios
+                for meta_type in required_metadata:
+                    if f'no-{meta_type}' in excluded_metadata:
+                        continue
+                    if meta_type not in metadata:
+                        errors.append(f"❌ {path}: Falta metadato obligatorio '{meta_type}'")
+
+                # Validar metadatos opcionales
+                for meta_type in optional_metadata:
+                    if f'no-{meta_type}' in excluded_metadata:
+                        continue
+                    if meta_type not in metadata:
+                        warnings.append(f"⚠️ {path}: Falta metadato opcional '{meta_type}'")
+
+            if errors:
+                return False, '\n'.join(errors + warnings)
+            elif warnings:
+                return True, '\n'.join(warnings)
+            return True, "✅ Validación de headers completada"
+        except Exception as e:
+            return False, f"❌ Error en validación de headers: {str(e)}"
 
     def list_available_formats(self) -> Dict[str, dict]:
         """

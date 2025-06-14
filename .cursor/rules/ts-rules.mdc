@@ -13,6 +13,7 @@ priority: high
 ## 1. Estructura del Archivo TypeScript
 ```typescript
 /**
+ * Check Heading
  * Copyright (C) <YYYY> MAURO ROSERO PÉREZ
  *
  * File Name: <nombre_archivo>.ts
