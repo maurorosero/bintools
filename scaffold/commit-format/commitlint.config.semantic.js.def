@@ -1,5 +1,5 @@
 /**
- * Configuración de commitlint que implementa un formato de commits semántico
+ * @description Configuración de commitlint que implementa un formato de commits semántico
  * con un conjunto completo de tipos de commit estandarizados. Define reglas
  * estrictas para validar el formato [TAG] (#Issue) Descripción, incluyendo
  * validación de tipos semánticos como FEAT, FIX, DOCS, etc.
@@ -11,11 +11,8 @@
  * @version 0.1.0
  * @author Mauro Rosero P. <mauro.rosero@gmail.com>
  * @created 2025-05-12 21:56:33
+ * @modified 2025-05-12 21:56:33
  *
- * This file is managed by template_manager.py.
- * Any changes to this header will be overwritten on the next fix.
- *
- * HEADER_END_TAG - DO NOT REMOVE OR MODIFY THIS LINE
  */
 
 const requireIssueFromMeta = process.env.REQUIRE_ISSUE_FROM_META === 'true';
