@@ -561,45 +561,86 @@ class QualityManager:
                 content = path.read_text(encoding='utf-8')
                 lines = content.split('\n')[:check_heading_lines]
 
+                # Determinar el tipo de archivo
+                is_python = path.suffix == '.py'
+                is_bash = path.suffix == '.sh' or (path.suffix == '' and content.startswith('#!/bin/bash'))
+
+                if not (is_python or is_bash):
+                    continue  # No es un archivo que requiera validación
+
                 # Buscar tag Check heading y extraer metadatos
                 check_heading_found = False
                 excluded_metadata = set()
                 metadata = {}
-                in_docstring = False
-                docstring_lines = []
 
-                for line in lines:
-                    # Detectar inicio y fin de docstring
-                    if '"""' in line:
-                        if not in_docstring:
-                            in_docstring = True
-                            docstring_lines = []
-                        else:
-                            in_docstring = False
-                            # Procesar las líneas del docstring
-                            for doc_line in docstring_lines:
-                                doc_line_lower = doc_line.lower()
-                                # Buscar tag Check heading
-                                if not check_heading_found and re.search(r'Check heading', doc_line, re.IGNORECASE):
-                                    check_heading_found = True
-                                    if ':' in doc_line:
-                                        _, exceptions = doc_line.split(':', 1)
-                                        excluded_metadata = {
-                                            exc.strip() for exc in exceptions.split(',')
-                                        }
-                                # Buscar metadatos
-                                for meta_type, variants in METADATA_VARIANTS.items():
-                                    if f'no-{meta_type}' in excluded_metadata:
-                                        continue
-                                    for variant in variants:
-                                        pattern = rf'\b{variant}\b\s*:'
-                                        if re.search(pattern, doc_line_lower):
-                                            metadata[meta_type] = doc_line.strip()
-                                            break
-                        continue
+                if is_python:
+                    # Procesar archivo Python
+                    in_docstring = False
+                    docstring_lines = []
 
-                    if in_docstring:
-                        docstring_lines.append(line)
+                    for line in lines:
+                        # Detectar inicio y fin de docstring
+                        if '"""' in line:
+                            if not in_docstring:
+                                in_docstring = True
+                                docstring_lines = []
+                            else:
+                                in_docstring = False
+                                # Procesar las líneas del docstring
+                                for doc_line in docstring_lines:
+                                    doc_line_lower = doc_line.lower()
+                                    # Buscar tag Check heading
+                                    if not check_heading_found and re.search(r'Check heading', doc_line, re.IGNORECASE):
+                                        check_heading_found = True
+                                        if ':' in doc_line:
+                                            _, exceptions = doc_line.split(':', 1)
+                                            excluded_metadata = {
+                                                exc.strip() for exc in exceptions.split(',')
+                                            }
+                                    # Buscar metadatos
+                                    for meta_type, variants in METADATA_VARIANTS.items():
+                                        if f'no-{meta_type}' in excluded_metadata:
+                                            continue
+                                        for variant in variants:
+                                            pattern = rf'\b{variant}\b\s*:'
+                                            if re.search(pattern, doc_line_lower):
+                                                metadata[meta_type] = doc_line.strip()
+                                                break
+                            continue
+
+                        if in_docstring:
+                            docstring_lines.append(line)
+
+                else:  # is_bash
+                    # Procesar archivo bash
+                    for line in lines:
+                        # Ignorar líneas que no son comentarios
+                        if not line.strip().startswith('#'):
+                            continue
+
+                        # Remover el # inicial y espacios
+                        line = line.lstrip('#').strip()
+                        line_lower = line.lower()
+
+                        # Buscar tag Check heading
+                        if not check_heading_found and re.search(r'Check heading', line, re.IGNORECASE):
+                            check_heading_found = True
+                            if ':' in line:
+                                _, exceptions = line.split(':', 1)
+                                excluded_metadata = {
+                                    exc.strip() for exc in exceptions.split(',')
+                                }
+                            continue
+
+                        # Buscar metadatos
+                        for meta_type, variants in METADATA_VARIANTS.items():
+                            if f'no-{meta_type}' in excluded_metadata:
+                                continue
+                            for variant in variants:
+                                pattern = rf'\b{variant}\b\s*:'
+                                if re.search(pattern, line_lower):
+                                    metadata[meta_type] = line.strip()
+                                    break
 
                 if not check_heading_found:
                     continue  # No requiere validación
