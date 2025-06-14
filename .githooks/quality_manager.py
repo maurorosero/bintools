@@ -538,6 +538,18 @@ class QualityManager:
                 'author': {'author', 'autor', 'by', 'created by', 'maintainer', 'maintained by'}
             }
 
+            # Mapeo de extensiones a tipos de archivo
+            FILE_TYPES = {
+                '.py': 'python',
+                '.sh': 'bash',
+                '.js': 'javascript',
+                '.ts': 'typescript',
+                '.jsx': 'javascript',
+                '.tsx': 'typescript',
+                '.mjs': 'javascript',
+                '.cjs': 'javascript'
+            }
+
             # Determinar metadatos obligatorios según el nivel
             current_level = self.get_current_configuration().get('level', 'minimal')
 
@@ -561,27 +573,30 @@ class QualityManager:
 
                 lines = content.split('\n')[:check_heading_lines]
 
-                # Determinar el tipo de archivo
-                is_python = path.suffix == '.py'
-                is_bash = path.suffix == '.sh' or (path.suffix == '' and content.startswith('#!/bin/bash'))
+                # Determinar el tipo de archivo inicialmente por extensión
+                file_type = None
+                file_ext = path.suffix.lower()
+                if file_ext in FILE_TYPES:
+                    file_type = FILE_TYPES[file_ext]
+                elif path.suffix == '' and content.startswith('#!/bin/bash'):
+                    file_type = 'bash'
 
-                if not (is_python or is_bash):
-                    continue
+                # Patrones regex compilados para mejor rendimiento
+                check_heading_pattern = re.compile(r'(?i)check\s*heading(?:\s+\.([a-z0-9]+))?')
+                metadata_pattern = re.compile(r'^\s*([^:]+?)\s*:\s*(.+?)\s*$', re.IGNORECASE)
 
                 # Buscar tag Check heading y extraer metadatos
                 check_heading_found = False
                 excluded_metadata = set()
                 metadata = {}
+                declared_file_type = None
 
-                if is_python:
-                    # Procesar archivo Python usando la lógica de docstring que ya funcionaba
+                # Procesar según el tipo de archivo
+                if file_type == 'python':
+                    # Procesar archivo Python usando la lógica de docstring
                     in_docstring = False
                     docstring_lines = []
                     first_docstring_processed = False
-
-                    # Patrones regex compilados para mejor rendimiento
-                    check_heading_pattern = re.compile(r'(?i)check\s*heading')
-                    metadata_pattern = re.compile(r'^\s*([^:]+?)\s*:\s*(.+?)\s*$', re.IGNORECASE)
 
                     for line in lines:
                         # Buscar inicio de docstring
@@ -605,8 +620,10 @@ class QualityManager:
                             for doc_line in docstring_lines:
                                 # Buscar tag Check heading
                                 if not check_heading_found:
-                                    if check_heading_pattern.search(doc_line):
+                                    match = check_heading_pattern.search(doc_line)
+                                    if match:
                                         check_heading_found = True
+                                        declared_file_type = match.group(1)
                                         if ':' in doc_line:
                                             _, exceptions = doc_line.split(':', 1)
                                             excluded_metadata = {
@@ -633,34 +650,34 @@ class QualityManager:
                         if in_docstring and not first_docstring_processed:
                             docstring_lines.append(line.strip())
 
-                else:  # is_bash
-                    # Procesar archivo bash usando lógica específica para comentarios
+                else:  # bash, javascript, typescript y otros
+                    # Procesar archivo usando lógica de comentarios
                     header_lines = []
-
-                    # Patrones regex compilados para mejor rendimiento
-                    check_heading_pattern = re.compile(r'^\s*check\s*heading\s*$', re.IGNORECASE)
-                    metadata_pattern = re.compile(r'^\s*([^:]+?)\s*:\s*(.+?)\s*$', re.IGNORECASE)
+                    comment_start = '#' if file_type == 'bash' else '//'
 
                     # Primero recolectar todas las líneas de comentario hasta encontrar una línea no comentario
                     for line in lines:
-                        if not line.strip().startswith('#'):
+                        if not line.strip().startswith(comment_start):
                             break
-                        # Remover el # y espacios al inicio
-                        clean_line = line.lstrip('#').strip()
+                        # Remover el comentario y espacios al inicio
+                        clean_line = line.lstrip(comment_start).strip()
                         if clean_line:  # Solo agregar líneas no vacías
                             header_lines.append(clean_line)
 
                     # Procesar las líneas del header
                     for line in header_lines:
                         # Buscar tag Check heading
-                        if not check_heading_found and check_heading_pattern.search(line):
-                            check_heading_found = True
-                            if ':' in line:
-                                _, exceptions = line.split(':', 1)
-                                excluded_metadata = {
-                                    exc.strip() for exc in exceptions.split(',')
-                                }
-                            continue
+                        if not check_heading_found:
+                            match = check_heading_pattern.search(line)
+                            if match:
+                                check_heading_found = True
+                                declared_file_type = match.group(1)
+                                if ':' in line:
+                                    _, exceptions = line.split(':', 1)
+                                    excluded_metadata = {
+                                        exc.strip() for exc in exceptions.split(',')
+                                    }
+                                continue
 
                         # Si encontramos el tag, procesar todas las líneas como metadatos
                         if check_heading_found:
@@ -677,9 +694,13 @@ class QualityManager:
                                         metadata[meta_type] = value
                                         break
 
-                if not check_heading_found:
-                    errors.append(f"❌ {path}: No se encontró el tag Check heading")
-                    continue  # No requiere validación
+                # Si se declaró un tipo de archivo en el Check heading, usarlo
+                if declared_file_type and declared_file_type in FILE_TYPES:
+                    file_type = FILE_TYPES[f'.{declared_file_type}']
+
+                # Si no se encontró el tag o el tipo de archivo no es soportado, continuar
+                if not check_heading_found or not file_type:
+                    continue
 
                 # Validar metadatos obligatorios
                 for meta_type in required_metadata:
