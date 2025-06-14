@@ -1,0 +1,360 @@
+---
+description:
+globs: "**/*.js"
+alwaysApply: false
+---
+alwaysApply: true
+priority: high
+---
+
+# Reglas de Estilo y Buenas Prácticas para JavaScript
+# ==============================================
+
+## 1. Estructura del Archivo JavaScript
+```javascript
+/**
+ * Copyright (C) <YYYY> MAURO ROSERO PÉREZ
+ *
+ * File Name: <nombre_archivo>.js
+ * Author:      <nombre completo del usuario .gitconfig global o usuario del sistema>
+ * Assistant:   Cursor AI (https://cursor.com)
+ * Created:     <DATETIME>
+ * Modified:    <DATETIME>
+ * Description: Breve descripción del propósito del módulo.
+ * Version:     0.0.1
+ */
+
+// 1. Imports de terceros (ordenados alfabéticamente)
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import lodash from 'lodash';
+
+// 2. Imports locales (ordenados alfabéticamente)
+import { utils } from './utils';
+import { config } from './config';
+
+// 3. Constantes (en MAYÚSCULAS)
+const DEFAULT_TIMEOUT = 30;
+const MAX_RETRIES = 3;
+const VERSION = '0.0.1';
+
+// 4. Type Definitions (TypeScript)
+/**
+ * @typedef {Object} JsonDict
+ * @property {any} [key: string] - Valor de cualquier tipo
+ */
+
+/**
+ * @typedef {string|number|boolean|null} Resultado
+ */
+
+// 5. Enums (usando objetos congelados)
+const EstadoProceso = Object.freeze({
+    PENDIENTE: 'pendiente',
+    EN_PROCESO: 'en_proceso',
+    COMPLETADO: 'completado',
+    ERROR: 'error'
+});
+
+// 6. Clases Base
+class ProcesadorBase {
+    /**
+     * @param {Object} config - Configuración del procesador
+     * @param {number} config.timeout - Tiempo de espera en segundos
+     * @param {number} config.maxRetries - Número máximo de reintentos
+     * @param {boolean} config.debug - Modo debug
+     */
+    constructor(config) {
+        this.config = config;
+        this._logger = console;
+    }
+
+    /**
+     * Procesa los datos de forma asíncrona
+     * @param {JsonDict} datos - Datos a procesar
+     * @returns {Promise<Resultado>} Resultado del procesamiento
+     * @throws {Error} Si los datos son inválidos
+     * @throws {Error} Si hay un error en el procesamiento
+     */
+    async procesar(datos) {
+        throw new Error('Método abstracto');
+    }
+
+    /**
+     * Valida los datos de entrada
+     * @param {JsonDict} datos - Datos a validar
+     * @returns {boolean} True si los datos son válidos
+     * @throws {Error} Si los datos son inválidos
+     */
+    validarDatos(datos) {
+        if (typeof datos !== 'object' || datos === null) {
+            throw new Error('Los datos deben ser un objeto');
+        }
+        return true;
+    }
+}
+
+// 7. Clases Concretas
+class ProcesadorConcreto extends ProcesadorBase {
+    constructor(config) {
+        super(config);
+        this._cache = new Map();
+    }
+
+    /**
+     * Calcula el hash de los datos
+     * @param {string} datos - Datos a hashear
+     * @returns {string} Hash de los datos
+     */
+    _calcularHash(datos) {
+        return String(datos.split('').reduce((a, b) => {
+            a = ((a << 5) - a) + b.charCodeAt(0);
+            return a & a;
+        }, 0));
+    }
+
+    /**
+     * Procesa los datos de forma asíncrona
+     * @param {JsonDict} datos - Datos a procesar
+     * @returns {Promise<Resultado>} Resultado del procesamiento
+     * @throws {Error} Si los datos son inválidos
+     * @throws {Error} Si hay un error en el procesamiento
+     */
+    async procesar(datos) {
+        if (!this.validarDatos(datos)) {
+            throw new Error('Datos inválidos');
+        }
+
+        try {
+            const response = await axios.get('https://api.ejemplo.com/datos', {
+                timeout: this.config.timeout
+            });
+            return response.data;
+        } catch (error) {
+            this._logger.error(`Error procesando datos: ${error.message}`);
+            throw new Error(`Error en procesamiento: ${error.message}`);
+        }
+    }
+
+    /**
+     * Procesa una lista de datos de forma asíncrona
+     * @param {JsonDict[]} listaDatos - Lista de datos a procesar
+     * @returns {AsyncGenerator<Resultado>} Resultado de cada procesamiento
+     */
+    async *procesarLote(listaDatos) {
+        for (const datos of listaDatos) {
+            try {
+                const resultado = await this.procesar(datos);
+                yield resultado;
+            } catch (error) {
+                this._logger.error(`Error procesando lote: ${error.message}`);
+                yield null;
+            }
+        }
+    }
+}
+
+// 8. Funciones de Utilidad
+/**
+ * Decorador para reintentar operaciones fallidas
+ * @param {number} maxIntentos - Número máximo de intentos
+ * @param {number} delay - Tiempo de espera entre intentos en segundos
+ * @returns {Function} Decorador configurado
+ */
+const decoradorConRetry = (maxIntentos = 3, delay = 1.0) => {
+    return (func) => {
+        return async (...args) => {
+            let ultimoError = null;
+
+            for (let intento = 0; intento < maxIntentos; intento++) {
+                try {
+                    return await func(...args);
+                } catch (error) {
+                    ultimoError = error;
+                    if (intento < maxIntentos - 1) {
+                        await new Promise(resolve =>
+                            setTimeout(resolve, delay * (intento + 1) * 1000)
+                        );
+                    }
+                }
+            }
+
+            throw ultimoError || new Error('Error desconocido');
+        };
+    };
+};
+
+// 9. Función Principal
+async function main() {
+    // Configuración de logging
+    const logger = {
+        info: (msg) => console.log(`[INFO] ${msg}`),
+        error: (msg) => console.error(`[ERROR] ${msg}`),
+        debug: (msg) => console.debug(`[DEBUG] ${msg}`)
+    };
+
+    // Crear instancia del procesador
+    const config = {
+        timeout: DEFAULT_TIMEOUT,
+        maxRetries: MAX_RETRIES,
+        debug: true
+    };
+    const procesador = new ProcesadorConcreto(config);
+
+    // Procesar datos
+    const datos = { id: 1, valor: 'test' };
+    try {
+        const resultado = await procesador.procesar(datos);
+        logger.info(`Resultado: ${JSON.stringify(resultado)}`);
+    } catch (error) {
+        logger.error(`Error en main: ${error.message}`);
+        process.exit(1);
+    }
+}
+
+// 10. Ejecución del script
+if (require.main === module) {
+    main().catch(console.error);
+}
+
+// 11. Exports
+export {
+    ProcesadorBase,
+    ProcesadorConcreto,
+    decoradorConRetry,
+    EstadoProceso,
+    VERSION
+};
+```
+
+## 2. Buenas Prácticas de Código
+
+### 2.1 TypeScript y Tipado
+- Usar TypeScript cuando sea posible
+- Definir interfaces para objetos complejos
+- Usar tipos estrictos
+- Evitar `any` cuando sea posible
+- Usar tipos genéricos
+- Documentar tipos con JSDoc
+- Usar tipos de unión discriminados
+- Implementar type guards
+
+### 2.2 Manejo de Errores
+- Usar clases de error personalizadas
+- Implementar manejo de errores asíncrono
+- Usar try/catch apropiadamente
+- No silenciar errores
+- Loggear errores con contexto
+- Implementar retry patterns
+- Usar error boundaries en React
+- Manejar promesas rechazadas
+
+### 2.3 Asincronía
+- Usar async/await sobre promesas
+- Implementar cancelación de operaciones
+- Manejar timeouts
+- Usar Promise.all para operaciones paralelas
+- Implementar streams cuando sea apropiado
+- Manejar recursos asíncronos
+- Usar colas para operaciones pesadas
+- Implementar backoff exponencial
+
+### 2.4 Optimización
+- Implementar memoización
+- Usar lazy loading
+- Optimizar renders en React
+- Implementar virtualización
+- Usar web workers para tareas pesadas
+- Implementar caching
+- Optimizar bundles
+- Minimizar reflows/repaints
+
+### 2.5 Documentación
+- Documentar TODAS las clases, métodos y funciones
+- Usar JSDoc para documentación
+- Incluir ejemplos en documentación
+- Documentar tipos de retorno
+- Documentar excepciones
+- Documentar efectos secundarios
+- Mantener documentación actualizada
+- Documentar APIs públicas
+
+### 2.6 Testing
+- Escribir tests unitarios
+- Usar Jest o Mocha
+- Implementar tests de integración
+- Mockear dependencias
+- Probar casos de error
+- Verificar cobertura
+- Implementar tests E2E
+- Usar snapshots cuando sea apropiado
+
+### 2.7 Seguridad
+- Validar TODAS las entradas
+- Sanitizar datos
+- Implementar CSRF protection
+- Usar CSP
+- Manejar secretos de forma segura
+- Implementar rate limiting
+- Validar tipos en runtime
+- Usar HTTPS
+
+### 2.8 Logging
+- Usar niveles de log apropiados
+- Incluir contexto en logs
+- Implementar rotación de logs
+- No loguear datos sensibles
+- Usar structured logging
+- Implementar log handlers
+- Mantener logs en producción
+- Usar source maps
+
+### 2.9 Convenciones de Nombrado
+- Usar `camelCase` para variables y funciones
+- Usar `PascalCase` para clases
+- Usar `UPPER_CASE` para constantes
+- Prefijos para variables privadas: `_`
+- Nombres descriptivos en español
+- Evitar nombres de una letra
+- Usar verbos para funciones
+- Usar sustantivos para clases
+
+### 2.10 Estructura de Código
+- Máximo 80 caracteres por línea
+- Máximo 3 niveles de indentación
+- Máximo 20 líneas por función
+- Máximo 200 líneas por clase
+- Separar lógica de negocio
+- Usar composición sobre herencia
+- Mantener funciones puras
+- Evitar efectos secundarios
+- Usar inmutabilidad
+
+### 2.11 Rendimiento
+- Minimizar re-renders
+- Optimizar operaciones I/O
+- Implementar lazy loading
+- Usar code splitting
+- Optimizar imágenes
+- Implementar caching
+- Monitorear métricas
+- Optimizar bundles
+
+### 2.12 Mantenibilidad
+- Modularizar código
+- Reutilizar componentes
+- Mantener DRY
+- Documentar cambios
+- Versionar APIs
+- Implementar CI/CD
+- Mantener changelog
+- Revisar código regularmente
+
+# IMPORTANTE: Cómo Usar Este Documento
+# ------------------------------------
+# Este documento establece las reglas y mejores prácticas para JavaScript.
+# 1. Seguir TODAS las reglas al escribir nuevo código
+# 2. Mantener consistencia en todo el código
+# 3. Documentar cualquier desviación de las reglas
+# 4. Revisar y actualizar las reglas regularmente
+# 5. Asegurar que todos los desarrolladores las conozcan

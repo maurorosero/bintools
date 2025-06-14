@@ -1,0 +1,425 @@
+---
+description:
+globs: "**/*.ts"
+alwaysApply: false
+---
+alwaysApply: true
+priority: high
+---
+
+# Reglas de Estilo y Buenas Prácticas para TypeScript
+# ==============================================
+
+## 1. Estructura del Archivo TypeScript
+```typescript
+/**
+ * Copyright (C) <YYYY> MAURO ROSERO PÉREZ
+ *
+ * File Name: <nombre_archivo>.ts
+ * Author:      <nombre completo del usuario .gitconfig global o usuario del sistema>
+ * Assistant:   Cursor AI (https://cursor.com)
+ * Created:     <DATETIME>
+ * Modified:    <DATETIME>
+ * Description: Breve descripción del propósito del módulo.
+ * Version:     0.0.1
+ */
+
+// 1. Imports de terceros (ordenados alfabéticamente)
+import { useState, useEffect, type FC, type ReactNode } from 'react';
+import axios, { type AxiosResponse, type AxiosError } from 'axios';
+import { type DebouncedFunc } from 'lodash';
+
+// 2. Imports locales (ordenados alfabéticamente)
+import { type Utils, utils } from './utils';
+import { type Config, config } from './config';
+
+// 3. Constantes (en MAYÚSCULAS)
+const DEFAULT_TIMEOUT: number = 30;
+const MAX_RETRIES: number = 3;
+const VERSION: string = '0.0.1';
+
+// 4. Type Definitions
+type JsonDict = Record<string, unknown>;
+type Resultado = string | number | boolean | null;
+
+interface Configuracion {
+    readonly timeout: number;
+    readonly maxRetries: number;
+    readonly debug: boolean;
+}
+
+// 5. Enums
+enum EstadoProceso {
+    PENDIENTE = 'pendiente',
+    EN_PROCESO = 'en_proceso',
+    COMPLETADO = 'completado',
+    ERROR = 'error'
+}
+
+// 6. Interfaces
+interface IProcesador {
+    procesar(datos: JsonDict): Promise<Resultado>;
+    validarDatos(datos: JsonDict): boolean;
+}
+
+interface ILogger {
+    info(message: string): void;
+    error(message: string): void;
+    debug(message: string): void;
+}
+
+// 7. Clases Base
+abstract class ProcesadorBase implements IProcesador {
+    protected readonly config: Configuracion;
+    protected readonly _logger: ILogger;
+
+    constructor(config: Configuracion, logger: ILogger = console) {
+        this.config = config;
+        this._logger = logger;
+    }
+
+    abstract procesar(datos: JsonDict): Promise<Resultado>;
+
+    validarDatos(datos: JsonDict): boolean {
+        if (typeof datos !== 'object' || datos === null) {
+            throw new Error('Los datos deben ser un objeto');
+        }
+        return true;
+    }
+}
+
+// 8. Clases Concretas
+class ProcesadorConcreto extends ProcesadorBase {
+    private readonly _cache: Map<string, Resultado>;
+
+    constructor(config: Configuracion, logger?: ILogger) {
+        super(config, logger);
+        this._cache = new Map();
+    }
+
+    private _calcularHash(datos: string): string {
+        return String(datos.split('').reduce((a, b) => {
+            a = ((a << 5) - a) + b.charCodeAt(0);
+            return a & a;
+        }, 0));
+    }
+
+    async procesar(datos: JsonDict): Promise<Resultado> {
+        if (!this.validarDatos(datos)) {
+            throw new Error('Datos inválidos');
+        }
+
+        try {
+            const response: AxiosResponse<Resultado> = await axios.get(
+                'https://api.ejemplo.com/datos',
+                { timeout: this.config.timeout }
+            );
+            return response.data;
+        } catch (error) {
+            const axiosError = error as AxiosError;
+            this._logger.error(`Error procesando datos: ${axiosError.message}`);
+            throw new Error(`Error en procesamiento: ${axiosError.message}`);
+        }
+    }
+
+    async *procesarLote(listaDatos: JsonDict[]): AsyncGenerator<Resultado> {
+        for (const datos of listaDatos) {
+            try {
+                const resultado = await this.procesar(datos);
+                yield resultado;
+            } catch (error) {
+                this._logger.error(`Error procesando lote: ${(error as Error).message}`);
+                yield null;
+            }
+        }
+    }
+}
+
+// 9. Funciones de Utilidad
+function decoradorConRetry<T extends (...args: any[]) => Promise<any>>(
+    maxIntentos: number = 3,
+    delay: number = 1.0
+): (func: T) => T {
+    return (func: T): T => {
+        return (async (...args: Parameters<T>): Promise<ReturnType<T>> => {
+            let ultimoError: Error | null = null;
+
+            for (let intento = 0; intento < maxIntentos; intento++) {
+                try {
+                    return await func(...args);
+                } catch (error) {
+                    ultimoError = error as Error;
+                    if (intento < maxIntentos - 1) {
+                        await new Promise(resolve =>
+                            setTimeout(resolve, delay * (intento + 1) * 1000)
+                        );
+                    }
+                }
+            }
+
+            throw ultimoError || new Error('Error desconocido');
+        }) as T;
+    };
+}
+
+// 10. Hooks Personalizados (React)
+function useProcesador(config: Configuracion): {
+    procesar: (datos: JsonDict) => Promise<Resultado>;
+    estado: EstadoProceso;
+    error: Error | null;
+} {
+    const [estado, setEstado] = useState<EstadoProceso>(EstadoProceso.PENDIENTE);
+    const [error, setError] = useState<Error | null>(null);
+    const procesadorRef = useRef<ProcesadorConcreto | null>(null);
+
+    useEffect(() => {
+        procesadorRef.current = new ProcesadorConcreto(config);
+        return () => {
+            // Cleanup si es necesario
+        };
+    }, [config]);
+
+    const procesar = async (datos: JsonDict): Promise<Resultado> => {
+        if (!procesadorRef.current) {
+            throw new Error('Procesador no inicializado');
+        }
+
+        setEstado(EstadoProceso.EN_PROCESO);
+        setError(null);
+
+        try {
+            const resultado = await procesadorRef.current.procesar(datos);
+            setEstado(EstadoProceso.COMPLETADO);
+            return resultado;
+        } catch (error) {
+            const err = error as Error;
+            setError(err);
+            setEstado(EstadoProceso.ERROR);
+            throw err;
+        }
+    };
+
+    return { procesar, estado, error };
+}
+
+// 11. Componentes React
+interface ProcesadorProps {
+    config: Configuracion;
+    onResultado: (resultado: Resultado) => void;
+    onError: (error: Error) => void;
+}
+
+const ProcesadorComponent: FC<ProcesadorProps> = ({
+    config,
+    onResultado,
+    onError
+}): ReactNode => {
+    const { procesar, estado, error } = useProcesador(config);
+
+    useEffect(() => {
+        if (error) {
+            onError(error);
+        }
+    }, [error, onError]);
+
+    const handleProcesar = async (): Promise<void> => {
+        try {
+            const resultado = await procesar({ id: 1, valor: 'test' });
+            onResultado(resultado);
+        } catch (error) {
+            // Error ya manejado por el hook
+        }
+    };
+
+    return (
+        <div>
+            <button
+                onClick={handleProcesar}
+                disabled={estado === EstadoProceso.EN_PROCESO}
+            >
+                {estado === EstadoProceso.EN_PROCESO ? 'Procesando...' : 'Procesar'}
+            </button>
+            {error && <div className="error">{error.message}</div>}
+        </div>
+    );
+};
+
+// 12. Función Principal
+async function main(): Promise<void> {
+    const logger: ILogger = {
+        info: (msg: string): void => console.log(`[INFO] ${msg}`),
+        error: (msg: string): void => console.error(`[ERROR] ${msg}`),
+        debug: (msg: string): void => console.debug(`[DEBUG] ${msg}`)
+    };
+
+    const config: Configuracion = {
+        timeout: DEFAULT_TIMEOUT,
+        maxRetries: MAX_RETRIES,
+        debug: true
+    };
+
+    const procesador = new ProcesadorConcreto(config, logger);
+    const datos: JsonDict = { id: 1, valor: 'test' };
+
+    try {
+        const resultado = await procesador.procesar(datos);
+        logger.info(`Resultado: ${JSON.stringify(resultado)}`);
+    } catch (error) {
+        logger.error(`Error en main: ${(error as Error).message}`);
+        process.exit(1);
+    }
+}
+
+// 13. Ejecución del script
+if (require.main === module) {
+    main().catch(console.error);
+}
+
+// 14. Exports
+export {
+    type JsonDict,
+    type Resultado,
+    type Configuracion,
+    type IProcesador,
+    type ILogger,
+    ProcesadorBase,
+    ProcesadorConcreto,
+    decoradorConRetry,
+    EstadoProceso,
+    useProcesador,
+    ProcesadorComponent,
+    VERSION
+};
+```
+
+## 2. Buenas Prácticas de Código
+
+### 2.1 Sistema de Tipos
+- Usar tipos estrictos (`strict: true` en tsconfig)
+- Evitar `any` y `unknown` cuando sea posible
+- Usar tipos genéricos para código reutilizable
+- Implementar type guards para narrowing
+- Usar tipos de unión discriminados
+- Preferir interfaces sobre type aliases
+- Usar tipos utilitarios de TypeScript
+- Implementar tipos para APIs externas
+
+### 2.2 Manejo de Errores
+- Crear jerarquía de errores personalizados
+- Usar type guards para errores
+- Implementar error boundaries en React
+- Manejar promesas rechazadas
+- Usar Result/Either pattern
+- Documentar errores con JSDoc
+- Implementar logging tipado
+- Usar never para funciones que no retornan
+
+### 2.3 Asincronía
+- Usar async/await con tipos
+- Implementar cancelación con AbortController
+- Manejar timeouts con tipos
+- Usar Promise.all con tipos genéricos
+- Implementar streams tipados
+- Manejar recursos con tipos
+- Usar colas tipadas
+- Implementar backoff con tipos
+
+### 2.4 Optimización
+- Usar const assertions
+- Implementar memoización con tipos
+- Optimizar renders con tipos
+- Usar web workers con tipos
+- Implementar caching tipado
+- Optimizar bundles con tree shaking
+- Usar type-only imports
+- Minimizar type-only exports
+
+### 2.5 Documentación
+- Documentar tipos con TSDoc
+- Incluir ejemplos con tipos
+- Documentar genéricos
+- Documentar type parameters
+- Documentar type constraints
+- Mantener documentación de tipos
+- Documentar type guards
+- Documentar type utilities
+
+### 2.6 Testing
+- Escribir tests tipados
+- Usar Jest con tipos
+- Mockear con tipos
+- Probar type guards
+- Verificar tipos en tests
+- Implementar tests de tipos
+- Usar type assertions en tests
+- Documentar tipos de tests
+
+### 2.7 Seguridad
+- Validar tipos en runtime
+- Sanitizar datos con tipos
+- Implementar CSRF con tipos
+- Usar CSP con tipos
+- Manejar secretos con tipos
+- Implementar rate limiting tipado
+- Validar entradas con tipos
+- Usar tipos para seguridad
+
+### 2.8 Logging
+- Implementar logging tipado
+- Usar tipos para niveles de log
+- Incluir tipos en logs
+- Rotar logs con tipos
+- No loguear datos sensibles
+- Usar structured logging con tipos
+- Implementar log handlers tipados
+- Mantener logs en producción
+
+### 2.9 Convenciones de Nombrado
+- Usar `camelCase` para variables y funciones
+- Usar `PascalCase` para tipos e interfaces
+- Usar `UPPER_CASE` para constantes
+- Prefijos para privados: `_`
+- Nombres descriptivos en español
+- Evitar nombres de una letra
+- Usar verbos para funciones
+- Usar sustantivos para tipos
+
+### 2.10 Estructura de Código
+- Máximo 80 caracteres por línea
+- Máximo 3 niveles de indentación
+- Máximo 20 líneas por función
+- Máximo 200 líneas por clase
+- Separar lógica de negocio
+- Usar composición sobre herencia
+- Mantener funciones puras
+- Evitar efectos secundarios
+- Usar inmutabilidad
+
+### 2.11 Rendimiento
+- Optimizar tipos para compilación
+- Minimizar type assertions
+- Usar type-only imports
+- Optimizar type inference
+- Implementar lazy loading
+- Usar code splitting
+- Optimizar bundles
+- Monitorear métricas
+
+### 2.12 Mantenibilidad
+- Modularizar tipos
+- Reutilizar tipos
+- Mantener DRY
+- Documentar cambios
+- Versionar tipos
+- Implementar CI/CD
+- Mantener changelog
+- Revisar tipos regularmente
+
+# IMPORTANTE: Cómo Usar Este Documento
+# ------------------------------------
+# Este documento establece las reglas y mejores prácticas para TypeScript.
+# 1. Seguir TODAS las reglas al escribir nuevo código
+# 2. Mantener consistencia en todo el código
+# 3. Documentar cualquier desviación de las reglas
+# 4. Revisar y actualizar las reglas regularmente
+# 5. Asegurar que todos los desarrolladores las conozcan

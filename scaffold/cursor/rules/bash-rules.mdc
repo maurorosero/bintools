@@ -1,0 +1,270 @@
+---
+description:
+globs: "**/*.sh"
+alwaysApply: false
+---
+alwaysApply: true
+priority: high
+---
+
+# Reglas de Estilo y Buenas Prácticas para Bash
+# ==============================================
+
+## 1. Estructura del Archivo Bash
+```bash
+#!/usr/bin/env bash
+# -*- coding: utf-8 -*-
+#
+# Copyright (C) <YYYY> MAURO ROSERO PÉREZ
+#
+# Script Name: <nombre_archivo>.sh
+# Author:      <nombre completo del usuario .gitconfig global o usuario del sistema>
+# Assistant:   Cursor AI (https://cursor.com)
+# Created:     <$DATETIME>
+# Modified:    <$DATETIME>
+# Description: Breve descripción del propósito del script.
+# Version: 0.0.0
+#
+# Usage: ./script.sh [opciones]
+# Options:
+#   -h, --help     Muestra este mensaje de ayuda
+#   -v, --version  Muestra la versión del script
+#   -d, --debug    Activa el modo debug
+#
+# Exit codes:
+#   0 - Éxito
+#   1 - Error general
+#   2 - Error de sintaxis
+#   3 - Error de permisos
+#   4 - Error de dependencias
+#   5 - Error de configuración
+
+# 1. Configuración del entorno
+set -euo pipefail
+IFS=$'\n\t'
+
+# 2. Constantes y variables globales
+readonly SCRIPT_NAME="${0##*/}"
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_VERSION="0.0.1"
+readonly LOG_FILE="${SCRIPT_DIR}/logs/${SCRIPT_NAME%.*}.log"
+readonly CONFIG_FILE="${SCRIPT_DIR}/config/${SCRIPT_NAME%.*}.conf"
+
+# 3. Funciones de utilidad
+log() {
+    local level="${1:-INFO}"
+    local message="${2:-}"
+    local timestamp
+    timestamp="$(date '+%Y-%m-%d %H:%M:%S')"
+
+    echo "[${timestamp}] [${level}] ${message}" | tee -a "${LOG_FILE}"
+}
+
+die() {
+    local exit_code="${1:-1}"
+    local message="${2:-Error desconocido}"
+    log "ERROR" "${message}"
+    exit "${exit_code}"
+}
+
+# 4. Funciones de validación
+validate_dependencies() {
+    local deps=("$@")
+    local missing_deps=()
+
+    for dep in "${deps[@]}"; do
+        if ! command -v "${dep}" >/dev/null 2>&1; then
+            missing_deps+=("${dep}")
+        fi
+    done
+
+    if ((${#missing_deps[@]} > 0)); then
+        die 4 "Dependencias faltantes: ${missing_deps[*]}"
+    fi
+}
+
+validate_permissions() {
+    local required_perms=("$@")
+
+    for perm in "${required_perms[@]}"; do
+        if [[ ! -r "${perm}" ]]; then
+            die 3 "Sin permisos de lectura en: ${perm}"
+        fi
+    done
+}
+
+# 5. Función principal
+main() {
+    # Configuración inicial
+    mkdir -p "${SCRIPT_DIR}/logs"
+    mkdir -p "${SCRIPT_DIR}/config"
+
+    # Validar dependencias
+    validate_dependencies "awk" "sed" "grep"
+
+    # Procesar argumentos
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -h|--help)
+                show_help
+                exit 0
+                ;;
+            -v|--version)
+                echo "${SCRIPT_VERSION}"
+                exit 0
+                ;;
+            -d|--debug)
+                set -x
+                shift
+                ;;
+            *)
+                die 2 "Opción desconocida: $1"
+                ;;
+        esac
+    done
+
+    # Cuerpo principal del script
+    log "INFO" "Iniciando ${SCRIPT_NAME} v${SCRIPT_VERSION}"
+
+    # ... código principal aquí ...
+
+    log "INFO" "Script completado exitosamente"
+    exit 0
+}
+
+# 6. Ejecución del script
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi
+```
+
+## 2. Buenas Prácticas de Código
+
+### 2.1 Seguridad
+- Usar `set -euo pipefail` al inicio del script
+- Validar TODAS las entradas de usuario
+- Sanitizar variables antes de usarlas
+- Usar `readonly` para constantes
+- Evitar `eval` y `exec` cuando sea posible
+- Usar `mktemp` para archivos temporales
+- Implementar limpieza de archivos temporales
+- Validar permisos de archivos
+- Usar `trap` para manejar señales
+
+### 2.2 Manejo de Errores
+- Implementar función `die()` para salidas con error
+- Usar códigos de salida consistentes
+- Documentar TODOS los códigos de salida
+- Usar `trap` para limpieza en caso de error
+- Validar resultados de comandos
+- Implementar logging estructurado
+- Manejar señales del sistema
+- Usar `set -e` para detener en errores
+
+### 2.3 Variables y Constantes
+- Usar nombres descriptivos en español
+- Prefijo `_` para variables privadas
+- `readonly` para constantes
+- Declarar variables locales con `local`
+- Usar arrays asociativos cuando sea apropiado
+- Evitar variables globales
+- Documentar propósito de variables
+- Usar `IFS` apropiadamente
+
+### 2.4 Funciones
+- Máximo 50 líneas por función
+- Un propósito por función
+- Documentar parámetros y retorno
+- Usar `local` para variables internas
+- Validar argumentos de función
+- Implementar funciones de utilidad comunes
+- Usar nombres descriptivos
+- Evitar efectos secundarios
+
+### 2.5 Documentación
+- Header completo en cada script
+- Documentar uso y opciones
+- Documentar códigos de salida
+- Incluir ejemplos de uso
+- Documentar dependencias
+- Mantener README actualizado
+- Documentar variables globales
+- Documentar funciones
+
+### 2.6 Testing
+- Implementar tests unitarios
+- Usar `bats` para testing
+- Probar casos de error
+- Verificar códigos de salida
+- Mockear comandos externos
+- Implementar CI/CD
+- Mantener cobertura de tests
+- Documentar casos de prueba
+
+### 2.7 Logging
+- Implementar niveles de log
+- Rotar archivos de log
+- Incluir timestamp en logs
+- No loguear datos sensibles
+- Usar formato estructurado
+- Implementar debug mode
+- Mantener logs en producción
+- Limpiar logs antiguos
+
+### 2.8 Convenciones de Nombrado
+- Usar `snake_case` para variables
+- Usar `SCREAMING_SNAKE_CASE` para constantes
+- Prefijos para variables privadas: `_`
+- Nombres descriptivos en español
+- Evitar nombres de una letra
+- Usar verbos para funciones
+- Sufijos descriptivos para archivos
+
+### 2.9 Estructura de Código
+- Máximo 100 caracteres por línea
+- Máximo 3 niveles de indentación
+- Máximo 50 líneas por función
+- Máximo 500 líneas por script
+- Separar lógica en funciones
+- Mantener funciones puras
+- Evitar efectos secundarios
+- Usar módulos cuando sea apropiado
+
+### 2.10 Portabilidad
+- Usar `/usr/bin/env bash`
+- Evitar características bash específicas
+- Probar en diferentes shells
+- Documentar requisitos del sistema
+- Validar versión de bash
+- Usar comandos POSIX cuando sea posible
+- Manejar diferentes sistemas operativos
+- Documentar dependencias del sistema
+
+### 2.11 Rendimiento
+- Minimizar subshells
+- Usar builtins cuando sea posible
+- Evitar pipes innecesarios
+- Optimizar loops
+- Usar arrays eficientemente
+- Implementar caching cuando sea apropiado
+- Monitorear uso de recursos
+- Optimizar operaciones I/O
+
+### 2.12 Mantenibilidad
+- Modularizar código
+- Reutilizar funciones comunes
+- Mantener DRY (Don't Repeat Yourself)
+- Documentar cambios
+- Versionar scripts
+- Implementar control de cambios
+- Mantener changelog
+- Revisar código regularmente
+
+# IMPORTANTE: Cómo Usar Este Documento
+# ------------------------------------
+# Este documento establece las reglas y mejores prácticas para scripts bash.
+# 1. Seguir TODAS las reglas al escribir nuevos scripts
+# 2. Mantener consistencia en todo el código
+# 3. Documentar cualquier desviación de las reglas
+# 4. Revisar y actualizar las reglas regularmente
+# 5. Asegurar que todos los desarrolladores las conozcan

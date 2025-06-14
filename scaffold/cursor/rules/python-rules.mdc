@@ -1,0 +1,356 @@
+---
+description:
+globs: "**/*.py"
+alwaysApply: false
+---
+alwaysApply: true
+priority: high
+---
+
+# Reglas de Estilo y Buenas Prácticas para Python
+# ==============================================
+
+## 1. Estructura del Archivo Python
+```python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Copyright (C) <YYYY> MAURO ROSERO PÉREZ
+
+Script Name: <nombre_archivo>.py
+Author:      <nombre completo del usuario .gitconfig global o usuario del sistema>
+Assistant:   Cursor AI (https://cursor.com)
+Created at:  <DATETIME>
+Modified:    <DATETIME>
+Description: Breve descripción del propósito del módulo.
+Version: 0.0.0
+"""
+
+# 1. Imports de la biblioteca estándar (ordenados alfabéticamente)
+import abc
+import asyncio
+import dataclasses
+import enum
+import functools
+import logging
+import os
+import pathlib
+import sys
+from datetime import datetime
+from typing import (
+    Any, AsyncGenerator, Callable, Dict, Final, Generic, List,
+    Optional, Protocol, TypeAlias, TypeVar, Union, cast
+)
+
+# 2. Imports de terceros (ordenados alfabéticamente)
+import aiohttp
+import pydantic
+import requests
+
+# 3. Imports locales (ordenados alfabéticamente)
+from . import utils
+from .config import settings
+
+# 4. Constantes (en MAYÚSCULAS)
+DEFAULT_TIMEOUT: Final[int] = 30
+MAX_RETRIES: Final[int] = 3
+VERSION: Final[str] = "0.0.1"
+
+# 5. Type Aliases
+JsonDict: TypeAlias = Dict[str, Any]
+Resultado: TypeAlias = Union[str, int, float, bool, None]
+
+# 6. Enums
+class EstadoProceso(enum.Enum):
+    """Estados posibles de un proceso."""
+    PENDIENTE = "pendiente"
+    EN_PROCESO = "en_proceso"
+    COMPLETADO = "completado"
+    ERROR = "error"
+
+# 7. Dataclasses
+@dataclasses.dataclass(frozen=True)
+class Configuracion:
+    """Configuración inmutable del módulo."""
+    timeout: int = DEFAULT_TIMEOUT
+    max_retries: int = MAX_RETRIES
+    debug: bool = False
+
+# 8. Protocolos
+class Procesable(Protocol):
+    """Protocolo para objetos que pueden ser procesados."""
+    def procesar(self) -> bool:
+        """Procesa el objeto."""
+        ...
+
+    @property
+    def estado(self) -> EstadoProceso:
+        """Retorna el estado actual."""
+        ...
+
+# 9. Clases Base
+class ProcesadorBase(abc.ABC):
+    """Clase base abstracta para procesadores."""
+
+    def __init__(self, config: Configuracion) -> None:
+        """Inicializa el procesador.
+
+        Args:
+            config: Configuración del procesador.
+        """
+        self.config = config
+        self._logger = logging.getLogger(self.__class__.__name__)
+
+    @abc.abstractmethod
+    async def procesar(self, datos: JsonDict) -> Resultado:
+        """Procesa los datos de forma asíncrona.
+
+        Args:
+            datos: Datos a procesar.
+
+        Returns:
+            Resultado del procesamiento.
+
+        Raises:
+            ValueError: Si los datos son inválidos.
+            RuntimeError: Si hay un error en el procesamiento.
+        """
+        ...
+
+    def validar_datos(self, datos: JsonDict) -> bool:
+        """Valida los datos de entrada.
+
+        Args:
+            datos: Datos a validar.
+
+        Returns:
+            True si los datos son válidos.
+
+        Raises:
+            ValueError: Si los datos son inválidos.
+        """
+        if not isinstance(datos, dict):
+            raise ValueError("Los datos deben ser un diccionario")
+        return True
+
+# 10. Clases Concretas
+class ProcesadorConcreto(ProcesadorBase):
+    """Implementación concreta de un procesador."""
+
+    def __init__(self, config: Configuracion) -> None:
+        """Inicializa el procesador concreto."""
+        super().__init__(config)
+        self._cache: Dict[str, Resultado] = {}
+
+    @functools.lru_cache(maxsize=128)
+    def _calcular_hash(self, datos: str) -> str:
+        """Calcula el hash de los datos.
+
+        Args:
+            datos: Datos a hashear.
+
+        Returns:
+            Hash de los datos.
+        """
+        return str(hash(datos))
+
+    async def procesar(self, datos: JsonDict) -> Resultado:
+        """Procesa los datos de forma asíncrona.
+
+        Args:
+            datos: Datos a procesar.
+
+        Returns:
+            Resultado del procesamiento.
+
+        Raises:
+            ValueError: Si los datos son inválidos.
+            RuntimeError: Si hay un error en el procesamiento.
+        """
+        if not self.validar_datos(datos):
+            raise ValueError("Datos inválidos")
+
+        try:
+            # Procesamiento asíncrono
+            async with aiohttp.ClientSession() as session:
+                async with session.get("https://api.ejemplo.com/datos") as response:
+                    resultado = await response.json()
+                    return cast(Resultado, resultado)
+        except Exception as e:
+            self._logger.error(f"Error procesando datos: {e}")
+            raise RuntimeError(f"Error en procesamiento: {e}")
+
+    async def procesar_lote(
+        self,
+        lista_datos: List[JsonDict]
+    ) -> AsyncGenerator[Resultado, None]:
+        """Procesa una lista de datos de forma asíncrona.
+
+        Args:
+            lista_datos: Lista de datos a procesar.
+
+        Yields:
+            Resultado de cada procesamiento.
+        """
+        for datos in lista_datos:
+            try:
+                resultado = await self.procesar(datos)
+                yield resultado
+            except Exception as e:
+                self._logger.error(f"Error procesando lote: {e}")
+                yield None
+
+# 11. Funciones de Utilidad
+def decorador_con_retry(
+    max_intentos: int = 3,
+    delay: float = 1.0
+) -> Callable:
+    """Decorador para reintentar operaciones fallidas.
+
+    Args:
+        max_intentos: Número máximo de intentos.
+        delay: Tiempo de espera entre intentos en segundos.
+
+    Returns:
+        Decorador configurado.
+    """
+    def decorador(func: Callable) -> Callable:
+        @functools.wraps(func)
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+            ultimo_error: Optional[Exception] = None
+
+            for intento in range(max_intentos):
+                try:
+                    return await func(*args, **kwargs)
+                except Exception as e:
+                    ultimo_error = e
+                    if intento < max_intentos - 1:
+                        await asyncio.sleep(delay * (intento + 1))
+
+            raise ultimo_error or RuntimeError("Error desconocido")
+        return wrapper
+    return decorador
+
+# 12. Función Principal
+async def main() -> None:
+    """Función principal del módulo."""
+    # Configuración de logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler('app.log', encoding='utf-8'),
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
+
+    # Crear instancia del procesador
+    config = Configuracion(debug=True)
+    procesador = ProcesadorConcreto(config)
+
+    # Procesar datos
+    datos = {"id": 1, "valor": "test"}
+    try:
+        resultado = await procesador.procesar(datos)
+        print(f"Resultado: {resultado}")
+    except Exception as e:
+        logging.error(f"Error en main: {e}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+## 2. Buenas Prácticas de Código
+
+### 2.1 Type Hints
+- Usar type hints en TODAS las funciones y métodos
+- Usar `Final` para constantes
+- Usar `TypeAlias` para tipos complejos
+- Usar `Protocol` para interfaces
+- Usar `Generic` para clases genéricas
+- Usar `cast()` cuando sea necesario
+- Evitar `Any` cuando sea posible
+- Usar `Optional[T]` en lugar de `Union[T, None]`
+- Usar `TypeVar` para tipos genéricos
+
+### 2.2 Manejo de Errores
+- Usar excepciones específicas
+- Documentar TODAS las excepciones posibles
+- Usar `try/except` solo cuando sea necesario
+- No capturar excepciones genéricas sin re-lanzar
+- Usar `logging` para errores
+- Implementar manejo de errores asíncrono
+- Usar decoradores para manejo de errores común
+
+### 2.3 Asincronía
+- Usar `async/await` para operaciones I/O
+- Usar `asyncio.gather()` para operaciones paralelas
+- Implementar `AsyncGenerator` para streams
+- Manejar recursos asíncronos con `async with`
+- Usar `asyncio.Queue` para comunicación entre tareas
+- Implementar timeouts en operaciones asíncronas
+
+### 2.4 Optimización
+- Usar `@functools.lru_cache` para funciones costosas
+- Usar `@dataclasses.dataclass` para clases de datos
+- Usar `@property` para cálculos costosos
+- Implementar `__slots__` en clases con muchos atributos
+- Usar generadores para grandes conjuntos de datos
+- Implementar `__enter__` y `__exit__` para recursos
+
+### 2.5 Documentación
+- Documentar TODAS las clases, métodos y funciones
+- Usar docstrings estilo Google
+- Incluir ejemplos en docstrings
+- Documentar tipos de retorno
+- Documentar excepciones
+- Documentar efectos secundarios
+- Mantener documentación actualizada
+
+### 2.6 Testing
+- Escribir tests unitarios para cada función
+- Usar `pytest.fixture` para setup común
+- Implementar tests parametrizados
+- Mockear dependencias externas
+- Probar casos de error
+- Verificar cobertura de código
+- Implementar tests asíncronos
+
+### 2.7 Seguridad
+- Validar TODAS las entradas
+- Sanitizar datos sensibles
+- Usar `secrets` para valores aleatorios
+- Implementar rate limiting
+- Manejar secretos de forma segura
+- Validar tipos en runtime
+- Implementar logging seguro
+
+### 2.8 Logging
+- Usar niveles de log apropiados
+- Incluir contexto en mensajes
+- Rotar archivos de log
+- No loguear datos sensibles
+- Usar structured logging
+- Implementar log handlers personalizados
+- Mantener logs en producción
+
+### 2.9 Convenciones de Nombrado
+- Usar `snake_case` para funciones y variables
+- Usar `CamelCase` para clases
+- Usar `UPPER_CASE` para constantes
+- Prefijos para variables privadas: `_`
+- Nombres descriptivos y en español
+- Evitar nombres de una letra
+- Usar verbos para funciones
+
+### 2.10 Estructura de Código
+- Máximo 79 caracteres por línea
+- Máximo 4 niveles de indentación
+- Máximo 20 líneas por función
+- Máximo 200 líneas por clase
+- Separar lógica de negocio
+- Usar composición sobre herencia
+- Mantener funciones puras
+- Evitar efectos secundarios
+- Usar inmutabilidad cuando sea posible
