@@ -582,7 +582,8 @@ class QualityManager:
                     file_type = 'bash'
 
                 # Patrones regex compilados para mejor rendimiento
-                check_heading_pattern = re.compile(r'(?i)check\s*heading(?:\s+\.([a-z0-9]+))?')
+                # Modificar el patrón para que busque Check Header en formato JSDoc
+                check_heading_pattern = re.compile(r'(?i)(?:^|\s)\*\s*Check\s*Header(?:\s+\.([a-z0-9]+))?')
                 metadata_pattern = re.compile(r'^\s*(?:@)?([a-zA-Z0-9-]+)(?:\s*:\s*|\s+)(.+?)\s*$', re.IGNORECASE)
 
                 # Buscar tag Check heading y extraer metadatos
@@ -666,10 +667,7 @@ class QualityManager:
                         if line.strip().startswith('/**'):
                             print("📌 Inicio de bloque JSDoc detectado", file=sys.stderr)
                             in_jsdoc = True
-                            clean_line = line.strip()[3:].strip()  # Remover /** y espacios
-                            if clean_line:  # Solo agregar líneas no vacías
-                                header_lines.append(clean_line)
-                                print(f"📝 Línea JSDoc agregada: {clean_line}", file=sys.stderr)
+                            # No agregar la línea de inicio /** al header
                             continue
                         elif line.strip().startswith('*/'):
                             print("📌 Fin de bloque JSDoc detectado", file=sys.stderr)
