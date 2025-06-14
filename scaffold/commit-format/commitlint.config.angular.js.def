@@ -1,5 +1,5 @@
 /**
- * Check Header
+ * Check Header .js
  * Configuración de commitlint que implementa el formato de commits de Angular
  * adaptado al formato [TAG] (#Issue) Descripción. Esta configuración mantiene
  * los tipos de commit y reglas de Angular mientras asegura la estructura
