@@ -10,6 +10,8 @@ priority: high
 # Reglas de Estilo y Buenas Prácticas para Python
 # ==============================================
 
+Siempre que trabajes en Python, genera docstrings estilo Google / PEP‑257:
+
 ## 1. Estructura del Archivo Python
 ```python
 #!/usr/bin/env python3
