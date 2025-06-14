@@ -653,16 +653,37 @@ class QualityManager:
                 else:  # bash, javascript, typescript y otros
                     # Procesar archivo usando lógica de comentarios
                     header_lines = []
+                    in_jsdoc = False
                     comment_start = '#' if file_type == 'bash' else '//'
 
                     # Primero recolectar todas las líneas de comentario hasta encontrar una línea no comentario
                     for line in lines:
-                        if not line.strip().startswith(comment_start):
+                        # Manejar bloques de comentario JSDoc /** */
+                        if line.strip().startswith('/**'):
+                            in_jsdoc = True
+                            clean_line = line.strip()[3:].strip()  # Remover /** y espacios
+                            if clean_line:  # Solo agregar líneas no vacías
+                                header_lines.append(clean_line)
+                            continue
+                        elif line.strip().startswith('*/'):
+                            in_jsdoc = False
+                            continue
+                        elif in_jsdoc:
+                            clean_line = line.strip()
+                            if clean_line.startswith('*'):
+                                clean_line = clean_line[1:].strip()
+                            if clean_line:  # Solo agregar líneas no vacías
+                                header_lines.append(clean_line)
+                            continue
+                        # Manejar comentarios de línea //
+                        elif line.strip().startswith(comment_start):
+                            clean_line = line.lstrip(comment_start).strip()
+                            if clean_line:  # Solo agregar líneas no vacías
+                                header_lines.append(clean_line)
+                            continue
+                        # Si encontramos una línea que no es comentario y no estamos en un bloque JSDoc, terminar
+                        elif not in_jsdoc:
                             break
-                        # Remover el comentario y espacios al inicio
-                        clean_line = line.lstrip(comment_start).strip()
-                        if clean_line:  # Solo agregar líneas no vacías
-                            header_lines.append(clean_line)
 
                     # Procesar las líneas del header
                     for line in header_lines:
