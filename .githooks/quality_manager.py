@@ -530,12 +530,14 @@ class QualityManager:
 
             # Metadatos y sus variantes (case-insensitive)
             METADATA_VARIANTS = {
-                'version': {'version', 'versión', 'release', 'v'},
-                'description': {'description', 'descripción', 'desc', 'about'},
-                'created': {'created', 'created at', 'creation date', 'creation', 'date created'},
+                'version': {'version', 'versión', 'release', 'v', '@version', '@release'},
+                'description': {'description', 'descripción', 'desc', 'about', '@description', '@desc'},
+                'created': {'created', 'created at', 'creation date', 'creation', 'date created', '@created', '@created at'},
                 'modified': {'modified', 'modified at', 'updated', 'updated at',
-                            'last modified', 'last updated', 'modification date', 'update date'},
-                'author': {'author', 'autor', 'by', 'created by', 'maintainer', 'maintained by'}
+                            'last modified', 'last updated', 'modification date', 'update date',
+                            '@modified', '@modified at', '@updated', '@updated at'},
+                'author': {'author', 'autor', 'by', 'created by', 'maintainer', 'maintained by',
+                          '@author', '@by', '@maintainer'}
             }
 
             # Mapeo de extensiones base a tipos de archivo
