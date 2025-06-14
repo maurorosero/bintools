@@ -732,25 +732,42 @@ class QualityManager:
 
                     # Si no se encontró el tag o el tipo de archivo no es soportado, continuar
                     if not check_heading_found or not file_type:
+                        print(f"❌ {path}: No se encontró Check heading o tipo de archivo no soportado", file=sys.stderr)
                         continue
+
+                    print(f"\n🔍 Validando metadatos para {path}:", file=sys.stderr)
+                    print(f"📝 Metadatos encontrados: {metadata}", file=sys.stderr)
+                    print(f"📝 Metadatos requeridos: {required_metadata}", file=sys.stderr)
+                    print(f"📝 Metadatos opcionales: {optional_metadata}", file=sys.stderr)
+                    print(f"📝 Metadatos excluidos: {excluded_metadata}", file=sys.stderr)
 
                     # Validar metadatos obligatorios
                     for meta_type in required_metadata:
                         if f'no-{meta_type}' in excluded_metadata:
+                            print(f"ℹ️ {path}: Metadato {meta_type} excluido explícitamente", file=sys.stderr)
                             continue
                         if meta_type not in metadata:
+                            print(f"❌ {path}: Falta metadato obligatorio '{meta_type}'", file=sys.stderr)
                             errors.append(f"❌ {path}: Falta metadato obligatorio '{meta_type}'")
 
                     # Validar metadatos opcionales
                     for meta_type in optional_metadata:
                         if f'no-{meta_type}' in excluded_metadata:
+                            print(f"ℹ️ {path}: Metadato opcional {meta_type} excluido explícitamente", file=sys.stderr)
                             continue
                         if meta_type not in metadata:
+                            print(f"⚠️ {path}: Falta metadato opcional '{meta_type}'", file=sys.stderr)
                             warnings.append(f"⚠️ {path}: Falta metadato opcional '{meta_type}'")
 
             if errors:
+                print("\n❌ Errores encontrados:", file=sys.stderr)
+                for error in errors:
+                    print(error, file=sys.stderr)
                 return False, '\n'.join(errors + warnings)
             elif warnings:
+                print("\n⚠️ Advertencias encontradas:", file=sys.stderr)
+                for warning in warnings:
+                    print(warning, file=sys.stderr)
                 return True, '\n'.join(warnings)
             return True, "✅ Validación de headers completada"
 
