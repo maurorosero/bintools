@@ -6,11 +6,11 @@ Check Heading
 Copyright (C) <2025> MAURO ROSERO PÉREZ (ROSERO ONE DEVELOPMENT)
 
 Script Name: quality_manager.py
-version: 0.1.0
-description: Gestiona los niveles de calidad y formatos de commit de manera independiente.
-created: 2025-06-14
-modified: 2025-06-14
-author: Mauro Rosero Pérez <mauro@rosero.one>
+Version: 0.1.0
+Description: Gestiona los niveles de calidad y formatos de commit de manera independiente.
+Created: 2025-06-14
+Modified: 2025-06-14
+Author: Mauro Rosero Pérez <mauro@rosero.one>
 """
 
 """
