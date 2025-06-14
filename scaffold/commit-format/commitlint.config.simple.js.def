@@ -1,4 +1,5 @@
 /**
+ * Check Heading .js
  * @description Configuración de commitlint que implementa un formato de commits simplificado
  * con un conjunto mínimo de reglas y tipos de commit predefinidos.
  * Define reglas básicas para validar el formato [TAG] (#Issue) Descripción
