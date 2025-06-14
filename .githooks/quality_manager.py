@@ -538,7 +538,7 @@ class QualityManager:
                 'author': {'author', 'autor', 'by', 'created by', 'maintainer', 'maintained by'}
             }
 
-            # Mapeo de extensiones a tipos de archivo
+            # Mapeo de extensiones base a tipos de archivo
             FILE_TYPES = {
                 '.py': 'python',
                 '.sh': 'bash',
@@ -575,15 +575,24 @@ class QualityManager:
 
                 # Determinar el tipo de archivo inicialmente por extensión
                 file_type = None
+                file_name = path.name.lower()
+
+                # Primero intentar con la extensión completa
                 file_ext = path.suffix.lower()
                 if file_ext in FILE_TYPES:
                     file_type = FILE_TYPES[file_ext]
-                elif path.suffix == '' and content.startswith('#!/bin/bash'):
+                # Si no se encontró, buscar patrones como *.js.*, *.py.*, etc.
+                if not file_type:
+                    for ext, type_name in FILE_TYPES.items():
+                        if file_name.endswith(ext + '.def') or file_name.endswith(ext + '.template'):
+                            file_type = type_name
+                            break
+                # Si aún no se encontró, verificar si es un script bash
+                if not file_type and content.startswith('#!/bin/bash'):
                     file_type = 'bash'
 
                 # Patrones regex compilados para mejor rendimiento
-                # Modificar el patrón para que busque Check Header en formato JSDoc
-                check_heading_pattern = re.compile(r'(?i)(?:^|\s)\*\s*Check\s*Header(?:\s+\.([a-z0-9]+))?')
+                check_heading_pattern = re.compile(r'(?i)Check\s*Header(?:\s+\.([a-z0-9]+))?')
                 metadata_pattern = re.compile(r'^\s*(?:@)?([a-zA-Z0-9-]+)(?:\s*:\s*|\s+)(.+?)\s*$', re.IGNORECASE)
 
                 # Buscar tag Check heading y extraer metadatos
@@ -657,20 +666,13 @@ class QualityManager:
                     in_jsdoc = False
                     comment_start = '#' if file_type == 'bash' else '//'
 
-                    print(f"\n🔍 Procesando archivo: {path}", file=sys.stderr)
-                    print(f"📝 Tipo de archivo detectado: {file_type}", file=sys.stderr)
-
                     # Primero recolectar todas las líneas de comentario hasta encontrar una línea no comentario
                     for line in lines:
-                        print(f"📄 Línea original: {line.rstrip()}", file=sys.stderr)
                         # Manejar bloques de comentario JSDoc /** */
                         if line.strip().startswith('/**'):
-                            print("📌 Inicio de bloque JSDoc detectado", file=sys.stderr)
                             in_jsdoc = True
-                            # No agregar la línea de inicio /** al header
                             continue
                         elif line.strip().startswith('*/'):
-                            print("📌 Fin de bloque JSDoc detectado", file=sys.stderr)
                             in_jsdoc = False
                             continue
                         elif in_jsdoc:
@@ -679,42 +681,30 @@ class QualityManager:
                                 clean_line = clean_line[1:].strip()
                             if clean_line:  # Solo agregar líneas no vacías
                                 header_lines.append(clean_line)
-                                print(f"📝 Línea dentro de JSDoc agregada: {clean_line}", file=sys.stderr)
                             continue
                         # Manejar comentarios de línea //
                         elif line.strip().startswith(comment_start):
                             clean_line = line.lstrip(comment_start).strip()
                             if clean_line:  # Solo agregar líneas no vacías
                                 header_lines.append(clean_line)
-                                print(f"📝 Línea de comentario agregada: {clean_line}", file=sys.stderr)
                             continue
                         # Si encontramos una línea que no es comentario y no estamos en un bloque JSDoc, terminar
                         elif not in_jsdoc:
-                            print("📌 Fin de sección de comentarios", file=sys.stderr)
                             break
-
-                    print("\n📋 Líneas de header recolectadas:", file=sys.stderr)
-                    for i, line in enumerate(header_lines, 1):
-                        print(f"{i}. {line}", file=sys.stderr)
 
                     # Procesar las líneas del header
                     for line in header_lines:
                         # Buscar tag Check heading
                         if not check_heading_found:
                             match = check_heading_pattern.search(line)
-                            print(f"\n🔍 Buscando Check heading en: {line}", file=sys.stderr)
                             if match:
-                                print(f"✅ Check heading encontrado: {match.group(0)}", file=sys.stderr)
                                 check_heading_found = True
                                 declared_file_type = match.group(1)
-                                if declared_file_type:
-                                    print(f"📌 Tipo de archivo declarado: {declared_file_type}", file=sys.stderr)
                                 if ':' in line:
                                     _, exceptions = line.split(':', 1)
                                     excluded_metadata = {
                                         exc.strip() for exc in exceptions.split(',')
                                     }
-                                    print(f"📌 Metadatos excluidos: {excluded_metadata}", file=sys.stderr)
                                 continue
 
                         # Si encontramos el tag, procesar todas las líneas como metadatos
@@ -725,48 +715,35 @@ class QualityManager:
                                 key, value = match.groups()
                                 key = key.lower().strip()
                                 value = value.strip()
-                                print(f"\n🔍 Procesando metadato: {key} = {value}", file=sys.stderr)
                                 # Verificar si la clave coincide con algún metadato requerido
                                 for meta_type, variants in METADATA_VARIANTS.items():
                                     if f'no-{meta_type}' in excluded_metadata:
-                                        print(f"⚠️ Metadato {meta_type} excluido", file=sys.stderr)
                                         continue
                                     # Verificar la clave con y sin @
                                     if key in variants or key.lstrip('@') in variants:
                                         metadata[meta_type] = value
-                                        print(f"✅ Metadato {meta_type} encontrado: {value}", file=sys.stderr)
                                         break
-
-                    print("\n📊 Metadatos encontrados:", file=sys.stderr)
-                    for meta_type, value in metadata.items():
-                        print(f"- {meta_type}: {value}", file=sys.stderr)
 
                     # Si se declaró un tipo de archivo en el Check heading, usarlo
                     if declared_file_type and declared_file_type in FILE_TYPES:
                         file_type = FILE_TYPES[f'.{declared_file_type}']
-                        print(f"\n📌 Tipo de archivo actualizado a: {file_type}", file=sys.stderr)
 
                     # Si no se encontró el tag o el tipo de archivo no es soportado, continuar
                     if not check_heading_found or not file_type:
-                        print(f"\n❌ No se encontró Check heading o tipo de archivo no soportado", file=sys.stderr)
                         continue
 
                     # Validar metadatos obligatorios
                     for meta_type in required_metadata:
                         if f'no-{meta_type}' in excluded_metadata:
-                            print(f"⚠️ Metadato {meta_type} excluido explícitamente", file=sys.stderr)
                             continue
                         if meta_type not in metadata:
-                            print(f"❌ Falta metadato obligatorio: {meta_type}", file=sys.stderr)
                             errors.append(f"❌ {path}: Falta metadato obligatorio '{meta_type}'")
 
                     # Validar metadatos opcionales
                     for meta_type in optional_metadata:
                         if f'no-{meta_type}' in excluded_metadata:
-                            print(f"⚠️ Metadato opcional {meta_type} excluido explícitamente", file=sys.stderr)
                             continue
                         if meta_type not in metadata:
-                            print(f"⚠️ Falta metadato opcional: {meta_type}", file=sys.stderr)
                             warnings.append(f"⚠️ {path}: Falta metadato opcional '{meta_type}'")
 
             if errors:
