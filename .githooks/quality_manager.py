@@ -613,6 +613,7 @@ class QualityManager:
 
                 else:  # is_bash
                     # Procesar archivo bash
+                    in_header = False
                     for line in lines:
                         # Ignorar líneas que no son comentarios
                         if not line.strip().startswith('#'):
@@ -620,11 +621,15 @@ class QualityManager:
 
                         # Remover el # inicial y espacios
                         line = line.lstrip('#').strip()
+                        if not line:  # Ignorar líneas vacías
+                            continue
+
                         line_lower = line.lower()
 
-                        # Buscar tag Check heading (insensible a mayúsculas/minúsculas)
-                        if not check_heading_found and re.search(r'check\s+heading', line_lower):
+                        # Buscar tag Check heading (insensible a mayúsculas/minúsculas y espacios)
+                        if not check_heading_found and re.search(r'check\s*heading', line_lower):
                             check_heading_found = True
+                            in_header = True
                             if ':' in line:
                                 _, exceptions = line.split(':', 1)
                                 excluded_metadata = {
@@ -632,15 +637,18 @@ class QualityManager:
                                 }
                             continue
 
-                        # Buscar metadatos en todas las líneas de comentario
-                        for meta_type, variants in METADATA_VARIANTS.items():
-                            if f'no-{meta_type}' in excluded_metadata:
-                                continue
-                            for variant in variants:
-                                pattern = rf'\b{variant}\b\s*:'
-                                if re.search(pattern, line_lower):
-                                    metadata[meta_type] = line.strip()
-                                    break
+                        # Si encontramos el tag, todas las líneas siguientes son parte del header
+                        # hasta que encontremos una línea que no sea un comentario o una línea vacía
+                        if in_header:
+                            # Buscar metadatos en todas las líneas de comentario
+                            for meta_type, variants in METADATA_VARIANTS.items():
+                                if f'no-{meta_type}' in excluded_metadata:
+                                    continue
+                                for variant in variants:
+                                    pattern = rf'\b{variant}\b\s*:'
+                                    if re.search(pattern, line_lower):
+                                        metadata[meta_type] = line.strip()
+                                        break
 
                 if not check_heading_found:
                     continue  # No requiere validación
