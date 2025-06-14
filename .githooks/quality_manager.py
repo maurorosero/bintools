@@ -583,7 +583,7 @@ class QualityManager:
 
                 # Patrones regex compilados para mejor rendimiento
                 check_heading_pattern = re.compile(r'(?i)check\s*heading(?:\s+\.([a-z0-9]+))?')
-                metadata_pattern = re.compile(r'^\s*([^:]+?)\s*:\s*(.+?)\s*$', re.IGNORECASE)
+                metadata_pattern = re.compile(r'^\s*(?:@)?([^:]+?)(?:\s*:\s*|\s+)(.+?)\s*$', re.IGNORECASE)
 
                 # Buscar tag Check heading y extraer metadatos
                 check_heading_found = False
@@ -681,6 +681,7 @@ class QualityManager:
 
                         # Si encontramos el tag, procesar todas las líneas como metadatos
                         if check_heading_found:
+                            # Intentar primero con el patrón de JSDoc (@clave valor)
                             match = metadata_pattern.match(line)
                             if match:
                                 key, value = match.groups()
