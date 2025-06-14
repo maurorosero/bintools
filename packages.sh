@@ -1,20 +1,29 @@
 #!/usr/bin/env bash
 # -*- coding: utf-8 -*-
-# Packages - Script para instalar y actualizar paquetes del sistema en diferentes distribuciones Linux y macOS, incluyendo SOPS.
+# Check Heading
+# Copyright (C) <2025> MAURO ROSERO PÉREZ
 #
-# Copyright (C) 2025 MAURO ROSERO PÉREZ
-# License: GPLv3
+# Script Name: packages.sh
+# Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
+# Assistant:   Cursor AI (https://cursor.com)
+# Created:     2025-05-19 20:53:17
+# Modified:    2025-05-19 20:53:17
+# Description: Script para instalar y actualizar paquetes del sistema en diferentes distribuciones Linux y macOS, incluyendo SOPS.
+# Version:     0.1.0
 #
-# File: packages.sh
-# Version: 0.1.0
-# Author: Mauro Rosero P. <mauro.rosero@gmail.com>
-# Assistant: Cursor AI (https://cursor.com)
-# Created: 2025-05-19 20:53:17
+# Usage: packages.sh [opciones]
 #
-# This file is managed by template_manager.py.
-# Any changes to this header will be overwritten on the next fix.
-#
-# HEADER_END_TAG - DO NOT REMOVE OR MODIFY THIS LINE
+# Exit codes:
+#   0 - Éxito
+#   1 - Error general (ej: fallo en instalación de paquetes)
+#   2 - Error de sintaxis (ej: comando inválido)
+#   3 - Error de permisos (ej: no sudo)
+#   4 - Error de dependencias (ej: pip no instalado)
+#   5 - Error de configuración (ej: archivo de configuración corrupto)
+#   6 - Error de sistema operativo no soportado
+#   7 - Error de red (ej: no hay conexión)
+#   8 - Error de espacio en disco
+
 
 set -uo pipefail
 
