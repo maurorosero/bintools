@@ -1,0 +1,249 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+priority: high
+---
+
+# Commit Integration Rules - Dynamic Configuration
+# =============================================
+# Este archivo integra Cursor con el sistema de commitlint existente
+# y detecta dinámicamente los tipos de reglas disponibles
+
+# Configuración de Integración Dinámica
+# ----------------------------------
+integration:
+  dynamic_config:
+    enabled: true
+    config_paths:
+      active_rules_dir: ".githooks/config/active"
+      commitlint_config: ".githooks/config/active/commitlint.config.js"
+      rules_dir: ".githooks/config/levels"  # Directorio donde están definidas las reglas
+    watch_changes: true
+    auto_reload: true
+
+  parser:
+    dynamic: true
+    load_from: "active_rule"
+
+# Funciones de Carga Dinámica
+# -------------------------
+dynamic_loader:
+  - name: "discover_rule_types"
+    description: "Descubre dinámicamente los tipos de reglas disponibles"
+    priority: CRITICAL
+    implementation: |
+      def discover_rule_types():
+          """Descubre los tipos de reglas disponibles en el directorio de configuración."""
+          from pathlib import Path
+          import re
+
+          def scan_rules_directory():
+              """Escanea el directorio de reglas para encontrar tipos disponibles."""
+              rules_dir = Path(".githooks/config/levels")
+              if not rules_dir.exists():
+                  return {}
+
+              rule_types = {}
+              # Busca archivos de definición de reglas
+              for file in rules_dir.glob("commitlint.config.*.def"):
+                  rule_type = file.stem.split('.')[-2]  # Extrae el tipo de la extensión
+                  if rule_type:
+                      rule_types[rule_type] = {
+                          'definition_file': str(file),
+                          'active_file': f"commitlint_active_rule.{rule_type}",
+                          'format': extract_rule_format(file)
+                      }
+              return rule_types
+
+          def extract_rule_format(rule_file):
+              """Extrae el formato de la regla desde su archivo de definición."""
+              try:
+                  with open(rule_file, 'r') as f:
+                      content = f.read()
+                      # Busca el patrón de formato en el archivo
+                      format_match = re.search(r'headerPattern:\s*/(.+?)/', content)
+                      if format_match:
+                          return format_match.group(1)
+                      return None
+              except Exception as e:
+                  log_error(f"Error extrayendo formato de {rule_file}: {e}")
+                  return None
+
+          return scan_rules_directory()
+
+  - name: "detect_active_rule"
+    description: "Detecta la regla activa y carga su configuración"
+    priority: CRITICAL
+    implementation: |
+      def detect_active_rule():
+          """Detecta y carga la regla activa de commit-format."""
+          from pathlib import Path
+
+          def find_active_rule():
+              """Encuentra el archivo de regla activa y determina su tipo."""
+              config_dir = Path(".githooks/config/active")
+              if not config_dir.exists():
+                  return None, None
+
+              # Busca el archivo de regla activa
+              for file in config_dir.glob("commitlint_active_rule.*"):
+                  if file.exists():
+                      # Extrae el tipo de regla del nombre del archivo
+                      rule_type = file.suffix[1:]  # Elimina el punto inicial
+                      return str(file), rule_type
+              return None, None
+
+          def load_rule_config(rule_path, rule_type):
+              """Carga la configuración específica para el tipo de regla."""
+              try:
+                  with open(rule_path, 'r') as f:
+                      content = f.read()
+                      return parse_rule_config(content, rule_type)
+              except Exception as e:
+                  log_error(f"Error cargando regla {rule_type}: {e}")
+                  return None
+
+          def parse_rule_config(content, rule_type):
+              """Parsea la configuración según el tipo de regla."""
+              # Obtiene la definición de la regla
+              rule_types = discover_rule_types()
+              rule_def = rule_types.get(rule_type, {})
+
+              if not rule_def:
+                  return None
+
+              config = {
+                  'type': rule_type,
+                  'definition': rule_def,
+                  'rules': extract_rules_from_content(content),
+                  'format': rule_def.get('format')
+              }
+
+              return config
+
+          rule_path, rule_type = find_active_rule()
+          if not rule_path or not rule_type:
+              return None
+
+          return load_rule_config(rule_path, rule_type)
+
+  - name: "watch_rule_changes"
+    description: "Monitorea cambios en la configuración de commit-format"
+    priority: HIGH
+    implementation: |
+      def watch_rules():
+          """Monitorea cambios en los archivos de reglas."""
+          from watchdog.observers import Observer
+          from watchdog.events import FileSystemEventHandler
+
+          class RuleChangeHandler(FileSystemEventHandler):
+              def on_modified(self, event):
+                  if event.src_path.endswith('commitlint_active_rule.'):
+                      # Detecta cambio de tipo de regla
+                      new_rule = detect_active_rule()
+                      if new_rule:
+                          update_active_rule(new_rule)
+                  elif event.src_path.endswith('commitlint.config.js'):
+                      # Actualiza configuración de commitlint
+                      update_commitlint_config()
+                  elif event.src_path.endswith('.def'):
+                      # Actualiza definiciones de reglas
+                      reload_rule_definitions()
+
+          observer = Observer()
+          # Observa tanto el directorio de reglas activas como el de definiciones
+          observer.schedule(RuleChangeHandler(),
+                          '.githooks/config/active',
+                          recursive=False)
+          observer.schedule(RuleChangeHandler(),
+                          '.githooks/config/levels',
+                          recursive=False)
+          observer.start()
+
+# Funciones de Validación Dinámica
+# -----------------------------
+dynamic_validator:
+  - name: "validate_commit_message"
+    description: "Valida dinámicamente el mensaje según la regla activa"
+    priority: CRITICAL
+    implementation: |
+      def validate_commit(commit_msg):
+          """Valida el mensaje contra la regla activa actual."""
+          active_rule = detect_active_rule()
+          if not active_rule:
+              return False, "No se pudo detectar la regla activa"
+
+          return apply_rule_validation(commit_msg, active_rule)
+
+      def apply_rule_validation(msg, rule):
+          """Aplica la validación según la regla activa."""
+          rule_type = rule['type']
+          rule_def = rule['definition']
+
+          # Construye el validador dinámicamente basado en la definición
+          validator = build_validator(rule_def)
+          return validator(msg)
+
+# Funciones de Formato Dinámico
+# ---------------------------
+dynamic_formatter:
+  - name: "format_commit_message"
+    description: "Formatea el mensaje según la regla activa"
+    priority: HIGH
+    implementation: |
+      def format_commit(components):
+          """Formatea el mensaje usando el formato de la regla activa."""
+          active_rule = detect_active_rule()
+          if not active_rule:
+              return None
+
+          rule_def = active_rule['definition']
+          formatter = build_formatter(rule_def)
+          return formatter(components)
+
+# Sistema de Caché
+# --------------
+cache_system:
+  enabled: true
+  max_age: 300  # 5 minutos
+  invalidation_triggers:
+    - "rule_type_change"
+    - "rule_definition_change"
+    - "rule_config_change"
+    - "manual_reload"
+    - "cache_expiry"
+
+# Notas de Implementación
+# ---------------------
+implementation_notes:
+  - "Este archivo .mdc detecta dinámicamente los tipos de reglas disponibles"
+  - "Las reglas se cargan desde el directorio de configuración"
+  - "Los cambios en definiciones de reglas se detectan y aplican automáticamente"
+  - "El sistema es completamente dinámico y extensible"
+  - "No hay tipos de reglas hardcodeados"
+
+# Ejemplos de Uso
+# -------------
+usage_examples:
+  - description: "Descubrir tipos de reglas"
+    code: |
+      # Descubre los tipos de reglas disponibles
+      rule_types = discover_rule_types()
+      # rule_types = {
+      #   'semantic': { 'definition_file': '...', 'format': '...' },
+      #   'minimal': { 'definition_file': '...', 'format': '...' },
+      #   ...
+      # }
+
+  - description: "Usar regla activa"
+    code: |
+      # Detecta y carga la regla activa
+      active_rule = detect_active_rule()
+      if active_rule:
+          # Valida mensaje según la regla activa
+          is_valid, msg = validate_commit("mensaje de commit")
+
+          # Formatea mensaje según la regla activa
+          formatted = format_commit(components)
