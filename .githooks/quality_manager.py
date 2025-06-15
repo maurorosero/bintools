@@ -609,29 +609,36 @@ class QualityManager:
                                 metadata[key.strip()] = value.strip()
                         break  # Usar el primer docstring que tenga el tag
             elif file_type in ['javascript', 'typescript']:
-                # Para JS/TS, buscar en bloques de comentarios JSDoc
+                # Para JS/TS, buscar específicamente en bloques JSDoc con el formato exacto
                 content = ''.join(lines)
-                print(f"DEBUG: Buscando bloques JSDoc en archivo {file_type}")
-                # Buscar el bloque de comentario que contiene Check Heading
+                print(f"DEBUG: Buscando bloque JSDoc en archivo {file_type}")
+
+                # Buscar el bloque JSDoc que comienza con /** y contiene Check Heading
                 start = content.find('/**')
                 if start != -1:
                     end = content.find('*/', start)
                     if end != -1:
                         jsdoc_block = content[start:end + 2]
                         print(f"DEBUG: Bloque JSDoc encontrado:\n{jsdoc_block}")
-                        if "Check Heading" in jsdoc_block:
-                            print("DEBUG: Encontrado Check Heading en JSDoc")
+
+                        # Verificar que el bloque comience con Check Heading
+                        if jsdoc_block.strip().startswith('/**\n * Check Heading'):
+                            print("DEBUG: Encontrado Check Heading en JSDoc con formato correcto")
                             header_content = jsdoc_block
+
                             # Procesar cada línea del bloque
                             for line in jsdoc_block.split('\n'):
                                 line = line.strip()
                                 print(f"DEBUG: Procesando línea JSDoc: '{line}'")
+
                                 # Ignorar líneas que son solo * o */
-                                if line in ['*', '*/']:
+                                if line in ['*', '*/', '/**']:
                                     continue
+
                                 # Quitar el * inicial si existe
                                 if line.startswith('*'):
                                     line = line[1:].strip()
+
                                 # Buscar campos @tag
                                 if line.startswith('@'):
                                     parts = line[1:].split(' ', 1)
@@ -639,7 +646,7 @@ class QualityManager:
                                         key = parts[0].lower()
                                         value = parts[1].strip()
                                         print(f"DEBUG: Encontrado campo @{key}: {value}")
-                                        # Normalizar nombres de campos
+                                        # Normalizar nombres de campos según nuestro formato
                                         if key == 'modified':
                                             key = 'Modified'
                                         elif key == 'created':
@@ -653,46 +660,22 @@ class QualityManager:
                                         elif key == 'file':
                                             key = 'Script Name'
                                         metadata[key] = value
-                                # Buscar Copyright que puede estar sin @
+
+                                # Buscar Copyright que debe estar en formato exacto
                                 elif line.startswith('Copyright (C)'):
                                     key = 'Copyright'
                                     value = line.replace('Copyright (C)', '').strip()
                                     print(f"DEBUG: Encontrado Copyright: {value}")
                                     metadata[key] = value
-                                # Buscar License que puede estar sin @
+
+                                # Buscar License que debe estar en formato exacto
                                 elif line.startswith('License:'):
                                     key = 'License'
                                     value = line.replace('License:', '').strip()
                                     print(f"DEBUG: Encontrado License: {value}")
                                     metadata[key] = value
-            else:
-                # Para otros tipos de archivo, buscar en líneas de comentario individuales
-                found_tag = False
-                header_lines = []
-
-                for line in lines:
-                    # Solo procesar líneas que son comentarios
-                    if not line.strip().startswith('#'):
-                        continue
-
-                    # Eliminar el # inicial y espacios
-                    clean_line = line.strip()[1:].strip()
-
-                    # Buscar el tag de manera más flexible
-                    if "Check Heading" in clean_line:
-                        found_tag = True
-                        header_lines.append(line.rstrip())
-                    elif found_tag and ':' in clean_line:
-                        header_lines.append(line.rstrip())
-                        # Extraer metadatos
-                        key, value = clean_line.split(':', 1)
-                        # Normalizar el nombre del campo
-                        if key.strip() == 'Created at':
-                            key = 'Created'
-                        metadata[key.strip()] = value.strip()
-
-                if found_tag:
-                    header_content = '\n'.join(header_lines)
+                else:
+                    print(f"DEBUG: No se encontró bloque JSDoc en el archivo {file_type}")
 
             if not header_content:
                 return False, "No se encontró el tag 'Check Heading' en el header", "", ""
