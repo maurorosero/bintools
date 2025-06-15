@@ -9,7 +9,7 @@ Script Name: quality_manager.py
 Version:     0.1.1
 Description: Gestiona los niveles de calidad y formatos de commit de manera independiente.
 Created:     2025-06-14
-Modified:    2025-06-14
+Modified:    2025-06-15 12:30:59
 Author:      Mauro Rosero Pérez <mauro@rosero.one>
 Assistant:   Cursor AI (https://cursor.com)
 """
@@ -658,6 +658,7 @@ class QualityManager:
                 - enabled: bool - Si el hook está habilitado
                 - date_format: str - Formato de fecha (default: "YYYY-MM-DD HH:MM:SS")
                 - check_heading_lines: int - Número de líneas a revisar para el tag Check heading
+                - update_fields: list - Lista de campos a actualizar (default: ["Modified"])
 
         Returns:
             Tuple[bool, str]: (éxito, mensaje) - Siempre retorna True para no bloquear el commit
@@ -666,13 +667,7 @@ class QualityManager:
             return True, "✅ Actualización de headers deshabilitada"
 
         try:
-            # Reutilizamos la lógica del validator para validar headers
-            success, message = self._run_header_validator(config)
-            if not success:
-                return True, f"⚠️ {message} (No se actualizaron los headers)"
-
-            # Si llegamos aquí, significa que los headers son válidos y podemos proceder a actualizarlos
-            files_to_update = sys.argv[1:]  # Usamos los mismos archivos que el validator
+            files_to_update = sys.argv[1:]  # Usamos los archivos pasados como argumentos
             updated_files = []
             errors = []
 
@@ -682,35 +677,50 @@ class QualityManager:
                     if '.githooks/config/' in file_path:
                         continue
 
-                    # Extraer metadatos usando la lógica común del validator
+                    # Extraer metadatos sin validar
                     success, metadata, file_type, header_content = self._extract_header_metadata(Path(file_path), config.get('check_heading_lines', 10))
-                    if not success or 'Modified' not in metadata:
+                    if not success:
                         continue
 
                     # Obtener el formato de fecha del hook y generar la fecha actual
                     date_format = config.get('date_format', 'YYYY-MM-DD HH:MM:SS')
-                    # Reemplazar en orden específico para evitar conflictos con MM
                     strftime_format = (date_format
                         .replace('YYYY', '%Y')
                         .replace('DD', '%d')
                         .replace('HH', '%H')
                         .replace('SS', '%S')
-                        .replace('MM', '%m')  # Primero reemplazar MM por %m (mes)
-                        .replace('mm', '%M'))  # Luego reemplazar mm por %M (minutos)
+                        .replace('MM', '%m')
+                        .replace('mm', '%M'))
                     current_date = datetime.now().strftime(strftime_format)
 
                     # Leer el archivo y actualizar solo la línea de Modified
                     with open(file_path, 'r', encoding='utf-8') as f:
                         content = f.read()
 
-                    # Buscar la línea exacta de Modified y reemplazar solo su valor
-                    pattern = rf'Modified:\s+\d{{4}}-\d{{2}}-\d{{2}}\s+\d{{2}}:\d{{2}}:\d{{2}}'
-                    new_content = re.sub(pattern, f'Modified:    {current_date}', content)
+                    # Obtener los campos a actualizar de la configuración
+                    update_fields = config.get('update_fields', ['Modified'])
+                    new_content = content
+
+                    # Para cada campo en update_fields, buscar y actualizar su línea
+                    for field in update_fields:
+                        # Buscar la línea que comienza con el nombre del campo
+                        pattern = rf'^{field}:.*$'
+                        if field == 'Modified':
+                            # Para Modified, actualizar con la fecha actual
+                            new_content = re.sub(pattern, f'{field}:    {current_date}', new_content, flags=re.MULTILINE)
+                        else:
+                            # Para otros campos, mantener su valor actual
+                            continue
 
                     if new_content != content:
                         with open(file_path, 'w', encoding='utf-8') as f:
                             f.write(new_content)
-                        updated_files.append(file_path)
+                        # Agregar el archivo modificado al staging area
+                        try:
+                            subprocess.run(['git', 'add', file_path], check=True, capture_output=True, text=True)
+                            updated_files.append(file_path)
+                        except subprocess.CalledProcessError as e:
+                            errors.append(f"Error al agregar {file_path} al staging: {e.stderr}")
 
                 except Exception as e:
                     errors.append(f"Error en {file_path}: {str(e)}")
@@ -719,12 +729,13 @@ class QualityManager:
             # Construir mensaje final
             message_parts = []
             if updated_files:
-                message_parts.append(f"✅ Headers actualizados en {len(updated_files)} archivos: {', '.join(updated_files)}")
+                message_parts.append(f"✅ Headers actualizados y agregados al staging en {len(updated_files)} archivos: {', '.join(updated_files)}")
             if errors:
                 message_parts.append(f"⚠️ Errores encontrados: {'; '.join(errors)}")
             if not message_parts:
                 message_parts.append("✅ No se encontraron archivos que requieran actualización de headers")
 
+            # Siempre retornamos True para no bloquear el commit
             return True, "\n".join(message_parts)
 
         except Exception as e:
