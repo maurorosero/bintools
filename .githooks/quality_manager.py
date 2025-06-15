@@ -9,7 +9,7 @@ Script Name: quality_manager.py
 Version:     0.1.1
 Description: Gestiona los niveles de calidad y formatos de commit de manera independiente.
 Created:     2025-06-14
-Modified:    2025-06-15 12:59:42
+Modified:    2025-06-15 13:06:48
 Author:      Mauro Rosero Pérez <mauro@rosero.one>
 Assistant:   Cursor AI (https://cursor.com)
 """
@@ -542,6 +542,36 @@ class QualityManager:
                                     key = 'Created'
                                 metadata[key.strip()] = value.strip()
                         break  # Usar el primer docstring que tenga el tag
+            elif file_type in ['javascript', 'typescript']:
+                # Para JS/TS, buscar en bloques de comentarios /** */
+                jsdoc_pattern = re.compile(r'/\*\*(.*?)\*/', re.DOTALL)
+                content = ''.join(lines)
+                for match in jsdoc_pattern.finditer(content):
+                    jsdoc = match.group(1).strip()
+                    if "Check Heading" in jsdoc or "Check Header" in jsdoc:
+                        header_content = jsdoc
+                        # Extraer metadatos del JSDoc
+                        for line in jsdoc.split('\n'):
+                            line = line.strip()
+                            # Buscar campos que empiezan con @
+                            if line.startswith('@'):
+                                parts = line[1:].split(' ', 1)
+                                if len(parts) == 2:
+                                    key, value = parts
+                                    # Normalizar el nombre del campo
+                                    if key.lower() == 'modified':
+                                        key = 'Modified'
+                                    elif key.lower() == 'created':
+                                        key = 'Created'
+                                    metadata[key] = value.strip()
+                            # También buscar campos con formato "Campo: valor"
+                            elif ':' in line:
+                                key, value = line.split(':', 1)
+                                # Normalizar el nombre del campo
+                                if key.strip() == 'Created at':
+                                    key = 'Created'
+                                metadata[key.strip()] = value.strip()
+                        break  # Usar el primer bloque que tenga el tag
             else:
                 # Para otros tipos de archivo, buscar en líneas de comentario individuales
                 found_tag = False
@@ -725,6 +755,10 @@ class QualityManager:
                         if file_type == 'python':
                             pattern = rf'{field}:.*$'
                             replacement = f'{field}:    {current_date}'
+                        elif file_type in ['javascript', 'typescript']:
+                            # Para JS/TS, buscar @modified o @Modified
+                            pattern = rf'@(?:modified|Modified)\s+.*$'
+                            replacement = f'@modified {current_date}'
                         else:  # bash y otros
                             pattern = rf'# {field}:.*$'
                             replacement = f'# {field}:    {current_date}'
