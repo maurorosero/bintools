@@ -835,7 +835,7 @@ class QualityManager:
                         if file_type == 'javascript' or file_type == 'typescript':
                             # Para JavaScript, buscar en comentarios
                             # Mantener el formato exacto de la línea
-                            pattern = rf"(?:^|\s)(?:\*?\s*@(?:jsdoc|tsdoc)\s+)?{field}\s*:\s*[^\n]*"
+                            pattern = rf"(?:^|\s)(?:\*?\s*@(modified)\s+)?{field}\s*:\s*[^\n]*"
                             replacement = f"\\1{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
                         # Reemplazar solo en el header (primeras líneas)
