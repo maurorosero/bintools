@@ -9,7 +9,7 @@ Script Name: quality_manager.py
 Version:     0.1.1
 Description: Gestiona los niveles de calidad y formatos de commit de manera independiente.
 Created:     2025-06-14
-Modified:    2025-06-15 13:08:22
+Modified:    2025-06-15 13:09:49
 Author:      Mauro Rosero Pérez <mauro@rosero.one>
 Assistant:   Cursor AI (https://cursor.com)
 """
@@ -545,28 +545,53 @@ class QualityManager:
             elif file_type in ['javascript', 'typescript']:
                 # Para JS/TS, buscar en bloques de comentarios /** */
                 content = ''.join(lines)
+                print(f"\nDEBUG: Buscando Check Heading en archivo {file_path}")
+                print(f"DEBUG: Primeras líneas del archivo:\n{content[:500]}")
+
                 # Primero buscar el bloque de comentarios que contiene el tag
                 jsdoc_start = content.find('/**')
+                print(f"DEBUG: Posición inicio /** : {jsdoc_start}")
+
                 if jsdoc_start != -1:
                     jsdoc_end = content.find('*/', jsdoc_start)
+                    print(f"DEBUG: Posición fin */ : {jsdoc_end}")
+
                     if jsdoc_end != -1:
                         jsdoc = content[jsdoc_start:jsdoc_end + 2]  # Incluir el cierre */
-                        if "Check Heading" in jsdoc or "Check Header" in jsdoc:
+                        print(f"DEBUG: Bloque JSDoc encontrado:\n{jsdoc}")
+
+                        # Buscar el tag de manera más flexible
+                        if "Check Heading" in jsdoc:
+                            print("DEBUG: Encontrado 'Check Heading'")
+                            found_tag = True
+                        elif "Check Header" in jsdoc:
+                            print("DEBUG: Encontrado 'Check Header'")
+                            found_tag = True
+                        else:
+                            print("DEBUG: No se encontró ni 'Check Heading' ni 'Check Header'")
+                            found_tag = False
+
+                        if found_tag:
                             header_content = jsdoc
+                            print("DEBUG: Procesando metadatos del JSDoc")
                             # Extraer metadatos del JSDoc
                             for line in jsdoc.split('\n'):
                                 line = line.strip()
+                                print(f"DEBUG: Procesando línea: {line}")
                                 # Ignorar líneas que son solo * o espacios
                                 if line in ['*', '*/', '']:
+                                    print(f"DEBUG: Ignorando línea vacía o solo *")
                                     continue
                                 # Eliminar * al inicio si existe
                                 if line.startswith('*'):
                                     line = line[1:].strip()
+                                    print(f"DEBUG: Línea después de eliminar *: {line}")
                                 # Buscar campos que empiezan con @
                                 if line.startswith('@'):
                                     parts = line[1:].split(' ', 1)
                                     if len(parts) == 2:
                                         key, value = parts
+                                        print(f"DEBUG: Encontrado campo @: {key}={value}")
                                         # Normalizar el nombre del campo
                                         if key.lower() == 'modified':
                                             key = 'Modified'
@@ -576,10 +601,13 @@ class QualityManager:
                                 # También buscar campos con formato "Campo: valor"
                                 elif ':' in line:
                                     key, value = line.split(':', 1)
+                                    print(f"DEBUG: Encontrado campo con : : {key}={value}")
                                     # Normalizar el nombre del campo
                                     if key.strip() == 'Created at':
                                         key = 'Created'
                                     metadata[key.strip()] = value.strip()
+                else:
+                    print("DEBUG: No se encontró /** en el archivo")
             else:
                 # Para otros tipos de archivo, buscar en líneas de comentario individuales
                 found_tag = False
