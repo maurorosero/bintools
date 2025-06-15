@@ -1125,11 +1125,13 @@ class QualityManager:
                           help='Tipo de hook a ejecutar')
         parser.add_argument('--verbose', action='store_true',
                           help='Mostrar información detallada de debug')
-        parser.add_argument('files', nargs='*', help='Archivos a procesar')
-        # Usar parse_known_args para ignorar argumentos no reconocidos
+        # No definimos files como argumento posicional para que argparse no lo procese
+        # y podamos manejar los argumentos restantes manualmente
         args, unknown = parser.parse_known_args()
         if unknown and args.verbose:
             print(f"DEBUG: Argumentos ignorados: {unknown}", file=sys.stderr)
+        # Agregar los argumentos desconocidos como archivos a procesar
+        args.files = unknown
         return args
 
     def _log_debug(self, message: str) -> None:
