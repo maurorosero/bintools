@@ -499,13 +499,17 @@ class QualityManager:
         except Exception as e:
             return False, f"❌ Validación de workflow: {str(e)}"
 
-    def _extract_header_metadata(self, file_path: Path, check_heading_lines: int = 10) -> Tuple[bool, Optional[dict], Optional[str], Optional[str]]:
+    def _extract_header_metadata(self, file_path: Path, config: dict) -> Tuple[bool, Optional[dict], Optional[str], Optional[str]]:
         """
         Extrae los metadatos del header de un archivo.
 
         Args:
             file_path: Ruta del archivo
-            check_heading_lines: Número de líneas a revisar para el tag Check heading
+            config: Configuración del hook que incluye:
+                - check_header_tag: str - Tag a buscar en los headers
+                - check_heading_lines: int - Número de líneas a revisar
+                - required_fields: List[str] - Campos requeridos
+                - optional_fields: List[str] - Campos opcionales
 
         Returns:
             Tuple[bool, Optional[dict], Optional[str], Optional[str]]:
@@ -515,6 +519,12 @@ class QualityManager:
             content = file_path.read_text(encoding='utf-8')
         except UnicodeDecodeError:
             return False, None, None, None
+
+        # Obtener configuración
+        check_header_tag = config.get('check_header_tag', "Check Heading")
+        check_heading_lines = config.get('check_heading_lines', 20)
+        required_fields = set(config.get('required_fields', []))
+        optional_fields = set(config.get('optional_fields', []))
 
         lines = content.split('\n')[:check_heading_lines]
 
@@ -527,7 +537,18 @@ class QualityManager:
                         'last modified', 'last updated', 'modification date', 'update date',
                         '@modified', '@modified at', '@updated', '@updated at'},
             'author': {'author', 'autor', 'by', 'created by', 'maintainer', 'maintained by',
-                      '@author', '@by', '@maintainer'}
+                      '@author', '@by', '@maintainer'},
+            'script name': {'script name', 'script', 'file', 'filename', 'name', '@script', '@file'},
+            'copyright': {'copyright', 'copyright (c)', '©', '@copyright'},
+            'license': {'license', 'licence', '@license', '@licence'},
+            'status': {'status', 'state', '@status', '@state'},
+            'dependencies': {'dependencies', 'deps', 'requires', '@dependencies', '@deps'},
+            'environment': {'environment', 'env', '@environment', '@env'},
+            'notes': {'notes', 'note', '@notes', '@note'},
+            'security': {'security', 'sec', '@security', '@sec'},
+            'compliance': {'compliance', 'compl', '@compliance', '@compl'},
+            'audit': {'audit', '@audit'},
+            'assistant': {'assistant', 'ai', '@assistant', '@ai'}
         }
 
         # Mapeo de extensiones base a tipos de archivo
@@ -560,8 +581,8 @@ class QualityManager:
         if not file_type and content.startswith('#!/bin/bash'):
             file_type = 'bash'
 
-        # Patrones regex compilados para mejor rendimiento
-        check_heading_pattern = re.compile(r'(?i)Check\s*Head(?:er|ing)(?:\s+\.([a-z0-9]+))?')
+        # Patrón para detectar el tag Check Heading
+        check_heading_pattern = re.compile(rf'(?i){re.escape(check_header_tag)}(?:\s+\.([a-z0-9]+))?')
         metadata_pattern = re.compile(r'^\s*(?:@)?([a-zA-Z0-9-]+)(?:\s*:\s*|\s+)(.+?)\s*$', re.IGNORECASE)
 
         # Buscar tag Check heading y extraer metadatos
@@ -617,7 +638,7 @@ class QualityManager:
                             key, value = match.groups()
                             key = key.lower().strip()
                             value = value.strip()
-                            # Verificar si la clave coincide con algún metadato requerido
+                            # Verificar si la clave coincide con algún metadato requerido u opcional
                             for meta_type, variants in METADATA_VARIANTS.items():
                                 if f'no-{meta_type}' in excluded_metadata:
                                     continue
@@ -686,7 +707,7 @@ class QualityManager:
                         key, value = match.groups()
                         key = key.lower().strip()
                         value = value.strip()
-                        # Verificar si la clave coincide con algún metadato requerido
+                        # Verificar si la clave coincide con algún metadato requerido u opcional
                         for meta_type, variants in METADATA_VARIANTS.items():
                             if f'no-{meta_type}' in excluded_metadata:
                                 continue
@@ -704,6 +725,11 @@ class QualityManager:
         if not check_heading_found or not file_type:
             return False, None, None, None
 
+        # Verificar campos requeridos
+        missing_required = required_fields - {k.lower() for k in metadata.keys()}
+        if missing_required:
+            return False, None, None, None
+
         return True, metadata, file_type, header_content
 
     def _run_header_validator(self, config: dict) -> Tuple[bool, str]:
@@ -711,20 +737,18 @@ class QualityManager:
         Ejecuta el hook de validación de headers.
 
         Args:
-            config: Configuración del hook que puede incluir:
+            config: Configuración del hook que incluye:
                 - enabled: bool - Si el hook está habilitado
-                - check_heading_lines: int - Número de líneas a revisar para el tag Check heading
+                - check_header_tag: str - Tag a buscar en los headers
+                - check_heading_lines: int - Número de líneas a revisar
+                - required_fields: List[str] - Campos requeridos
+                - optional_fields: List[str] - Campos opcionales
 
         Returns:
             Tuple[bool, str]: (éxito, mensaje)
         """
         if not config.get('enabled', True):
             return True, "✅ Validación de headers deshabilitada"
-
-        # Obtener el número de líneas a revisar, con valor por defecto de 10
-        check_heading_lines = config.get('check_heading_lines', 10)
-        if not isinstance(check_heading_lines, int) or check_heading_lines < 1:
-            return False, f"❌ Configuración inválida: check_heading_lines debe ser un entero positivo, se recibió {check_heading_lines}"
 
         try:
             # Obtener archivos a validar de los argumentos de línea de comandos
@@ -739,16 +763,6 @@ class QualityManager:
             processed_files = set()
             file_results = {}  # Para almacenar el resultado de cada archivo
 
-            # Determinar metadatos obligatorios según el nivel
-            current_level = self.get_current_configuration().get('level', 'minimal')
-
-            if current_level == 'minimal':
-                required_metadata = {'version', 'description', 'created'}
-                optional_metadata = {'modified', 'author'}
-            else:  # standard o enterprise
-                required_metadata = {'version', 'description', 'created', 'modified', 'author'}
-                optional_metadata = set()
-
             # Procesar cada archivo
             for file_path in files:
                 path = Path(file_path)
@@ -759,23 +773,25 @@ class QualityManager:
                 file_errors = set()
                 file_warnings = set()
 
-                success, metadata, file_type, _ = self._extract_header_metadata(path, check_heading_lines)
+                success, metadata, file_type, _ = self._extract_header_metadata(path, config)
                 if not success:
-                    error_msg = f"❌ {path}: No se encontró Check heading o tipo de archivo no soportado"
+                    error_msg = f"❌ {path}: No se encontró {config.get('check_header_tag', 'Check Heading')} o tipo de archivo no soportado"
                     file_errors.add(error_msg)
                     file_results[str(path)] = {'status': 'error', 'errors': file_errors, 'warnings': file_warnings}
                     continue
 
-                # Validar metadatos obligatorios
-                missing_required = required_metadata - set(metadata.keys())
+                # Validar campos requeridos
+                required_fields = set(config.get('required_fields', []))
+                missing_required = required_fields - {k.lower() for k in metadata.keys()}
                 if missing_required:
-                    error_msg = f"❌ {path}: Faltan metadatos obligatorios: {', '.join(missing_required)}"
+                    error_msg = f"❌ {path}: Faltan campos requeridos: {', '.join(missing_required)}"
                     file_errors.add(error_msg)
 
-                # Validar metadatos opcionales
-                for meta in optional_metadata:
-                    if meta not in metadata:
-                        warning_msg = f"⚠️ {path}: Falta metadato opcional: {meta}"
+                # Validar campos opcionales
+                optional_fields = set(config.get('optional_fields', []))
+                for field in optional_fields:
+                    if field.lower() not in {k.lower() for k in metadata.keys()}:
+                        warning_msg = f"⚠️ {path}: Falta campo opcional: {field}"
                         file_warnings.add(warning_msg)
 
                 # Actualizar resultados
@@ -809,10 +825,13 @@ class QualityManager:
         Actualiza la fecha de modificación en los headers de los archivos que tienen el tag Check Heading.
 
         Args:
-            config: Configuración del hook que puede incluir:
+            config: Configuración del hook que incluye:
                 - enabled: bool - Si el hook está habilitado
                 - date_format: str - Formato de fecha (default: "YYYY-MM-DD HH:MM:SS")
-                - check_heading_lines: int - Número de líneas a revisar para el tag Check heading
+                - check_header_tag: str - Tag a buscar en los headers
+                - check_heading_lines: int - Número de líneas a revisar
+                - update_fields: List[str] - Campos a actualizar
+                - preserve_fields: List[str] - Campos a preservar
 
         Returns:
             Tuple[bool, str]: (éxito, mensaje)
@@ -825,7 +844,10 @@ class QualityManager:
 
             # Obtener la configuración
             date_format = config.get('date_format', "YYYY-MM-DD HH:MM:SS")
-            check_heading_lines = config.get('check_heading_lines', 10)
+            check_header_tag = config.get('check_header_tag', "Check Heading")
+            check_heading_lines = config.get('check_heading_lines', 20)
+            update_fields = set(config.get('update_fields', ['Modified']))
+            preserve_fields = set(config.get('preserve_fields', []))
 
             # Obtener la fecha actual
             now = datetime.now()
@@ -853,7 +875,7 @@ class QualityManager:
                     continue
 
                 # Extraer metadatos usando la lógica común
-                success, metadata, file_type, header_content = self._extract_header_metadata(path, check_heading_lines)
+                success, metadata, file_type, header_content = self._extract_header_metadata(path, config)
                 if not success:
                     continue
 
@@ -862,31 +884,44 @@ class QualityManager:
                     with open(path, 'r', encoding='utf-8') as f:
                         content = f.read()
 
-                    # Actualizar el campo Modified en el header
+                    # Actualizar los campos especificados en el header
                     if file_type == 'python':
-                        # Para Python, buscar el docstring y actualizar el campo Modified
+                        # Para Python, buscar el docstring y actualizar los campos
                         docstring_pattern = re.compile(r'^"""\s*\n(.*?)\n"""', re.DOTALL)
                         docstring_match = docstring_pattern.search(content)
                         if docstring_match:
                             header_lines = docstring_match.group(1).split('\n')
                             new_header_lines = []
-                            modified_updated = False
+                            fields_updated = set()
                             for line in header_lines:
-                                if re.match(r'^\s*Modified\s*:', line, re.IGNORECASE):
-                                    new_header_lines.append(f"Modified:     {current_date}")
-                                    modified_updated = True
-                                else:
-                                    new_header_lines.append(line)
-                            if not modified_updated:
-                                # Si no existe el campo Modified, agregarlo después de Created
-                                for i, line in enumerate(header_lines):
-                                    if re.match(r'^\s*Created\s*:', line, re.IGNORECASE):
-                                        header_lines.insert(i + 1, f"Modified:     {current_date}")
+                                # Verificar si la línea es un campo a actualizar
+                                field_updated = False
+                                for field in update_fields:
+                                    if re.match(rf'^\s*{re.escape(field)}\s*:', line, re.IGNORECASE):
+                                        new_header_lines.append(f"{field}:     {current_date}")
+                                        fields_updated.add(field)
+                                        field_updated = True
                                         break
+                                if not field_updated:
+                                    new_header_lines.append(line)
+
+                            # Agregar campos que no existían
+                            for field in update_fields - fields_updated:
+                                # Buscar un campo después del cual insertar
+                                insert_after = None
+                                for i, line in enumerate(header_lines):
+                                    if any(re.match(rf'^\s*{re.escape(f)}\s*:', line, re.IGNORECASE) for f in preserve_fields):
+                                        insert_after = i
+                                        break
+                                if insert_after is not None:
+                                    header_lines.insert(insert_after + 1, f"{field}:     {current_date}")
+                                else:
+                                    header_lines.append(f"{field}:     {current_date}")
+
                             new_header = '"""\n' + '\n'.join(new_header_lines) + '\n"""'
                             new_content = content[:docstring_match.start()] + new_header + content[docstring_match.end():]
                     else:
-                        # Para otros tipos de archivo, buscar el bloque de comentarios y actualizar el campo Modified
+                        # Para otros tipos de archivo, buscar el bloque de comentarios y actualizar los campos
                         comment_pattern = re.compile(r'^(?:\s*#|\s*//|\s*\*|\s*/\*|\s*\*/).*?$', re.MULTILINE)
                         comment_blocks = list(comment_pattern.finditer(content))
                         if comment_blocks:
@@ -894,27 +929,39 @@ class QualityManager:
                             header_block = None
                             for block in comment_blocks:
                                 block_content = block.group(0)
-                                if 'Check Heading' in block_content:
+                                if check_header_tag in block_content:
                                     header_block = block
                                     break
                             if header_block:
                                 header_lines = header_block.group(0).split('\n')
                                 new_header_lines = []
-                                modified_updated = False
+                                fields_updated = set()
+                                comment_char = '#' if file_type == 'bash' else '//'
                                 for line in header_lines:
-                                    if re.match(r'^\s*(?:#|//|\*)\s*Modified\s*:', line, re.IGNORECASE):
-                                        comment_char = '#' if file_type == 'bash' else '//'
-                                        new_header_lines.append(f"{comment_char} Modified:     {current_date}")
-                                        modified_updated = True
-                                    else:
-                                        new_header_lines.append(line)
-                                if not modified_updated:
-                                    # Si no existe el campo Modified, agregarlo después de Created
-                                    for i, line in enumerate(header_lines):
-                                        if re.match(r'^\s*(?:#|//|\*)\s*Created\s*:', line, re.IGNORECASE):
-                                            comment_char = '#' if file_type == 'bash' else '//'
-                                            header_lines.insert(i + 1, f"{comment_char} Modified:     {current_date}")
+                                    # Verificar si la línea es un campo a actualizar
+                                    field_updated = False
+                                    for field in update_fields:
+                                        if re.match(rf'^\s*(?:#|//|\*)\s*{re.escape(field)}\s*:', line, re.IGNORECASE):
+                                            new_header_lines.append(f"{comment_char} {field}:     {current_date}")
+                                            fields_updated.add(field)
+                                            field_updated = True
                                             break
+                                    if not field_updated:
+                                        new_header_lines.append(line)
+
+                                # Agregar campos que no existían
+                                for field in update_fields - fields_updated:
+                                    # Buscar un campo después del cual insertar
+                                    insert_after = None
+                                    for i, line in enumerate(header_lines):
+                                        if any(re.match(rf'^\s*(?:#|//|\*)\s*{re.escape(f)}\s*:', line, re.IGNORECASE) for f in preserve_fields):
+                                            insert_after = i
+                                            break
+                                    if insert_after is not None:
+                                        header_lines.insert(insert_after + 1, f"{comment_char} {field}:     {current_date}")
+                                    else:
+                                        header_lines.append(f"{comment_char} {field}:     {current_date}")
+
                                 new_header = '\n'.join(new_header_lines)
                                 new_content = content[:header_block.start()] + new_header + content[header_block.end():]
                             else:

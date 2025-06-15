@@ -128,8 +128,8 @@ repos:
         entry: .githooks/quality_manager.py run-hook --hook-type header-update
         language: python
         additional_dependencies: [PyYAML]
-        stages: [post-commit]
+        stages: [pre-commit]
         pass_filenames: true
         always_run: true
         verbose: true
-        description: "Actualiza los headers de los archivos con @check-header según la fecha de modificación"
+        description: "Actualiza los headers de los archivos con Check Heading según la fecha de modificación"
