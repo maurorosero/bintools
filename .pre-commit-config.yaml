@@ -1,3 +1,13 @@
+# Configuraciones comunes para hooks
+x-header-hook: &header-hook-config
+  language: python
+  additional_dependencies: [PyYAML]
+  stages: [pre-commit]
+  pass_filenames: true
+  always_run: true
+  verbose: true
+  types: [file]
+
 repos:
   # Hooks oficiales de pre-commit para formato
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -108,14 +118,6 @@ repos:
 
   # Grupo 08: Header Validation (DINÁMICO - Configurable por nivel)
   - repo: local
-    x-common-config: &header-hook-config
-      language: python
-      additional_dependencies: [PyYAML]
-      stages: [pre-commit]
-      pass_filenames: true
-      always_run: true
-      verbose: true
-      types: [file]
     hooks:
       # Hook de validación de headers
       - id: header-validator
