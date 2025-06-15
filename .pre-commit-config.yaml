@@ -1,12 +1,12 @@
-# Configuraciones comunes para hooks
-header_hook: &header_hook
-  language: python
-  additional_dependencies: [PyYAML]
-  stages: [pre-commit]
-  pass_filenames: true
-  always_run: true
-  verbose: true
-  types: [file]
+# Configuraciones comunes para hooks (YAML anchor)
+# &header_hook
+#   language: python
+#   additional_dependencies: [PyYAML]
+#   stages: [pre-commit]
+#   pass_filenames: true
+#   always_run: true
+#   verbose: true
+#   types: [file]
 
 repos:
   # Hooks oficiales de pre-commit para formato
@@ -123,12 +123,24 @@ repos:
       - id: header-validator
         name: header-validate
         entry: .githooks/quality_manager.py run-hook --hook-type header-validator
-        <<: *header_hook
+        language: python
+        additional_dependencies: [PyYAML]
+        stages: [pre-commit]
+        pass_filenames: true
+        always_run: true
+        verbose: true
+        types: [file]
         description: "Valida los headers de los archivos según las especificaciones"
 
       # Hook de actualización de headers
       - id: header-update
         name: header-update
         entry: .githooks/quality_manager.py run-hook --hook-type header-update
-        <<: *header_hook
+        language: python
+        additional_dependencies: [PyYAML]
+        stages: [pre-commit]
+        pass_filenames: true
+        always_run: true
+        verbose: true
+        types: [file]
         description: "Actualiza los headers de los archivos con Check Heading según la fecha de modificación"
