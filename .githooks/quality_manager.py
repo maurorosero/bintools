@@ -827,24 +827,16 @@ class QualityManager:
                             # Mantener el formato exacto de la línea
                             pattern = rf"({field}:\s*)[^\n]*"
                             replacement = f"\\1{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-                        else:
-                            # Para JavaScript/TypeScript, buscar el formato exacto usado en el archivo
-                            # Buscar primero el formato exacto que se usa en el archivo
-                            for line in header_content.split('\n'):
-                                if field.lower() in line.lower():
-                                    # Capturar el formato exacto de la línea hasta la fecha
-                                    if '*' in line:
-                                        # Si tiene asterisco, capturar desde el asterisco hasta la fecha
-                                        pattern = rf"(\*\s*@{field}\s+)[^\n]*"
-                                    else:
-                                        # Si no tiene asterisco, capturar desde el inicio hasta la fecha
-                                        pattern = rf"(@{field}\s+)[^\n]*"
-                                    replacement = f"\\1{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-                                    break
-                            else:
-                                # Si no se encuentra el formato específico, usar el patrón por defecto
-                                pattern = rf"(\*\s*@{field}\s+)[^\n]*"
-                                replacement = f"\\1{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                        if file_type == 'bash':
+                            # Para Bash, buscar en comentarios
+                            # Mantener el formato exacto de la línea
+                            pattern = rf"#\s*({field}:\s*)[^\n]*"
+                            replacement = f"\\1{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                        if file_type == 'javascript' or file_type == 'typescript':
+                            # Para JavaScript, buscar en comentarios
+                            # Mantener el formato exacto de la línea
+                            pattern = rf"(?:^|\s)(?:\*?\s*@(?:jsdoc|tsdoc)\s+)?{field}\s*:\s*[^\n]*"
+                            replacement = f"\\1{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
                         # Reemplazar solo en el header (primeras líneas)
                         header_lines = content.split('\n')[:config.get('check_heading_lines', 10)]
