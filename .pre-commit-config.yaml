@@ -135,7 +135,7 @@ repos:
       # Hook de actualización de headers
       - id: header-update
         name: header-update
-        entry: .githooks/quality_manager.py run-hook --hook-type header-update
+        entry: .githooks/quality_manager.py run-hook --hook-type header-update --verbose
         language: python
         additional_dependencies: [PyYAML]
         stages: [pre-commit]
@@ -143,4 +143,5 @@ repos:
         always_run: true
         verbose: true
         types: [file]
+        args: [--verbose]
         description: "Actualiza los headers de los archivos con Check Heading según la fecha de modificación"

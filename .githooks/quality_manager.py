@@ -27,6 +27,7 @@ import traceback
 import os
 import re
 from datetime import datetime
+import argparse
 
 class QualityLevel(Enum):
     """Niveles de calidad disponibles."""
@@ -753,29 +754,29 @@ class QualityManager:
         try:
             # Obtener archivos del staging area
             staged_files = self._get_staged_files()
-            print("\nDEBUG: Archivos en staging area:")
+            self._log_debug("\nArchivos en staging area:")
             for i, file in enumerate(staged_files, 1):
-                print(f"DEBUG: {i}. {file}")
-            print(f"DEBUG: Total en staging: {len(staged_files)}")
+                self._log_debug(f"{i}. {file}")
+            self._log_debug(f"Total en staging: {len(staged_files)}")
 
             # Obtener archivos pasados como argumentos
             files_to_update = sys.argv[1:]  # Usamos los archivos pasados como argumentos
-            print("\nDEBUG: Archivos pasados como argumentos:")
+            self._log_debug("\nArchivos pasados como argumentos:")
             for i, file in enumerate(files_to_update, 1):
-                print(f"DEBUG: {i}. {file}")
-            print(f"DEBUG: Total de argumentos: {len(files_to_update)}")
+                self._log_debug(f"{i}. {file}")
+            self._log_debug(f"Total de argumentos: {len(files_to_update)}")
 
             # Si no hay archivos pasados como argumentos, usar los del staging area
             if not files_to_update:
                 files_to_update = staged_files
-                print("\nDEBUG: Usando archivos del staging area")
+                self._log_debug("\nUsando archivos del staging area")
             else:
-                print("\nDEBUG: Usando archivos pasados como argumentos")
+                self._log_debug("\nUsando archivos pasados como argumentos")
 
-            print(f"\nDEBUG: Archivos finales a procesar:")
+            self._log_debug(f"\nArchivos finales a procesar:")
             for i, file in enumerate(files_to_update, 1):
-                print(f"DEBUG: {i}. {file}")
-            print(f"DEBUG: Total a procesar: {len(files_to_update)}")
+                self._log_debug(f"{i}. {file}")
+            self._log_debug(f"Total a procesar: {len(files_to_update)}")
 
             # Actualizar headers
             updated_count = 0
@@ -783,16 +784,16 @@ class QualityManager:
 
             for file in files_to_update:
                 try:
-                    print(f"\nDEBUG: Procesando archivo: {file}")
+                    self._log_debug(f"\nProcesando archivo: {file}")
                     # Extraer metadata usando la misma función que el validator
                     success, metadata, file_type, header_content = self._extract_header_metadata(Path(file), config.get('check_heading_lines', 10))
 
                     # Si no hay header_content, el archivo no tiene Check Heading o no se pudo extraer
                     if not success or not header_content:
-                        print(f"DEBUG: Archivo {file} no tiene Check Heading o no se pudo extraer metadata")
+                        self._log_debug(f"Archivo {file} no tiene Check Heading o no se pudo extraer metadata")
                         continue
 
-                    print(f"DEBUG: Archivo {file} tiene Check Heading y metadata válida")
+                    self._log_debug(f"Archivo {file} tiene Check Heading y metadata válida")
 
                     # Obtener el formato de fecha del hook y generar la fecha actual
                     date_format = config.get('date_format', 'YYYY-MM-DD HH:MM:SS')
@@ -1092,40 +1093,34 @@ class QualityManager:
 
         return config
 
+    def _parse_args(self) -> argparse.Namespace:
+        """Parsea los argumentos de línea de comandos."""
+        parser = argparse.ArgumentParser(description='Quality Manager para Git Hooks')
+        parser.add_argument('action', choices=['run-hook', 'list-formats', 'list-hooks'],
+                          help='Acción a ejecutar')
+        parser.add_argument('--hook-type', choices=['format', 'exec', 'size', 'detect-secrets',
+                                                  'commitlint', 'branch-workflow-commit',
+                                                  'branch-workflow-push', 'header-validator',
+                                                  'header-update'],
+                          help='Tipo de hook a ejecutar')
+        parser.add_argument('--verbose', action='store_true',
+                          help='Mostrar información detallada de debug')
+        parser.add_argument('files', nargs='*', help='Archivos a procesar')
+        # Usar parse_known_args para ignorar argumentos no reconocidos
+        args, unknown = parser.parse_known_args()
+        if unknown and args.verbose:
+            print(f"DEBUG: Argumentos ignorados: {unknown}", file=sys.stderr)
+        return args
+
+    def _log_debug(self, message: str) -> None:
+        """Función helper para logging de debug."""
+        if hasattr(self, 'args') and self.args.verbose:
+            sys.stderr.write(f"DEBUG: {message}\n")
+
 if __name__ == '__main__':
-    import argparse
-
-    parser = argparse.ArgumentParser(description='Quality Manager para Git Branch Manager')
-    subparsers = parser.add_subparsers(dest='action', help='Acción a realizar')
-
-    # Subparser para list-formats
-    subparsers.add_parser('list-formats', help='Lista los formatos de commit disponibles.')
-
-    # Subparser para set-level
-    set_level_parser = subparsers.add_parser('set-level', help='Aplica un nivel de calidad (opcional) y un formato de commit (opcional).')
-    set_level_parser.add_argument('--level', choices=[l.value for l in QualityLevel], help='Nivel de calidad a aplicar (opcional). Si no se especifica, se respeta la configuración manual o se usa el predeterminado.')
-    set_level_parser.add_argument('--format', help='Formato de commit a aplicar (por ejemplo, --format semantic.js)')
-    set_level_parser.add_argument('--auto', action='store_true', help='Ignorar la configuración manual y aplicar la detección automática del nivel de calidad')
-
-    # Subparser para show-status
-    subparsers.add_parser('show-status', help='Muestra el estado actual de la configuración.')
-
-    # Subparser para run-hook
-    run_hook_parser = subparsers.add_parser('run-hook', help='Ejecuta un hook específico según el tipo y la configuración activa.')
-    run_hook_parser.add_argument('--hook-type', required=True, help='Tipo de hook a ejecutar (de HookType)')
-    run_hook_parser.add_argument('files', nargs='*', help='Archivos a validar')
-
-    # Configurar el parser para ignorar argumentos desconocidos
-    parser._optionals.title = 'Opciones'
-    parser._optionals.description = 'Opciones disponibles'
-    parser._optionals.argument_default = argparse.SUPPRESS
-
-    # Parsear argumentos ignorando los desconocidos
-    args, unknown = parser.parse_known_args()
-    if unknown:
-        print(f"⚠️  Argumentos adicionales ignorados: {unknown}", file=sys.stderr)
-
     manager = QualityManager(Path.cwd())
+    args = manager._parse_args()
+    manager.args = args  # Asignar args al manager después de parsearlos
 
     if args.action == 'list-formats':
         print("📋 Formatos de Commit Disponibles")
@@ -1157,7 +1152,7 @@ if __name__ == '__main__':
             print("❌ Error: Se requiere especificar --hook-type")
             sys.exit(1)
         # Usar los archivos pasados como argumentos
-        if hasattr(args, 'files'):
+        if args.files:
             sys.argv = [sys.argv[0]] + args.files
         success, message = manager.run_hook(args.hook_type)
         if not success or '❌' in message:
@@ -1168,5 +1163,5 @@ if __name__ == '__main__':
         sys.exit(0)
 
     else:
-        parser.print_usage()
+        print("❌ Error: Acción no reconocida")
         sys.exit(1)
