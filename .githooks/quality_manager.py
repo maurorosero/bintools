@@ -769,86 +769,6 @@ class QualityManager:
         except Exception:
             return False
 
-    def _update_field_with_at(self, content: str, field: str, current_date: str, config: dict) -> tuple[str, str, str]:
-        """Actualiza un campo que usa el prefijo @ (para JavaScript/TypeScript).
-
-        Args:
-            content: Contenido del archivo
-            field: Nombre del campo a actualizar
-            current_date: Fecha actual formateada
-            config: Configuración del check
-
-        Returns:
-            tuple: (línea encontrada, patrón regex, reemplazo)
-        """
-        field_lower = field.lower()
-        self._log_debug(f"\nBuscando campo con @: {field_lower}")
-
-        # Buscar en las primeras líneas del archivo
-        for line in content.split('\n')[:config.get('check_heading_lines', 10)]:
-            line_lower = line.lower()
-            self._log_debug(f"Revisando línea: {line_lower}")
-            field_with_at = f"@{field_lower}"
-            self._log_debug(f"Campo con @: {field_with_at}")
-
-            if field_with_at in line_lower:
-                # Capturar el formato exacto de la línea
-                pattern = rf"(\s*(?:\*|\s)*)(@{field_lower})(\s+[^\n]*)"
-                self._log_debug(f"Patrón encontrado: {pattern}")
-                # Mantener el campo completo en el reemplazo
-                replacement = f"\\1@{field_lower}{current_date}"
-                self._log_debug(f"Reemplazo: {replacement}")
-                return line, pattern, replacement
-
-        # Si no se encuentra el formato específico, usar el patrón por defecto con "@Modified"
-        pattern = rf"(\s*(?:\*|\s)*)(@Modified)(\s+[^\n]*)"
-        self._log_debug(f"Usando patrón por defecto: {pattern}")
-        # Mantener el campo completo en el reemplazo por defecto
-        replacement = f"\\1@Modified{current_date}"
-        self._log_debug(f"Reemplazo por defecto: {replacement}")
-        return None, pattern, replacement
-
-    def _update_field_without_at(self, content: str, field: str, current_date: str, config: dict, file_type: str) -> tuple[str, str, str]:
-        """Actualiza un campo sin prefijo @ (para Python/Bash).
-
-        Args:
-            content: Contenido del archivo
-            field: Nombre del campo a actualizar
-            current_date: Fecha actual formateada
-            config: Configuración del check
-            file_type: Tipo de archivo (py, sh, etc)
-
-        Returns:
-            tuple: (línea encontrada, patrón regex, reemplazo)
-        """
-        field_lower = field.lower()
-        self._log_debug(f"\nBuscando campo sin @: {field_lower}")
-
-        # Determinar el patrón según el tipo de archivo
-        if file_type in ['py']:
-            pattern = rf"(\s*)({field}:)(\s*[^\n]*)"
-        else:  # bash
-            pattern = rf"(#\s*)({field}:)(\s*[^\n]*)"
-
-        # Buscar en las primeras líneas del archivo
-        for line in content.split('\n')[:config.get('check_heading_lines', 10)]:
-            line_lower = line.lower()
-            self._log_debug(f"Revisando línea: {line_lower}")
-
-            if field_lower in line_lower:
-                self._log_debug(f"Patrón encontrado: {pattern}")
-                # Mantener el formato original sin @
-                replacement = f"\\1\\2{current_date}"
-                self._log_debug(f"Reemplazo: {replacement}")
-                return line, pattern, replacement
-
-        # Si no se encuentra el formato específico, usar el mismo patrón
-        self._log_debug(f"Usando patrón por defecto: {pattern}")
-        # Mantener el formato original sin @
-        replacement = f"\\1\\2{current_date}"
-        self._log_debug(f"Reemplazo por defecto: {replacement}")
-        return None, pattern, replacement
-
     def _run_header_update(self, config: dict) -> Tuple[bool, str]:
         """Actualiza los campos de fecha en el encabezado del archivo.
 
@@ -874,18 +794,24 @@ class QualityManager:
                 try:
                     # Verificar si el archivo es texto
                     if not self._is_text_file(Path(file_path)):
+                        self._log_debug(f"Ignorando archivo binario: {file_path}")
                         continue
 
                     with open(file_path, 'r', encoding='utf-8') as f:
                         content = f.read()
                         if "Check Heading" in content:
+                            self._log_debug(f"Archivo con tag Check Heading encontrado: {file_path}")
                             files_with_tag.append(file_path)
+                        else:
+                            self._log_debug(f"Ignorando archivo sin tag Check Heading: {file_path}")
                 except Exception as e:
                     self._log_debug(f"No se pudo procesar {file_path}: {str(e)}")
                     continue  # Ignorar archivos que no se pueden leer
 
             if not files_with_tag:
                 return True, "✅ No hay archivos con tag 'Check Heading' para actualizar"
+
+            self._log_debug(f"\nArchivos a procesar: {files_with_tag}")
 
             # Actualizar cada archivo
             updated_count = 0
@@ -900,26 +826,60 @@ class QualityManager:
 
                     # Determinar el tipo de archivo
                     file_type = file_path.split('.')[-1].lower()
+                    self._log_debug(f"\nTipo de archivo detectado: {file_type}")
+
+                    # Determinar cuántas líneas revisar según el tipo de archivo
+                    check_lines = 20 if file_type in ['js', 'ts', 'jsx', 'tsx'] else config.get('check_heading_lines', 10)
+                    self._log_debug(f"Revisando las primeras {check_lines} líneas")
 
                     # Actualizar cada campo según el tipo de archivo
                     for field in ['Modified']:
-                        if file_type in ['js', 'ts', 'jsx', 'tsx']:
-                            # Para JavaScript/TypeScript, usar la función con @
-                            found_line, pattern, replacement = self._update_field_with_at(content, field, current_date, config)
-                        else:
-                            # Para Python y Bash, usar la función sin @
-                            found_line, pattern, replacement = self._update_field_without_at(content, field, current_date, config, file_type)
+                        field_lower = field.lower()
+                        self._log_debug(f"\nBuscando campo: {field_lower}")
 
-                        if found_line:
-                            self._log_debug("¡Línea encontrada!")
-                            self._log_debug(f"Línea original: {found_line}")
-                            # Reemplazar solo esta línea
-                            new_line = re.sub(pattern, replacement, found_line, flags=re.IGNORECASE)
-                            self._log_debug(f"Línea nueva: {new_line}")
-                            # Reemplazar la línea en el contenido
-                            new_content = content.replace(found_line, new_line)
-                            # Actualizar el contenido para el siguiente campo
-                            content = new_content
+                        # Buscar en las primeras líneas del archivo
+                        for line in content.split('\n')[:check_lines]:
+                            line_lower = line.lower()
+                            self._log_debug(f"Revisando línea: {line_lower}")
+
+                            # Determinar el patrón según el tipo de archivo
+                            if file_type in ['js', 'ts', 'jsx', 'tsx']:
+                                # Para JavaScript/TypeScript, buscar el campo con @
+                                field_with_at = f"@{field_lower}"
+                                if field_with_at in line_lower:
+                                    pattern = rf"(\s*(?:\*|\s)*)(@{field_lower})(\s+[^\n]*)"
+                                    replacement = f"\\1@{field_lower}{current_date}"
+                                    self._log_debug(f"Patrón encontrado (JS/TS): {pattern}")
+                                    self._log_debug(f"Reemplazo: {replacement}")
+
+                                    self._log_debug("¡Línea encontrada!")
+                                    self._log_debug(f"Línea original: {line}")
+                                    # Reemplazar solo esta línea
+                                    new_line = re.sub(pattern, replacement, line, flags=re.IGNORECASE)
+                                    self._log_debug(f"Línea nueva: {new_line}")
+                                    # Reemplazar la línea en el contenido
+                                    content = content.replace(line, new_line)
+                                    break
+                            else:
+                                # Para Python y Bash, buscar el campo sin @
+                                if field_lower in line_lower:
+                                    if file_type in ['py']:
+                                        pattern = rf"(\s*)({field}:)(\s*[^\n]*)"
+                                    else:  # bash
+                                        pattern = rf"(#\s*)({field}:)(\s*[^\n]*)"
+
+                                    replacement = f"\\1\\2{current_date}"
+                                    self._log_debug(f"Patrón encontrado (Py/Bash): {pattern}")
+                                    self._log_debug(f"Reemplazo: {replacement}")
+
+                                    self._log_debug("¡Línea encontrada!")
+                                    self._log_debug(f"Línea original: {line}")
+                                    # Reemplazar solo esta línea
+                                    new_line = re.sub(pattern, replacement, line, flags=re.IGNORECASE)
+                                    self._log_debug(f"Línea nueva: {new_line}")
+                                    # Reemplazar la línea en el contenido
+                                    content = content.replace(line, new_line)
+                                    break
 
                     # Guardar los cambios
                     with open(file_path, 'w', encoding='utf-8') as f:
