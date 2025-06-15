@@ -821,22 +821,20 @@ class QualityManager:
                     update_fields = config.get('update_fields', ['Modified'])
                     new_content = content
                     for field in update_fields:
-                        # Usar la misma lógica de búsqueda que el validator
-                        if file_type == 'python':
-                            # Para Python, buscar en docstrings
-                            # Mantener el formato exacto de la línea
-                            pattern = rf"({field}:\s*)[^\n]*"
-                            replacement = f"\\1{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-                        elif file_type == 'bash':
-                            # Para Bash, buscar en comentarios
-                            # Mantener el formato exacto de la línea
-                            pattern = rf"#\s*({field}:\s*)[^\n]*"
-                            replacement = f"\\1{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                        # Buscar el formato exacto usado en el archivo
+                        field_lower = field.lower()
+                        for line in header_content.split('\n'):
+                            line_lower = line.lower()
+                            if field_lower in line_lower:
+                                # Capturar el formato exacto de la línea
+                                # Grupo 1: todo antes del campo, Grupo 2: el campo, Grupo 3: lo que viene después
+                                pattern = rf"(\s*(?:\*|@|\s)*)({field})(\s+[^\n]*)"
+                                replacement = f"\\1\\2{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                                break
                         else:
-                            # Para JavaScript, buscar en comentarios
-                            # Mantener el formato exacto de la línea
-                            pattern = rf" \*\s*({field}:\s*)[^\n]*"
-                            replacement = f"\\1{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                            # Si no se encuentra el formato específico, usar el patrón por defecto
+                            pattern = rf"(\s*(?:\*|@|\s)*)({field})(\s+[^\n]*)"
+                            replacement = f"\\1\\2{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
                         # Reemplazar solo en el header (primeras líneas)
                         header_lines = content.split('\n')[:config.get('check_heading_lines', 10)]
