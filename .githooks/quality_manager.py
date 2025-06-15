@@ -9,7 +9,7 @@ Script Name: quality_manager.py
 Version:     0.1.1
 Description: Gestiona los niveles de calidad y formatos de commit de manera independiente.
 Created:     2025-06-14
-Modified:    2025-06-15 12:51:13
+Modified:    2025-06-15 12:59:42
 Author:      Mauro Rosero Pérez <mauro@rosero.one>
 Assistant:   Cursor AI (https://cursor.com)
 """
@@ -721,12 +721,17 @@ class QualityManager:
 
                     # Para cada campo en update_fields, buscar y actualizar su línea
                     for field in update_fields:
-                        # Buscar la línea que comienza con el nombre del campo
-                        # Usar un patrón más flexible que busque el campo en cualquier parte de la línea
-                        pattern = rf'#\s*{field}:.*$'
+                        # Usar un patrón diferente según el tipo de archivo
+                        if file_type == 'python':
+                            pattern = rf'{field}:.*$'
+                            replacement = f'{field}:    {current_date}'
+                        else:  # bash y otros
+                            pattern = rf'# {field}:.*$'
+                            replacement = f'# {field}:    {current_date}'
+
                         if field == 'Modified':
                             # Para Modified, actualizar con la fecha actual
-                            new_content = re.sub(pattern, f'# {field}:    {current_date}', new_content, flags=re.MULTILINE)
+                            new_content = re.sub(pattern, replacement, new_content, flags=re.MULTILINE)
                             file_modified = True
                         else:
                             # Para otros campos, mantener su valor actual
