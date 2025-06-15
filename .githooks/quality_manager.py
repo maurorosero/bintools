@@ -687,19 +687,20 @@ class QualityManager:
             if not files:
                 return True, "✅ No hay archivos para validar"
 
-            # Filtrar archivos que tienen el tag Check Heading y no son archivos de configuración
+            # Filtrar archivos que tienen el tag Check Heading
             files_with_tag = []
             for file_path in files:
-                # Excluir archivos de configuración
-                if '.githooks/config/' in file_path:
-                    continue
-
                 try:
+                    # Verificar si el archivo es texto
+                    if not self._is_text_file(Path(file_path)):
+                        continue
+
                     with open(file_path, 'r', encoding='utf-8') as f:
                         content = f.read(check_heading_lines * 100)  # Leer suficientes caracteres para cubrir las líneas
                         if "Check Heading" in content:
                             files_with_tag.append(file_path)
-                except Exception:
+                except Exception as e:
+                    self._log_debug(f"No se pudo procesar {file_path}: {str(e)}")
                     continue  # Ignorar archivos que no se pueden leer
 
             if not files_with_tag:
@@ -748,6 +749,25 @@ class QualityManager:
 
         except Exception as e:
             return False, f"❌ Error en validación de headers: {str(e)}"
+
+    def _is_text_file(self, file_path: Path) -> bool:
+        """
+        Verifica si un archivo es de texto.
+
+        Args:
+            file_path: Ruta al archivo
+
+        Returns:
+            bool: True si el archivo es de texto, False en caso contrario
+        """
+        try:
+            # Intentar leer los primeros bytes del archivo
+            with open(file_path, 'rb') as f:
+                chunk = f.read(1024)
+                # Verificar si hay bytes nulos (característica de archivos binarios)
+                return b'\x00' not in chunk
+        except Exception:
+            return False
 
     def _run_header_update(self, config: Dict[str, Any]) -> Tuple[bool, str]:
         """Ejecuta el hook de actualización de headers."""
