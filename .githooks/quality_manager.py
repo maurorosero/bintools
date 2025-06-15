@@ -9,7 +9,7 @@ Script Name: quality_manager.py
 Version:     0.1.1
 Description: Gestiona los niveles de calidad y formatos de commit de manera independiente.
 Created:     2025-06-14
-Modified:    2025-06-15 13:09:49
+Modified:    2025-06-15 13:15:26
 Author:      Mauro Rosero Pérez <mauro@rosero.one>
 Assistant:   Cursor AI (https://cursor.com)
 """
@@ -500,6 +500,67 @@ class QualityManager:
         except Exception as e:
             return False, f"❌ Validación de workflow: {str(e)}"
 
+    def _get_file_type(self, file_path: Path) -> Optional[str]:
+        """
+        Determina el tipo de archivo basado en su extensión y contenido.
+
+        Args:
+            file_path: Ruta al archivo
+
+        Returns:
+            Optional[str]: Tipo de archivo ('python', 'bash', 'javascript', etc.) o None si no se puede determinar
+        """
+        print(f"\nDEBUG: Determinando tipo de archivo para {file_path}")
+        # Mapeo de extensiones a tipos de archivo
+        FILE_TYPES = {
+            '.py': 'python',
+            '.sh': 'bash',
+            '.bash': 'bash',
+            '.zsh': 'bash',
+            '.js': 'javascript',
+            '.jsx': 'javascript',
+            '.ts': 'typescript',
+            '.tsx': 'typescript',
+            '.mjs': 'javascript',
+            '.cjs': 'javascript'
+        }
+
+        # Primero intentar por extensión
+        ext = file_path.suffix.lower()
+        print(f"DEBUG: Extensión del archivo: {ext}")
+        if ext in FILE_TYPES:
+            print(f"DEBUG: Tipo detectado por extensión: {FILE_TYPES[ext]}")
+            return FILE_TYPES[ext]
+
+        # Si no se encuentra por extensión, intentar por contenido
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                first_line = f.readline().strip()
+                print(f"DEBUG: Primera línea del archivo: {first_line}")
+
+                # Verificar shebang para scripts
+                if first_line.startswith('#!/'):
+                    if 'bash' in first_line or 'sh' in first_line:
+                        print("DEBUG: Tipo detectado por shebang: bash")
+                        return 'bash'
+                    elif 'node' in first_line or 'js' in first_line:
+                        print("DEBUG: Tipo detectado por shebang: javascript")
+                        return 'javascript'
+
+                # Verificar contenido para JavaScript/TypeScript
+                content = f.read(1000)  # Leer un poco más para tener contexto
+                if 'module.exports' in content or 'export default' in content:
+                    print("DEBUG: Tipo detectado por contenido: javascript")
+                    return 'javascript'
+                elif 'import ' in content and ('.ts' in str(file_path) or '.tsx' in str(file_path)):
+                    print("DEBUG: Tipo detectado por contenido: typescript")
+                    return 'typescript'
+        except Exception as e:
+            print(f"DEBUG: Error al leer archivo: {str(e)}")
+
+        print("DEBUG: No se pudo determinar el tipo de archivo")
+        return None
+
     def _extract_header_metadata(self, file_path: Path, check_heading_lines: int) -> Tuple[bool, str, str, str]:
         """
         Extrae metadatos del header de un archivo.
@@ -512,14 +573,20 @@ class QualityManager:
             Tuple[bool, str, str, str]: (éxito, mensaje/metadatos, tipo_archivo, contenido_header)
         """
         try:
+            print(f"\nDEBUG: Iniciando extracción de metadatos para {file_path}")
             # Determinar el tipo de archivo
             file_type = self._get_file_type(file_path)
+            print(f"DEBUG: Tipo de archivo detectado: {file_type}")
+
             if not file_type:
                 return False, "Tipo de archivo no soportado", "", ""
 
             # Leer las primeras líneas del archivo
             with open(file_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()[:check_heading_lines]
+                print(f"DEBUG: Leyendo primeras {check_heading_lines} líneas")
+                print(f"DEBUG: Número de líneas leídas: {len(lines)}")
+                print(f"DEBUG: Contenido de las primeras líneas:\n{''.join(lines)}")
 
             # Buscar el tag Check Heading en todas las docstrings
             header_content = ""
@@ -545,8 +612,8 @@ class QualityManager:
             elif file_type in ['javascript', 'typescript']:
                 # Para JS/TS, buscar en bloques de comentarios /** */
                 content = ''.join(lines)
-                print(f"\nDEBUG: Buscando Check Heading en archivo {file_path}")
-                print(f"DEBUG: Primeras líneas del archivo:\n{content[:500]}")
+                print(f"\nDEBUG: Procesando archivo {file_type}: {file_path}")
+                print(f"DEBUG: Contenido completo a procesar:\n{content}")
 
                 # Primero buscar el bloque de comentarios que contiene el tag
                 jsdoc_start = content.find('/**')
@@ -561,34 +628,60 @@ class QualityManager:
                         print(f"DEBUG: Bloque JSDoc encontrado:\n{jsdoc}")
 
                         # Buscar el tag de manera más flexible
-                        if "Check Heading" in jsdoc:
-                            print("DEBUG: Encontrado 'Check Heading'")
-                            found_tag = True
-                        elif "Check Header" in jsdoc:
-                            print("DEBUG: Encontrado 'Check Header'")
-                            found_tag = True
-                        else:
-                            print("DEBUG: No se encontró ni 'Check Heading' ni 'Check Header'")
-                            found_tag = False
+                        found_tag = False
+                        for i, line in enumerate(jsdoc.split('\n')):
+                            # Limpiar la línea de espacios y asteriscos
+                            clean_line = line.strip()
+                            print(f"DEBUG: Línea {i+1} original: '{line}'")
+                            print(f"DEBUG: Línea {i+1} limpia: '{clean_line}'")
+
+                            if clean_line.startswith('*'):
+                                clean_line = clean_line[1:].strip()
+                                print(f"DEBUG: Línea {i+1} después de quitar *: '{clean_line}'")
+
+                            # Ignorar líneas vacías o solo con asteriscos
+                            if not clean_line or clean_line == '*/':
+                                print(f"DEBUG: Ignorando línea {i+1} (vacía o solo */)")
+                                continue
+
+                            # Buscar el tag exacto
+                            if clean_line == "Check Heading":
+                                print(f"DEBUG: ¡ENCONTRADO! 'Check Heading' exacto en línea {i+1}: '{line}'")
+                                found_tag = True
+                                break
+                            # También buscar variantes
+                            elif "Check Heading" in clean_line:
+                                print(f"DEBUG: ¡ENCONTRADO! 'Check Heading' como parte de línea {i+1}: '{clean_line}'")
+                                found_tag = True
+                                break
+                            elif "Check Header" in clean_line:
+                                print(f"DEBUG: ¡ENCONTRADO! 'Check Header' en línea {i+1}: '{clean_line}'")
+                                found_tag = True
+                                break
+                            else:
+                                print(f"DEBUG: No se encontró tag en línea {i+1}")
+
+                        if not found_tag:
+                            print("DEBUG: No se encontró ni 'Check Heading' ni 'Check Header' en ninguna línea")
 
                         if found_tag:
                             header_content = jsdoc
                             print("DEBUG: Procesando metadatos del JSDoc")
                             # Extraer metadatos del JSDoc
                             for line in jsdoc.split('\n'):
-                                line = line.strip()
-                                print(f"DEBUG: Procesando línea: {line}")
-                                # Ignorar líneas que son solo * o espacios
-                                if line in ['*', '*/', '']:
-                                    print(f"DEBUG: Ignorando línea vacía o solo *")
+                                # Limpiar la línea de espacios y asteriscos
+                                clean_line = line.strip()
+                                if clean_line.startswith('*'):
+                                    clean_line = clean_line[1:].strip()
+                                print(f"DEBUG: Procesando línea para metadatos: '{clean_line}'")
+
+                                # Ignorar líneas vacías o solo con asteriscos
+                                if not clean_line or clean_line == '*/':
                                     continue
-                                # Eliminar * al inicio si existe
-                                if line.startswith('*'):
-                                    line = line[1:].strip()
-                                    print(f"DEBUG: Línea después de eliminar *: {line}")
+
                                 # Buscar campos que empiezan con @
-                                if line.startswith('@'):
-                                    parts = line[1:].split(' ', 1)
+                                if clean_line.startswith('@'):
+                                    parts = clean_line[1:].split(' ', 1)
                                     if len(parts) == 2:
                                         key, value = parts
                                         print(f"DEBUG: Encontrado campo @: {key}={value}")
@@ -597,10 +690,18 @@ class QualityManager:
                                             key = 'Modified'
                                         elif key.lower() == 'created':
                                             key = 'Created'
+                                        elif key.lower() == 'version':
+                                            key = 'Version'
+                                        elif key.lower() == 'author':
+                                            key = 'Author'
+                                        elif key.lower() == 'description':
+                                            key = 'Description'
+                                        elif key.lower() == 'file':
+                                            key = 'Script Name'
                                         metadata[key] = value.strip()
                                 # También buscar campos con formato "Campo: valor"
-                                elif ':' in line:
-                                    key, value = line.split(':', 1)
+                                elif ':' in clean_line:
+                                    key, value = clean_line.split(':', 1)
                                     print(f"DEBUG: Encontrado campo con : : {key}={value}")
                                     # Normalizar el nombre del campo
                                     if key.strip() == 'Created at':
@@ -1076,57 +1177,6 @@ class QualityManager:
                 config['commit_format'] = 'error_reading_file' # Manejo de errores de lectura
 
         return config
-
-    def _get_file_type(self, file_path: Path) -> Optional[str]:
-        """
-        Determina el tipo de archivo basado en su extensión y contenido.
-
-        Args:
-            file_path: Ruta al archivo
-
-        Returns:
-            Optional[str]: Tipo de archivo ('python', 'bash', 'javascript', etc.) o None si no se puede determinar
-        """
-        # Mapeo de extensiones a tipos de archivo
-        FILE_TYPES = {
-            '.py': 'python',
-            '.sh': 'bash',
-            '.bash': 'bash',
-            '.zsh': 'bash',  # Tratamos zsh como bash para los headers
-            '.js': 'javascript',
-            '.ts': 'typescript',
-            '.jsx': 'javascript',
-            '.tsx': 'typescript',
-            '.mjs': 'javascript',
-            '.cjs': 'javascript'
-        }
-
-        # Determinar el tipo de archivo por extensión
-        file_ext = file_path.suffix.lower()
-        if file_ext in FILE_TYPES:
-            return FILE_TYPES[file_ext]
-
-        # Si no se encontró por extensión, verificar el contenido
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                first_line = f.readline().strip()
-                # Detectar varios tipos de shebang para scripts bash
-                if any(first_line.startswith(shebang) for shebang in [
-                    '#!/bin/bash',
-                    '#!/usr/bin/bash',
-                    '#!/usr/bin/env bash',
-                    '#!/bin/sh',
-                    '#!/usr/bin/sh',
-                    '#!/usr/bin/env sh',
-                    '#!/bin/zsh',
-                    '#!/usr/bin/zsh',
-                    '#!/usr/bin/env zsh'
-                ]):
-                    return 'bash'
-        except Exception:
-            pass
-
-        return None
 
 if __name__ == '__main__':
     import argparse

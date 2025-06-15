@@ -133,6 +133,6 @@ repos:
         pass_filenames: true
         always_run: true
         verbose: true
-        types: [file]
+        types: [file, python, javascript, shell]
         fail_fast: false
         description: "Actualiza los headers de los archivos con Check Heading según la fecha de modificación"
