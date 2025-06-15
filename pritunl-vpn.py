@@ -14,6 +14,7 @@ Author:      Mauro Rosero Pérez <mauro@rosero.one>
 Assistant:   Cursor AI (https://cursor.com)
 """
 
+# Test: Modificación para probar actualización automática de fecha
 """
 PRITUNL VPN - Instalar o Desinstalar el cliente VPN de Pritunl.
 """
