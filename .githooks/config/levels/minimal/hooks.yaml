@@ -51,20 +51,31 @@ branch-workflow-push:
 header-validator:
   # Validación de headers
   enabled: true             # Activado
-  check_heading_lines: 20   # Líneas para el nivel minimal
+  check_header_tag: "Check Heading"   # Tag a buscar en los headers
+  check_heading_lines: 20   # Líneas para buscar el tag (mínimo para nivel minimal)
+  required_fields:         # Campos requeridos
+    - "Script Name"
+    - "Version"
+    - "Description"
+    - "Created"
+  optional_fields:         # Campos opcionales
+    - "Modified"
+    - "Author"
+    - "Assistant"
+    - "Copyright"
 
 header-update:
   # Actualización de headers
   enabled: true             # Activado
-  date_format: "YYYY-MM-DD"  # Formato de fecha simplificado para minimal
-  check_header_tag: "@check-header"   # Tag para identificar archivos a actualizar
+  date_format: "YYYY-MM-DD HH:MM:SS"  # Formato de fecha completo
+  check_header_tag: "Check Heading"   # Tag a buscar en los headers
+  check_heading_lines: 20   # Líneas para buscar el tag (igual que validator)
   update_fields:           # Campos a actualizar
     - "Modified"          # Campo de fecha de modificación
-  preserve_fields:        # Campos a preservar
-    - "Created"
-    - "Author"
+  preserve_fields:        # Campos a preservar (igual que required_fields de validator)
     - "Script Name"
     - "Version"
     - "Description"
+    - "Created"
 
 hooks:
