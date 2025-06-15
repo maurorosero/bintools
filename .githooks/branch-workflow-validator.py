@@ -1,7 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 """
-Branch Workflow Validator - Sistema de validación contextual para operaciones de Git.
+Check Heading
+Copyright (C) <2025> MAURO ROSERO PÉREZ (ROSERO ONE DEVELOPMENT)
+
+Script Name: branch-workflow-validator.py
+Version:     0.1.0
+Description: Sistema de validación contextual para operaciones de Git.
+Created:     2025-06-14
+Modified:    2025-06-14
+Author:      Mauro Rosero Pérez <mauro@rosero.one>
+Assistant:   Cursor AI (https://cursor.com)
+"""
+
+"""
+Branch Workflow Validator
 
 Este script valida y controla operaciones de Git (commits, pushes, merges) adaptándose
 automáticamente al contexto del proyecto (LOCAL, HYBRID, REMOTE) y aplicando diferentes
