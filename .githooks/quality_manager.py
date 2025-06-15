@@ -682,7 +682,13 @@ class QualityManager:
 
         try:
             # Obtener archivos a validar de los argumentos de línea de comandos
-            files = sys.argv[1:] if len(sys.argv) > 1 else []
+            # Filtrar argumentos que no son archivos (comandos y opciones)
+            command_args = ['run-hook', 'header-update', 'header-validator']
+            files = [arg for arg in sys.argv[1:]
+                    if not arg.startswith('-')
+                    and not arg.startswith('--')
+                    and arg not in command_args]
+            self._log_debug(f"Argumentos filtrados: {files}")
 
             if not files:
                 return True, "✅ No hay archivos para validar"
@@ -783,8 +789,12 @@ class QualityManager:
             current_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
             # Obtener archivos a validar de los argumentos de línea de comandos
-            # Filtrar argumentos que no son archivos (los que empiezan con - o --)
-            files = [arg for arg in sys.argv[1:] if not arg.startswith('-') and not arg.startswith('--')]
+            # Filtrar argumentos que no son archivos (comandos y opciones)
+            command_args = ['run-hook', 'header-update', 'header-validator']
+            files = [arg for arg in sys.argv[1:]
+                    if not arg.startswith('-')
+                    and not arg.startswith('--')
+                    and arg not in command_args]
             self._log_debug(f"Argumentos filtrados: {files}")
 
             if not files:
