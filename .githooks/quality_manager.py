@@ -606,8 +606,8 @@ class QualityManager:
                     if end != -1:
                         jsdoc_block = content[start:end + 2]
 
-                        # Verificar que el bloque comience con Check Heading
-                        if jsdoc_block.strip().startswith('/**\n * Check Heading'):
+                        # Verificar que el bloque contenga Check Heading
+                        if "Check Heading" in jsdoc_block:
                             header_content = jsdoc_block
 
                             # Definir los alias válidos para cada campo
