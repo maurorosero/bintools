@@ -92,9 +92,31 @@ branch-workflow-push:
   require_conversation_resolution: true # Requiere resolución de conversaciones
 
 header-validator:
-  # Validación estricta de headers
+  # Validación de headers
   enabled: true             # Activado
-  check_heading_lines: 35   # Más líneas para el nivel enterprise
+  check_heading_lines: 50   # Líneas para el nivel enterprise
+
+header-update:
+  # Actualización de headers
+  enabled: true             # Activado
+  date_format: "YYYY-MM-DD HH:MM:SS.SSS"  # Formato de fecha detallado para enterprise
+  check_header_tag: "@check-header"   # Tag para identificar archivos a actualizar
+  update_fields:           # Campos a actualizar
+    - "Modified"          # Campo de fecha de modificación
+    - "Last Modified"     # Campo alternativo de fecha
+  preserve_fields:        # Campos a preservar
+    - "Created"
+    - "Author"
+    - "Assistant"
+    - "Copyright"
+    - "Script Name"
+    - "Version"
+    - "Description"
+    - "License"
+    - "Status"
+    - "Dependencies"
+    - "Environment"
+    - "Notes"
 
 hooks:
   description: "Hooks enterprise para proyectos remotos"

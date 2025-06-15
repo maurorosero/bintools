@@ -119,3 +119,17 @@ repos:
         always_run: true
         verbose: true
         description: "Valida los headers de los archivos según las especificaciones"
+
+  # Grupo 09: Header Update (DINÁMICO - Configurable por nivel)
+  - repo: local
+    hooks:
+      - id: header-update
+        name: header-update
+        entry: .githooks/quality_manager.py run-hook --hook-type header-update
+        language: python
+        additional_dependencies: [PyYAML]
+        stages: [post-commit]
+        pass_filenames: true
+        always_run: true
+        verbose: true
+        description: "Actualiza los headers de los archivos con @check-header según la fecha de modificación"

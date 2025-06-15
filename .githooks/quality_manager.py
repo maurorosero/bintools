@@ -44,6 +44,7 @@ class HookType(Enum):
     BRANCH_WORKFLOW_COMMIT = 'branch-workflow-commit'
     BRANCH_WORKFLOW_PUSH = 'branch-workflow-push'
     HEADER_VALIDATOR = 'header-validator'  # Nuevo tipo de hook
+    HEADER_UPDATE = 'header-update'  # Nuevo tipo de hook para actualización de headers
 
 class QualityManager:
     """Gestiona los niveles de calidad y formatos de commit."""
@@ -240,12 +241,11 @@ class QualityManager:
             elif hook == HookType.BRANCH_WORKFLOW_PUSH:
                 return self._run_branch_workflow_push(config)
             elif hook == HookType.HEADER_VALIDATOR:
-                success, msg = self._run_header_validator(config)
-                # No imprimir el mensaje aquí, ya que se maneja dentro de _run_header_validator
-                if not success:
-                    with open(log_file, "w") as f:
-                        f.write(msg)
-                return success, msg
+                return self._run_header_validator(config)
+            elif hook == HookType.HEADER_UPDATE:
+                return self._run_header_update(config)
+            else:
+                return False, f"❌ Tipo de hook no válido: {hook_type}"
 
         except ValueError as e:
             err_msg = f"❌ Error: {str(e)}"
@@ -830,6 +830,102 @@ class QualityManager:
             error_msg = f"❌ Error en validación de headers: {str(e)}"
             print(error_msg, file=sys.stderr)
             return False, error_msg
+
+    def _run_header_update(self, config: dict) -> Tuple[bool, str]:
+        """
+        Ejecuta el hook de actualización de headers.
+        Actualiza la fecha de modificación en los headers de los archivos que tienen el tag @check-header.
+
+        Args:
+            config: Configuración del hook
+
+        Returns:
+            Tuple[bool, str]: (éxito, mensaje)
+        """
+        if not config.get('enabled', False):
+            return True, "✅ Actualización de headers deshabilitada"
+
+        try:
+            from datetime import datetime
+            import re
+
+            # Obtener la configuración
+            date_format = config.get('date_format', "YYYY-MM-DD HH:MM:SS")
+            check_header_tag = config.get('check_header_tag', "@check-header")
+            update_fields = config.get('update_fields', ["Modified"])
+            preserve_fields = config.get('preserve_fields', [])
+
+            # Obtener la fecha actual
+            now = datetime.now()
+            current_date = now.strftime(date_format.replace("YYYY", "%Y")
+                                              .replace("MM", "%m")
+                                              .replace("DD", "%d")
+                                              .replace("HH", "%H")
+                                              .replace("MM", "%M")
+                                              .replace("SS", "%S"))
+
+            # Obtener los archivos modificados en el último commit
+            result = subprocess.run(['git', 'diff-tree', '--no-commit-id', '--name-only', '-r', 'HEAD'],
+                                 capture_output=True, text=True)
+            if result.returncode != 0:
+                return False, f"❌ Error al obtener archivos modificados: {result.stderr}"
+
+            modified_files = result.stdout.strip().split('\n')
+            if not modified_files or modified_files[0] == '':
+                return True, "✅ No hay archivos modificados en el último commit"
+
+            # Patrón para encontrar el header
+            header_pattern = re.compile(r'^"""\s*\n(.*?)\n"""', re.DOTALL)
+            # Patrón para encontrar campos específicos
+            field_pattern = re.compile(r'^([A-Za-z\s]+):\s*(.*?)$', re.MULTILINE)
+
+            updated_files = []
+            for file_path in modified_files:
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+
+                    # Buscar el header
+                    header_match = header_pattern.search(content)
+                    if not header_match:
+                        continue
+
+                    header_content = header_match.group(1)
+                    if check_header_tag not in header_content:
+                        continue
+
+                    # Actualizar los campos especificados
+                    new_header_lines = []
+                    for line in header_content.split('\n'):
+                        field_match = field_pattern.match(line)
+                        if field_match:
+                            field_name = field_match.group(1).strip()
+                            if field_name in update_fields:
+                                new_header_lines.append(f"{field_name}: {current_date}")
+                            else:
+                                new_header_lines.append(line)
+                        else:
+                            new_header_lines.append(line)
+
+                    # Reconstruir el header
+                    new_header = '"""\n' + '\n'.join(new_header_lines) + '\n"""'
+                    new_content = content[:header_match.start()] + new_header + content[header_match.end():]
+
+                    # Escribir el archivo actualizado
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        f.write(new_content)
+
+                    updated_files.append(file_path)
+
+                except Exception as e:
+                    return False, f"❌ Error al actualizar {file_path}: {str(e)}"
+
+            if updated_files:
+                return True, f"✅ Headers actualizados en {len(updated_files)} archivos: {', '.join(updated_files)}"
+            return True, "✅ No se encontraron archivos que requieran actualización de headers"
+
+        except Exception as e:
+            return False, f"❌ Error en actualización de headers: {str(e)}"
 
     def list_available_formats(self) -> Dict[str, dict]:
         """

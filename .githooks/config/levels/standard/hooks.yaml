@@ -70,6 +70,22 @@ header-validator:
   enabled: true             # Activado
   check_heading_lines: 35   # Líneas para el nivel standard
 
+header-update:
+  # Actualización de headers
+  enabled: true             # Activado
+  date_format: "YYYY-MM-DD HH:MM:SS"  # Formato de fecha por defecto
+  check_header_tag: "@check-header"   # Tag para identificar archivos a actualizar
+  update_fields:           # Campos a actualizar
+    - "Modified"          # Campo de fecha de modificación
+  preserve_fields:        # Campos a preservar
+    - "Created"
+    - "Author"
+    - "Assistant"
+    - "Copyright"
+    - "Script Name"
+    - "Version"
+    - "Description"
+
 hooks:
   description: "Hooks estándar para proyectos híbridos"
 
