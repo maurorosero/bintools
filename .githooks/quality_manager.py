@@ -646,6 +646,7 @@ class QualityManager:
         """
         Ejecuta el hook de actualización de headers.
         Actualiza la fecha de modificación en los headers de los archivos que tienen el tag Check Heading.
+        Este hook siempre retorna éxito para no bloquear el commit, incluso si hay errores en la actualización.
 
         Args:
             config: Configuración del hook que puede incluir:
@@ -654,52 +655,65 @@ class QualityManager:
                 - check_heading_lines: int - Número de líneas a revisar para el tag Check heading
 
         Returns:
-            Tuple[bool, str]: (éxito, mensaje)
+            Tuple[bool, str]: (éxito, mensaje) - Siempre retorna True para no bloquear el commit
         """
         if not config.get('enabled', False):
             return True, "✅ Actualización de headers deshabilitada"
 
-        # Reutilizamos la lógica del validator para obtener los archivos y validar headers
-        success, message = self._run_header_validator(config)
-        if not success:
-            return False, message
+        try:
+            # Reutilizamos la lógica del validator para obtener los archivos y validar headers
+            success, message = self._run_header_validator(config)
+            if not success:
+                return True, f"⚠️ {message} (No se actualizaron los headers)"
 
-        # Si llegamos aquí, significa que los headers son válidos y podemos proceder a actualizarlos
-        files_to_update = sys.argv[1:]  # Usamos los mismos archivos que el validator
+            # Si llegamos aquí, significa que los headers son válidos y podemos proceder a actualizarlos
+            files_to_update = sys.argv[1:]  # Usamos los mismos archivos que el validator
+            updated_files = []
+            errors = []
 
-        # Convertir el formato de fecha a formato de strftime
-        date_format = config.get('date_format', 'YYYY-MM-DD HH:MM:SS')
-        strftime_format = date_format.replace('YYYY', '%Y').replace('MM', '%m').replace('DD', '%d').replace('HH', '%H').replace('MM', '%M').replace('SS', '%S')
-        current_date = datetime.now().strftime(strftime_format)
+            for file_path in files_to_update:
+                try:
+                    # Extraer metadatos usando la lógica común del validator
+                    success, metadata, file_type, header_content = self._extract_header_metadata(Path(file_path), config.get('check_heading_lines', 10))
+                    if not success or 'Modified' not in metadata:
+                        continue
 
-        updated_files = []
+                    # Obtener el formato de fecha del hook y generar la fecha actual
+                    date_format = config.get('date_format', 'YYYY-MM-DD HH:MM:SS')
+                    strftime_format = date_format.replace('YYYY', '%Y').replace('MM', '%m').replace('DD', '%d').replace('HH', '%H').replace('MM', '%M').replace('SS', '%S')
+                    current_date = datetime.now().strftime(strftime_format)
 
-        for file_path in files_to_update:
-            try:
-                # Ya tenemos el header validado por _run_header_validator
-                # Solo necesitamos actualizar la fecha
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
+                    # Leer el archivo y actualizar solo la línea de Modified
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
 
-                # Actualizamos la fecha en el header existente
-                for field in config.get('update_fields', ['Modified']):
-                    # Patrón que coincide con el formato exacto del header
-                    pattern = rf'({field}:\s+)(?:YYYY-MM-DD HH:MM:SS|\d{{4}}-\d{{2}}-\d{{2}}\s+\d{{2}}:\d{{2}}:\d{{2}})'
-                    new_content = re.sub(pattern, f'\\1{current_date}', content)
+                    # Buscar la línea exacta de Modified y reemplazar solo su valor
+                    pattern = rf'Modified:    (.*)'
+                    new_content = re.sub(pattern, f'Modified:    {current_date}', content)
+
                     if new_content != content:
-                        content = new_content
+                        with open(file_path, 'w', encoding='utf-8') as f:
+                            f.write(new_content)
                         updated_files.append(file_path)
 
-                # Guardamos los cambios
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write(content)
+                except Exception as e:
+                    errors.append(f"Error en {file_path}: {str(e)}")
+                    continue
 
-            except Exception as e:
-                return False, f"❌ Error actualizando header en {file_path}: {str(e)}"
+            # Construir mensaje final
+            message_parts = []
+            if updated_files:
+                message_parts.append(f"✅ Headers actualizados en {len(updated_files)} archivos: {', '.join(updated_files)}")
+            if errors:
+                message_parts.append(f"⚠️ Errores encontrados: {'; '.join(errors)}")
+            if not message_parts:
+                message_parts.append("✅ No se encontraron archivos que requieran actualización de headers")
 
-        if updated_files:
-            return True, f"✅ Headers actualizados en {len(updated_files)} archivos: {', '.join(updated_files)}"
-        return True, "✅ No se encontraron archivos que requieran actualización de headers"
+            return True, "\n".join(message_parts)
+
+        except Exception as e:
+            # Incluso si hay un error general, retornamos éxito para no bloquear el commit
+            return True, f"⚠️ Error general en actualización de headers: {str(e)}"
 
     def list_available_formats(self) -> Dict[str, dict]:
         """
