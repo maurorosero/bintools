@@ -26,6 +26,7 @@ from enum import Enum
 import traceback
 import os
 import re
+from datetime import datetime
 
 class QualityLevel(Enum):
     """Niveles de calidad disponibles."""
@@ -498,221 +499,72 @@ class QualityManager:
         except Exception as e:
             return False, f"❌ Validación de workflow: {str(e)}"
 
-    def _extract_header_metadata(self, file_path: Path, check_heading_lines: int = 10) -> Tuple[bool, Optional[dict], Optional[str], Optional[str]]:
+    def _extract_header_metadata(self, file_path: Path, check_heading_lines: int) -> Tuple[bool, str, str, str]:
         """
-        Extrae los metadatos del header de un archivo.
+        Extrae metadatos del header de un archivo.
 
         Args:
-            file_path: Ruta del archivo
+            file_path: Ruta al archivo
             check_heading_lines: Número de líneas a revisar para el tag Check heading
 
         Returns:
-            Tuple[bool, Optional[dict], Optional[str], Optional[str]]:
-                (éxito, metadatos, tipo_archivo, contenido_del_header)
+            Tuple[bool, str, str, str]: (éxito, mensaje/metadatos, tipo_archivo, contenido_header)
         """
         try:
-            content = file_path.read_text(encoding='utf-8')
-        except UnicodeDecodeError:
-            return False, None, None, None
+            # Determinar el tipo de archivo
+            file_type = self._get_file_type(file_path)
+            if not file_type:
+                return False, "Tipo de archivo no soportado", "", ""
 
-        lines = content.split('\n')[:check_heading_lines]
+            # Leer las primeras líneas del archivo
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read(check_heading_lines * 100)  # Leer suficientes caracteres para cubrir las líneas
 
-        # Mapeo de metadatos y sus variantes (case-insensitive)
-        METADATA_VARIANTS = {
-            'version': {'version', 'versión', 'release', 'v', '@version', '@release'},
-            'description': {'description', 'descripción', 'desc', 'about', '@description', '@desc'},
-            'created': {'created', 'created at', 'creation date', 'creation', 'date created', '@created', '@created at'},
-            'modified': {'modified', 'modified at', 'updated', 'updated at',
-                        'last modified', 'last updated', 'modification date', 'update date',
-                        '@modified', '@modified at', '@updated', '@updated at'},
-            'author': {'author', 'autor', 'by', 'created by', 'maintainer', 'maintained by',
-                      '@author', '@by', '@maintainer'}
-        }
+            # Buscar el tag Check Heading en todas las docstrings
+            header_content = ""
+            metadata = {}
 
-        # Mapeo de extensiones base a tipos de archivo
-        FILE_TYPES = {
-            '.py': 'python',
-            '.sh': 'bash',
-            '.js': 'javascript',
-            '.ts': 'typescript',
-            '.jsx': 'javascript',
-            '.tsx': 'typescript',
-            '.mjs': 'javascript',
-            '.cjs': 'javascript'
-        }
+            if file_type == 'python':
+                # Para Python, buscar en todas las docstrings
+                docstring_pattern = re.compile(r'"""(.*?)"""', re.DOTALL)
+                for match in docstring_pattern.finditer(content):
+                    docstring = match.group(1).strip()
+                    if "Check Heading" in docstring:
+                        header_content = docstring
+                        # Extraer metadatos del docstring
+                        for line in docstring.split('\n'):
+                            if ':' in line:
+                                key, value = line.split(':', 1)
+                                metadata[key.strip()] = value.strip()
+                        break  # Usar el primer docstring que tenga el tag
+            else:
+                # Para otros tipos de archivo, buscar en comentarios
+                comment_pattern = re.compile(r'^(?:\s*#|\s*//|\s*\*|\s*/\*|\s*\*/).*?$', re.MULTILINE)
+                comment_blocks = list(comment_pattern.finditer(content))
+                for block in comment_blocks:
+                    block_content = block.group(0)
+                    if "Check Heading" in block_content:
+                        header_content = block_content
+                        # Extraer metadatos del bloque de comentarios
+                        for line in block_content.split('\n'):
+                            if ':' in line:
+                                # Eliminar caracteres de comentario
+                                line = re.sub(r'^\s*(?:#|//|\*)\s*', '', line)
+                                key, value = line.split(':', 1)
+                                metadata[key.strip()] = value.strip()
+                        break  # Usar el primer bloque que tenga el tag
 
-        # Determinar el tipo de archivo inicialmente por extensión
-        file_type = None
-        file_name = file_path.name.lower()
+            if not header_content:
+                return False, "No se encontró el tag 'Check Heading' en el header", "", ""
 
-        # Primero intentar con la extensión completa
-        file_ext = file_path.suffix.lower()
-        if file_ext in FILE_TYPES:
-            file_type = FILE_TYPES[file_ext]
-        # Si no se encontró, buscar patrones como *.js.*, *.py.*, etc.
-        if not file_type:
-            for ext, type_name in FILE_TYPES.items():
-                if f"{ext}." in file_name:
-                    file_type = type_name
-                    break
-        # Si aún no se encontró, verificar si es un script bash
-        if not file_type and content.startswith('#!/bin/bash'):
-            file_type = 'bash'
+            return True, metadata, file_type, header_content
 
-        # Patrones regex compilados para mejor rendimiento
-        check_heading_pattern = re.compile(r'(?i)Check\s*Head(?:er|ing)(?:\s+\.([a-z0-9]+))?')
-        metadata_pattern = re.compile(r'^\s*(?:@)?([a-zA-Z0-9-]+)(?:\s*:\s*|\s+)(.+?)\s*$', re.IGNORECASE)
-
-        # Buscar tag Check heading y extraer metadatos
-        check_heading_found = False
-        excluded_metadata = set()
-        metadata = {}
-        declared_file_type = None
-        header_content = None
-
-        # Procesar según el tipo de archivo
-        if file_type == 'python':
-            # Procesar archivo Python usando la lógica de docstring
-            in_docstring = False
-            docstring_lines = []
-            first_docstring_processed = False
-
-            for line in lines:
-                # Buscar inicio de docstring
-                if '"""' in line and not in_docstring and not first_docstring_processed:
-                    in_docstring = True
-                    docstring_lines = []
-                    # Si el docstring termina en la misma línea, procesarlo
-                    if line.count('"""') == 2:
-                        in_docstring = False
-                        first_docstring_processed = True
-                        docstring_content = line.split('"""')[1].strip()
-                        if docstring_content:
-                            docstring_lines.append(docstring_content)
-                    continue
-
-                # Buscar fin de docstring
-                if in_docstring and '"""' in line:
-                    in_docstring = False
-                    first_docstring_processed = True
-                    # Procesar las líneas del docstring
-                    for doc_line in docstring_lines:
-                        # Buscar tag Check heading
-                        if not check_heading_found:
-                            match = check_heading_pattern.search(doc_line)
-                            if match:
-                                check_heading_found = True
-                                declared_file_type = match.group(1)
-                                if ':' in doc_line:
-                                    _, exceptions = doc_line.split(':', 1)
-                                    excluded_metadata = {
-                                        exc.strip() for exc in exceptions.split(',')
-                                    }
-                                continue
-
-                        # Buscar metadatos usando regex
-                        match = metadata_pattern.match(doc_line)
-                        if match:
-                            key, value = match.groups()
-                            key = key.lower().strip()
-                            value = value.strip()
-                            # Verificar si la clave coincide con algún metadato requerido
-                            for meta_type, variants in METADATA_VARIANTS.items():
-                                if f'no-{meta_type}' in excluded_metadata:
-                                    continue
-                                if key in variants:
-                                    metadata[meta_type] = value
-                                    break
-                    header_content = '\n'.join(docstring_lines)
-                    continue
-
-                # Agregar línea al docstring si estamos dentro de uno
-                if in_docstring and not first_docstring_processed:
-                    docstring_lines.append(line.strip())
-
-        else:  # bash, javascript, typescript y otros
-            # Procesar archivo usando lógica de comentarios
-            header_lines = []
-            in_jsdoc = False
-            comment_start = '#' if file_type == 'bash' else '//'
-
-            # Primero recolectar todas las líneas de comentario hasta encontrar una línea no comentario
-            for line in lines:
-                # Manejar bloques de comentario JSDoc /** */
-                if line.strip().startswith('/**'):
-                    in_jsdoc = True
-                    continue
-                elif line.strip().startswith('*/'):
-                    in_jsdoc = False
-                    continue
-                elif in_jsdoc:
-                    clean_line = line.strip()
-                    if clean_line.startswith('*'):
-                        clean_line = clean_line[1:].strip()
-                    if clean_line:  # Solo agregar líneas no vacías
-                        header_lines.append(clean_line)
-                    continue
-                # Manejar comentarios de línea //
-                elif line.strip().startswith(comment_start):
-                    clean_line = line.lstrip(comment_start).strip()
-                    if clean_line:  # Solo agregar líneas no vacías
-                        header_lines.append(clean_line)
-                    continue
-                # Si encontramos una línea que no es comentario y no estamos en un bloque JSDoc, terminar
-                elif not in_jsdoc:
-                    break
-
-            # Procesar las líneas del header
-            for line in header_lines:
-                # Buscar tag Check heading
-                if not check_heading_found:
-                    match = check_heading_pattern.search(line)
-                    if match:
-                        check_heading_found = True
-                        declared_file_type = match.group(1)
-                        if ':' in line:
-                            _, exceptions = line.split(':', 1)
-                            excluded_metadata = {
-                                exc.strip() for exc in exceptions.split(',')
-                            }
-                        continue
-
-                # Si encontramos el tag, procesar todas las líneas como metadatos
-                if check_heading_found:
-                    # Intentar primero con el patrón de JSDoc (@clave valor)
-                    match = metadata_pattern.match(line)
-                    if match:
-                        key, value = match.groups()
-                        key = key.lower().strip()
-                        value = value.strip()
-                        # Verificar si la clave coincide con algún metadato requerido
-                        for meta_type, variants in METADATA_VARIANTS.items():
-                            if f'no-{meta_type}' in excluded_metadata:
-                                continue
-                            # Verificar la clave con y sin @
-                            if key in variants or key.lstrip('@') in variants:
-                                metadata[meta_type] = value
-                                break
-
-            header_content = '\n'.join(header_lines)
-
-            # Si se declaró un tipo de archivo en el Check heading, usarlo
-            if declared_file_type and declared_file_type in FILE_TYPES:
-                file_type = FILE_TYPES[f'.{declared_file_type}']
-
-        if not check_heading_found or not file_type:
-            return False, None, None, None
-
-        return True, metadata, file_type, header_content
+        except Exception as e:
+            return False, f"Error al extraer metadatos: {str(e)}", "", ""
 
     def _run_header_validator(self, config: dict) -> Tuple[bool, str]:
         """
         Ejecuta el hook de validación de headers.
-
-        Args:
-            config: Configuración del hook que puede incluir:
-                - enabled: bool - Si el hook está habilitado
-                - check_heading_lines: int - Número de líneas a revisar para el tag Check heading
 
         Returns:
             Tuple[bool, str]: (éxito, mensaje)
@@ -732,62 +584,50 @@ class QualityManager:
             if not files:
                 return True, "✅ No hay archivos para validar"
 
+            # Filtrar archivos que tienen el tag Check Heading
+            files_with_tag = []
+            for file_path in files:
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read(check_heading_lines * 100)  # Leer suficientes caracteres para cubrir las líneas
+                        if "Check Heading" in content:
+                            files_with_tag.append(file_path)
+                except Exception:
+                    continue  # Ignorar archivos que no se pueden leer
+
+            if not files_with_tag:
+                return True, "✅ No hay archivos con tag 'Check Heading' para validar"
+
             # Usar sets para errores y advertencias para evitar duplicados desde el inicio
             all_errors = set()
             all_warnings = set()
-            processed_files = set()
-            file_results = {}  # Para almacenar el resultado de cada archivo
 
-            # Determinar metadatos obligatorios según el nivel
-            current_level = self.get_current_configuration().get('level', 'minimal')
-
-            if current_level == 'minimal':
-                required_metadata = {'version', 'description', 'created'}
-                optional_metadata = {'modified', 'author'}
-            else:  # standard o enterprise
-                required_metadata = {'version', 'description', 'created', 'modified', 'author'}
-                optional_metadata = set()
-
-            # Procesar cada archivo
-            for file_path in files:
+            for file_path in files_with_tag:
                 path = Path(file_path)
-                if not path.exists() or str(path) in processed_files:
+                if not path.exists():
+                    all_errors.add(f"❌ Archivo no encontrado: {file_path}")
                     continue
 
-                processed_files.add(str(path))
-                file_errors = set()
-                file_warnings = set()
-
-                success, metadata, file_type, _ = self._extract_header_metadata(path, check_heading_lines)
+                # Extraer metadatos usando la lógica común
+                success, result, file_type, header_content = self._extract_header_metadata(path, check_heading_lines)
                 if not success:
-                    error_msg = f"❌ {path}: No se encontró Check heading o tipo de archivo no soportado"
-                    file_errors.add(error_msg)
-                    file_results[str(path)] = {'status': 'error', 'errors': file_errors, 'warnings': file_warnings}
+                    all_errors.add(f"❌ {file_path}: {result}")  # result es el mensaje de error
                     continue
 
-                # Validar metadatos obligatorios
-                missing_required = required_metadata - set(metadata.keys())
-                if missing_required:
-                    error_msg = f"❌ {path}: Faltan metadatos obligatorios: {', '.join(missing_required)}"
-                    file_errors.add(error_msg)
+                metadata = result  # En caso de éxito, result es el diccionario de metadatos
 
-                # Validar metadatos opcionales
-                for meta in optional_metadata:
-                    if meta not in metadata:
-                        warning_msg = f"⚠️ {path}: Falta metadato opcional: {meta}"
-                        file_warnings.add(warning_msg)
+                # Validar campos requeridos
+                required_fields = config.get('required_fields', [])
+                for field in required_fields:
+                    if field not in metadata:
+                        all_errors.add(f"❌ {file_path}: Falta campo requerido '{field}'")
 
-                # Actualizar resultados
-                if file_errors:
-                    all_errors.update(file_errors)
-                    file_results[str(path)] = {'status': 'error', 'errors': file_errors, 'warnings': file_warnings}
-                elif file_warnings:
-                    all_warnings.update(file_warnings)
-                    file_results[str(path)] = {'status': 'warning', 'errors': set(), 'warnings': file_warnings}
-                else:
-                    file_results[str(path)] = {'status': 'success', 'errors': set(), 'warnings': set()}
+                # Validar campos opcionales
+                optional_fields = config.get('optional_fields', [])
+                for field in optional_fields:
+                    if field not in metadata:
+                        all_warnings.add(f"⚠️  {file_path}: Falta campo opcional '{field}'")
 
-            # Preparar mensaje final
             if all_errors:
                 error_msg = "\n".join(sorted(all_errors))
                 if all_warnings:
@@ -819,124 +659,47 @@ class QualityManager:
         if not config.get('enabled', False):
             return True, "✅ Actualización de headers deshabilitada"
 
-        try:
-            from datetime import datetime
+        # Reutilizamos la lógica del validator para obtener los archivos y validar headers
+        success, message = self._run_header_validator(config)
+        if not success:
+            return False, message
 
-            # Obtener la configuración
-            date_format = config.get('date_format', "YYYY-MM-DD HH:MM:SS")
-            check_heading_lines = config.get('check_heading_lines', 10)
+        # Si llegamos aquí, significa que los headers son válidos y podemos proceder a actualizarlos
+        files_to_update = sys.argv[1:]  # Usamos los mismos archivos que el validator
 
-            # Obtener la fecha actual
-            now = datetime.now()
-            current_date = now.strftime(date_format.replace("YYYY", "%Y")
-                                              .replace("MM", "%m")
-                                              .replace("DD", "%d")
-                                              .replace("HH", "%H")
-                                              .replace("MM", "%M")
-                                              .replace("SS", "%S"))
+        # Convertir el formato de fecha a formato de strftime
+        date_format = config.get('date_format', 'YYYY-MM-DD HH:MM:SS')
+        strftime_format = date_format.replace('YYYY', '%Y').replace('MM', '%m').replace('DD', '%d').replace('HH', '%H').replace('MM', '%M').replace('SS', '%S')
+        current_date = datetime.now().strftime(strftime_format)
 
-            # Obtener los archivos modificados en el último commit
-            result = subprocess.run(['git', 'diff-tree', '--no-commit-id', '--name-only', '-r', 'HEAD'],
-                                 capture_output=True, text=True)
-            if result.returncode != 0:
-                return False, f"❌ Error al obtener archivos modificados: {result.stderr}"
+        updated_files = []
 
-            modified_files = result.stdout.strip().split('\n')
-            if not modified_files or modified_files[0] == '':
-                return True, "✅ No hay archivos modificados en el último commit"
+        for file_path in files_to_update:
+            try:
+                # Ya tenemos el header validado por _run_header_validator
+                # Solo necesitamos actualizar la fecha
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
 
-            updated_files = []
-            for file_path in modified_files:
-                path = Path(file_path)
-                if not path.exists():
-                    continue
-
-                # Extraer metadatos usando la lógica común
-                success, metadata, file_type, header_content = self._extract_header_metadata(path, check_heading_lines)
-                if not success:
-                    continue
-
-                try:
-                    # Leer el archivo completo
-                    with open(path, 'r', encoding='utf-8') as f:
-                        content = f.read()
-
-                    # Inicializar new_content como None
-                    new_content = None
-
-                    # Actualizar el campo Modified en el header
-                    if file_type == 'python':
-                        # Para Python, buscar el docstring y actualizar el campo Modified
-                        docstring_pattern = re.compile(r'^"""\s*\n(.*?)\n"""', re.DOTALL)
-                        docstring_match = docstring_pattern.search(content)
-                        if docstring_match:
-                            header_lines = docstring_match.group(1).split('\n')
-                            new_header_lines = []
-                            modified_updated = False
-                            for line in header_lines:
-                                if re.match(r'^\s*Modified\s*:', line, re.IGNORECASE):
-                                    new_header_lines.append(f"Modified:     {current_date}")
-                                    modified_updated = True
-                                else:
-                                    new_header_lines.append(line)
-                            if not modified_updated:
-                                # Si no existe el campo Modified, agregarlo después de Created
-                                for i, line in enumerate(header_lines):
-                                    if re.match(r'^\s*Created\s*:', line, re.IGNORECASE):
-                                        header_lines.insert(i + 1, f"Modified:     {current_date}")
-                                        break
-                            new_header = '"""\n' + '\n'.join(new_header_lines) + '\n"""'
-                            new_content = content[:docstring_match.start()] + new_header + content[docstring_match.end():]
-                    else:
-                        # Para otros tipos de archivo, buscar el bloque de comentarios y actualizar el campo Modified
-                        comment_pattern = re.compile(r'^(?:\s*#|\s*//|\s*\*|\s*/\*|\s*\*/).*?$', re.MULTILINE)
-                        comment_blocks = list(comment_pattern.finditer(content))
-                        if comment_blocks:
-                            # Encontrar el bloque que contiene el header
-                            header_block = None
-                            for block in comment_blocks:
-                                block_content = block.group(0)
-                                if 'Check Heading' in block_content:
-                                    header_block = block
-                                    break
-                            if header_block:
-                                header_lines = header_block.group(0).split('\n')
-                                new_header_lines = []
-                                modified_updated = False
-                                for line in header_lines:
-                                    if re.match(r'^\s*(?:#|//|\*)\s*Modified\s*:', line, re.IGNORECASE):
-                                        comment_char = '#' if file_type == 'bash' else '//'
-                                        new_header_lines.append(f"{comment_char} Modified:     {current_date}")
-                                        modified_updated = True
-                                    else:
-                                        new_header_lines.append(line)
-                                if not modified_updated:
-                                    # Si no existe el campo Modified, agregarlo después de Created
-                                    for i, line in enumerate(header_lines):
-                                        if re.match(r'^\s*(?:#|//|\*)\s*Created\s*:', line, re.IGNORECASE):
-                                            comment_char = '#' if file_type == 'bash' else '//'
-                                            header_lines.insert(i + 1, f"{comment_char} Modified:     {current_date}")
-                                            break
-                                new_header = '\n'.join(new_header_lines)
-                                new_content = content[:header_block.start()] + new_header + content[header_block.end():]
-
-                    # Solo escribir el archivo si se encontró y actualizó el header
-                    if new_content is not None:
-                        with open(path, 'w', encoding='utf-8') as f:
-                            f.write(new_content)
+                # Actualizamos la fecha en el header existente
+                for field in config.get('update_fields', ['Modified']):
+                    # Patrón que coincide con el formato exacto del header
+                    pattern = rf'({field}:\s+)(?:YYYY-MM-DD HH:MM:SS|\d{{4}}-\d{{2}}-\d{{2}}\s+\d{{2}}:\d{{2}}:\d{{2}})'
+                    new_content = re.sub(pattern, f'\\1{current_date}', content)
+                    if new_content != content:
+                        content = new_content
                         updated_files.append(file_path)
-                    else:
-                        print(f"⚠️  No se encontró header en {file_path}")
 
-                except Exception as e:
-                    return False, f"❌ Error al actualizar {path}: {str(e)}"
+                # Guardamos los cambios
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
 
-            if updated_files:
-                return True, f"✅ Headers actualizados en {len(updated_files)} archivos: {', '.join(updated_files)}"
-            return True, "✅ No se encontraron archivos que requieran actualización de headers"
+            except Exception as e:
+                return False, f"❌ Error actualizando header en {file_path}: {str(e)}"
 
-        except Exception as e:
-            return False, f"❌ Error en actualización de headers: {str(e)}"
+        if updated_files:
+            return True, f"✅ Headers actualizados en {len(updated_files)} archivos: {', '.join(updated_files)}"
+        return True, "✅ No se encontraron archivos que requieran actualización de headers"
 
     def list_available_formats(self) -> Dict[str, dict]:
         """
@@ -1161,6 +924,44 @@ class QualityManager:
                 config['commit_format'] = 'error_reading_file' # Manejo de errores de lectura
 
         return config
+
+    def _get_file_type(self, file_path: Path) -> Optional[str]:
+        """
+        Determina el tipo de archivo basado en su extensión y contenido.
+
+        Args:
+            file_path: Ruta al archivo
+
+        Returns:
+            Optional[str]: Tipo de archivo ('python', 'bash', 'javascript', etc.) o None si no se puede determinar
+        """
+        # Mapeo de extensiones a tipos de archivo
+        FILE_TYPES = {
+            '.py': 'python',
+            '.sh': 'bash',
+            '.js': 'javascript',
+            '.ts': 'typescript',
+            '.jsx': 'javascript',
+            '.tsx': 'typescript',
+            '.mjs': 'javascript',
+            '.cjs': 'javascript'
+        }
+
+        # Determinar el tipo de archivo por extensión
+        file_ext = file_path.suffix.lower()
+        if file_ext in FILE_TYPES:
+            return FILE_TYPES[file_ext]
+
+        # Si no se encontró por extensión, verificar el contenido
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                first_line = f.readline().strip()
+                if first_line.startswith('#!/bin/bash'):
+                    return 'bash'
+        except Exception:
+            pass
+
+        return None
 
 if __name__ == '__main__':
     import argparse
