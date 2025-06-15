@@ -118,7 +118,7 @@ header-validator:
 header-update:
   # Actualización de headers
   enabled: true             # Activado
-  date_format: "YYYY-MM-DD HH:MM:SS"  # Formato de fecha completo
+  date_format: "YYYY-MM-DD HH:mm:SS"  # Formato de fecha completo (mm para minutos)
   check_header_tag: "Check Heading"   # Tag a buscar en los headers
   check_heading_lines: 50   # Líneas para buscar el tag (igual que validator)
   update_fields:           # Campos a actualizar

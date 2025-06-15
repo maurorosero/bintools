@@ -9,7 +9,7 @@ Script Name: quality_manager.py
 Version:     0.1.1
 Description: Gestiona los niveles de calidad y formatos de commit de manera independiente.
 Created:     2025-06-14
-Modified:    2025-06-14
+Modified:    2025-06-15 12:12:40
 Author:      Mauro Rosero Pérez <mauro@rosero.one>
 Assistant:   Cursor AI (https://cursor.com)
 """
@@ -585,9 +585,13 @@ class QualityManager:
             if not files:
                 return True, "✅ No hay archivos para validar"
 
-            # Filtrar archivos que tienen el tag Check Heading
+            # Filtrar archivos que tienen el tag Check Heading y no son archivos de configuración
             files_with_tag = []
             for file_path in files:
+                # Excluir archivos de configuración
+                if '.githooks/config/' in file_path:
+                    continue
+
                 try:
                     with open(file_path, 'r', encoding='utf-8') as f:
                         content = f.read(check_heading_lines * 100)  # Leer suficientes caracteres para cubrir las líneas
@@ -674,6 +678,10 @@ class QualityManager:
 
             for file_path in files_to_update:
                 try:
+                    # Excluir archivos de configuración
+                    if '.githooks/config/' in file_path:
+                        continue
+
                     # Extraer metadatos usando la lógica común del validator
                     success, metadata, file_type, header_content = self._extract_header_metadata(Path(file_path), config.get('check_heading_lines', 10))
                     if not success or 'Modified' not in metadata:
@@ -681,7 +689,14 @@ class QualityManager:
 
                     # Obtener el formato de fecha del hook y generar la fecha actual
                     date_format = config.get('date_format', 'YYYY-MM-DD HH:MM:SS')
-                    strftime_format = date_format.replace('YYYY', '%Y').replace('MM', '%m').replace('DD', '%d').replace('HH', '%H').replace('MM', '%M').replace('SS', '%S')
+                    # Reemplazar en orden específico para evitar conflictos con MM
+                    strftime_format = (date_format
+                        .replace('YYYY', '%Y')
+                        .replace('DD', '%d')
+                        .replace('HH', '%H')
+                        .replace('SS', '%S')
+                        .replace('MM', '%m')  # Primero reemplazar MM por %m (mes)
+                        .replace('mm', '%M'))  # Luego reemplazar mm por %M (minutos)
                     current_date = datetime.now().strftime(strftime_format)
 
                     # Leer el archivo y actualizar solo la línea de Modified
@@ -689,7 +704,7 @@ class QualityManager:
                         content = f.read()
 
                     # Buscar la línea exacta de Modified y reemplazar solo su valor
-                    pattern = rf'Modified:    (.*)'
+                    pattern = rf'Modified:\s+\d{{4}}-\d{{2}}-\d{{2}}\s+\d{{2}}:\d{{2}}:\d{{2}}'
                     new_content = re.sub(pattern, f'Modified:    {current_date}', content)
 
                     if new_content != content:

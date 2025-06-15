@@ -118,6 +118,7 @@ repos:
         pass_filenames: true
         always_run: true
         verbose: true
+        types: [file]
         description: "Valida los headers de los archivos según las especificaciones"
 
   # Grupo 09: Header Update (DINÁMICO - Configurable por nivel)
@@ -129,7 +130,9 @@ repos:
         language: python
         additional_dependencies: [PyYAML]
         stages: [pre-commit]
-        pass_filenames: true
+        pass_filenames: false
         always_run: true
         verbose: true
+        types: [file]
+        fail_fast: false
         description: "Actualiza los headers de los archivos con Check Heading según la fecha de modificación"
