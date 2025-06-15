@@ -753,13 +753,29 @@ class QualityManager:
         try:
             # Obtener archivos del staging area
             staged_files = self._get_staged_files()
+            print("\nDEBUG: Archivos en staging area:")
+            for i, file in enumerate(staged_files, 1):
+                print(f"DEBUG: {i}. {file}")
+            print(f"DEBUG: Total en staging: {len(staged_files)}")
 
             # Obtener archivos pasados como argumentos
             files_to_update = sys.argv[1:]  # Usamos los archivos pasados como argumentos
+            print("\nDEBUG: Archivos pasados como argumentos:")
+            for i, file in enumerate(files_to_update, 1):
+                print(f"DEBUG: {i}. {file}")
+            print(f"DEBUG: Total de argumentos: {len(files_to_update)}")
 
             # Si no hay archivos pasados como argumentos, usar los del staging area
             if not files_to_update:
                 files_to_update = staged_files
+                print("\nDEBUG: Usando archivos del staging area")
+            else:
+                print("\nDEBUG: Usando archivos pasados como argumentos")
+
+            print(f"\nDEBUG: Archivos finales a procesar:")
+            for i, file in enumerate(files_to_update, 1):
+                print(f"DEBUG: {i}. {file}")
+            print(f"DEBUG: Total a procesar: {len(files_to_update)}")
 
             # Actualizar headers
             updated_count = 0
@@ -767,12 +783,16 @@ class QualityManager:
 
             for file in files_to_update:
                 try:
+                    print(f"\nDEBUG: Procesando archivo: {file}")
                     # Extraer metadata usando la misma función que el validator
                     success, metadata, file_type, header_content = self._extract_header_metadata(Path(file), config.get('check_heading_lines', 10))
 
                     # Si no hay header_content, el archivo no tiene Check Heading o no se pudo extraer
                     if not success or not header_content:
+                        print(f"DEBUG: Archivo {file} no tiene Check Heading o no se pudo extraer metadata")
                         continue
+
+                    print(f"DEBUG: Archivo {file} tiene Check Heading y metadata válida")
 
                     # Obtener el formato de fecha del hook y generar la fecha actual
                     date_format = config.get('date_format', 'YYYY-MM-DD HH:MM:SS')
