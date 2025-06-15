@@ -130,7 +130,7 @@ repos:
         language: python
         additional_dependencies: [PyYAML]
         stages: [pre-commit]
-        pass_filenames: false
+        pass_filenames: true
         always_run: true
         verbose: true
         types: [file]
