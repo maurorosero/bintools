@@ -772,48 +772,43 @@ class QualityManager:
     def _run_header_update(self, config: Dict[str, Any]) -> Tuple[bool, str]:
         """Ejecuta el hook de actualización de headers."""
         try:
-            # Obtener archivos del staging area
-            staged_files = self._get_staged_files()
-            self._log_debug("\nArchivos en staging area:")
-            for i, file in enumerate(staged_files, 1):
-                self._log_debug(f"{i}. {file}")
-            self._log_debug(f"Total en staging: {len(staged_files)}")
+            # Usar el validator para encontrar los archivos con Check Heading
+            success, validator_result = self._run_header_validator(config)
+            if not success:
+                return False, validator_result
 
-            # Obtener archivos pasados como argumentos
-            files_to_update = sys.argv[1:]  # Usamos los archivos pasados como argumentos
-            self._log_debug("\nArchivos pasados como argumentos:")
-            for i, file in enumerate(files_to_update, 1):
-                self._log_debug(f"{i}. {file}")
-            self._log_debug(f"Total de argumentos: {len(files_to_update)}")
+            # Si no hay archivos con Check Heading, terminamos
+            if "No hay archivos con tag 'Check Heading'" in validator_result:
+                return True, validator_result
 
-            # Si no hay archivos pasados como argumentos, usar los del staging area
-            if not files_to_update:
-                files_to_update = staged_files
-                self._log_debug("\nUsando archivos del staging area")
-            else:
-                self._log_debug("\nUsando archivos pasados como argumentos")
+            # Obtener los archivos que el validator procesó
+            files_with_tag = []
+            for line in validator_result.split('\n'):
+                if line.startswith('❌') or line.startswith('⚠️'):
+                    # Extraer el nombre del archivo del mensaje de error/advertencia
+                    file_path = line.split(':')[0].replace('❌ ', '').replace('⚠️  ', '')
+                    if file_path not in files_with_tag:
+                        files_with_tag.append(file_path)
 
-            self._log_debug(f"\nArchivos finales a procesar:")
-            for i, file in enumerate(files_to_update, 1):
-                self._log_debug(f"{i}. {file}")
-            self._log_debug(f"Total a procesar: {len(files_to_update)}")
+            if not files_with_tag:
+                return True, "✅ No se encontraron archivos con Check Heading para actualizar"
 
             # Actualizar headers
             updated_count = 0
             errors = []
 
-            for file in files_to_update:
+            for file_path in files_with_tag:
                 try:
-                    self._log_debug(f"\nProcesando archivo: {file}")
+                    self._log_debug(f"\nProcesando archivo: {file_path}")
                     # Extraer metadata usando la misma función que el validator
-                    success, metadata, file_type, header_content = self._extract_header_metadata(Path(file), config.get('check_heading_lines', 10))
+                    success, metadata, file_type, header_content = self._extract_header_metadata(Path(file_path), config.get('check_heading_lines', 10))
 
                     # Si no hay header_content, el archivo no tiene Check Heading o no se pudo extraer
                     if not success or not header_content:
-                        self._log_debug(f"Archivo {file} no tiene Check Heading o no se pudo extraer metadata")
+                        self._log_debug(f"Archivo {file_path} no tiene Check Heading o no se pudo extraer metadata")
                         continue
 
-                    self._log_debug(f"Archivo {file} tiene Check Heading y metadata válida")
+                    self._log_debug(f"Archivo {file_path} tiene Check Heading y metadata válida")
 
                     # Obtener el formato de fecha del hook y generar la fecha actual
                     date_format = config.get('date_format', 'YYYY-MM-DD HH:MM:SS')
@@ -827,67 +822,56 @@ class QualityManager:
                     current_date = datetime.now().strftime(strftime_format)
 
                     # Leer el archivo
-                    with open(file, 'r', encoding='utf-8') as f:
+                    with open(file_path, 'r', encoding='utf-8') as f:
                         content = f.read()
 
                     # Actualizar solo el campo Modified
                     update_fields = config.get('update_fields', ['Modified'])
                     new_content = content
-                    file_modified = False
-
                     for field in update_fields:
-                        if field == 'Modified':
-                            # Usar un patrón diferente según el tipo de archivo
-                            if file_type == 'python':
-                                pattern = rf'{field}:.*$'
-                                replacement = f'{field}:    {current_date}'
-                            elif file_type in ['javascript', 'typescript']:
-                                # Para JS/TS, buscar cualquier variante de modified en el bloque JSDoc
-                                pattern = rf'\*\s*@(?:modified|Modified)(?:\s+|:)\s*[^\n]*'
-                                replacement = f' * @modified {current_date}'
-                            else:  # bash y otros
-                                pattern = rf'# {field}:.*$'
-                                replacement = f'# {field}:    {current_date}'
+                        # Buscar el campo en el header
+                        if file_type == 'python':
+                            # Para Python, buscar en docstrings
+                            pattern = rf"{field}:\s*[^\n]*"
+                            replacement = f"{field}: {current_date}"
+                        else:
+                            # Para JavaScript/TypeScript, buscar en JSDoc
+                            pattern = rf"@?{field}\s+[^\n]*"
+                            replacement = f"@{field} {current_date}"
 
-                            # Para JS/TS, actualizar solo dentro del bloque JSDoc que ya tenemos
-                            if file_type in ['javascript', 'typescript']:
-                                # Usar el header_content que ya tenemos del validator
-                                updated_header = re.sub(pattern, replacement, header_content, flags=re.MULTILINE)
-                                # Reemplazar el header original con el actualizado
-                                new_content = content.replace(header_content, updated_header)
-                                file_modified = updated_header != header_content
-                            else:
-                                # Para otros tipos de archivo, actualizar en todo el contenido
-                                new_content = re.sub(pattern, replacement, new_content, flags=re.MULTILINE)
-                                file_modified = True
+                        # Reemplazar solo en el header (primeras líneas)
+                        header_lines = content.split('\n')[:config.get('check_heading_lines', 10)]
+                        header_text = '\n'.join(header_lines)
+                        if re.search(pattern, header_text, re.IGNORECASE):
+                            new_content = re.sub(pattern, replacement, content, flags=re.IGNORECASE)
+                            updated_count += 1
+                            self._log_debug(f"Actualizado campo {field} en {file_path}")
+                            break
 
-                    if file_modified:
-                        # Escribir el archivo modificado
-                        with open(file, 'w', encoding='utf-8') as f:
+                    # Escribir el archivo solo si hubo cambios
+                    if new_content != content:
+                        with open(file_path, 'w', encoding='utf-8') as f:
                             f.write(new_content)
-                        updated_count += 1
-
-                        # Agregar el archivo modificado al staging area
-                        try:
-                            subprocess.run(['git', 'add', file], check=True, capture_output=True, text=True)
-                        except subprocess.CalledProcessError as e:
-                            errors.append(f"Error al agregar {file} al staging: {e.stderr}")
+                        self._log_debug(f"Archivo {file_path} actualizado")
 
                 except Exception as e:
-                    errors.append(f"Error al procesar {file}: {str(e)}")
+                    error_msg = f"Error al procesar {file_path}: {str(e)}"
+                    self._log_debug(error_msg)
+                    errors.append(error_msg)
 
             # Construir mensaje final
-            message = f"Headers actualizados: {updated_count}/{len(files_to_update)}"
+            message_parts = []
+            if updated_count > 0:
+                message_parts.append(f"✅ Actualizados {updated_count} headers")
             if errors:
-                message += f"\nErrores encontrados: {len(errors)}"
-                for error in errors:
-                    message += f"\n  - {error}"
+                message_parts.append(f"⚠️  Errores encontrados:\n" + "\n".join(errors))
+            if not message_parts:
+                message_parts.append("✅ No se requirieron actualizaciones")
 
-            # Siempre retornamos éxito para no bloquear el commit
-            return True, message
+            return True, "\n".join(message_parts)
 
         except Exception as e:
-            return True, f"Error en header-update: {str(e)}"
+            return False, f"❌ Error en actualización de headers: {str(e)}"
 
     def list_available_formats(self) -> Dict[str, dict]:
         """
@@ -1115,23 +1099,39 @@ class QualityManager:
 
     def _parse_args(self) -> argparse.Namespace:
         """Parsea los argumentos de línea de comandos."""
-        parser = argparse.ArgumentParser(description='Quality Manager para Git Hooks')
-        parser.add_argument('action', choices=['run-hook', 'list-formats', 'list-hooks'],
-                          help='Acción a ejecutar')
-        parser.add_argument('--hook-type', choices=['format', 'exec', 'size', 'detect-secrets',
-                                                  'commitlint', 'branch-workflow-commit',
-                                                  'branch-workflow-push', 'header-validator',
-                                                  'header-update'],
-                          help='Tipo de hook a ejecutar')
-        parser.add_argument('--verbose', action='store_true',
-                          help='Mostrar información detallada de debug')
-        # No definimos files como argumento posicional para que argparse no lo procese
-        # y podamos manejar los argumentos restantes manualmente
-        args, unknown = parser.parse_known_args()
-        if unknown and args.verbose:
-            print(f"DEBUG: Argumentos ignorados: {unknown}", file=sys.stderr)
-        # Agregar los argumentos desconocidos como archivos a procesar
-        args.files = unknown
+        # Crear un namespace con valores por defecto
+        args = argparse.Namespace(
+            action=None,
+            hook_type=None,
+            verbose=False,
+            files=[]
+        )
+
+        # Lista de argumentos que no son archivos
+        non_file_args = {'run-hook', '--hook-type', '--verbose', 'header-validator', 'header-update'}
+
+        # Procesar los argumentos manualmente
+        i = 1  # Empezar después del nombre del script
+        while i < len(sys.argv):
+            arg = sys.argv[i]
+            if arg == 'run-hook':
+                args.action = arg
+            elif arg == '--hook-type' and i + 1 < len(sys.argv):
+                args.hook_type = sys.argv[i + 1]
+                i += 1
+            elif arg == '--verbose':
+                args.verbose = True
+            i += 1
+
+        # Los archivos son todos los argumentos que no son opciones ni argumentos del hook
+        args.files = [arg for arg in sys.argv[1:]
+                     if not arg.startswith('--')
+                     and arg not in non_file_args
+                     and not (arg == '--hook-type' and i + 1 < len(sys.argv) and sys.argv[i + 1] in {'header-validator', 'header-update'})]
+
+        if args.verbose:
+            print(f"DEBUG: Archivos a procesar: {args.files}", file=sys.stderr)
+
         return args
 
     def _log_debug(self, message: str) -> None:
@@ -1173,9 +1173,6 @@ if __name__ == '__main__':
         if not args.hook_type:
             print("❌ Error: Se requiere especificar --hook-type")
             sys.exit(1)
-        # Usar los archivos pasados como argumentos
-        if args.files:
-            sys.argv = [sys.argv[0]] + args.files
         success, message = manager.run_hook(args.hook_type)
         if not success or '❌' in message:
             print(message, file=sys.stderr)
