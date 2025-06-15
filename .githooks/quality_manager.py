@@ -8,7 +8,7 @@ Script Name: quality_manager.py
 Version:     0.1.1
 Description: Gestiona los niveles de calidad y formatos de commit de manera independiente.
 Created:     2025-06-14
-Modified:    2025-06-15 13:15:27
+25-06-15 17:05:55
 Author:      Mauro Rosero Pérez <mauro@rosero.one>
 Assistant:   Cursor AI (https://cursor.com)
 """
@@ -769,102 +769,163 @@ class QualityManager:
         except Exception:
             return False
 
-    def _run_header_update(self, config: Dict[str, Any]) -> Tuple[bool, str]:
-        """Ejecuta el hook de actualización de headers."""
+    def _update_field_with_at(self, content: str, field: str, current_date: str, config: dict) -> tuple[str, str, str]:
+        """Actualiza un campo que usa el prefijo @ (para JavaScript/TypeScript).
+
+        Args:
+            content: Contenido del archivo
+            field: Nombre del campo a actualizar
+            current_date: Fecha actual formateada
+            config: Configuración del check
+
+        Returns:
+            tuple: (línea encontrada, patrón regex, reemplazo)
+        """
+        field_lower = field.lower()
+        self._log_debug(f"\nBuscando campo con @: {field_lower}")
+
+        # Buscar en las primeras líneas del archivo
+        for line in content.split('\n')[:config.get('check_heading_lines', 10)]:
+            line_lower = line.lower()
+            self._log_debug(f"Revisando línea: {line_lower}")
+            field_with_at = f"@{field_lower}"
+            self._log_debug(f"Campo con @: {field_with_at}")
+
+            if field_with_at in line_lower:
+                # Capturar el formato exacto de la línea
+                pattern = rf"(\s*(?:\*|\s)*)(@{field_lower})(\s+[^\n]*)"
+                self._log_debug(f"Patrón encontrado: {pattern}")
+                # Mantener el campo completo en el reemplazo
+                replacement = f"\\1@{field_lower}{current_date}"
+                self._log_debug(f"Reemplazo: {replacement}")
+                return line, pattern, replacement
+
+        # Si no se encuentra el formato específico, usar el patrón por defecto con "@Modified"
+        pattern = rf"(\s*(?:\*|\s)*)(@Modified)(\s+[^\n]*)"
+        self._log_debug(f"Usando patrón por defecto: {pattern}")
+        # Mantener el campo completo en el reemplazo por defecto
+        replacement = f"\\1@Modified{current_date}"
+        self._log_debug(f"Reemplazo por defecto: {replacement}")
+        return None, pattern, replacement
+
+    def _update_field_without_at(self, content: str, field: str, current_date: str, config: dict, file_type: str) -> tuple[str, str, str]:
+        """Actualiza un campo sin prefijo @ (para Python/Bash).
+
+        Args:
+            content: Contenido del archivo
+            field: Nombre del campo a actualizar
+            current_date: Fecha actual formateada
+            config: Configuración del check
+            file_type: Tipo de archivo (py, sh, etc)
+
+        Returns:
+            tuple: (línea encontrada, patrón regex, reemplazo)
+        """
+        field_lower = field.lower()
+        self._log_debug(f"\nBuscando campo sin @: {field_lower}")
+
+        # Determinar el patrón según el tipo de archivo
+        if file_type in ['py']:
+            pattern = rf"(\s*)({field}:)(\s*[^\n]*)"
+        else:  # bash
+            pattern = rf"(#\s*)({field}:)(\s*[^\n]*)"
+
+        # Buscar en las primeras líneas del archivo
+        for line in content.split('\n')[:config.get('check_heading_lines', 10)]:
+            line_lower = line.lower()
+            self._log_debug(f"Revisando línea: {line_lower}")
+
+            if field_lower in line_lower:
+                self._log_debug(f"Patrón encontrado: {pattern}")
+                # Mantener el formato original sin @
+                replacement = f"\\1\\2{current_date}"
+                self._log_debug(f"Reemplazo: {replacement}")
+                return line, pattern, replacement
+
+        # Si no se encuentra el formato específico, usar el mismo patrón
+        self._log_debug(f"Usando patrón por defecto: {pattern}")
+        # Mantener el formato original sin @
+        replacement = f"\\1\\2{current_date}"
+        self._log_debug(f"Reemplazo por defecto: {replacement}")
+        return None, pattern, replacement
+
+    def _run_header_update(self, config: dict) -> Tuple[bool, str]:
+        """Actualiza los campos de fecha en el encabezado del archivo.
+
+        Args:
+            config: Configuración del check
+
+        Returns:
+            bool: True si se actualizó correctamente, False en caso contrario
+        """
         try:
-            # Usar el validator para encontrar los archivos con Check Heading
-            success, validator_result = self._run_header_validator(config)
+            # Obtener la fecha actual una sola vez
+            current_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            # Si hay errores reales (no solo "no hay archivos"), retornarlos
-            if not success and "No hay archivos con tag 'Check Heading'" not in validator_result:
-                return False, validator_result
+            # Obtener archivos a validar de los argumentos de línea de comandos
+            files = sys.argv[1:] if len(sys.argv) > 1 else []
 
-            # Obtener los archivos que el validator procesó
+            if not files:
+                return True, "✅ No hay archivos para actualizar"
+
+            # Filtrar archivos que tienen el tag Check Heading
             files_with_tag = []
-            for line in validator_result.split('\n'):
-                # El validator ya procesó los archivos y nos da los mensajes de error/advertencia
-                # que incluyen los nombres de archivo
-                if line.startswith('❌') or line.startswith('⚠️'):
-                    file_path = line.split(':')[0].replace('❌ ', '').replace('⚠️  ', '')
-                    if file_path not in files_with_tag:
-                        files_with_tag.append(file_path)
-                # También incluir archivos que pasaron la validación
-                elif "✅ Todos los headers son válidos" in validator_result:
-                    # Si todos son válidos, usar los archivos de los argumentos
-                    files_with_tag = self.args.files if hasattr(self, 'args') and self.args.files else []
+            for file_path in files:
+                try:
+                    # Verificar si el archivo es texto
+                    if not self._is_text_file(Path(file_path)):
+                        continue
+
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        if "Check Heading" in content:
+                            files_with_tag.append(file_path)
+                except Exception as e:
+                    self._log_debug(f"No se pudo procesar {file_path}: {str(e)}")
+                    continue  # Ignorar archivos que no se pueden leer
 
             if not files_with_tag:
-                return True, "✅ No se encontraron archivos con Check Heading para actualizar"
+                return True, "✅ No hay archivos con tag 'Check Heading' para actualizar"
 
-            # Actualizar headers
+            # Actualizar cada archivo
             updated_count = 0
             errors = []
 
             for file_path in files_with_tag:
                 try:
                     self._log_debug(f"\nProcesando archivo: {file_path}")
-                    # Extraer metadata usando la misma función que el validator
-                    success, metadata, file_type, header_content = self._extract_header_metadata(Path(file_path), config.get('check_heading_lines', 10))
-
-                    # Si no hay header_content, el archivo no tiene Check Heading o no se pudo extraer
-                    if not success or not header_content:
-                        self._log_debug(f"Archivo {file_path} no tiene Check Heading o no se pudo extraer metadata")
-                        continue
-
-                    self._log_debug(f"Archivo {file_path} tiene Check Heading y metadata válida")
-
-                    # Leer el archivo
+                    # Leer el contenido del archivo
                     with open(file_path, 'r', encoding='utf-8') as f:
                         content = f.read()
 
-                    # Actualizar solo el campo Modified usando la misma lógica de búsqueda que el validator
-                    update_fields = config.get('update_fields', ['Modified'])
-                    new_content = content
-                    for field in update_fields:
-                        # Buscar el formato exacto usado en el archivo
-                        field_lower = field.lower()
-                        self._log_debug(f"\nBuscando campo: {field_lower}")
-                        found_line = None
-                        for line in header_content.split('\n'):
-                            line_lower = line.lower()
-                            self._log_debug(f"Revisando línea: {line_lower}")
-                            # Buscar el campo sin el @ para la comparación
-                            field_without_at = field_lower.replace('@', '')
-                            self._log_debug(f"Campo sin @: {field_without_at}")
-                            if field_without_at in line_lower:
-                                found_line = line
-                                # Capturar el formato exacto de la línea
-                                # Grupo 1: todo antes del campo (incluyendo @ si existe), Grupo 2: el campo sin @, Grupo 3: lo que viene después
-                                pattern = rf"(\s*(?:\*|@|\s)*)({field_without_at})(\s+[^\n]*)"
-                                self._log_debug(f"Patrón encontrado: {pattern}")
-                                replacement = f"\\1\\2{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-                                self._log_debug(f"Reemplazo: {replacement}")
-                                break
+                    # Determinar el tipo de archivo
+                    file_type = file_path.split('.')[-1].lower()
+
+                    # Actualizar cada campo según el tipo de archivo
+                    for field in ['Modified']:
+                        if file_type in ['js', 'ts', 'jsx', 'tsx']:
+                            # Para JavaScript/TypeScript, usar la función con @
+                            found_line, pattern, replacement = self._update_field_with_at(content, field, current_date, config)
                         else:
-                            # Si no se encuentra el formato específico, usar el patrón por defecto con "Modified"
-                            pattern = rf"(\s*(?:\*|@|\s)*)(Modified)(\s+[^\n]*)"
-                            self._log_debug(f"Usando patrón por defecto: {pattern}")
-                            replacement = f"\\1\\2{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-                            self._log_debug(f"Reemplazo por defecto: {replacement}")
+                            # Para Python y Bash, usar la función sin @
+                            found_line, pattern, replacement = self._update_field_without_at(content, field, current_date, config, file_type)
 
                         if found_line:
                             self._log_debug("¡Línea encontrada!")
+                            self._log_debug(f"Línea original: {found_line}")
                             # Reemplazar solo esta línea
                             new_line = re.sub(pattern, replacement, found_line, flags=re.IGNORECASE)
+                            self._log_debug(f"Línea nueva: {new_line}")
                             # Reemplazar la línea en el contenido
                             new_content = content.replace(found_line, new_line)
-                            self._log_debug(f"Línea original: {found_line}")
-                            self._log_debug(f"Línea nueva: {new_line}")
-                            self._log_debug(f"Nuevo contenido:\n{new_content}")
-                            updated_count += 1
-                            self._log_debug(f"Actualizado campo {field} en {file_path}")
-                            break
+                            # Actualizar el contenido para el siguiente campo
+                            content = new_content
 
-                    # Escribir el archivo solo si hubo cambios
-                    if new_content != content:
-                        with open(file_path, 'w', encoding='utf-8') as f:
-                            f.write(new_content)
-                        self._log_debug(f"Archivo {file_path} actualizado")
+                    # Guardar los cambios
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        f.write(content)
+                    updated_count += 1
+                    self._log_debug(f"Actualizado campo {field} en {file_path}")
 
                 except Exception as e:
                     error_msg = f"Error al procesar {file_path}: {str(e)}"
