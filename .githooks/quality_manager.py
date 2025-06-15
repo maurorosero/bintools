@@ -861,6 +861,9 @@ class QualityManager:
                     with open(path, 'r', encoding='utf-8') as f:
                         content = f.read()
 
+                    # Inicializar new_content como None
+                    new_content = None
+
                     # Actualizar el campo Modified en el header
                     if file_type == 'python':
                         # Para Python, buscar el docstring y actualizar el campo Modified
@@ -916,16 +919,14 @@ class QualityManager:
                                             break
                                 new_header = '\n'.join(new_header_lines)
                                 new_content = content[:header_block.start()] + new_header + content[header_block.end():]
-                            else:
-                                continue
-                        else:
-                            continue
 
-                    # Escribir el archivo actualizado
-                    with open(path, 'w', encoding='utf-8') as f:
-                        f.write(new_content)
-
-                    updated_files.append(file_path)
+                    # Solo escribir el archivo si se encontró y actualizó el header
+                    if new_content is not None:
+                        with open(path, 'w', encoding='utf-8') as f:
+                            f.write(new_content)
+                        updated_files.append(file_path)
+                    else:
+                        print(f"⚠️  No se encontró header en {file_path}")
 
                 except Exception as e:
                     return False, f"❌ Error al actualizar {path}: {str(e)}"
