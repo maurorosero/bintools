@@ -823,24 +823,39 @@ class QualityManager:
                     for field in update_fields:
                         # Buscar el formato exacto usado en el archivo
                         field_lower = field.lower()
+                        self._log_debug(f"\nBuscando campo: {field_lower}")
+                        found_line = None
                         for line in header_content.split('\n'):
                             line_lower = line.lower()
-                            if field_lower in line_lower:
+                            self._log_debug(f"Revisando línea: {line_lower}")
+                            # Buscar el campo sin el @ para la comparación
+                            field_without_at = field_lower.replace('@', '')
+                            self._log_debug(f"Campo sin @: {field_without_at}")
+                            if field_without_at in line_lower:
+                                found_line = line
                                 # Capturar el formato exacto de la línea
-                                # Grupo 1: todo antes del campo, Grupo 2: el campo, Grupo 3: lo que viene después
-                                pattern = rf"(\s*(?:\*|@|\s)*)({field})(\s+[^\n]*)"
+                                # Grupo 1: todo antes del campo (incluyendo @ si existe), Grupo 2: el campo sin @, Grupo 3: lo que viene después
+                                pattern = rf"(\s*(?:\*|@|\s)*)({field_without_at})(\s+[^\n]*)"
+                                self._log_debug(f"Patrón encontrado: {pattern}")
                                 replacement = f"\\1\\2{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                                self._log_debug(f"Reemplazo: {replacement}")
                                 break
                         else:
-                            # Si no se encuentra el formato específico, usar el patrón por defecto
-                            pattern = rf"(\s*(?:\*|@|\s)*)({field})(\s+[^\n]*)"
+                            # Si no se encuentra el formato específico, usar el patrón por defecto con "Modified"
+                            pattern = rf"(\s*(?:\*|@|\s)*)(Modified)(\s+[^\n]*)"
+                            self._log_debug(f"Usando patrón por defecto: {pattern}")
                             replacement = f"\\1\\2{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                            self._log_debug(f"Reemplazo por defecto: {replacement}")
 
-                        # Reemplazar solo en el header (primeras líneas)
-                        header_lines = content.split('\n')[:config.get('check_heading_lines', 10)]
-                        header_text = '\n'.join(header_lines)
-                        if re.search(pattern, header_text, re.IGNORECASE):
-                            new_content = re.sub(pattern, replacement, content, flags=re.IGNORECASE)
+                        if found_line:
+                            self._log_debug("¡Línea encontrada!")
+                            # Reemplazar solo esta línea
+                            new_line = re.sub(pattern, replacement, found_line, flags=re.IGNORECASE)
+                            # Reemplazar la línea en el contenido
+                            new_content = content.replace(found_line, new_line)
+                            self._log_debug(f"Línea original: {found_line}")
+                            self._log_debug(f"Línea nueva: {new_line}")
+                            self._log_debug(f"Nuevo contenido:\n{new_content}")
                             updated_count += 1
                             self._log_debug(f"Actualizado campo {field} en {file_path}")
                             break
