@@ -133,5 +133,5 @@ repos:
         always_run: true
         verbose: true
         require_serial: true
-        types: [python, shell, text]
+        files: ^$
         description: "Actualiza los headers de los archivos con Check Heading según la fecha de modificación"
