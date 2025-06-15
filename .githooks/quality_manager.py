@@ -9,7 +9,7 @@ Script Name: quality_manager.py
 Version:     0.1.1
 Description: Gestiona los niveles de calidad y formatos de commit de manera independiente.
 Created:     2025-06-14
-Modified:    2025-06-15 12:32:13
+Modified:    2025-06-15 12:51:13
 Author:      Mauro Rosero Pérez <mauro@rosero.one>
 Assistant:   Cursor AI (https://cursor.com)
 """
@@ -519,7 +519,7 @@ class QualityManager:
 
             # Leer las primeras líneas del archivo
             with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read(check_heading_lines * 100)  # Leer suficientes caracteres para cubrir las líneas
+                lines = f.readlines()[:check_heading_lines]
 
             # Buscar el tag Check Heading en todas las docstrings
             header_content = ""
@@ -528,6 +528,7 @@ class QualityManager:
             if file_type == 'python':
                 # Para Python, buscar en todas las docstrings
                 docstring_pattern = re.compile(r'"""(.*?)"""', re.DOTALL)
+                content = ''.join(lines)
                 for match in docstring_pattern.finditer(content):
                     docstring = match.group(1).strip()
                     if "Check Heading" in docstring:
@@ -536,24 +537,39 @@ class QualityManager:
                         for line in docstring.split('\n'):
                             if ':' in line:
                                 key, value = line.split(':', 1)
+                                # Normalizar el nombre del campo
+                                if key.strip() == 'Created at':
+                                    key = 'Created'
                                 metadata[key.strip()] = value.strip()
                         break  # Usar el primer docstring que tenga el tag
             else:
-                # Para otros tipos de archivo, buscar en comentarios
-                comment_pattern = re.compile(r'^(?:\s*#|\s*//|\s*\*|\s*/\*|\s*\*/).*?$', re.MULTILINE)
-                comment_blocks = list(comment_pattern.finditer(content))
-                for block in comment_blocks:
-                    block_content = block.group(0)
-                    if "Check Heading" in block_content:
-                        header_content = block_content
-                        # Extraer metadatos del bloque de comentarios
-                        for line in block_content.split('\n'):
-                            if ':' in line:
-                                # Eliminar caracteres de comentario
-                                line = re.sub(r'^\s*(?:#|//|\*)\s*', '', line)
-                                key, value = line.split(':', 1)
-                                metadata[key.strip()] = value.strip()
-                        break  # Usar el primer bloque que tenga el tag
+                # Para otros tipos de archivo, buscar en líneas de comentario individuales
+                found_tag = False
+                header_lines = []
+
+                for line in lines:
+                    # Solo procesar líneas que son comentarios
+                    if not line.strip().startswith('#'):
+                        continue
+
+                    # Eliminar el # inicial y espacios
+                    clean_line = line.strip()[1:].strip()
+
+                    # Buscar el tag de manera más flexible
+                    if "Check Heading" in clean_line:
+                        found_tag = True
+                        header_lines.append(line.rstrip())
+                    elif found_tag and ':' in clean_line:
+                        header_lines.append(line.rstrip())
+                        # Extraer metadatos
+                        key, value = clean_line.split(':', 1)
+                        # Normalizar el nombre del campo
+                        if key.strip() == 'Created at':
+                            key = 'Created'
+                        metadata[key.strip()] = value.strip()
+
+                if found_tag:
+                    header_content = '\n'.join(header_lines)
 
             if not header_content:
                 return False, "No se encontró el tag 'Check Heading' en el header", "", ""
@@ -670,6 +686,7 @@ class QualityManager:
             files_to_update = sys.argv[1:]  # Usamos los archivos pasados como argumentos
             updated_files = []
             errors = []
+            staged_files = []
 
             for file_path in files_to_update:
                 try:
@@ -700,27 +717,44 @@ class QualityManager:
                     # Obtener los campos a actualizar de la configuración
                     update_fields = config.get('update_fields', ['Modified'])
                     new_content = content
+                    file_modified = False
 
                     # Para cada campo en update_fields, buscar y actualizar su línea
                     for field in update_fields:
                         # Buscar la línea que comienza con el nombre del campo
-                        pattern = rf'^{field}:.*$'
+                        # Usar un patrón más flexible que busque el campo en cualquier parte de la línea
+                        pattern = rf'#\s*{field}:.*$'
                         if field == 'Modified':
                             # Para Modified, actualizar con la fecha actual
-                            new_content = re.sub(pattern, f'{field}:    {current_date}', new_content, flags=re.MULTILINE)
+                            new_content = re.sub(pattern, f'# {field}:    {current_date}', new_content, flags=re.MULTILINE)
+                            file_modified = True
                         else:
                             # Para otros campos, mantener su valor actual
                             continue
 
-                    if new_content != content:
-                        with open(file_path, 'w', encoding='utf-8') as f:
-                            f.write(new_content)
-                        # Agregar el archivo modificado al staging area
+                    if file_modified:
                         try:
-                            subprocess.run(['git', 'add', file_path], check=True, capture_output=True, text=True)
+                            # Escribir el archivo modificado
+                            with open(file_path, 'w', encoding='utf-8') as f:
+                                f.write(new_content)
                             updated_files.append(file_path)
-                        except subprocess.CalledProcessError as e:
-                            errors.append(f"Error al agregar {file_path} al staging: {e.stderr}")
+
+                            # Agregar el archivo modificado al staging area
+                            try:
+                                result = subprocess.run(['git', 'add', file_path],
+                                                      check=True,
+                                                      capture_output=True,
+                                                      text=True)
+                                if result.returncode == 0:
+                                    staged_files.append(file_path)
+                                else:
+                                    errors.append(f"Error al agregar {file_path} al staging: {result.stderr}")
+                            except subprocess.CalledProcessError as e:
+                                errors.append(f"Error al agregar {file_path} al staging: {e.stderr}")
+                            except Exception as e:
+                                errors.append(f"Error inesperado al agregar {file_path} al staging: {str(e)}")
+                        except Exception as e:
+                            errors.append(f"Error al escribir {file_path}: {str(e)}")
 
                 except Exception as e:
                     errors.append(f"Error en {file_path}: {str(e)}")
@@ -729,7 +763,9 @@ class QualityManager:
             # Construir mensaje final
             message_parts = []
             if updated_files:
-                message_parts.append(f"✅ Headers actualizados y agregados al staging en {len(updated_files)} archivos: {', '.join(updated_files)}")
+                message_parts.append(f"✅ Headers actualizados en {len(updated_files)} archivos: {', '.join(updated_files)}")
+            if staged_files:
+                message_parts.append(f"✅ Archivos agregados al staging: {', '.join(staged_files)}")
             if errors:
                 message_parts.append(f"⚠️ Errores encontrados: {'; '.join(errors)}")
             if not message_parts:
@@ -980,6 +1016,8 @@ class QualityManager:
         FILE_TYPES = {
             '.py': 'python',
             '.sh': 'bash',
+            '.bash': 'bash',
+            '.zsh': 'bash',  # Tratamos zsh como bash para los headers
             '.js': 'javascript',
             '.ts': 'typescript',
             '.jsx': 'javascript',
@@ -997,7 +1035,18 @@ class QualityManager:
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 first_line = f.readline().strip()
-                if first_line.startswith('#!/bin/bash'):
+                # Detectar varios tipos de shebang para scripts bash
+                if any(first_line.startswith(shebang) for shebang in [
+                    '#!/bin/bash',
+                    '#!/usr/bin/bash',
+                    '#!/usr/bin/env bash',
+                    '#!/bin/sh',
+                    '#!/usr/bin/sh',
+                    '#!/usr/bin/env sh',
+                    '#!/bin/zsh',
+                    '#!/usr/bin/zsh',
+                    '#!/usr/bin/env zsh'
+                ]):
                     return 'bash'
         except Exception:
             pass
