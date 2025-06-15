@@ -761,37 +761,17 @@ class QualityManager:
             if not files_to_update:
                 files_to_update = staged_files
 
-            # Filtrar solo los archivos que tienen el tag "Check Heading"
-            files_with_tag = []
-            for file in files_to_update:
-                try:
-                    with open(file, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                        if "Check Heading" in content:
-                            files_with_tag.append(file)
-                except Exception as e:
-                    print(f"Error al leer {file}: {str(e)}")
-
             # Actualizar headers
             updated_count = 0
             errors = []
 
-            for file in files_with_tag:
+            for file in files_to_update:
                 try:
-                    # Validar el header usando la misma lógica que el validator
-                    success, validation_msg = self._run_header_validator(config)
-                    if not success:
-                        errors.append(f"Error de validación en {file}: {validation_msg}")
-                        continue
-
-                    # Leer el archivo
-                    with open(file, 'r', encoding='utf-8') as f:
-                        content = f.read()
-
-                    # Extraer metadata actual usando la misma función que el validator
+                    # Extraer metadata usando la misma función que el validator
                     success, metadata, file_type, header_content = self._extract_header_metadata(Path(file), config.get('check_heading_lines', 10))
-                    if not success:
-                        errors.append(f"Error al extraer metadata de {file}")
+
+                    # Si no hay header_content, el archivo no tiene Check Heading o no se pudo extraer
+                    if not success or not header_content:
                         continue
 
                     # Obtener el formato de fecha del hook y generar la fecha actual
@@ -804,6 +784,10 @@ class QualityManager:
                         .replace('MM', '%m')
                         .replace('mm', '%M'))
                     current_date = datetime.now().strftime(strftime_format)
+
+                    # Leer el archivo
+                    with open(file, 'r', encoding='utf-8') as f:
+                        content = f.read()
 
                     # Actualizar solo el campo Modified
                     update_fields = config.get('update_fields', ['Modified'])
@@ -818,27 +802,19 @@ class QualityManager:
                                 replacement = f'{field}:    {current_date}'
                             elif file_type in ['javascript', 'typescript']:
                                 # Para JS/TS, buscar cualquier variante de modified en el bloque JSDoc
-                                # Buscar tanto @modified como @Modified, con o sin espacio después
                                 pattern = rf'\*\s*@(?:modified|Modified)(?:\s+|:)\s*[^\n]*'
                                 replacement = f' * @modified {current_date}'
                             else:  # bash y otros
                                 pattern = rf'# {field}:.*$'
                                 replacement = f'# {field}:    {current_date}'
 
-                            # Para JS/TS, asegurarnos de que la actualización se haga dentro del bloque JSDoc
+                            # Para JS/TS, actualizar solo dentro del bloque JSDoc que ya tenemos
                             if file_type in ['javascript', 'typescript']:
-                                # Buscar el bloque JSDoc que contiene Check Heading
-                                jsdoc_match = re.search(r'/\*\*\s*\n(?:\s*\*[^\n]*\n)*\s*\*\s*Check Heading', new_content)
-                                if jsdoc_match:
-                                    # Obtener el bloque JSDoc
-                                    jsdoc_start = jsdoc_match.start()
-                                    jsdoc_end = new_content.find('*/', jsdoc_start) + 2
-                                    jsdoc_block = new_content[jsdoc_start:jsdoc_end]
-
-                                    # Actualizar solo dentro del bloque JSDoc
-                                    updated_jsdoc = re.sub(pattern, replacement, jsdoc_block, flags=re.MULTILINE)
-                                    new_content = new_content[:jsdoc_start] + updated_jsdoc + new_content[jsdoc_end:]
-                                    file_modified = True
+                                # Usar el header_content que ya tenemos del validator
+                                updated_header = re.sub(pattern, replacement, header_content, flags=re.MULTILINE)
+                                # Reemplazar el header original con el actualizado
+                                new_content = content.replace(header_content, updated_header)
+                                file_modified = updated_header != header_content
                             else:
                                 # Para otros tipos de archivo, actualizar en todo el contenido
                                 new_content = re.sub(pattern, replacement, new_content, flags=re.MULTILINE)
@@ -860,7 +836,7 @@ class QualityManager:
                     errors.append(f"Error al procesar {file}: {str(e)}")
 
             # Construir mensaje final
-            message = f"Headers actualizados: {updated_count}/{len(files_with_tag)}"
+            message = f"Headers actualizados: {updated_count}/{len(files_to_update)}"
             if errors:
                 message += f"\nErrores encontrados: {len(errors)}"
                 for error in errors:
