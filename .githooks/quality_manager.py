@@ -8,7 +8,7 @@ Script Name: quality_manager.py
 Version:     0.1.1
 Description: Gestiona los niveles de calidad y formatos de commit de manera independiente.
 Created:     2025-06-14
-Modified:    2025-06-15 13:15:26
+Modified:    2025-06-15 13:15:27
 Author:      Mauro Rosero Pérez <mauro@rosero.one>
 Assistant:   Cursor AI (https://cursor.com)
 """
@@ -774,21 +774,24 @@ class QualityManager:
         try:
             # Usar el validator para encontrar los archivos con Check Heading
             success, validator_result = self._run_header_validator(config)
-            if not success:
-                return False, validator_result
 
-            # Si no hay archivos con Check Heading, terminamos
-            if "No hay archivos con tag 'Check Heading'" in validator_result:
-                return True, validator_result
+            # Si hay errores reales (no solo "no hay archivos"), retornarlos
+            if not success and "No hay archivos con tag 'Check Heading'" not in validator_result:
+                return False, validator_result
 
             # Obtener los archivos que el validator procesó
             files_with_tag = []
             for line in validator_result.split('\n'):
+                # El validator ya procesó los archivos y nos da los mensajes de error/advertencia
+                # que incluyen los nombres de archivo
                 if line.startswith('❌') or line.startswith('⚠️'):
-                    # Extraer el nombre del archivo del mensaje de error/advertencia
                     file_path = line.split(':')[0].replace('❌ ', '').replace('⚠️  ', '')
                     if file_path not in files_with_tag:
                         files_with_tag.append(file_path)
+                # También incluir archivos que pasaron la validación
+                elif "✅ Todos los headers son válidos" in validator_result:
+                    # Si todos son válidos, usar los archivos de los argumentos
+                    files_with_tag = self.args.files if hasattr(self, 'args') and self.args.files else []
 
             if not files_with_tag:
                 return True, "✅ No se encontraron archivos con Check Heading para actualizar"
@@ -810,34 +813,65 @@ class QualityManager:
 
                     self._log_debug(f"Archivo {file_path} tiene Check Heading y metadata válida")
 
-                    # Obtener el formato de fecha del hook y generar la fecha actual
-                    date_format = config.get('date_format', 'YYYY-MM-DD HH:MM:SS')
-                    strftime_format = (date_format
-                        .replace('YYYY', '%Y')
-                        .replace('DD', '%d')
-                        .replace('HH', '%H')
-                        .replace('SS', '%S')
-                        .replace('MM', '%m')
-                        .replace('mm', '%M'))
-                    current_date = datetime.now().strftime(strftime_format)
-
                     # Leer el archivo
                     with open(file_path, 'r', encoding='utf-8') as f:
                         content = f.read()
 
-                    # Actualizar solo el campo Modified
+                    # Actualizar solo el campo Modified usando la misma lógica de búsqueda que el validator
                     update_fields = config.get('update_fields', ['Modified'])
                     new_content = content
                     for field in update_fields:
-                        # Buscar el campo en el header
+                        # Usar la misma lógica de búsqueda que el validator
                         if file_type == 'python':
                             # Para Python, buscar en docstrings
-                            pattern = rf"{field}:\s*[^\n]*"
-                            replacement = f"{field}: {current_date}"
+                            # Capturar solo hasta el campo Modified y sus espacios
+                            pattern = rf"({field}:\s*).*"
+                            # Reemplazar todo lo que viene después del campo con la nueva fecha
+                            replacement = f"\\1{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
                         else:
-                            # Para JavaScript/TypeScript, buscar en JSDoc
-                            pattern = rf"@?{field}\s+[^\n]*"
-                            replacement = f"@{field} {current_date}"
+                            # Para JavaScript/TypeScript, usar la misma lógica de aliases que el validator
+                            field_aliases = {
+                                'Version': ['version', 'Version', 'release', 'Release', 'revision', 'Revision', 'v', 'V'],
+                                'Author': ['author', 'Author', 'by', 'By'],
+                                'Created': ['created', 'Created', 'created_at', 'Created_at'],
+                                'Modified': ['modified', 'Modified', 'updated', 'Updated'],
+                                'Description': ['description', 'Description', 'desc', 'Desc'],
+                                'Script Name': ['file', 'File', 'script', 'Script', 'script_name', 'Script_name'],
+                                'Assistant': ['assistant', 'Assistant', 'helper', 'Helper'],
+                                'Copyright': ['Copyright (C)', 'copyright', 'Copyright'],
+                                'License': ['License:', 'license', 'License']
+                            }
+
+                            # Usar los mismos aliases que el validator
+                            aliases = field_aliases.get(field, [field])
+                            patterns = []
+                            for alias in aliases:
+                                # Patrón sin @ y sin *
+                                # Capturar solo hasta el alias y sus espacios, reemplazar el resto
+                                patterns.append(rf"((?:\*\s*)?{alias}\s+).*")
+                                # Patrón con @ y sin *
+                                patterns.append(rf"((?:\*\s*)?@{alias}\s+).*")
+
+                            # Construir el patrón final combinando todos los casos
+                            pattern = '|'.join(patterns)
+
+                            # Buscar el formato exacto usado en el archivo
+                            for alias in aliases:
+                                # Buscar sin @
+                                if re.search(rf"(?:\*\s*)?{alias}\s+", header_content, re.IGNORECASE):
+                                    # Reemplazar todo lo que viene después del alias con la nueva fecha
+                                    replacement = f"\\1{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                                    break
+                                # Buscar con @
+                                elif re.search(rf"(?:\*\s*)?@{alias}\s+", header_content, re.IGNORECASE):
+                                    # Reemplazar todo lo que viene después del alias con la nueva fecha
+                                    replacement = f"\\1{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                                    break
+                            else:
+                                # Si no se encuentra ningún alias específico, usar el campo por defecto
+                                pattern = rf"((?:\*\s*)?@{field}\s+).*"
+                                # Reemplazar todo lo que viene después del campo con la nueva fecha
+                                replacement = f"\\1{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
                         # Reemplazar solo en el header (primeras líneas)
                         header_lines = content.split('\n')[:config.get('check_heading_lines', 10)]
