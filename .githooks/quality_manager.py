@@ -509,7 +509,6 @@ class QualityManager:
         Returns:
             Optional[str]: Tipo de archivo ('python', 'bash', 'javascript', etc.) o None si no se puede determinar
         """
-        print(f"\nDEBUG: Determinando tipo de archivo para {file_path}")
         # Mapeo de extensiones a tipos de archivo
         FILE_TYPES = {
             '.py': 'python',
@@ -526,38 +525,30 @@ class QualityManager:
 
         # Primero intentar por extensión
         ext = file_path.suffix.lower()
-        print(f"DEBUG: Extensión del archivo: {ext}")
         if ext in FILE_TYPES:
-            print(f"DEBUG: Tipo detectado por extensión: {FILE_TYPES[ext]}")
             return FILE_TYPES[ext]
 
         # Si no se encuentra por extensión, intentar por contenido
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 first_line = f.readline().strip()
-                print(f"DEBUG: Primera línea del archivo: {first_line}")
 
                 # Verificar shebang para scripts
                 if first_line.startswith('#!/'):
                     if 'bash' in first_line or 'sh' in first_line:
-                        print("DEBUG: Tipo detectado por shebang: bash")
                         return 'bash'
                     elif 'node' in first_line or 'js' in first_line:
-                        print("DEBUG: Tipo detectado por shebang: javascript")
                         return 'javascript'
 
                 # Verificar contenido para JavaScript/TypeScript
                 content = f.read(1000)  # Leer un poco más para tener contexto
                 if 'module.exports' in content or 'export default' in content:
-                    print("DEBUG: Tipo detectado por contenido: javascript")
                     return 'javascript'
                 elif 'import ' in content and ('.ts' in str(file_path) or '.tsx' in str(file_path)):
-                    print("DEBUG: Tipo detectado por contenido: typescript")
                     return 'typescript'
         except Exception as e:
-            print(f"DEBUG: Error al leer archivo: {str(e)}")
+            pass
 
-        print("DEBUG: No se pudo determinar el tipo de archivo")
         return None
 
     def _extract_header_metadata(self, file_path: Path, check_heading_lines: int) -> Tuple[bool, str, str, str]:
@@ -572,10 +563,8 @@ class QualityManager:
             Tuple[bool, str, str, str]: (éxito, mensaje/metadatos, tipo_archivo, contenido_header)
         """
         try:
-            print(f"\nDEBUG: Iniciando extracción de metadatos para {file_path}")
             # Determinar el tipo de archivo
             file_type = self._get_file_type(file_path)
-            print(f"DEBUG: Tipo de archivo detectado: {file_type}")
 
             if not file_type:
                 return False, "Tipo de archivo no soportado", "", ""
@@ -583,9 +572,6 @@ class QualityManager:
             # Leer las primeras líneas del archivo
             with open(file_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()[:check_heading_lines]
-                print(f"DEBUG: Leyendo primeras {check_heading_lines} líneas")
-                print(f"DEBUG: Número de líneas leídas: {len(lines)}")
-                print(f"DEBUG: Contenido de las primeras líneas:\n{''.join(lines)}")
 
             # Buscar el tag Check Heading en todas las docstrings
             header_content = ""
@@ -611,7 +597,6 @@ class QualityManager:
             elif file_type in ['javascript', 'typescript']:
                 # Para JS/TS, buscar específicamente en bloques JSDoc con el formato exacto
                 content = ''.join(lines)
-                print(f"DEBUG: Buscando bloque JSDoc en archivo {file_type}")
 
                 # Buscar el bloque JSDoc que comienza con /** y contiene Check Heading
                 start = content.find('/**')
@@ -619,17 +604,27 @@ class QualityManager:
                     end = content.find('*/', start)
                     if end != -1:
                         jsdoc_block = content[start:end + 2]
-                        print(f"DEBUG: Bloque JSDoc encontrado:\n{jsdoc_block}")
 
                         # Verificar que el bloque comience con Check Heading
                         if jsdoc_block.strip().startswith('/**\n * Check Heading'):
-                            print("DEBUG: Encontrado Check Heading en JSDoc con formato correcto")
                             header_content = jsdoc_block
+
+                            # Definir los alias válidos para cada campo
+                            field_aliases = {
+                                'Version': ['version', 'Version', 'release', 'Release', 'revision', 'Revision', 'v', 'V'],
+                                'Author': ['author', 'Author', 'by', 'By'],
+                                'Created': ['created', 'Created', 'created_at', 'Created_at'],
+                                'Modified': ['modified', 'Modified', 'updated', 'Updated'],
+                                'Description': ['description', 'Description', 'desc', 'Desc'],
+                                'Script Name': ['file', 'File', 'script', 'Script', 'script_name', 'Script_name'],
+                                'Assistant': ['assistant', 'Assistant', 'helper', 'Helper'],
+                                'Copyright': ['Copyright (C)', 'copyright', 'Copyright'],
+                                'License': ['License:', 'license', 'License']
+                            }
 
                             # Procesar cada línea del bloque
                             for line in jsdoc_block.split('\n'):
                                 line = line.strip()
-                                print(f"DEBUG: Procesando línea JSDoc: '{line}'")
 
                                 # Ignorar líneas que son solo * o */
                                 if line in ['*', '*/', '/**']:
@@ -639,43 +634,27 @@ class QualityManager:
                                 if line.startswith('*'):
                                     line = line[1:].strip()
 
-                                # Buscar campos @tag
-                                if line.startswith('@'):
-                                    parts = line[1:].split(' ', 1)
-                                    if len(parts) == 2:
-                                        key = parts[0].lower()
-                                        value = parts[1].strip()
-                                        print(f"DEBUG: Encontrado campo @{key}: {value}")
-                                        # Normalizar nombres de campos según nuestro formato
-                                        if key == 'modified':
-                                            key = 'Modified'
-                                        elif key == 'created':
-                                            key = 'Created'
-                                        elif key == 'version':
-                                            key = 'Version'
-                                        elif key == 'author':
-                                            key = 'Author'
-                                        elif key == 'description':
-                                            key = 'Description'
-                                        elif key == 'file':
-                                            key = 'Script Name'
-                                        metadata[key] = value
+                                # Buscar campos con o sin @
+                                field_found = False
+                                for field_name, aliases in field_aliases.items():
+                                    for alias in aliases:
+                                        # Verificar si la línea comienza con @alias o alias
+                                        if line.startswith(f'@{alias}') or line.startswith(alias):
+                                            # Extraer el valor después del alias
+                                            if alias.endswith(':'):
+                                                value = line[len(alias):].strip()
+                                            else:
+                                                # Para campos @tag, separar por espacio
+                                                parts = line[len(f'@{alias}' if line.startswith('@') else alias):].strip().split(' ', 1)
+                                                value = parts[1] if len(parts) > 1 else ''
 
-                                # Buscar Copyright que debe estar en formato exacto
-                                elif line.startswith('Copyright (C)'):
-                                    key = 'Copyright'
-                                    value = line.replace('Copyright (C)', '').strip()
-                                    print(f"DEBUG: Encontrado Copyright: {value}")
-                                    metadata[key] = value
-
-                                # Buscar License que debe estar en formato exacto
-                                elif line.startswith('License:'):
-                                    key = 'License'
-                                    value = line.replace('License:', '').strip()
-                                    print(f"DEBUG: Encontrado License: {value}")
-                                    metadata[key] = value
-                else:
-                    print(f"DEBUG: No se encontró bloque JSDoc en el archivo {file_type}")
+                                            metadata[field_name] = value
+                                            field_found = True
+                                            break
+                                    if field_found:
+                                        break
+            else:
+                pass
 
             if not header_content:
                 return False, "No se encontró el tag 'Check Heading' en el header", "", ""
@@ -769,45 +748,50 @@ class QualityManager:
         except Exception as e:
             return False, f"❌ Error en validación de headers: {str(e)}"
 
-    def _run_header_update(self, config: dict) -> Tuple[bool, str]:
-        """
-        Ejecuta el hook de actualización de headers.
-        Actualiza la fecha de modificación en los headers de los archivos que tienen el tag Check Heading.
-        Este hook siempre retorna éxito para no bloquear el commit, incluso si hay errores en la actualización.
-
-        Args:
-            config: Configuración del hook que puede incluir:
-                - enabled: bool - Si el hook está habilitado
-                - date_format: str - Formato de fecha (default: "YYYY-MM-DD HH:MM:SS")
-                - check_heading_lines: int - Número de líneas a revisar para el tag Check heading
-                - update_fields: list - Lista de campos a actualizar (default: ["Modified"])
-
-        Returns:
-            Tuple[bool, str]: (éxito, mensaje) - Siempre retorna True para no bloquear el commit
-        """
-        if not config.get('enabled', False):
-            return True, "✅ Actualización de headers deshabilitada"
-
+    def _run_header_update(self, config: Dict[str, Any]) -> Tuple[bool, str]:
+        """Ejecuta el hook de actualización de headers."""
         try:
+            # Obtener archivos del staging area
+            staged_files = self._get_staged_files()
+
+            # Obtener archivos pasados como argumentos
             files_to_update = sys.argv[1:]  # Usamos los archivos pasados como argumentos
-            print("\nDEBUG: Archivos pasados al hook header-update:")
-            for i, file in enumerate(files_to_update, 1):
-                print(f"DEBUG: {i}. {file}")
-            print(f"DEBUG: Total de archivos a procesar: {len(files_to_update)}\n")
 
-            updated_files = []
-            errors = []
-            staged_files = []
+            # Si no hay archivos pasados como argumentos, usar los del staging area
+            if not files_to_update:
+                files_to_update = staged_files
 
-            for file_path in files_to_update:
+            # Filtrar solo los archivos que tienen el tag "Check Heading"
+            files_with_tag = []
+            for file in files_to_update:
                 try:
-                    # Excluir archivos de configuración
-                    if '.githooks/config/' in file_path:
+                    with open(file, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        if "Check Heading" in content:
+                            files_with_tag.append(file)
+                except Exception as e:
+                    print(f"Error al leer {file}: {str(e)}")
+
+            # Actualizar headers
+            updated_count = 0
+            errors = []
+
+            for file in files_with_tag:
+                try:
+                    # Validar el header usando la misma lógica que el validator
+                    success, validation_msg = self._run_header_validator(config)
+                    if not success:
+                        errors.append(f"Error de validación en {file}: {validation_msg}")
                         continue
 
-                    # Extraer metadatos sin validar
-                    success, metadata, file_type, header_content = self._extract_header_metadata(Path(file_path), config.get('check_heading_lines', 10))
+                    # Leer el archivo
+                    with open(file, 'r', encoding='utf-8') as f:
+                        content = f.read()
+
+                    # Extraer metadata actual usando la misma función que el validator
+                    success, metadata, file_type, header_content = self._extract_header_metadata(Path(file), config.get('check_heading_lines', 10))
                     if not success:
+                        errors.append(f"Error al extraer metadata de {file}")
                         continue
 
                     # Obtener el formato de fecha del hook y generar la fecha actual
@@ -821,82 +805,55 @@ class QualityManager:
                         .replace('mm', '%M'))
                     current_date = datetime.now().strftime(strftime_format)
 
-                    # Leer el archivo y actualizar solo la línea de Modified
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        content = f.read()
-
-                    # Obtener los campos a actualizar de la configuración
+                    # Actualizar solo el campo Modified
                     update_fields = config.get('update_fields', ['Modified'])
                     new_content = content
                     file_modified = False
 
-                    # Para cada campo en update_fields, buscar y actualizar su línea
                     for field in update_fields:
-                        # Usar un patrón diferente según el tipo de archivo
-                        if file_type == 'python':
-                            pattern = rf'{field}:.*$'
-                            replacement = f'{field}:    {current_date}'
-                        elif file_type in ['javascript', 'typescript']:
-                            # Para JS/TS, buscar @modified o @Modified
-                            pattern = rf'@(?:modified|Modified)\s+.*$'
-                            replacement = f'@modified {current_date}'
-                        else:  # bash y otros
-                            pattern = rf'# {field}:.*$'
-                            replacement = f'# {field}:    {current_date}'
-
                         if field == 'Modified':
-                            # Para Modified, actualizar con la fecha actual
+                            # Usar un patrón diferente según el tipo de archivo
+                            if file_type == 'python':
+                                pattern = rf'{field}:.*$'
+                                replacement = f'{field}:    {current_date}'
+                            elif file_type in ['javascript', 'typescript']:
+                                # Para JS/TS, buscar @modified o @Modified
+                                pattern = rf'@(?:modified|Modified)\s+.*$'
+                                replacement = f'@modified {current_date}'
+                            else:  # bash y otros
+                                pattern = rf'# {field}:.*$'
+                                replacement = f'# {field}:    {current_date}'
+
                             new_content = re.sub(pattern, replacement, new_content, flags=re.MULTILINE)
                             file_modified = True
-                        else:
-                            # Para otros campos, mantener su valor actual
-                            continue
 
                     if file_modified:
-                        try:
-                            # Escribir el archivo modificado
-                            with open(file_path, 'w', encoding='utf-8') as f:
-                                f.write(new_content)
-                            updated_files.append(file_path)
+                        # Escribir el archivo modificado
+                        with open(file, 'w', encoding='utf-8') as f:
+                            f.write(new_content)
+                        updated_count += 1
 
-                            # Agregar el archivo modificado al staging area
-                            try:
-                                result = subprocess.run(['git', 'add', file_path],
-                                                      check=True,
-                                                      capture_output=True,
-                                                      text=True)
-                                if result.returncode == 0:
-                                    staged_files.append(file_path)
-                                else:
-                                    errors.append(f"Error al agregar {file_path} al staging: {result.stderr}")
-                            except subprocess.CalledProcessError as e:
-                                errors.append(f"Error al agregar {file_path} al staging: {e.stderr}")
-                            except Exception as e:
-                                errors.append(f"Error inesperado al agregar {file_path} al staging: {str(e)}")
-                        except Exception as e:
-                            errors.append(f"Error al escribir {file_path}: {str(e)}")
+                        # Agregar el archivo modificado al staging area
+                        try:
+                            subprocess.run(['git', 'add', file], check=True, capture_output=True, text=True)
+                        except subprocess.CalledProcessError as e:
+                            errors.append(f"Error al agregar {file} al staging: {e.stderr}")
 
                 except Exception as e:
-                    errors.append(f"Error en {file_path}: {str(e)}")
-                    continue
+                    errors.append(f"Error al procesar {file}: {str(e)}")
 
             # Construir mensaje final
-            message_parts = []
-            if updated_files:
-                message_parts.append(f"✅ Headers actualizados en {len(updated_files)} archivos: {', '.join(updated_files)}")
-            if staged_files:
-                message_parts.append(f"✅ Archivos agregados al staging: {', '.join(staged_files)}")
+            message = f"Headers actualizados: {updated_count}/{len(files_with_tag)}"
             if errors:
-                message_parts.append(f"⚠️ Errores encontrados: {'; '.join(errors)}")
-            if not message_parts:
-                message_parts.append("✅ No se encontraron archivos que requieran actualización de headers")
+                message += f"\nErrores encontrados: {len(errors)}"
+                for error in errors:
+                    message += f"\n  - {error}"
 
-            # Siempre retornamos True para no bloquear el commit
-            return True, "\n".join(message_parts)
+            # Siempre retornamos éxito para no bloquear el commit
+            return True, message
 
         except Exception as e:
-            # Incluso si hay un error general, retornamos éxito para no bloquear el commit
-            return True, f"⚠️ Error general en actualización de headers: {str(e)}"
+            return True, f"Error en header-update: {str(e)}"
 
     def list_available_formats(self) -> Dict[str, dict]:
         """
