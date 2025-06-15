@@ -827,15 +827,15 @@ class QualityManager:
                             # Mantener el formato exacto de la línea
                             pattern = rf"({field}:\s*)[^\n]*"
                             replacement = f"\\1{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-                        if file_type == 'bash':
+                        elif file_type == 'bash':
                             # Para Bash, buscar en comentarios
                             # Mantener el formato exacto de la línea
                             pattern = rf"#\s*({field}:\s*)[^\n]*"
                             replacement = f"\\1{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-                        if file_type == 'javascript' or file_type == 'typescript':
+                        else:
                             # Para JavaScript, buscar en comentarios
                             # Mantener el formato exacto de la línea
-                            pattern = rf"(?:^|\s)(?:\*?\s*@(modified)\s+)?{field}\s*:\s*[^\n]*"
+                            pattern = rf" \*\s*({field}:\s*)[^\n]*"
                             replacement = f"\\1{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
                         # Reemplazar solo en el header (primeras líneas)
