@@ -693,24 +693,37 @@ class QualityManager:
             if not files:
                 return True, "✅ No hay archivos para validar"
 
-            # Filtrar archivos que tienen el tag Check Heading
+            # Filtrar archivos que tienen el tag Check Heading y formato válido
             files_with_tag = []
             for file_path in files:
                 try:
-                    # Verificar si el archivo es texto
-                    if not self._is_text_file(Path(file_path)):
+                    # Verificar si el archivo existe
+                    if not Path(file_path).exists():
+                        self._log_debug(f"Ignorando ruta inexistente: {file_path}")
                         continue
 
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        content = f.read(check_heading_lines * 100)  # Leer suficientes caracteres para cubrir las líneas
-                        if "Check Heading" in content:
-                            files_with_tag.append(file_path)
+                    # Verificar si el archivo es texto
+                    if not self._is_text_file(Path(file_path)):
+                        self._log_debug(f"Ignorando archivo binario: {file_path}")
+                        continue
+
+                    # Usar el validador para verificar el header
+                    is_valid, header_content, file_type, _ = self._extract_header_metadata(
+                        Path(file_path),
+                        config.get('check_heading_lines', 10)
+                    )
+
+                    if is_valid and "Check Heading" in header_content:
+                        self._log_debug(f"Archivo con tag Check Heading y formato válido encontrado: {file_path}")
+                        files_with_tag.append(file_path)
+                    else:
+                        self._log_debug(f"Ignorando archivo sin tag Check Heading o formato inválido: {file_path}")
                 except Exception as e:
                     self._log_debug(f"No se pudo procesar {file_path}: {str(e)}")
                     continue  # Ignorar archivos que no se pueden leer
 
             if not files_with_tag:
-                return True, "✅ No hay archivos con tag 'Check Heading' para validar"
+                return True, "✅ No hay archivos con tag 'Check Heading' y formato válido para validar"
 
             # Usar sets para errores y advertencias para evitar duplicados desde el inicio
             all_errors = set()
@@ -800,7 +813,7 @@ class QualityManager:
             if not files:
                 return True, "✅ No hay archivos para actualizar"
 
-            # Filtrar archivos que tienen el tag Check Heading
+            # Filtrar archivos que tienen el tag Check Heading y formato válido
             files_with_tag = []
             for file_path in files:
                 try:
@@ -814,19 +827,23 @@ class QualityManager:
                         self._log_debug(f"Ignorando archivo binario: {file_path}")
                         continue
 
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                        if "Check Heading" in content:
-                            self._log_debug(f"Archivo con tag Check Heading encontrado: {file_path}")
-                            files_with_tag.append(file_path)
-                        else:
-                            self._log_debug(f"Ignorando archivo sin tag Check Heading: {file_path}")
+                    # Usar el validador para verificar el header
+                    is_valid, header_content, file_type, _ = self._extract_header_metadata(
+                        Path(file_path),
+                        config.get('check_heading_lines', 10)
+                    )
+
+                    if is_valid and "Check Heading" in header_content:
+                        self._log_debug(f"Archivo con tag Check Heading y formato válido encontrado: {file_path}")
+                        files_with_tag.append(file_path)
+                    else:
+                        self._log_debug(f"Ignorando archivo sin tag Check Heading o formato inválido: {file_path}")
                 except Exception as e:
                     self._log_debug(f"No se pudo procesar {file_path}: {str(e)}")
                     continue  # Ignorar archivos que no se pueden leer
 
             if not files_with_tag:
-                return True, "✅ No hay archivos con tag 'Check Heading' para actualizar"
+                return True, "✅ No hay archivos con tag 'Check Heading' y formato válido para actualizar"
 
             self._log_debug(f"\nArchivos a procesar: {files_with_tag}")
 
