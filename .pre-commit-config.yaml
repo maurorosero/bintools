@@ -1,5 +1,5 @@
 # Configuraciones comunes para hooks
-x-header-hook: &header-hook-config
+header_hook: &header_hook
   language: python
   additional_dependencies: [PyYAML]
   stages: [pre-commit]
@@ -123,12 +123,12 @@ repos:
       - id: header-validator
         name: header-validate
         entry: .githooks/quality_manager.py run-hook --hook-type header-validator
-        <<: *header-hook-config
+        <<: *header_hook
         description: "Valida los headers de los archivos según las especificaciones"
 
       # Hook de actualización de headers
       - id: header-update
         name: header-update
         entry: .githooks/quality_manager.py run-hook --hook-type header-update
-        <<: *header-hook-config
+        <<: *header_hook
         description: "Actualiza los headers de los archivos con Check Heading según la fecha de modificación"
