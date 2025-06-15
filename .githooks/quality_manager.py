@@ -8,7 +8,7 @@ Script Name: quality_manager.py
 Version:     0.1.1
 Description: Gestiona los niveles de calidad y formatos de commit de manera independiente.
 Created:     2025-06-14
-25-06-15 17:05:55
+Modified:    2025-06-15 13:15:26
 Author:      Mauro Rosero Pérez <mauro@rosero.one>
 Assistant:   Cursor AI (https://cursor.com)
 """
@@ -606,8 +606,8 @@ class QualityManager:
                     if end != -1:
                         jsdoc_block = content[start:end + 2]
 
-                        # Verificar que el bloque contenga Check Heading
-                        if "Check Heading" in jsdoc_block:
+                        # Verificar que el bloque comience con Check Heading
+                        if jsdoc_block.strip().startswith('/**\n * Check Heading'):
                             header_content = jsdoc_block
 
                             # Definir los alias válidos para cada campo
@@ -682,48 +682,29 @@ class QualityManager:
 
         try:
             # Obtener archivos a validar de los argumentos de línea de comandos
-            # Filtrar argumentos que no son archivos (comandos y opciones)
-            command_args = ['run-hook', 'header-update', 'header-validator']
-            files = [arg for arg in sys.argv[1:]
-                    if not arg.startswith('-')
-                    and not arg.startswith('--')
-                    and arg not in command_args]
-            self._log_debug(f"Argumentos filtrados: {files}")
+            files = sys.argv[1:] if len(sys.argv) > 1 else []
 
             if not files:
                 return True, "✅ No hay archivos para validar"
 
-            # Filtrar archivos que tienen el tag Check Heading y formato válido
+            # Filtrar archivos que tienen el tag Check Heading
             files_with_tag = []
             for file_path in files:
                 try:
-                    # Verificar si el archivo existe
-                    if not Path(file_path).exists():
-                        self._log_debug(f"Ignorando ruta inexistente: {file_path}")
-                        continue
-
                     # Verificar si el archivo es texto
                     if not self._is_text_file(Path(file_path)):
-                        self._log_debug(f"Ignorando archivo binario: {file_path}")
                         continue
 
-                    # Usar el validador para verificar el header
-                    is_valid, header_content, file_type, _ = self._extract_header_metadata(
-                        Path(file_path),
-                        config.get('check_heading_lines', 10)
-                    )
-
-                    if is_valid and "Check Heading" in header_content:
-                        self._log_debug(f"Archivo con tag Check Heading y formato válido encontrado: {file_path}")
-                        files_with_tag.append(file_path)
-                    else:
-                        self._log_debug(f"Ignorando archivo sin tag Check Heading o formato inválido: {file_path}")
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read(check_heading_lines * 100)  # Leer suficientes caracteres para cubrir las líneas
+                        if "Check Heading" in content:
+                            files_with_tag.append(file_path)
                 except Exception as e:
                     self._log_debug(f"No se pudo procesar {file_path}: {str(e)}")
                     continue  # Ignorar archivos que no se pueden leer
 
             if not files_with_tag:
-                return True, "✅ No hay archivos con tag 'Check Heading' y formato válido para validar"
+                return True, "✅ No hay archivos con tag 'Check Heading' para validar"
 
             # Usar sets para errores y advertencias para evitar duplicados desde el inicio
             all_errors = set()
@@ -788,138 +769,90 @@ class QualityManager:
         except Exception:
             return False
 
-    def _run_header_update(self, config: dict) -> Tuple[bool, str]:
-        """Actualiza los campos de fecha en el encabezado del archivo.
-
-        Args:
-            config: Configuración del check
-
-        Returns:
-            bool: True si se actualizó correctamente, False en caso contrario
-        """
+    def _run_header_update(self, config: Dict[str, Any]) -> Tuple[bool, str]:
+        """Ejecuta el hook de actualización de headers."""
         try:
-            # Obtener la fecha actual una sola vez
-            current_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            # Usar el validator para encontrar los archivos con Check Heading
+            success, validator_result = self._run_header_validator(config)
+            if not success:
+                return False, validator_result
 
-            # Obtener archivos a validar de los argumentos de línea de comandos
-            # Filtrar argumentos que no son archivos (comandos y opciones)
-            command_args = ['run-hook', 'header-update', 'header-validator']
-            files = [arg for arg in sys.argv[1:]
-                    if not arg.startswith('-')
-                    and not arg.startswith('--')
-                    and arg not in command_args]
-            self._log_debug(f"Argumentos filtrados: {files}")
+            # Si no hay archivos con Check Heading, terminamos
+            if "No hay archivos con tag 'Check Heading'" in validator_result:
+                return True, validator_result
 
-            if not files:
-                return True, "✅ No hay archivos para actualizar"
-
-            # Filtrar archivos que tienen el tag Check Heading y formato válido
+            # Obtener los archivos que el validator procesó
             files_with_tag = []
-            for file_path in files:
-                try:
-                    # Verificar si el archivo existe
-                    if not Path(file_path).exists():
-                        self._log_debug(f"Ignorando ruta inexistente: {file_path}")
-                        continue
-
-                    # Verificar si el archivo es texto
-                    if not self._is_text_file(Path(file_path)):
-                        self._log_debug(f"Ignorando archivo binario: {file_path}")
-                        continue
-
-                    # Usar el validador para verificar el header
-                    is_valid, header_content, file_type, _ = self._extract_header_metadata(
-                        Path(file_path),
-                        config.get('check_heading_lines', 10)
-                    )
-
-                    if is_valid and "Check Heading" in header_content:
-                        self._log_debug(f"Archivo con tag Check Heading y formato válido encontrado: {file_path}")
+            for line in validator_result.split('\n'):
+                if line.startswith('❌') or line.startswith('⚠️'):
+                    # Extraer el nombre del archivo del mensaje de error/advertencia
+                    file_path = line.split(':')[0].replace('❌ ', '').replace('⚠️  ', '')
+                    if file_path not in files_with_tag:
                         files_with_tag.append(file_path)
-                    else:
-                        self._log_debug(f"Ignorando archivo sin tag Check Heading o formato inválido: {file_path}")
-                except Exception as e:
-                    self._log_debug(f"No se pudo procesar {file_path}: {str(e)}")
-                    continue  # Ignorar archivos que no se pueden leer
 
             if not files_with_tag:
-                return True, "✅ No hay archivos con tag 'Check Heading' y formato válido para actualizar"
+                return True, "✅ No se encontraron archivos con Check Heading para actualizar"
 
-            self._log_debug(f"\nArchivos a procesar: {files_with_tag}")
-
-            # Actualizar cada archivo
+            # Actualizar headers
             updated_count = 0
             errors = []
 
             for file_path in files_with_tag:
                 try:
                     self._log_debug(f"\nProcesando archivo: {file_path}")
-                    # Leer el contenido del archivo
+                    # Extraer metadata usando la misma función que el validator
+                    success, metadata, file_type, header_content = self._extract_header_metadata(Path(file_path), config.get('check_heading_lines', 10))
+
+                    # Si no hay header_content, el archivo no tiene Check Heading o no se pudo extraer
+                    if not success or not header_content:
+                        self._log_debug(f"Archivo {file_path} no tiene Check Heading o no se pudo extraer metadata")
+                        continue
+
+                    self._log_debug(f"Archivo {file_path} tiene Check Heading y metadata válida")
+
+                    # Obtener el formato de fecha del hook y generar la fecha actual
+                    date_format = config.get('date_format', 'YYYY-MM-DD HH:MM:SS')
+                    strftime_format = (date_format
+                        .replace('YYYY', '%Y')
+                        .replace('DD', '%d')
+                        .replace('HH', '%H')
+                        .replace('SS', '%S')
+                        .replace('MM', '%m')
+                        .replace('mm', '%M'))
+                    current_date = datetime.now().strftime(strftime_format)
+
+                    # Leer el archivo
                     with open(file_path, 'r', encoding='utf-8') as f:
                         content = f.read()
 
-                    # Determinar el tipo de archivo
-                    file_type = file_path.split('.')[-1].lower()
-                    self._log_debug(f"\nTipo de archivo detectado: {file_type}")
+                    # Actualizar solo el campo Modified
+                    update_fields = config.get('update_fields', ['Modified'])
+                    new_content = content
+                    for field in update_fields:
+                        # Buscar el campo en el header
+                        if file_type == 'python':
+                            # Para Python, buscar en docstrings
+                            pattern = rf"{field}:\s*[^\n]*"
+                            replacement = f"{field}: {current_date}"
+                        else:
+                            # Para JavaScript/TypeScript, buscar en JSDoc
+                            pattern = rf"@?{field}\s+[^\n]*"
+                            replacement = f"@{field} {current_date}"
 
-                    # Determinar cuántas líneas revisar según el tipo de archivo
-                    check_lines = 20 if file_type in ['js', 'ts', 'jsx', 'tsx'] else config.get('check_heading_lines', 10)
-                    self._log_debug(f"Revisando las primeras {check_lines} líneas")
+                        # Reemplazar solo en el header (primeras líneas)
+                        header_lines = content.split('\n')[:config.get('check_heading_lines', 10)]
+                        header_text = '\n'.join(header_lines)
+                        if re.search(pattern, header_text, re.IGNORECASE):
+                            new_content = re.sub(pattern, replacement, content, flags=re.IGNORECASE)
+                            updated_count += 1
+                            self._log_debug(f"Actualizado campo {field} en {file_path}")
+                            break
 
-                    # Actualizar cada campo según el tipo de archivo
-                    for field in ['Modified']:
-                        field_lower = field.lower()
-                        self._log_debug(f"\nBuscando campo: {field_lower}")
-
-                        # Buscar en las primeras líneas del archivo
-                        for line in content.split('\n')[:check_lines]:
-                            line_lower = line.lower()
-                            self._log_debug(f"Revisando línea: {line_lower}")
-
-                            # Determinar el patrón según el tipo de archivo
-                            if file_type in ['js', 'ts', 'jsx', 'tsx']:
-                                # Para JavaScript/TypeScript, buscar el campo con @
-                                field_with_at = f"@{field_lower}"
-                                if field_with_at in line_lower:
-                                    pattern = rf"(\s*(?:\*|\s)*)(@{field_lower})(\s+[^\n]*)"
-                                    replacement = f"\\1@{field_lower}{current_date}"
-                                    self._log_debug(f"Patrón encontrado (JS/TS): {pattern}")
-                                    self._log_debug(f"Reemplazo: {replacement}")
-
-                                    self._log_debug("¡Línea encontrada!")
-                                    self._log_debug(f"Línea original: {line}")
-                                    # Reemplazar solo esta línea
-                                    new_line = re.sub(pattern, replacement, line, flags=re.IGNORECASE)
-                                    self._log_debug(f"Línea nueva: {new_line}")
-                                    # Reemplazar la línea en el contenido
-                                    content = content.replace(line, new_line)
-                                    break
-                            else:
-                                # Para Python y Bash, buscar el campo sin @
-                                if field_lower in line_lower:
-                                    if file_type in ['py']:
-                                        pattern = rf"(\s*)({field}:)(\s*[^\n]*)"
-                                    else:  # bash
-                                        pattern = rf"(#\s*)({field}:)(\s*[^\n]*)"
-
-                                    replacement = f"\\1\\2{current_date}"
-                                    self._log_debug(f"Patrón encontrado (Py/Bash): {pattern}")
-                                    self._log_debug(f"Reemplazo: {replacement}")
-
-                                    self._log_debug("¡Línea encontrada!")
-                                    self._log_debug(f"Línea original: {line}")
-                                    # Reemplazar solo esta línea
-                                    new_line = re.sub(pattern, replacement, line, flags=re.IGNORECASE)
-                                    self._log_debug(f"Línea nueva: {new_line}")
-                                    # Reemplazar la línea en el contenido
-                                    content = content.replace(line, new_line)
-                                    break
-
-                    # Guardar los cambios
-                    with open(file_path, 'w', encoding='utf-8') as f:
-                        f.write(content)
-                    updated_count += 1
-                    self._log_debug(f"Actualizado campo {field} en {file_path}")
+                    # Escribir el archivo solo si hubo cambios
+                    if new_content != content:
+                        with open(file_path, 'w', encoding='utf-8') as f:
+                            f.write(new_content)
+                        self._log_debug(f"Archivo {file_path} actualizado")
 
                 except Exception as e:
                     error_msg = f"Error al procesar {file_path}: {str(e)}"
