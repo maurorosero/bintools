@@ -666,18 +666,13 @@ class QualityManager:
             return True, "✅ Actualización de headers deshabilitada"
 
         try:
-            # Obtener archivos modificados usando git diff
-            result = subprocess.run(['git', 'diff', '--cached', '--name-only'], capture_output=True, text=True, check=True)
-            files_to_update = result.stdout.strip().split('\n') if result.stdout.strip() else []
-
-            if not files_to_update:
-                return True, "✅ No hay archivos para actualizar"
-
             # Reutilizamos la lógica del validator para validar headers
             success, message = self._run_header_validator(config)
             if not success:
                 return True, f"⚠️ {message} (No se actualizaron los headers)"
 
+            # Si llegamos aquí, significa que los headers son válidos y podemos proceder a actualizarlos
+            files_to_update = sys.argv[1:]  # Usamos los mismos archivos que el validator
             updated_files = []
             errors = []
 
