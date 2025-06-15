@@ -783,7 +783,9 @@ class QualityManager:
             current_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
             # Obtener archivos a validar de los argumentos de línea de comandos
-            files = sys.argv[1:] if len(sys.argv) > 1 else []
+            # Filtrar argumentos que no son archivos (los que empiezan con - o --)
+            files = [arg for arg in sys.argv[1:] if not arg.startswith('-') and not arg.startswith('--')]
+            self._log_debug(f"Argumentos filtrados: {files}")
 
             if not files:
                 return True, "✅ No hay archivos para actualizar"
@@ -792,6 +794,11 @@ class QualityManager:
             files_with_tag = []
             for file_path in files:
                 try:
+                    # Verificar si el archivo existe
+                    if not Path(file_path).exists():
+                        self._log_debug(f"Ignorando ruta inexistente: {file_path}")
+                        continue
+
                     # Verificar si el archivo es texto
                     if not self._is_text_file(Path(file_path)):
                         self._log_debug(f"Ignorando archivo binario: {file_path}")
