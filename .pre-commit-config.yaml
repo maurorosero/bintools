@@ -134,7 +134,5 @@ repos:
         always_run: true
         verbose: true
         types: [file, python, javascript, shell]
-        files: \.(js|jsx|ts|tsx|py|sh|bash)$
-        exclude: ^\.githooks/config/
         fail_fast: false
         description: "Actualiza los headers de los archivos con Check Heading según la fecha de modificación"

@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 """
-Check Heading
 Copyright (C) <2025> MAURO ROSERO PÉREZ (ROSERO ONE DEVELOPMENT)
 
 Script Name: quality_manager.py
