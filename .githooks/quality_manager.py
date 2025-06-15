@@ -817,15 +817,32 @@ class QualityManager:
                                 pattern = rf'{field}:.*$'
                                 replacement = f'{field}:    {current_date}'
                             elif file_type in ['javascript', 'typescript']:
-                                # Para JS/TS, buscar @modified o @Modified
-                                pattern = rf'@(?:modified|Modified)\s+.*$'
-                                replacement = f'@modified {current_date}'
+                                # Para JS/TS, buscar cualquier variante de modified en el bloque JSDoc
+                                # Buscar tanto @modified como @Modified, con o sin espacio después
+                                pattern = rf'\*\s*@(?:modified|Modified)(?:\s+|:)\s*[^\n]*'
+                                replacement = f' * @modified {current_date}'
                             else:  # bash y otros
                                 pattern = rf'# {field}:.*$'
                                 replacement = f'# {field}:    {current_date}'
 
-                            new_content = re.sub(pattern, replacement, new_content, flags=re.MULTILINE)
-                            file_modified = True
+                            # Para JS/TS, asegurarnos de que la actualización se haga dentro del bloque JSDoc
+                            if file_type in ['javascript', 'typescript']:
+                                # Buscar el bloque JSDoc que contiene Check Heading
+                                jsdoc_match = re.search(r'/\*\*\s*\n(?:\s*\*[^\n]*\n)*\s*\*\s*Check Heading', new_content)
+                                if jsdoc_match:
+                                    # Obtener el bloque JSDoc
+                                    jsdoc_start = jsdoc_match.start()
+                                    jsdoc_end = new_content.find('*/', jsdoc_start) + 2
+                                    jsdoc_block = new_content[jsdoc_start:jsdoc_end]
+
+                                    # Actualizar solo dentro del bloque JSDoc
+                                    updated_jsdoc = re.sub(pattern, replacement, jsdoc_block, flags=re.MULTILINE)
+                                    new_content = new_content[:jsdoc_start] + updated_jsdoc + new_content[jsdoc_end:]
+                                    file_modified = True
+                            else:
+                                # Para otros tipos de archivo, actualizar en todo el contenido
+                                new_content = re.sub(pattern, replacement, new_content, flags=re.MULTILINE)
+                                file_modified = True
 
                     if file_modified:
                         # Escribir el archivo modificado
