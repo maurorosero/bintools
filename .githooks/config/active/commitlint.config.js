@@ -12,7 +12,7 @@
  * @version 0.1.0
  * @author Mauro Rosero P. <mauro.rosero@gmail.com>
  * @created 2025-05-12 21:56:33
- * @modified 2025-05-12 21:56:33
+ * @modified 2025-05-12 21:56:3
  *
  */
 
