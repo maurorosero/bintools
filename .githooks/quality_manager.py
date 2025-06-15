@@ -824,53 +824,26 @@ class QualityManager:
                         # Usar la misma lógica de búsqueda que el validator
                         if file_type == 'python':
                             # Para Python, buscar en docstrings
-                            # Capturar solo hasta el campo Modified y sus espacios
-                            pattern = rf"({field}:\s*).*"
-                            # Reemplazar todo lo que viene después del campo con la nueva fecha
+                            # Mantener el formato exacto de la línea
+                            pattern = rf"({field}:\s*)[^\n]*"
                             replacement = f"\\1{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
                         else:
-                            # Para JavaScript/TypeScript, usar la misma lógica de aliases que el validator
-                            field_aliases = {
-                                'Version': ['version', 'Version', 'release', 'Release', 'revision', 'Revision', 'v', 'V'],
-                                'Author': ['author', 'Author', 'by', 'By'],
-                                'Created': ['created', 'Created', 'created_at', 'Created_at'],
-                                'Modified': ['modified', 'Modified', 'updated', 'Updated'],
-                                'Description': ['description', 'Description', 'desc', 'Desc'],
-                                'Script Name': ['file', 'File', 'script', 'Script', 'script_name', 'Script_name'],
-                                'Assistant': ['assistant', 'Assistant', 'helper', 'Helper'],
-                                'Copyright': ['Copyright (C)', 'copyright', 'Copyright'],
-                                'License': ['License:', 'license', 'License']
-                            }
-
-                            # Usar los mismos aliases que el validator
-                            aliases = field_aliases.get(field, [field])
-                            patterns = []
-                            for alias in aliases:
-                                # Patrón sin @ y sin *
-                                # Capturar solo hasta el alias y sus espacios, reemplazar el resto
-                                patterns.append(rf"((?:\*\s*)?{alias}\s+).*")
-                                # Patrón con @ y sin *
-                                patterns.append(rf"((?:\*\s*)?@{alias}\s+).*")
-
-                            # Construir el patrón final combinando todos los casos
-                            pattern = '|'.join(patterns)
-
-                            # Buscar el formato exacto usado en el archivo
-                            for alias in aliases:
-                                # Buscar sin @
-                                if re.search(rf"(?:\*\s*)?{alias}\s+", header_content, re.IGNORECASE):
-                                    # Reemplazar todo lo que viene después del alias con la nueva fecha
-                                    replacement = f"\\1{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-                                    break
-                                # Buscar con @
-                                elif re.search(rf"(?:\*\s*)?@{alias}\s+", header_content, re.IGNORECASE):
-                                    # Reemplazar todo lo que viene después del alias con la nueva fecha
+                            # Para JavaScript/TypeScript, buscar el formato exacto usado en el archivo
+                            # Buscar primero el formato exacto que se usa en el archivo
+                            for line in header_content.split('\n'):
+                                if field.lower() in line.lower():
+                                    # Capturar el formato exacto de la línea hasta la fecha
+                                    if '*' in line:
+                                        # Si tiene asterisco, capturar desde el asterisco hasta la fecha
+                                        pattern = rf"(\*\s*@{field}\s+)[^\n]*"
+                                    else:
+                                        # Si no tiene asterisco, capturar desde el inicio hasta la fecha
+                                        pattern = rf"(@{field}\s+)[^\n]*"
                                     replacement = f"\\1{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
                                     break
                             else:
-                                # Si no se encuentra ningún alias específico, usar el campo por defecto
-                                pattern = rf"((?:\*\s*)?@{field}\s+).*"
-                                # Reemplazar todo lo que viene después del campo con la nueva fecha
+                                # Si no se encuentra el formato específico, usar el patrón por defecto
+                                pattern = rf"(\*\s*@{field}\s+)[^\n]*"
                                 replacement = f"\\1{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
                         # Reemplazar solo en el header (primeras líneas)
