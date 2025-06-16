@@ -7,9 +7,9 @@
  *              estrictas para validar el formato [TAG] (#Issue) Descripción, incluyendo
  *              validación de tipos semánticos como FEAT, FIX, DOCS, etc.
  * Created:     2025-05-12 21:56:33
- * Modified:    2025-06-16 17:15:18
+ * Modified:    2025-06-16 17:22:00
  * Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
- * Version:     0.1.23
+ * Version:     0.1.27
  * Assistant:   Cursor AI (https://cursor.com)
  *
  * @file commitlint.config.semantic.js.def
@@ -18,37 +18,3 @@
 const requireIssueFromMeta = process.env.REQUIRE_ISSUE_FROM_META === 'true';
 const VERSION = "0.1.0"; // Version para el script de versionado
 
-module.exports = {
-  parserPreset: {
-    parserOpts: {
-      headerPattern: /^\[([A-Z]+)\](?: \((#\d+)\))? (.*)$/,
-      headerCorrespondence: ['type', 'scope', 'subject'],
-    },
-  },
-  rules: {
-    'type-enum': [
-      2,
-      'always',
-      [
-        'FEAT',     // Nueva característica
-        'FIX',      // Corrección de bug
-        'DOCS',     // Cambios en documentación
-        'STYLE',    // Cambios que no afectan el significado del código
-        'REFACTOR', // Refactorización de código
-        'PERF',     // Cambios que mejoran el rendimiento
-        'TEST',     // Añadir o corregir tests
-        'BUILD',    // Cambios que afectan el sistema de build
-        'CI',       // Cambios en archivos y scripts de CI
-        'CHORE',    // Otros cambios que no modifican src o test
-        'REVERT'    // Revertir un commit
-      ]
-    ],
-    'type-case': [2, 'always', 'upper-case'],
-    'type-empty': [2, 'never'],
-    'scope-empty': [requireIssueFromMeta ? 2 : 0, 'never'],
-    'scope-case': [2, 'always', 'lower-case'],
-    'subject-empty': [2, 'never'],
-    'subject-case': [2, 'always', 'sentence-case'],
-    'header-max-length': [2, 'always', 100]
-  }
-};
