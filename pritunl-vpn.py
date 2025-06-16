@@ -6,10 +6,10 @@ Check Heading
 Copyright (C) <2025> MAURO ROSERO PÉREZ (ROSERO ONE DEVELOPMENT)
 
 Script Name: pritunl-vpn.py
-Version:     0.1.2
+Version:     0.1.5
 Description: Script multiplataforma para instalar o desinstalar el cliente VPN de Pritunl.
 Created:     2025-05-19 20:56:28
-Modified:    2025-06-16 16:51:46
+Modified:    2025-06-16 17:57:31
 Author:      Mauro Rosero Pérez <mauro@rosero.one>
 Assistant:   Cursor AI (https://cursor.com)
 """
