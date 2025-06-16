@@ -820,13 +820,17 @@ class QualityManager:
                         if file_type == 'python':
                             pattern = rf'{field}:.*$'
                             replacement = f'{field}:    {current_date}'
+                        elif file_type == 'javascript':
+                            # Para JavaScript, buscar líneas con asteriscos al inicio y campos con o sin @
+                            pattern = rf'^\s*\*\s*(?:@)?{field}:.*$'
+                            replacement = f' * {field}:    {current_date}'
                         else:  # bash y otros
                             pattern = rf'# {field}:.*$'
                             replacement = f'# {field}:    {current_date}'
 
                         if field == 'Modified':
                             # Para Modified, actualizar con la fecha actual
-                            new_content = re.sub(pattern, replacement, new_content, flags=re.MULTILINE)
+                            new_content = re.sub(pattern, replacement, new_content, flags=re.MULTILINE | re.IGNORECASE)
                             file_modified = True
                         else:
                             # Para otros campos, mantener su valor actual
