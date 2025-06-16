@@ -814,28 +814,18 @@ class QualityManager:
                     # Para cada campo en update_fields, buscar y actualizar su línea usando sed
                     for field in update_fields:
                         if field == 'Modified':
-                            # Construir el patrón sed según el tipo de archivo
-                            if file_type == 'python':
-                                # Para Python: buscar líneas que contengan "Modified:" y reemplazar la fecha
-                                sed_pattern = rf"s/^(\s*{field}:\s*).*$/\1{current_date}/"
-                            elif file_type == 'javascript':
-                                # Para JavaScript: buscar líneas con asterisco y "Modified:" (con o sin @)
-                                sed_pattern = rf"s/^(\s*\*\s*(?:@)?{field}:\s*).*$/\1{current_date}/"
-                            else:  # bash y otros
-                                # Para bash: buscar líneas con # y "Modified:"
-                                sed_pattern = rf"s/^(\s*#\s*{field}:\s*).*$/\1{current_date}/"
-
                             # Ejecutar sed para modificar solo la línea específica
                             try:
-                                # Limitar sed a las primeras líneas según check_heading_lines
-                                sed_cmd = f"sed -i '1,{check_heading_lines}{{/{field}:/s/^(\\s*"
+                                # Construir el comando sed de manera más simple y robusta
                                 if file_type == 'javascript':
-                                    sed_cmd += rf"\*\s*(?:@)?{field}:\s*).*$/\\1{current_date}/"
+                                    # Para JavaScript: buscar líneas que contengan " * Modified:" y reemplazar solo la fecha
+                                    sed_cmd = f"sed -i '1,{check_heading_lines}s/\\(.*\\* Modified:.*\\)[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] [0-9][0-9]:[0-9][0-9]:[0-9][0-9]/\\1{current_date}/' {file_path}"
                                 elif file_type == 'python':
-                                    sed_cmd += rf"{field}:\s*).*$/\\1{current_date}/"
-                                else:  # bash
-                                    sed_cmd += rf"#\s*{field}:\s*).*$/\\1{current_date}/"
-                                sed_cmd += f"}}' {file_path}"
+                                    # Para Python: buscar líneas que contengan "Modified:" y reemplazar solo la fecha
+                                    sed_cmd = f"sed -i '1,{check_heading_lines}s/\\(.*Modified:.*\\)[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] [0-9][0-9]:[0-9][0-9]:[0-9][0-9]/\\1{current_date}/' {file_path}"
+                                else:  # bash y otros
+                                    # Para bash: buscar líneas que contengan "# Modified:" y reemplazar solo la fecha
+                                    sed_cmd = f"sed -i '1,{check_heading_lines}s/\\(.*# Modified:.*\\)[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] [0-9][0-9]:[0-9][0-9]:[0-9][0-9]/\\1{current_date}/' {file_path}"
 
                                 result = subprocess.run(sed_cmd, shell=True, capture_output=True, text=True)
 
