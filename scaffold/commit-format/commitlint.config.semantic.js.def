@@ -1,19 +1,18 @@
 /**
- * Check Heading .js
- * @description Configuración de commitlint que implementa un formato de commits semántico
- * con un conjunto completo de tipos de commit estandarizados. Define reglas
- * estrictas para validar el formato [TAG] (#Issue) Descripción, incluyendo
- * validación de tipos semánticos como FEAT, FIX, DOCS, etc.
- *
+ * Check Heading
  * Copyright (C) 2025 MAURO ROSERO PÉREZ
  * License: GPLv3
+ * Description: Configuración de commitlint que implementa un formato de commits semántico
+ *              con un conjunto completo de tipos de commit estandarizados. Define reglas
+ *              estrictas para validar el formato [TAG] (#Issue) Descripción, incluyendo
+ *              validación de tipos semánticos como FEAT, FIX, DOCS, etc.
+ * Created:     2025-05-12 21:56:33
+ * Modified:    2025-06-15 16:59:32
+ * Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
+ * Version:     0.1.17
+ * Assistant:   Cursor AI (https://cursor.com)
  *
  * @file commitlint.config.semantic.js.def
- * @release 0.1.18
- * @author Mauro Rosero P. <mauro.rosero@gmail.com>
- * @created 2025-05-12 21:56:33
- * @modified 2025-06-15 16:59:32
- *
  */
 
 const requireIssueFromMeta = process.env.REQUIRE_ISSUE_FROM_META === 'true';
