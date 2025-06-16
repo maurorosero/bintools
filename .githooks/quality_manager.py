@@ -795,16 +795,16 @@ class QualityManager:
                 # Capturar el formato exacto de la línea
                 pattern = rf"(\s*(?:\*|\s)*)(@{field_lower})(\s+[^\n]*)"
                 self._log_debug(f"Patrón encontrado: {pattern}")
-                # Mantener el campo completo en el reemplazo
-                replacement = f"\\1@{field_lower}{current_date}"
+                # Mantener el campo completo en el reemplazo y agregar espacio antes de la fecha
+                replacement = f"\\1@{field_lower} {current_date}"
                 self._log_debug(f"Reemplazo: {replacement}")
                 return line, pattern, replacement
 
         # Si no se encuentra el formato específico, usar el patrón por defecto con "@Modified"
         pattern = rf"(\s*(?:\*|\s)*)(@Modified)(\s+[^\n]*)"
         self._log_debug(f"Usando patrón por defecto: {pattern}")
-        # Mantener el campo completo en el reemplazo por defecto
-        replacement = f"\\1@Modified{current_date}"
+        # Mantener el campo completo en el reemplazo por defecto y agregar espacio antes de la fecha
+        replacement = f"\\1@Modified {current_date}"
         self._log_debug(f"Reemplazo por defecto: {replacement}")
         return None, pattern, replacement
 
@@ -903,7 +903,7 @@ class QualityManager:
 
                     # Actualizar cada campo según el tipo de archivo
                     for field in ['Modified']:
-                        if file_type in ['js', 'ts', 'jsx', 'tsx']:
+                        if file_type in ['js', 'js.def', 'ts', 'jsx', 'tsx']:
                             # Para JavaScript/TypeScript, usar la función con @
                             found_line, pattern, replacement = self._update_field_with_at(content, field, current_date, config)
                         else:
