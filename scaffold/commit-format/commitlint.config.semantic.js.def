@@ -7,9 +7,9 @@
  *              estrictas para validar el formato [TAG] (#Issue) Descripción, incluyendo
  *              validación de tipos semánticos como FEAT, FIX, DOCS, etc.
  * Created:     2025-05-12 21:56:33
- * Modified:    2025-06-16 17:12:22
+ * Modified:    2025-06-16 17:14:09
  * Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
- * Version:     0.1.19
+ * Version:     0.1.21
  * Assistant:   Cursor AI (https://cursor.com)
  *
  * @file commitlint.config.semantic.js.def
