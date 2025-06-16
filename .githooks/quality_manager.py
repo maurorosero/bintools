@@ -9,7 +9,7 @@ Script Name: quality_manager.py
 Version:     0.1.1
 Description: Gestiona los niveles de calidad y formatos de commit de manera independiente.
 Created:     2025-06-14
-Modified:    2025-06-16 16:51:46
+Modified:    2025-06-16 16:59:04
 Author:      Mauro Rosero Pérez <mauro@rosero.one>
 Assistant:   Cursor AI (https://cursor.com)
 """
@@ -1185,6 +1185,7 @@ if __name__ == '__main__':
     # Subparser para run-hook
     run_hook_parser = subparsers.add_parser('run-hook', help='Ejecuta un hook específico según el tipo y la configuración activa.')
     run_hook_parser.add_argument('--hook-type', required=True, help='Tipo de hook a ejecutar (de HookType)')
+    run_hook_parser.add_argument('--verbose', action='store_true', help='Mostrar información detallada')
     run_hook_parser.add_argument('files', nargs='*', help='Archivos a validar')
 
     # Configurar el parser para ignorar argumentos desconocidos
