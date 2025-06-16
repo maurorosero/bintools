@@ -9,7 +9,7 @@
 # Created at:  2025-06-14 20:53:10
 # Modified:    2025-06-16 16:51:46
 # Description: Script para instalar y actualizar paquetes del sistema en diferentes distribuciones Linux y macOS, incluyendo SOPS.
-# Version:     0.1.8
+# Version:     0.1.10
 #
 # Usage: packages.sh [opciones]
 #
