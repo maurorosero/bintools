@@ -135,7 +135,7 @@ repos:
       # Hook de actualización de headers
       - id: header-update
         name: header-update
-        entry: .githooks/quality_manager.py run-hook --hook-type header-update --verbose
+        entry: .githooks/quality_manager.py run-hook --hook-type header-update
         language: python
         additional_dependencies: [PyYAML]
         stages: [pre-commit]
