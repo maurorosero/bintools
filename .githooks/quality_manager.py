@@ -916,8 +916,8 @@ class QualityManager:
                             # Usar re.match para capturar los grupos
                             match = re.match(pattern, found_line, re.IGNORECASE)
                             if match:
-                                # Construir la línea nueva usando los grupos capturados
-                                new_line = f"{match.group(1)}@{field} {current_date}"
+                                # Construir la línea nueva usando los grupos capturados y el campo en minúsculas
+                                new_line = f"{match.group(1)}@{field_lower} {current_date}"
                                 self._log_debug(f"Línea nueva: {new_line}")
                                 # Reemplazar la línea en el contenido
                                 new_content = content.replace(found_line, new_line)
