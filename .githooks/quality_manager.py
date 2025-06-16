@@ -793,18 +793,18 @@ class QualityManager:
 
             if field_with_at in line_lower:
                 # Capturar el formato exacto de la línea
-                pattern = rf"(\s*(?:\*|\s)*)(@{field_lower})(\s+[^\n]*)"
+                pattern = rf"(\s*(?:\*|\s)*)(@{field_lower})(\s+)([^\n]*)"
                 self._log_debug(f"Patrón encontrado: {pattern}")
-                # Mantener el campo completo en el reemplazo y agregar espacio antes de la fecha
-                replacement = f"\\1@{field_lower} {current_date}"
+                # Mantener el campo completo en el reemplazo y usar el espacio capturado
+                replacement = f"\\1@{field_lower}\\3{current_date}"
                 self._log_debug(f"Reemplazo: {replacement}")
                 return line, pattern, replacement
 
         # Si no se encuentra el formato específico, usar el patrón por defecto con "@Modified"
-        pattern = rf"(\s*(?:\*|\s)*)(@Modified)(\s+[^\n]*)"
+        pattern = rf"(\s*(?:\*|\s)*)(@Modified)(\s+)([^\n]*)"
         self._log_debug(f"Usando patrón por defecto: {pattern}")
-        # Mantener el campo completo en el reemplazo por defecto y agregar espacio antes de la fecha
-        replacement = f"\\1@Modified {current_date}"
+        # Mantener el campo completo en el reemplazo por defecto y usar el espacio capturado
+        replacement = f"\\1@Modified\\3{current_date}"
         self._log_debug(f"Reemplazo por defecto: {replacement}")
         return None, pattern, replacement
 
