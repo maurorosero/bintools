@@ -26,6 +26,7 @@ from enum import Enum
 import traceback
 import os
 import re
+import fileinput
 from datetime import datetime
 
 class QualityLevel(Enum):
@@ -805,62 +806,64 @@ class QualityManager:
                         .replace('mm', '%M'))
                     current_date = datetime.now().strftime(strftime_format)
 
-                    # Leer el archivo y actualizar solo la línea de Modified
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        lines = f.readlines()
-                        # Solo procesar las primeras líneas según check_heading_lines
-                        content = ''.join(lines[:config.get('check_heading_lines', 10)])
-
                     # Obtener los campos a actualizar de la configuración
                     update_fields = config.get('update_fields', ['Modified'])
-                    new_content = content
                     file_modified = False
+                    check_heading_lines = config.get('check_heading_lines', 10)
 
-                    # Para cada campo en update_fields, buscar y actualizar su línea
+                    # Para cada campo en update_fields, buscar y actualizar su línea usando sed
                     for field in update_fields:
-                        # Usar un patrón diferente según el tipo de archivo
-                        if file_type == 'python':
-                            pattern = rf'{field}:.*$'
-                            replacement = f'{field}:    {current_date}'
-                        elif file_type == 'javascript':
-                            # Para JavaScript, buscar líneas con asteriscos al inicio y campos con o sin @
-                            pattern = rf'^\s*\*\s*(?:@)?{field}:.*$'
-                            replacement = f' * {field}:    {current_date}'
-                        else:  # bash y otros
-                            pattern = rf'# {field}:.*$'
-                            replacement = f'# {field}:    {current_date}'
-
                         if field == 'Modified':
-                            # Para Modified, actualizar con la fecha actual
-                            new_content = re.sub(pattern, replacement, new_content, flags=re.MULTILINE | re.IGNORECASE)
-                            file_modified = True
-                        else:
-                            # Para otros campos, mantener su valor actual
-                            continue
+                            # Construir el patrón sed según el tipo de archivo
+                            if file_type == 'python':
+                                # Para Python: buscar líneas que contengan "Modified:" y reemplazar la fecha
+                                sed_pattern = rf"s/^(\s*{field}:\s*).*$/\1{current_date}/"
+                            elif file_type == 'javascript':
+                                # Para JavaScript: buscar líneas con asterisco y "Modified:" (con o sin @)
+                                sed_pattern = rf"s/^(\s*\*\s*(?:@)?{field}:\s*).*$/\1{current_date}/"
+                            else:  # bash y otros
+                                # Para bash: buscar líneas con # y "Modified:"
+                                sed_pattern = rf"s/^(\s*#\s*{field}:\s*).*$/\1{current_date}/"
+
+                            # Ejecutar sed para modificar solo la línea específica
+                            try:
+                                # Limitar sed a las primeras líneas según check_heading_lines
+                                sed_cmd = f"sed -i '1,{check_heading_lines}{{/{field}:/s/^(\\s*"
+                                if file_type == 'javascript':
+                                    sed_cmd += rf"\*\s*(?:@)?{field}:\s*).*$/\\1{current_date}/"
+                                elif file_type == 'python':
+                                    sed_cmd += rf"{field}:\s*).*$/\\1{current_date}/"
+                                else:  # bash
+                                    sed_cmd += rf"#\s*{field}:\s*).*$/\\1{current_date}/"
+                                sed_cmd += f"}}' {file_path}"
+
+                                result = subprocess.run(sed_cmd, shell=True, capture_output=True, text=True)
+
+                                if result.returncode == 0:
+                                    file_modified = True
+                                else:
+                                    errors.append(f"Error ejecutando sed en {file_path}: {result.stderr}")
+                            except Exception as e:
+                                errors.append(f"Error ejecutando sed en {file_path}: {str(e)}")
+                            break  # Solo procesar el campo Modified
 
                     if file_modified:
-                        try:
-                            # Escribir el archivo modificado
-                            with open(file_path, 'w', encoding='utf-8') as f:
-                                f.write(new_content)
-                            updated_files.append(file_path)
+                        updated_files.append(file_path)
 
-                            # Agregar el archivo modificado al staging area
-                            try:
-                                result = subprocess.run(['git', 'add', file_path],
-                                                      check=True,
-                                                      capture_output=True,
-                                                      text=True)
-                                if result.returncode == 0:
-                                    staged_files.append(file_path)
-                                else:
-                                    errors.append(f"Error al agregar {file_path} al staging: {result.stderr}")
-                            except subprocess.CalledProcessError as e:
-                                errors.append(f"Error al agregar {file_path} al staging: {e.stderr}")
-                            except Exception as e:
-                                errors.append(f"Error inesperado al agregar {file_path} al staging: {str(e)}")
+                        # Agregar el archivo modificado al staging area
+                        try:
+                            result = subprocess.run(['git', 'add', file_path],
+                                                  check=True,
+                                                  capture_output=True,
+                                                  text=True)
+                            if result.returncode == 0:
+                                staged_files.append(file_path)
+                            else:
+                                errors.append(f"Error al agregar {file_path} al staging: {result.stderr}")
+                        except subprocess.CalledProcessError as e:
+                            errors.append(f"Error al agregar {file_path} al staging: {e.stderr}")
                         except Exception as e:
-                            errors.append(f"Error al escribir {file_path}: {str(e)}")
+                            errors.append(f"Error inesperado al agregar {file_path} al staging: {str(e)}")
 
                 except Exception as e:
                     errors.append(f"Error en {file_path}: {str(e)}")
