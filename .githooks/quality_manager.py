@@ -9,7 +9,7 @@ Script Name: quality_manager.py
 Version:     0.1.1
 Description: Gestiona los niveles de calidad y formatos de commit de manera independiente.
 Created:     2025-06-14
-Modified:    2025-06-16 16:41:48
+Modified:    2025-06-16 16:51:46
 Author:      Mauro Rosero Pérez <mauro@rosero.one>
 Assistant:   Cursor AI (https://cursor.com)
 """
@@ -538,17 +538,38 @@ class QualityManager:
                 # Para otros tipos, buscar comentarios de línea
                 lines = content.split('\n')
                 header_lines = []
-                for line in lines[:check_heading_lines]:
+                found_tag = False
+                for i, line in enumerate(lines[:check_heading_lines]):
+                    # Limpiar la línea
+                    clean_line = line.strip()
+
                     # Buscar comentarios de línea según el tipo de archivo
-                    if file_type == 'shell' and line.strip().startswith('#'):
-                        header_lines.append(line.strip()[1:].strip())
-                    elif file_type == 'yaml' and line.strip().startswith('#'):
-                        header_lines.append(line.strip()[1:].strip())
-                    elif file_type == 'markdown' and line.strip().startswith('<!--'):
-                        # Para markdown, buscar comentarios HTML
-                        if line.strip().endswith('-->'):
-                            header_lines.append(line.strip()[4:-3].strip())
-                header_content = '\n'.join(header_lines)
+                    if file_type in ['shell', 'bash'] and clean_line.startswith('#'):
+                        # Para shell/bash, remover el # y espacios
+                        clean_line = clean_line[1:].strip()
+                        if "Check Heading" in clean_line:
+                            found_tag = True
+                            header_lines.append(clean_line)
+                        elif found_tag and clean_line:  # Solo agregar líneas no vacías después de encontrar el tag
+                            header_lines.append(clean_line)
+                    elif file_type == 'yaml' and clean_line.startswith('#'):
+                        clean_line = clean_line[1:].strip()
+                        if "Check Heading" in clean_line:
+                            found_tag = True
+                            header_lines.append(clean_line)
+                        elif found_tag and clean_line:
+                            header_lines.append(clean_line)
+                    elif file_type == 'markdown' and clean_line.startswith('<!--'):
+                        if clean_line.endswith('-->'):
+                            clean_line = clean_line[4:-3].strip()
+                            if "Check Heading" in clean_line:
+                                found_tag = True
+                                header_lines.append(clean_line)
+                            elif found_tag and clean_line:
+                                header_lines.append(clean_line)
+
+                if found_tag:
+                    header_content = '\n'.join(header_lines)
 
             if not header_content:
                 return False, "No se encontró contenido en el header", file_type, ""
@@ -602,6 +623,10 @@ class QualityManager:
                         # Limpiar cualquier asterisco restante en el campo o valor
                         field = re.sub(r'^\s*\*\s*', '', field)
                         value = re.sub(r'^\s*\*\s*', '', value)
+
+                        # Normalizar campos específicos
+                        if field == 'Created at':
+                            field = 'Created'
 
                         # Si el campo ya existe, actualizar su valor
                         if field in metadata:
