@@ -6,7 +6,7 @@ Copyright (C) 2025 MAURO ROSERO PÉREZ
 License: GPLV3
 
 File: email_cleaner.py
-Version: 0.1.0
+Version: 0.2.1
 Author: Mauro Rosero P. <mauro.rosero@gmail.com>
 Assistant: Cursor AI (https://cursor.com)
 Created: 2025-04-30 05:52:19

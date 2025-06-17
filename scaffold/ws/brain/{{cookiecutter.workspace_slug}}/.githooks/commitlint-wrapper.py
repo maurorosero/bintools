@@ -9,7 +9,7 @@ Copyright (C) 2025 MAURO ROSERO PÉREZ
 License: GPLv3
 
 File: commitlint-wrapper.py
-Version: 0.1.0
+Version: 0.1.3
 Author: Mauro Rosero P. <mauro.rosero@gmail.com>
 Created: 2025-05-19 20:48:14
 

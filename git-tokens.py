@@ -9,7 +9,7 @@ Copyright (C) 2025 MAURO ROSERO PÉREZ
 License: GPLV3
 
 File: git-tokens.py
-Version: 0.1.0
+Version: 1.1.0
 Author: Mauro Rosero P. <mauro.rosero@gmail.com>
 Assistant: Cursor AI (https://cursor.com)
 Created: 2025-05-24 13:11:33

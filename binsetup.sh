@@ -6,7 +6,7 @@
 # License: GPLv3
 #
 # File: binsetup.sh
-# Version: 0.1.0
+# Version: 0.2.1
 # Author: Mauro Rosero P. <mauro.rosero@gmail.com>
 # Assistant: Cursor AI (https://cursor.com)
 # Created: 2025-05-19 20:53:17

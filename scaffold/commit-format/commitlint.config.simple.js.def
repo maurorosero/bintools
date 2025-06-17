@@ -7,16 +7,16 @@
  *              Define reglas básicas para validar el formato [TAG] (#Issue) Descripción
  *              con un conjunto limitado de tipos de commit permitidos.
  * Created:     2025-05-12 21:56:33
- * Modified:    2025-06-17 02:19:54
+ * Modified:    2025-06-17 15:58:37
  * Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
- * Version:     0.1.0
+ * Version:     2.0.0
  * Assistant:   Cursor AI (https://cursor.com)
  *
  * @file commitlint.config.simple.js.def
  */
 
 const requireIssueFromMeta = process.env.REQUIRE_ISSUE_FROM_META === 'true';
-const VERSION = "0.1.0"; // Version para el script de versionado
+const VERSION = "2.0.0"; // Version para el script de versionado
 
 module.exports = {
   // extends: ['@commitlint/config-conventional'], // Eliminado para usar nuestro parserPreset

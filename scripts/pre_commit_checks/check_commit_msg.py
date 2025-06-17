@@ -5,7 +5,7 @@
 # License: GPLV3
 # Author: Mauro Rosero P. (mauro.rosero@gmail.com)
 # Created: 2025-05-15 17:09:10
-# Version: 0.1.0
+# Version: 0.0.1
 #
 # check_commit_msg.py - Description placeholder
 # -----------------------------------------------------------------------------

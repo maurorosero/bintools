@@ -5,7 +5,7 @@
 # License: GPLV3
 # Author: Mauro Rosero P. (mauro.rosero@gmail.com)
 # Created: 2025-05-13 00:27:13
-# Version: 0.1.0
+# Version: 0.1.1
 #
 # update_file_versions.py - Actualiza automáticamente las variables VERSION en archivos modificados
 # -----------------------------------------------------------------------------
