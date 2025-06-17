@@ -1,19 +1,18 @@
 /**
- * Check Heading .js
- * @description Configuración de commitlint que implementa un formato de commits convencional
- * adaptado al formato [TAG] (#Issue) Descripción. Esta configuración mantiene
- * la flexibilidad de los commits convencionales mientras asegura la estructura
- * básica requerida para el seguimiento de issues.
- *
+ * Check Heading
  * Copyright (C) 2025 MAURO ROSERO PÉREZ
  * License: GPLv3
+ * Description: Configuración de commitlint que implementa un formato de commits convencional
+ *              adaptado al formato [TAG] (#Issue) Descripción. Esta configuración mantiene
+ *              la flexibilidad de los commits convencionales mientras asegura la estructura
+ *              básica requerida para el seguimiento de issues.
+ * Created:     2025-05-12 21:56:33
+ * Modified:    2025-06-17 02:19:54
+ * Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
+ * Version:     0.1.0
+ * Assistant:   Cursor AI (https://cursor.com)
  *
  * @file commitlint.config.conventional.js.def
- * @release 0.1.0
- * @author Mauro Rosero P. <mauro.rosero@gmail.com>
- * @created 2025-05-12 21:56:33
- * @modified 2025-05-12 21:56:33
- *
  */
 
 const requireIssueFromMeta = process.env.REQUIRE_ISSUE_FROM_META === 'true';
