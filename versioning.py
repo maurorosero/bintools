@@ -5,7 +5,7 @@ Check Heading
 Copyright (C) 2025 MAURO ROSERO PÉREZ
 
 Script Name: versioning.py
-Mauro Rosero P. <mauro.rosero@gmail.com>
+Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
 Assistant:   Cursor AI (https://cursor.com)
 Created at:  2025-01-27
 Modified:    2025-01-27
