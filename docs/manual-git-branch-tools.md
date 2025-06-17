@@ -36,6 +36,11 @@ PARSEABLE_METADATA_END -->
 - [Hotfix](#hotfix)
 - [Release](#release)
 
+### 📦 Versiones y Releases
+- [Control de Versionado](#control-de-versionado)
+- [Componentes del Versionado Semántico](#componentes-del-versionado-semantico)
+- [Cálculo de Versión](#calculo-de-version)
+
 ### 🔍 Troubleshooting
 - [Problemas Comunes y Soluciones](#problemas-comunes-y-soluciones)
 - [Comandos de Diagnóstico](#comandos-de-diagnostico)
@@ -792,6 +797,7 @@ Los hooks implementan diferentes niveles de validación según el contexto:
 
 La estructura de githooks implementa un sistema modular y configurable de validaciones que se integra directamente con el flujo de trabajo de Git. Cada hook se organiza en directorios específicos según su nivel de validación (LOCAL, HYBRID, REMOTE) y su momento de ejecución (pre-commit, commit-msg, pre-push). Los scripts de validación se almacenan en `.githooks/` y se enlazan automáticamente al directorio `.git/hooks/` mediante un sistema de symlinks gestionado por el script de instalación. Esta arquitectura permite una fácil personalización y mantenimiento de las validaciones, así como la activación/ (activate)  selectiva de hooks según el contexto del proyecto. Los hooks pueden ser extendidos o modificados sin afectar la estructura base, manteniendo la consistencia en las validaciones mientras se adaptan a las necesidades específicas de cada repositorio.
 
+```bash
 .githooks/
 ├── quality_manager.py          # Gestor de calidad y hooks
 ├── branch-workflow-validator.py # Validador de workflow
@@ -805,6 +811,7 @@ La estructura de githooks implementa un sistema modular y configurable de valida
         ├── standard/          # Nivel standard
         ├── enterprise/        # Nivel enterprise
         └── minimal/           # Nivel minimal
+```
 
 #### Comfiguración de Hooks (hooks.yaml)
 
@@ -823,7 +830,7 @@ El archivo workflow.yaml es un archivo de configuración que define las reglas y
 .githooks/quality_manager.py list-formats
 
 # Salida ejemplo:
-�� Formatos de Commit Disponibles
+ Formatos de Commit Disponibles
 --------------------------------
 minimal.js: Formato minimal para commits básicos
 simple.js: Formato simple con tipo y descripción
@@ -889,6 +896,11 @@ Formato de commit: semantic.js
 ❌ Error: Tipo de hook no válido: invalid_hook
 Tipos disponibles: format, exec, size, detect-secrets, commitlint, branch-workflow-commit, branch-workflow-push
 ```
+
+##### run-hook header-validate
+
+##### run-hook header-update
+
 
 
 ## 🔄 Workflows Detallados
@@ -1058,6 +1070,301 @@ git-integration-manager.py integrate release/v1.0.0
 git tag -a v1.0.0 -m "Release v1.0.0"
 git push --tags
 ```
+## 📦 Versiones y Releases
+
+### Control de Versionado
+
+El control de versionado es un sistema metodológico que permite gestionar los cambios en el software de manera organizada y trazable. Cada versión representa un estado específico del código en un momento determinado, facilitando la colaboración, el mantenimiento y la distribución del software.
+
+Nuestra metodología de versionado se basa en **Semantic Versioning (SemVer)** con un enfoque pragmático adaptado a diferentes contextos de desarrollo. El sistema utiliza el formato `MAJOR.MINOR.PATCH` con sufijos opcionales para pre-releases.
+
+### Componentes del Versionado Semántico
+
+El versionado semántico se basa en tres componentes principales que indican la naturaleza y magnitud de los cambios:
+
+#### **MAJOR (Versión Mayor)**
+
+- **Incremento**: Cuando hay cambios **incompatibles** con versiones anteriores
+- **Ejemplos**:
+  - Cambios en APIs públicas que rompen compatibilidad
+  - Eliminación de funcionalidades deprecadas
+  - Cambios arquitectónicos significativos
+  - Refactorizaciones
+- **Impacto**: Puede requerir migración de código existente
+- **Ejemplo**: `1.0.0` → `2.0.0`
+
+#### **MINOR (Versión Menor)**
+
+- **Incremento**: Cuando se añaden **nuevas funcionalidades** de forma compatible
+- **Ejemplos**:
+  - Nuevas características que no rompen funcionalidad existente
+  - Mejoras en rendimiento o usabilidad
+  - Nuevos endpoints o métodos opcionales
+- **Impacto**: Compatible hacia atrás, no requiere migración
+- **Ejemplo**: `1.2.0` → `1.3.0`
+
+#### **PATCH (Versión de Parche)**
+
+- **Incremento**: Para **correcciones de bugs** y mejoras menores
+- **Ejemplos**:
+  - Corrección de errores de programación
+  - Actualizaciones de seguridad
+  - Mejoras en documentación
+  - Optimizaciones menores
+- **Impacto**: Mínimo, solo correcciones
+- **Ejemplo**: `1.2.3` → `1.2.4`
+
+### Cálculo de Versión
+
+El cálculo de versión se realiza mediante el script `versioning.py`, que implementa un sistema inteligente de versionado basado en el análisis del historial de commits. Este script proporciona un control granular de versiones, permitiendo un seguimiento preciso de los cambios y su impacto en cada componente del proyecto.
+
+#### **Características Principales**
+
+- **Análisis por archivo individual**: Calcula la versión específica de cada archivo basándose en sus commits
+- **Análisis de repositorio completo**: Calcula la versión global del proyecto
+- **Búsqueda recursiva**: Encuentra archivos en subdirectorios automáticamente
+- **Actualización automática**: Actualiza headers de versión en archivos
+- **Soporte para patrones glob**: Permite analizar grupos de archivos
+- **Modo silencioso**: Solo muestra información relevante cuando se solicita
+
+#### **Comandos Básicos**
+
+```bash
+# Analizar un archivo específico
+python versioning.py micursor.py
+
+# Analizar múltiples archivos
+python versioning.py micursor.py pymanager.sh
+
+# Analizar con patrones glob
+python versioning.py "*.py"
+python versioning.py "scripts/*.py"
+
+# Analizar todo el repositorio
+python versioning.py
+
+# Buscar archivo recursivamente (por defecto)
+python versioning.py branch-workflow-validator.py
+
+# Buscar solo en directorio actual
+python versioning.py branch-workflow-validator.py --no-depth
+```
+
+#### **Comandos de Actualización**
+
+```bash
+# Actualizar versión en un archivo específico
+python versioning.py micursor.py --update
+
+# Actualizar versión global en .project/version
+python versioning.py --update
+
+# Actualizar versiones en todos los archivos del proyecto
+python versioning.py --update-all
+
+# Actualizar con información detallada
+python versioning.py --update-all --verbose
+
+# Actualizar solo archivos en directorio actual
+python versioning.py --update-all --no-depth
+```
+
+#### **Reglas de Versionado**
+
+El script utiliza un sistema de tags de commit para determinar el tipo de incremento de versión:
+
+##### **Análisis Individual (por archivo)**
+
+| Tag | Incremento | Descripción |
+|-----|------------|-------------|
+| `[RELEASE]` | MAJOR | Release oficial, resetea minor y patch |
+| `[REFACTOR]` | MAJOR | Refactorización significativa |
+| `[FEAT]` | MINOR | Nueva funcionalidad |
+| `[PERF]` | MINOR | Mejora de rendimiento |
+| `[UPDATE]` | MINOR | Actualización de funcionalidad |
+| `[IMPROVE]` | MINOR | Mejora general |
+| `[FIX]` | PATCH | Corrección de bug |
+| `[STYLE]` | PATCH | Cambios de estilo/formato |
+| `[DOCS]`, `[TEST]`, `[BUILD]`, `[CI]`, `[CHORE]` | NINGUNO | No afectan la versión |
+
+##### **Análisis de Grupo (múltiples archivos)**
+
+| Tag | Incremento | Descripción |
+|-----|------------|-------------|
+| `[RELEASE]` | MAJOR | Release oficial, resetea minor y patch |
+| `[REFACTOR]` | MINOR | Refactorización (menor impacto en grupo) |
+| `[FEAT]` | MINOR | Nueva funcionalidad |
+| `[PERF]` | MINOR | Mejora de rendimiento |
+| `[UPDATE]` | MINOR | Actualización de funcionalidad |
+| `[IMPROVE]` | MINOR | Mejora general |
+| `[FIX]` | PATCH | Corrección de bug |
+| `[STYLE]` | PATCH | Cambios de estilo/formato |
+| `[DOCS]`, `[TEST]`, `[BUILD]`, `[CI]`, `[CHORE]` | NINGUNO | No afectan la versión |
+
+#### **Formatos de Commit Soportados**
+
+El script reconoce múltiples formatos de mensajes de commit:
+
+```bash
+# Formato con corchetes
+[FEAT] Añade nueva funcionalidad
+[FIX] (#123) Corrige bug crítico
+[REFACTOR] Reorganiza estructura del código
+
+# Formato con dos puntos
+feat: añade nueva funcionalidad
+fix: corrige bug crítico
+refactor: reorganiza estructura del código
+
+# Formato simple
+FEAT añade nueva funcionalidad
+FIX corrige bug crítico
+REFACTOR reorganiza estructura del código
+```
+
+#### **Ejemplos Prácticos**
+
+##### **Ejemplo 1: Análisis de un archivo con historial**
+
+```bash
+# Analizar archivo con commits
+python versioning.py micursor.py
+# Salida: 0.3.0
+
+# Ver commits que afectan al archivo
+git log --follow --oneline micursor.py
+# Salida:
+# a1b2c3d [FEAT] Añade funcionalidad de búsqueda
+# e4f5g6h [FIX] Corrige error de conexión
+# i7j8k9l [STYLE] Mejora formato del código
+```
+
+##### **Ejemplo 2: Actualización de versión en archivo**
+
+```bash
+# Actualizar versión en header del archivo
+python versioning.py micursor.py --update
+
+# El script actualiza automáticamente la línea de versión:
+# Version: 0.3.0
+```
+
+##### **Ejemplo 3: Análisis de grupo de archivos**
+
+```bash
+# Analizar todos los archivos Python
+python versioning.py "*.py"
+
+# Analizar archivos en subdirectorio
+python versioning.py "scripts/*.py"
+
+# Analizar con búsqueda recursiva
+python versioning.py "**/*.py"
+```
+
+##### **Ejemplo 4: Actualización masiva de versiones**
+
+```bash
+# Actualizar versiones en todos los archivos del proyecto
+python versioning.py --update-all --verbose
+
+# Salida:
+# micursor.py: 0.3.0
+# pymanager.sh: 0.2.1
+# email_cleaner.py: 0.2.1
+# git-tokens.py: 1.1.0
+# versioning.py: 2.0.0
+```
+
+#### **Configuración Avanzada**
+
+##### **Opciones de Búsqueda**
+
+```bash
+# Búsqueda recursiva (por defecto)
+python versioning.py archivo.py --depth
+
+# Solo directorio actual
+python versioning.py archivo.py --no-depth
+
+# Especificar ruta del repositorio
+python versioning.py archivo.py --path /ruta/al/repo
+```
+
+##### **Modo Verbose**
+
+```bash
+# Solo con --update-all, muestra archivos procesados exitosamente
+python versioning.py --update-all --verbose
+
+# No muestra archivos sin commits o que no se pudieron actualizar
+# Solo archivos con versión > 0.0.0 y actualización exitosa
+```
+
+#### **Integración con Workflows**
+
+##### **En CI/CD**
+
+```bash
+# Actualizar versiones antes del release
+python versioning.py --update-all
+
+# Verificar versión del proyecto
+python versioning.py --update
+cat .project/version
+```
+
+##### **En Pre-commit**
+
+```bash
+# Verificar que las versiones estén actualizadas
+python versioning.py --update-all --verbose
+```
+
+#### **Troubleshooting**
+
+##### **Problemas Comunes**
+
+1. **"No se encontraron archivos que coincidan con los patrones"**
+   - Verifica que el archivo existe en la ruta especificada
+   - Usa `--depth` para búsqueda recursiva
+   - Verifica el patrón glob utilizado
+
+2. **"No se pudo leer las primeras 20 líneas"**
+   - El archivo no tiene header de versión
+   - El archivo está corrupto o no es legible
+   - Verifica permisos del archivo
+
+3. **Versión 0.0.0**
+   - El archivo no tiene commits en su historial
+   - Los commits no tienen tags válidos
+   - Verifica el historial con `git log --follow archivo`
+
+##### **Comandos de Diagnóstico**
+
+```bash
+# Ver commits de un archivo
+git log --follow --oneline archivo.py
+
+# Ver historial completo de un archivo
+git log --follow --oneline --reverse archivo.py
+
+# Verificar si el archivo tiene header de versión
+head -20 archivo.py | grep -i version
+
+# Verificar tags de commits
+git log --oneline archivo.py | grep -E "\[(FEAT|FIX|REFACTOR|STYLE)\]"
+```
+
+#### **Mejores Prácticas**
+
+1. **Usar tags consistentes**: Mantén un formato de commit consistente en todo el proyecto
+2. **Actualizar versiones regularmente**: Ejecuta `--update-all` antes de releases
+3. **Verificar versiones**: Usa `--verbose` para ver qué archivos se actualizaron
+4. **Documentar cambios**: Incluye información relevante en los mensajes de commit
+5. **Integrar en workflows**: Automatiza la actualización de versiones en CI/CD
+
+El script `versioning.py` proporciona un control granular y automatizado del versionado, facilitando el seguimiento de cambios y la gestión de releases en proyectos complejos con múltiples componentes.
 
 ## 🔍 Troubleshooting
 
