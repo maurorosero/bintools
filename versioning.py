@@ -8,10 +8,10 @@ Script Name: versioning.py
 Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
 Assistant:   Cursor AI (https://cursor.com)
 Created at:  2025-01-27
-Modified:    2025-06-17 13:15:40
+Modified:    2025-06-17 15:25:54
 Description: Analiza el historial de Git de un archivo específico y calcula la versión
              major.minor.patch basándose en los tags de commit encontrados.
-Version:     0.1.0
+Version:     1.1.0
 """
 
 # 1. Imports de la biblioteca estándar (ordenados alfabéticamente)
@@ -302,6 +302,22 @@ def update_file_version_header(filepath: Path, new_version: str) -> bool:
     return False
 
 
+def get_all_project_files(repo_path: Path) -> List[str]:
+    """Obtiene todos los archivos del proyecto (excluyendo .git, __pycache__, etc.)."""
+    files = []
+    exclude_patterns = {'.git', '__pycache__', '.pytest_cache', '.venv', 'venv', 'node_modules', '.vscode', '.idea'}
+
+    for file_path in repo_path.rglob('*'):
+        if file_path.is_file():
+            # Verificar que no esté en directorios excluidos
+            if not any(exclude in str(file_path) for exclude in exclude_patterns):
+                # Convertir a ruta relativa
+                relative_path = str(file_path.relative_to(repo_path))
+                files.append(relative_path)
+
+    return files
+
+
 def main():
     """Función principal del script."""
     parser = argparse.ArgumentParser(
@@ -311,6 +327,7 @@ def main():
 Ejemplos de uso:
   python versioning.py                    # Analiza todo el repositorio
   python versioning.py --update           # Analiza repositorio y actualiza .project/version
+  python versioning.py --update-all       # Actualiza versión en todos los archivos del proyecto
   python versioning.py micursor.py        # Analiza archivo específico
   python versioning.py *.py               # Analiza grupo de archivos Python
   python versioning.py micursor.py pymanager.sh  # Analiza grupo de archivos específicos
@@ -351,16 +368,51 @@ Formatos de commit soportados:
         help='Actualiza el archivo .project/version con la versión calculada (solo válido sin archivo específico)'
     )
 
+    parser.add_argument(
+        '--update-all',
+        action='store_true',
+        help='Actualiza la versión en todos los archivos del proyecto (cálculo individual por archivo)'
+    )
+
     args = parser.parse_args()
+
+    # Validar que --update y --update-all no se usen juntos
+    if args.update and args.update_all:
+        print("Error: --update y --update-all no pueden usarse juntos", file=sys.stderr)
+        sys.exit(1)
 
     # Validar que --update solo se use sin archivos específicos o con un solo archivo
     if args.update and args.filenames and len(args.filenames) > 1:
         print("Error: --update solo puede usarse sin especificar archivos (análisis global) o con un solo archivo", file=sys.stderr)
         sys.exit(1)
 
+    # Validar que --update-all no se use con archivos específicos
+    if args.update_all and args.filenames:
+        print("Error: --update-all no puede usarse con archivos específicos", file=sys.stderr)
+        sys.exit(1)
+
     # Validaciones
     if not validate_git_repo(args.path):
         sys.exit(1)
+
+    # Si se especificó --update-all, procesar todos los archivos
+    if args.update_all:
+        all_files = get_all_project_files(args.path)
+        print(f"Procesando {len(all_files)} archivos...")
+
+        for filename in all_files:
+            file_commits = get_file_commits(args.path, filename)
+            if file_commits:
+                # Cada archivo se procesa individualmente, no como grupo
+                version = calculate_version(file_commits, is_group_analysis=False)
+                file_path = args.path / filename
+                if update_file_version_header(file_path, version):
+                    print(f"✓ {filename}: {version}")
+                else:
+                    print(f"✗ {filename}: No se pudo actualizar")
+            else:
+                print(f"- {filename}: Sin commits")
+        return
 
     # Obtener commits según si se especificaron archivos o no
     if args.filenames:
