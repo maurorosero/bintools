@@ -8,7 +8,7 @@ Script Name: versioning.py
 Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
 Assistant:   Cursor AI (https://cursor.com)
 Created at:  2025-01-27
-Modified:    2025-06-17 10:12:02
+Modified:    2025-06-17 10:23:02
 Description: Analiza el historial de Git de un archivo específico y calcula la versión
              major.minor.patch basándose en los tags de commit encontrados.
 Version:     0.1.0
@@ -188,6 +188,26 @@ def calculate_version(commits: List[str]) -> str:
     return f"{major}.{minor}.{patch}"
 
 
+def write_version_to_file(repo_path: Path, version: str) -> bool:
+    """Escribe la versión calculada en el archivo .project/version."""
+    project_dir = repo_path / ".project"
+    version_file = project_dir / "version"
+
+    try:
+        # Crear directorio .project si no existe
+        project_dir.mkdir(exist_ok=True)
+
+        # Escribir la versión en el archivo
+        with open(version_file, 'w', encoding='utf-8') as f:
+            f.write(version)
+
+        print(f"Versión {version} escrita en {version_file}")
+        return True
+    except Exception as e:
+        print(f"Error escribiendo versión en {version_file}: {e}", file=sys.stderr)
+        return False
+
+
 def main():
     """Función principal del script."""
     parser = argparse.ArgumentParser(
@@ -196,8 +216,10 @@ def main():
         epilog="""
 Ejemplos de uso:
   python versioning.py                    # Analiza todo el repositorio
+  python versioning.py --update           # Analiza repositorio y actualiza .project/version
   python versioning.py micursor.py        # Analiza archivo específico
   python versioning.py -p /path/to/repo   # Analiza repositorio en ruta específica
+  python versioning.py -p /path/to/repo --update
   python versioning.py -p /path/to/repo micursor.py
   python versioning.py branch-workflow-validator.py  # Busca en historial aunque no exista actualmente
 
@@ -226,7 +248,18 @@ Formatos de commit soportados:
         help='Ruta del repositorio Git (por defecto: carpeta actual)'
     )
 
+    parser.add_argument(
+        '--update',
+        action='store_true',
+        help='Actualiza el archivo .project/version con la versión calculada (solo válido sin archivo específico)'
+    )
+
     args = parser.parse_args()
+
+    # Validar que --update solo se use sin archivo específico
+    if args.update and args.filename:
+        print("Error: --update solo puede usarse sin especificar archivo (análisis global)", file=sys.stderr)
+        sys.exit(1)
 
     # Validaciones
     if not validate_git_repo(args.path):
@@ -240,12 +273,16 @@ Formatos de commit soportados:
         commits = get_repo_commits(args.path)
 
     if not commits:
-        print("0.0.0")
-        return
+        version = "0.0.0"
+    else:
+        version = calculate_version(commits)
 
-    # Calcular versión
-    version = calculate_version(commits)
     print(version)
+
+    # Si se especificó --update y no hay archivo específico, escribir en .project/version
+    if args.update and not args.filename:
+        if not write_version_to_file(args.path, version):
+            sys.exit(1)
 
 
 if __name__ == "__main__":
