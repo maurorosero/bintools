@@ -7,7 +7,7 @@
 # Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
 # Assistant:   Cursor AI (https://cursor.com)
 # Created at:  2025-06-14 20:53:10
-# Modified:    2025-06-17 15:58:19
+# Modified:    2025-06-17 15:58:37
 # Description: Script para instalar y actualizar paquetes del sistema en diferentes distribuciones Linux y macOS, incluyendo SOPS.
 # Version:     0.2.5
 #

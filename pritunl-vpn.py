@@ -9,7 +9,7 @@ Script Name: pritunl-vpn.py
 Version:     1.0.2
 Description: Script multiplataforma para instalar o desinstalar el cliente VPN de Pritunl.
 Created:     2025-05-19 20:56:28
-Modified:    2025-06-17 15:58:19
+Modified:    2025-06-17 15:58:37
 Author:      Mauro Rosero Pérez <mauro@rosero.one>
 Assistant:   Cursor AI (https://cursor.com)
 """
