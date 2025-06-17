@@ -8,7 +8,7 @@ Script Name: versioning.py
 Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
 Assistant:   Cursor AI (https://cursor.com)
 Created at:  2025-01-27
-Modified:    2025-06-17 12:49:29
+Modified:    2025-06-17 13:15:40
 Description: Analiza el historial de Git de un archivo específico y calcula la versión
              major.minor.patch basándose en los tags de commit encontrados.
 Version:     0.1.0
@@ -262,6 +262,46 @@ def get_group_commits(repo_path: Path, file_patterns: List[str]) -> List[str]:
     return commits_list
 
 
+def update_file_version_header(filepath: Path, new_version: str) -> bool:
+    """
+    Busca en las primeras 20 líneas del archivo una línea con 'version' o 'versión' (case-insensitive)
+    y un patrón major.minor.patch, y reemplaza ese valor por la nueva versión usando sed.
+    """
+    try:
+        # Leer las primeras 20 líneas
+        with open(filepath, 'r', encoding='utf-8') as f:
+            header_lines = [next(f) for _ in range(20)]
+    except (FileNotFoundError, StopIteration):
+        print(f"Error: No se pudo leer las primeras 20 líneas de {filepath}", file=sys.stderr)
+        return False
+    except Exception as e:
+        print(f"Error leyendo archivo {filepath}: {e}", file=sys.stderr)
+        return False
+
+    # Buscar línea con version/versión y patrón de versión
+    import re
+    version_pattern = re.compile(r'(version|versión)[^\n\d]*([0-9]+\.[0-9]+\.[0-9]+)', re.IGNORECASE)
+    for idx, line in enumerate(header_lines):
+        match = version_pattern.search(line)
+        if match:
+            old_version = match.group(2)
+            # Usar sed para reemplazar solo en la línea encontrada
+            # sed -i '1,20s/old_version/new_version/' archivo
+            try:
+                subprocess.run([
+                    'sed',
+                    '-i',
+                    f'1,20s/{old_version}/{new_version}/',
+                    str(filepath)
+                ], check=True)
+                return True
+            except subprocess.CalledProcessError as e:
+                print(f"Error ejecutando sed: {e}", file=sys.stderr)
+                return False
+    print(f"No se encontró línea de versión en las primeras 20 líneas de {filepath}", file=sys.stderr)
+    return False
+
+
 def main():
     """Función principal del script."""
     parser = argparse.ArgumentParser(
@@ -313,9 +353,9 @@ Formatos de commit soportados:
 
     args = parser.parse_args()
 
-    # Validar que --update solo se use sin archivos específicos
-    if args.update and args.filenames:
-        print("Error: --update solo puede usarse sin especificar archivos (análisis global)", file=sys.stderr)
+    # Validar que --update solo se use sin archivos específicos o con un solo archivo
+    if args.update and args.filenames and len(args.filenames) > 1:
+        print("Error: --update solo puede usarse sin especificar archivos (análisis global) o con un solo archivo", file=sys.stderr)
         sys.exit(1)
 
     # Validaciones
@@ -340,6 +380,12 @@ Formatos de commit soportados:
     # Si se especificó --update y no hay archivos específicos, escribir en .project/version
     if args.update and not args.filenames:
         if not write_version_to_file(args.path, version):
+            sys.exit(1)
+
+    # Si se especificó --update y hay un solo archivo, actualizar header
+    if args.update and args.filenames and len(args.filenames) == 1:
+        file_to_update = args.path / args.filenames[0]
+        if not update_file_version_header(file_to_update, version):
             sys.exit(1)
 
 
