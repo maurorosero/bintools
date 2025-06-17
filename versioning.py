@@ -5,7 +5,7 @@ Check Heading
 Copyright (C) 2025 MAURO ROSERO PÉREZ
 
 Script Name: versioning.py
-Author:      MAURO ROSERO PÉREZ
+Mauro Rosero P. <mauro.rosero@gmail.com>
 Assistant:   Cursor AI (https://cursor.com)
 Created at:  2025-01-27
 Modified:    2025-01-27
@@ -234,13 +234,10 @@ Formatos de commit soportados:
 
     # Obtener commits según si se especificó archivo o no
     if args.filename:
-        # Validación no estricta del archivo para permitir búsqueda en historial
         validate_file_exists(args.path, args.filename, strict=False)
         commits = get_file_commits(args.path, args.filename)
-        print(f"Analizando archivo: {args.filename}")
     else:
         commits = get_repo_commits(args.path)
-        print("Analizando todo el repositorio")
 
     if not commits:
         print("0.0.0")
