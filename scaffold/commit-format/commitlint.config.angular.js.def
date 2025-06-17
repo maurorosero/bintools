@@ -1,5 +1,5 @@
 /**
- * Check Header
+ * Check Heading
  * Copyright (C) 2025 MAURO ROSERO PÉREZ
  * License: GPLv3
  * Description: Configuración de commitlint que implementa el formato de commits
@@ -7,7 +7,7 @@
  *              mantiene los tipos de commit y reglas de Angular mientras asegura la estructura
  *              requerida para el seguimiento de issues.
  * Created:     2025-05-12 21:56:33
- * Modified:    2025-05-12 21:56:33
+ * Modified:    2025-06-17 02:21:02
  * Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
  * Version:     0.1.0
  * Assistant:   Cursor AI (https://cursor.com)
