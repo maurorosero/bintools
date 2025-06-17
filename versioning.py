@@ -8,7 +8,7 @@ Script Name: versioning.py
 Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
 Assistant:   Cursor AI (https://cursor.com)
 Created at:  2025-01-27
-Modified:    2025-06-17 10:45:38
+Modified:    2025-06-17 12:49:29
 Description: Analiza el historial de Git de un archivo específico y calcula la versión
              major.minor.patch basándose en los tags de commit encontrados.
 Version:     0.1.0
@@ -155,13 +155,19 @@ def extract_tag_from_commit(commit_message: str) -> Optional[str]:
     return None
 
 
-def calculate_version(commits: List[str]) -> str:
+def calculate_version(commits: List[str], is_group_analysis: bool = False) -> str:
     """
     Calcula la versión major.minor.patch basándose en los tags de commit.
 
-    Reglas:
+    Reglas para análisis individual:
     - [REFACTOR], [RELEASE] -> MAJOR (resetea Minor, Patch)
     - [FEAT], [PERF], [UPDATE], [IMPROVE] -> MINOR (resetea Patch)
+    - [FIX], [STYLE] -> PATCH
+    - [DOCS], [TEST], [BUILD], [CI], [CHORE] -> Ninguno
+
+    Reglas para análisis de grupo:
+    - [RELEASE] -> MAJOR (resetea Minor, Patch)
+    - [REFACTOR], [FEAT], [PERF], [UPDATE], [IMPROVE] -> MINOR (resetea Patch)
     - [FIX], [STYLE] -> PATCH
     - [DOCS], [TEST], [BUILD], [CI], [CHORE] -> Ninguno
     """
@@ -175,10 +181,20 @@ def calculate_version(commits: List[str]) -> str:
         if not tag:
             continue
 
-        if tag in ['REFACTOR', 'RELEASE']:
+        if tag == 'RELEASE':
             major += 1
             minor = 0
             patch = 0
+        elif tag == 'REFACTOR':
+            if is_group_analysis:
+                # Para grupos, REFACTOR incrementa MINOR
+                minor += 1
+                patch = 0
+            else:
+                # Para archivos individuales, REFACTOR incrementa MAJOR
+                major += 1
+                minor = 0
+                patch = 0
         elif tag in ['FEAT', 'PERF', 'UPDATE', 'IMPROVE']:
             minor += 1
             patch = 0
@@ -315,7 +331,9 @@ Formatos de commit soportados:
     if not commits:
         version = "0.0.0"
     else:
-        version = calculate_version(commits)
+        # Determinar si es análisis de grupo o individual
+        is_group = len(args.filenames) > 1 if args.filenames else False
+        version = calculate_version(commits, is_group_analysis=is_group)
 
     print(version)
 
