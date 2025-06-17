@@ -62,6 +62,24 @@ def validate_file_exists(repo_path: Path, filename: str, strict: bool = True) ->
     return True
 
 
+def get_repo_commits(repo_path: Path) -> List[str]:
+    """Obtiene todos los commits del repositorio en orden cronológico."""
+    success, stdout, stderr = run_git_command(
+        ["git", "log", "--oneline", "--reverse"],
+        repo_path
+    )
+
+    if not success:
+        print(f"Error ejecutando git log: {stderr}", file=sys.stderr)
+        return []
+
+    if not stdout:
+        return []
+
+    commits = [line.strip() for line in stdout.split('\n') if line.strip()]
+    return commits
+
+
 def get_file_commits(repo_path: Path, filename: str) -> List[str]:
     """Obtiene todos los commits que afectan al archivo especificado en orden cronológico."""
 
@@ -173,11 +191,13 @@ def calculate_version(commits: List[str]) -> str:
 def main():
     """Función principal del script."""
     parser = argparse.ArgumentParser(
-        description="Analiza commits de un archivo y calcula versión major.minor.patch",
+        description="Analiza commits y calcula versión major.minor.patch. Si no se especifica archivo, analiza todo el repositorio.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Ejemplos de uso:
-  python versioning.py micursor.py
+  python versioning.py                    # Analiza todo el repositorio
+  python versioning.py micursor.py        # Analiza archivo específico
+  python versioning.py -p /path/to/repo   # Analiza repositorio en ruta específica
   python versioning.py -p /path/to/repo micursor.py
   python versioning.py branch-workflow-validator.py  # Busca en historial aunque no exista actualmente
 
@@ -195,7 +215,8 @@ Formatos de commit soportados:
 
     parser.add_argument(
         'filename',
-        help='Nombre del archivo a analizar (puede incluir ruta o solo nombre)'
+        nargs='?',
+        help='Nombre del archivo a analizar (opcional, si no se especifica analiza todo el repositorio)'
     )
 
     parser.add_argument(
@@ -211,11 +232,15 @@ Formatos de commit soportados:
     if not validate_git_repo(args.path):
         sys.exit(1)
 
-    # Validación no estricta del archivo para permitir búsqueda en historial
-    validate_file_exists(args.path, args.filename, strict=False)
-
-    # Obtener commits del archivo
-    commits = get_file_commits(args.path, args.filename)
+    # Obtener commits según si se especificó archivo o no
+    if args.filename:
+        # Validación no estricta del archivo para permitir búsqueda en historial
+        validate_file_exists(args.path, args.filename, strict=False)
+        commits = get_file_commits(args.path, args.filename)
+        print(f"Analizando archivo: {args.filename}")
+    else:
+        commits = get_repo_commits(args.path)
+        print("Analizando todo el repositorio")
 
     if not commits:
         print("0.0.0")
