@@ -8,10 +8,10 @@ Script Name: versioning.py
 Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
 Assistant:   Cursor AI (https://cursor.com)
 Created at:  2025-01-27
-Modified:    2025-06-17 15:32:41
+Modified:    2025-06-17 15:52:58
 Description: Analiza el historial de Git de un archivo específico y calcula la versión
              major.minor.patch basándose en los tags de commit encontrados.
-Version:     1.1.1
+Version:     2.0.0
 """
 
 # 1. Imports de la biblioteca estándar (ordenados alfabéticamente)
@@ -103,7 +103,6 @@ def get_file_commits(repo_path: Path, filename: str) -> List[str]:
     )
 
     if not success:
-        print(f"Error ejecutando git log: {stderr}", file=sys.stderr)
         return []
 
     if not stdout:
@@ -175,7 +174,7 @@ def calculate_version(commits: List[str], is_group_analysis: bool = False) -> st
     minor = 0
     patch = 0
 
-    for commit in commits:
+    for i, commit in enumerate(commits):
         tag = extract_tag_from_commit(commit)
 
         if not tag:
@@ -272,10 +271,8 @@ def update_file_version_header(filepath: Path, new_version: str) -> bool:
         with open(filepath, 'r', encoding='utf-8') as f:
             header_lines = [next(f) for _ in range(20)]
     except (FileNotFoundError, StopIteration):
-        print(f"Error: No se pudo leer las primeras 20 líneas de {filepath}", file=sys.stderr)
         return False
     except Exception as e:
-        print(f"Error leyendo archivo {filepath}: {e}", file=sys.stderr)
         return False
 
     # Buscar línea con version/versión y patrón de versión
@@ -286,7 +283,6 @@ def update_file_version_header(filepath: Path, new_version: str) -> bool:
         if match:
             old_version = match.group(2)
             # Usar sed para reemplazar solo en la línea encontrada
-            # sed -i '1,20s/old_version/new_version/' archivo
             try:
                 subprocess.run([
                     'sed',
@@ -296,24 +292,46 @@ def update_file_version_header(filepath: Path, new_version: str) -> bool:
                 ], check=True)
                 return True
             except subprocess.CalledProcessError as e:
-                print(f"Error ejecutando sed: {e}", file=sys.stderr)
                 return False
-    print(f"No se encontró línea de versión en las primeras 20 líneas de {filepath}", file=sys.stderr)
     return False
 
 
-def get_all_project_files(repo_path: Path) -> List[str]:
+def get_all_project_files(repo_path: Path, recursive: bool = True) -> List[str]:
     """Obtiene todos los archivos del proyecto (excluyendo .git, __pycache__, etc.)."""
     files = []
     exclude_patterns = {'.git', '__pycache__', '.pytest_cache', '.venv', 'venv', 'node_modules', '.vscode', '.idea'}
 
-    for file_path in repo_path.rglob('*'):
-        if file_path.is_file():
-            # Verificar que no esté en directorios excluidos
-            if not any(exclude in str(file_path) for exclude in exclude_patterns):
-                # Convertir a ruta relativa
-                relative_path = str(file_path.relative_to(repo_path))
-                files.append(relative_path)
+    if recursive:
+        # Búsqueda recursiva (incluye directorio actual y subdirectorios)
+        for file_path in repo_path.rglob('*'):
+            if file_path.is_file():
+                # Verificar que no esté en directorios excluidos
+                # Solo excluir si el directorio completo coincide con un patrón de exclusión
+                should_exclude = False
+                for exclude in exclude_patterns:
+                    if exclude in file_path.parts:
+                        should_exclude = True
+                        break
+
+                if not should_exclude:
+                    # Convertir a ruta relativa
+                    relative_path = str(file_path.relative_to(repo_path))
+                    files.append(relative_path)
+    else:
+        # Búsqueda solo en el directorio actual
+        for file_path in repo_path.iterdir():
+            if file_path.is_file():
+                # Verificar que no esté en directorios excluidos
+                should_exclude = False
+                for exclude in exclude_patterns:
+                    if exclude in file_path.parts:
+                        should_exclude = True
+                        break
+
+                if not should_exclude:
+                    # Convertir a ruta relativa
+                    relative_path = str(file_path.relative_to(repo_path))
+                    files.append(relative_path)
 
     return files
 
@@ -324,142 +342,70 @@ def calculate_and_update_file_version(repo_path: Path, filename: str) -> str:
     if file_commits:
         version = calculate_version(file_commits, is_group_analysis=False)
         file_path = repo_path / filename
-        if update_file_version_header(file_path, version):
-            print(f"✓ {filename}: {version}")
-            return version
-        else:
-            print(f"✗ {filename}: No se pudo actualizar")
-            return None
+        update_file_version_header(file_path, version)
+        return version
     else:
-        print(f"- {filename}: Sin commits")
         return None
 
 
 def main():
-    """Función principal del script."""
-    parser = argparse.ArgumentParser(
-        description="Analiza commits y calcula versión major.minor.patch. Si no se especifica archivo, analiza todo el repositorio.",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Ejemplos de uso:
-  python versioning.py                    # Analiza todo el repositorio
-  python versioning.py --update           # Analiza repositorio y actualiza .project/version
-  python versioning.py --update-all       # Actualiza versión en todos los archivos del proyecto
-  python versioning.py micursor.py        # Analiza archivo específico
-  python versioning.py *.py               # Analiza grupo de archivos Python
-  python versioning.py micursor.py pymanager.sh  # Analiza grupo de archivos específicos
-  python versioning.py scripts/*.py       # Analiza grupo de archivos en directorio
-  python versioning.py -p /path/to/repo   # Analiza repositorio en ruta específica
-  python versioning.py -p /path/to/repo --update
-  python versioning.py -p /path/to/repo micursor.py
-  python versioning.py branch-workflow-validator.py  # Busca en historial aunque no exista actualmente
-
-Formatos de commit soportados:
-  [FEAT] (#123) Add new feature
-  feat: add new feature
-  [FIX] (#456) Fix bug
-  fix: fix bug
-  [REFACTOR] (#789) Refactor code
-  refactor: refactor code
-  [RELEASE] v1.2.3
-  release: v1.2.3
-        """
-    )
-
-    parser.add_argument(
-        'filenames',
-        nargs='*',
-        help='Archivos o patrones a analizar (opcional, si no se especifica analiza todo el repositorio)'
-    )
-
-    parser.add_argument(
-        '-p', '--path',
-        type=Path,
-        default=Path.cwd(),
-        help='Ruta del repositorio Git (por defecto: carpeta actual)'
-    )
-
-    parser.add_argument(
-        '--update',
-        action='store_true',
-        help='Actualiza el archivo .project/version con la versión calculada (solo válido sin archivo específico)'
-    )
-
-    parser.add_argument(
-        '--update-all',
-        action='store_true',
-        help='Actualiza la versión en todos los archivos del proyecto (cálculo individual por archivo)'
-    )
-
+    parser = argparse.ArgumentParser(description="Herramienta de versionado SemVer por archivo y global.")
+    parser.add_argument('files', nargs='*', help='Archivos o patrones glob a analizar')
+    parser.add_argument('--update', action='store_true', help='Actualiza la versión en el archivo o en .project/version')
+    parser.add_argument('--update-all', action='store_true', help='Actualiza la versión en todos los archivos del proyecto')
+    parser.add_argument('--path', type=str, default='.', help='Ruta al repositorio (por defecto: .)')
+    parser.add_argument('--verbose', action='store_true', help='Muestra archivo y versión calculada (solo con --update-all)')
+    parser.add_argument('--depth', action='store_true', default=True, help='Busca archivos de forma recursiva (solo con --update-all, por defecto: True)')
+    parser.add_argument('--no-depth', action='store_true', help='Busca archivos solo en el directorio actual (solo con --update-all)')
     args = parser.parse_args()
 
-    # Validar que --update y --update-all no se usen juntos
-    if args.update and args.update_all:
-        print("Error: --update y --update-all no pueden usarse juntos", file=sys.stderr)
-        sys.exit(1)
+    repo_path = Path(args.path).resolve()
 
-    # Validar que --update solo se use sin archivos específicos o con un solo archivo
-    if args.update and args.filenames and len(args.filenames) > 1:
-        print("Error: --update solo puede usarse sin especificar archivos (análisis global) o con un solo archivo", file=sys.stderr)
-        sys.exit(1)
+    # Determinar si usar búsqueda recursiva
+    recursive = args.depth and not args.no_depth
 
-    # Validar que --update-all no se use con archivos específicos
-    if args.update_all and args.filenames:
-        print("Error: --update-all no puede usarse con archivos específicos", file=sys.stderr)
-        sys.exit(1)
-
-    # Validaciones
-    if not validate_git_repo(args.path):
-        sys.exit(1)
-
-    # Si se especificó --update-all, procesar todos los archivos
     if args.update_all:
-        all_files = get_all_project_files(args.path)
-        print(f"Procesando {len(all_files)} archivos...")
+        all_files = get_all_project_files(repo_path, recursive=recursive)
         # Fase 1: Calcular versiones
         version_map = {}
         for filename in all_files:
-            file_commits = get_file_commits(args.path, filename)
+            file_commits = get_file_commits(repo_path, filename)
             if file_commits:
                 version = calculate_version(file_commits, is_group_analysis=False)
                 version_map[filename] = version
             else:
                 version_map[filename] = None
-        # Fase 2: Actualizar headers
+        # Fase 2: Actualizar archivos
         for filename, version in version_map.items():
             if version:
-                file_path = args.path / filename
-                if update_file_version_header(file_path, version):
-                    print(f"✓ {filename}: {version}")
-                else:
-                    print(f"✗ {filename}: No se pudo actualizar")
-            else:
-                print(f"- {filename}: Sin commits")
+                success = update_file_version_header(repo_path / filename, version)
+                if args.verbose and success and version != "0.0.0":
+                    print(f"{filename}: {version}")
         return
 
     # Obtener commits según si se especificaron archivos o no
-    if args.filenames:
-        commits = get_group_commits(args.path, args.filenames)
+    if args.files:
+        commits = get_group_commits(repo_path, args.files)
     else:
-        commits = get_repo_commits(args.path)
+        commits = get_repo_commits(repo_path)
 
     if not commits:
         version = "0.0.0"
     else:
         # Determinar si es análisis de grupo o individual
-        is_group = len(args.filenames) > 1 if args.filenames else False
+        is_group = len(args.files) > 1 if args.files else False
         version = calculate_version(commits, is_group_analysis=is_group)
 
     print(version)
 
     # Si se especificó --update y no hay archivos específicos, escribir en .project/version
-    if args.update and not args.filenames:
-        if not write_version_to_file(args.path, version):
+    if args.update and not args.files:
+        if not write_version_to_file(repo_path, version):
             sys.exit(1)
 
     # Si se especificó --update y hay un solo archivo, actualizar header
-    if args.update and args.filenames and len(args.filenames) == 1:
-        calculate_and_update_file_version(args.path, args.filenames[0])
+    if args.update and args.files and len(args.files) == 1:
+        calculate_and_update_file_version(repo_path, args.files[0])
         return
 
 
