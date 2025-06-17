@@ -8,10 +8,10 @@ Script Name: versioning.py
 Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
 Assistant:   Cursor AI (https://cursor.com)
 Created at:  2025-01-27
-Modified:    2025-06-17 15:25:54
+Modified:    2025-06-17 15:32:41
 Description: Analiza el historial de Git de un archivo específico y calcula la versión
              major.minor.patch basándose en los tags de commit encontrados.
-Version:     1.1.0
+Version:     1.1.1
 """
 
 # 1. Imports de la biblioteca estándar (ordenados alfabéticamente)
@@ -318,6 +318,23 @@ def get_all_project_files(repo_path: Path) -> List[str]:
     return files
 
 
+def calculate_and_update_file_version(repo_path: Path, filename: str) -> str:
+    """Calcula la versión individual de un archivo y la actualiza en el header. Devuelve la versión calculada o None si falla."""
+    file_commits = get_file_commits(repo_path, filename)
+    if file_commits:
+        version = calculate_version(file_commits, is_group_analysis=False)
+        file_path = repo_path / filename
+        if update_file_version_header(file_path, version):
+            print(f"✓ {filename}: {version}")
+            return version
+        else:
+            print(f"✗ {filename}: No se pudo actualizar")
+            return None
+    else:
+        print(f"- {filename}: Sin commits")
+        return None
+
+
 def main():
     """Función principal del script."""
     parser = argparse.ArgumentParser(
@@ -399,12 +416,18 @@ Formatos de commit soportados:
     if args.update_all:
         all_files = get_all_project_files(args.path)
         print(f"Procesando {len(all_files)} archivos...")
-
+        # Fase 1: Calcular versiones
+        version_map = {}
         for filename in all_files:
             file_commits = get_file_commits(args.path, filename)
             if file_commits:
-                # Cada archivo se procesa individualmente, no como grupo
                 version = calculate_version(file_commits, is_group_analysis=False)
+                version_map[filename] = version
+            else:
+                version_map[filename] = None
+        # Fase 2: Actualizar headers
+        for filename, version in version_map.items():
+            if version:
                 file_path = args.path / filename
                 if update_file_version_header(file_path, version):
                     print(f"✓ {filename}: {version}")
@@ -436,9 +459,8 @@ Formatos de commit soportados:
 
     # Si se especificó --update y hay un solo archivo, actualizar header
     if args.update and args.filenames and len(args.filenames) == 1:
-        file_to_update = args.path / args.filenames[0]
-        if not update_file_version_header(file_to_update, version):
-            sys.exit(1)
+        calculate_and_update_file_version(args.path, args.filenames[0])
+        return
 
 
 if __name__ == "__main__":
