@@ -8,7 +8,7 @@ Script Name: versioning.py
 Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
 Assistant:   Cursor AI (https://cursor.com)
 Created at:  2025-01-27
-Modified:    2025-06-17 15:52:58
+Modified:    2025-06-17 16:05:46
 Description: Analiza el historial de Git de un archivo específico y calcula la versión
              major.minor.patch basándose en los tags de commit encontrados.
 Version:     2.0.0
@@ -223,13 +223,24 @@ def write_version_to_file(repo_path: Path, version: str) -> bool:
         return False
 
 
-def expand_file_patterns(repo_path: Path, patterns: List[str]) -> Set[str]:
+def expand_file_patterns(repo_path: Path, patterns: List[str], recursive: bool = True) -> Set[str]:
     """Expande patrones glob y retorna un conjunto de archivos únicos."""
     files = set()
 
     for pattern in patterns:
+        # Si es solo un nombre de archivo (sin **/), agregar **/ para búsqueda recursiva
+        if recursive and not pattern.startswith('**/') and '/' not in pattern and '*' not in pattern:
+            pattern = f"**/{pattern}"
+
         # Buscar archivos que coincidan con el patrón
-        matches = list(repo_path.glob(pattern))
+        if recursive:
+            matches = list(repo_path.glob(pattern))
+        else:
+            # Para búsqueda no recursiva, solo buscar en el directorio actual
+            matches = list(repo_path.glob(pattern))
+            # Filtrar solo archivos en el directorio actual (no subdirectorios)
+            matches = [m for m in matches if m.parent == repo_path]
+
         for match in matches:
             if match.is_file():
                 # Convertir a ruta relativa al repositorio
@@ -238,10 +249,10 @@ def expand_file_patterns(repo_path: Path, patterns: List[str]) -> Set[str]:
     return files
 
 
-def get_group_commits(repo_path: Path, file_patterns: List[str]) -> List[str]:
+def get_group_commits(repo_path: Path, file_patterns: List[str], recursive: bool = True) -> List[str]:
     """Obtiene todos los commits que afectan a cualquiera de los archivos del grupo."""
     # Expandir patrones glob
-    files = expand_file_patterns(repo_path, file_patterns)
+    files = expand_file_patterns(repo_path, file_patterns, recursive=recursive)
 
     if not files:
         print(f"Advertencia: No se encontraron archivos que coincidan con los patrones: {file_patterns}", file=sys.stderr)
@@ -355,8 +366,8 @@ def main():
     parser.add_argument('--update-all', action='store_true', help='Actualiza la versión en todos los archivos del proyecto')
     parser.add_argument('--path', type=str, default='.', help='Ruta al repositorio (por defecto: .)')
     parser.add_argument('--verbose', action='store_true', help='Muestra archivo y versión calculada (solo con --update-all)')
-    parser.add_argument('--depth', action='store_true', default=True, help='Busca archivos de forma recursiva (solo con --update-all, por defecto: True)')
-    parser.add_argument('--no-depth', action='store_true', help='Busca archivos solo en el directorio actual (solo con --update-all)')
+    parser.add_argument('--depth', action='store_true', default=True, help='Busca archivos de forma recursiva (por defecto: True)')
+    parser.add_argument('--no-depth', action='store_true', help='Busca archivos solo en el directorio actual')
     args = parser.parse_args()
 
     repo_path = Path(args.path).resolve()
@@ -385,7 +396,7 @@ def main():
 
     # Obtener commits según si se especificaron archivos o no
     if args.files:
-        commits = get_group_commits(repo_path, args.files)
+        commits = get_group_commits(repo_path, args.files, recursive=recursive)
     else:
         commits = get_repo_commits(repo_path)
 
