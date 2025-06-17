@@ -8,7 +8,7 @@ Script Name: versioning.py
 Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
 Assistant:   Cursor AI (https://cursor.com)
 Created at:  2025-01-27
-Modified:    2025-06-17 10:23:02
+Modified:    2025-06-17 10:45:38
 Description: Analiza el historial de Git de un archivo específico y calcula la versión
              major.minor.patch basándose en los tags de commit encontrados.
 Version:     0.1.0
@@ -19,8 +19,9 @@ import argparse
 import re
 import subprocess
 import sys
+import glob
 from pathlib import Path
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Optional, Set
 
 
 def run_git_command(command: List[str], repo_path: Path) -> Tuple[bool, str, str]:
@@ -201,11 +202,48 @@ def write_version_to_file(repo_path: Path, version: str) -> bool:
         with open(version_file, 'w', encoding='utf-8') as f:
             f.write(version)
 
-        print(f"Versión {version} escrita en {version_file}")
         return True
     except Exception as e:
         print(f"Error escribiendo versión en {version_file}: {e}", file=sys.stderr)
         return False
+
+
+def expand_file_patterns(repo_path: Path, patterns: List[str]) -> Set[str]:
+    """Expande patrones glob y retorna un conjunto de archivos únicos."""
+    files = set()
+
+    for pattern in patterns:
+        # Buscar archivos que coincidan con el patrón
+        matches = list(repo_path.glob(pattern))
+        for match in matches:
+            if match.is_file():
+                # Convertir a ruta relativa al repositorio
+                files.add(str(match.relative_to(repo_path)))
+
+    return files
+
+
+def get_group_commits(repo_path: Path, file_patterns: List[str]) -> List[str]:
+    """Obtiene todos los commits que afectan a cualquiera de los archivos del grupo."""
+    # Expandir patrones glob
+    files = expand_file_patterns(repo_path, file_patterns)
+
+    if not files:
+        print(f"Advertencia: No se encontraron archivos que coincidan con los patrones: {file_patterns}", file=sys.stderr)
+        return []
+
+    # Obtener commits para cada archivo
+    all_commits = set()
+
+    for filename in files:
+        file_commits = get_file_commits(repo_path, filename)
+        all_commits.update(file_commits)
+
+    # Convertir a lista y ordenar cronológicamente
+    commits_list = list(all_commits)
+    commits_list.sort()  # Los commits ya vienen en orden cronológico de get_file_commits
+
+    return commits_list
 
 
 def main():
@@ -218,6 +256,9 @@ Ejemplos de uso:
   python versioning.py                    # Analiza todo el repositorio
   python versioning.py --update           # Analiza repositorio y actualiza .project/version
   python versioning.py micursor.py        # Analiza archivo específico
+  python versioning.py *.py               # Analiza grupo de archivos Python
+  python versioning.py micursor.py pymanager.sh  # Analiza grupo de archivos específicos
+  python versioning.py scripts/*.py       # Analiza grupo de archivos en directorio
   python versioning.py -p /path/to/repo   # Analiza repositorio en ruta específica
   python versioning.py -p /path/to/repo --update
   python versioning.py -p /path/to/repo micursor.py
@@ -236,9 +277,9 @@ Formatos de commit soportados:
     )
 
     parser.add_argument(
-        'filename',
-        nargs='?',
-        help='Nombre del archivo a analizar (opcional, si no se especifica analiza todo el repositorio)'
+        'filenames',
+        nargs='*',
+        help='Archivos o patrones a analizar (opcional, si no se especifica analiza todo el repositorio)'
     )
 
     parser.add_argument(
@@ -256,19 +297,18 @@ Formatos de commit soportados:
 
     args = parser.parse_args()
 
-    # Validar que --update solo se use sin archivo específico
-    if args.update and args.filename:
-        print("Error: --update solo puede usarse sin especificar archivo (análisis global)", file=sys.stderr)
+    # Validar que --update solo se use sin archivos específicos
+    if args.update and args.filenames:
+        print("Error: --update solo puede usarse sin especificar archivos (análisis global)", file=sys.stderr)
         sys.exit(1)
 
     # Validaciones
     if not validate_git_repo(args.path):
         sys.exit(1)
 
-    # Obtener commits según si se especificó archivo o no
-    if args.filename:
-        validate_file_exists(args.path, args.filename, strict=False)
-        commits = get_file_commits(args.path, args.filename)
+    # Obtener commits según si se especificaron archivos o no
+    if args.filenames:
+        commits = get_group_commits(args.path, args.filenames)
     else:
         commits = get_repo_commits(args.path)
 
@@ -279,8 +319,8 @@ Formatos de commit soportados:
 
     print(version)
 
-    # Si se especificó --update y no hay archivo específico, escribir en .project/version
-    if args.update and not args.filename:
+    # Si se especificó --update y no hay archivos específicos, escribir en .project/version
+    if args.update and not args.filenames:
         if not write_version_to_file(args.path, version):
             sys.exit(1)
 
