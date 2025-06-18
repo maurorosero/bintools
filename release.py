@@ -9,7 +9,7 @@ Script Name: release.py
 Version:     0.0.0
 Description: Script para automatizar el proceso de release.
 Created:     2025-06-18 14:40:00
-Modified:    2025-06-18 14:42:36
+Modified:    2025-06-18 15:45:05
 Author:      Mauro Rosero Pérez <mauro@rosero.one>
 Assistant:   Cursor AI (https://cursor.com)
 """
@@ -56,8 +56,44 @@ def get_current_branch(cwd=None):
 
 def get_latest_tag(cwd=None):
     """Obtiene el último tag."""
-    result = run_command("git tag --sort=-version:refname | head -1", cwd=cwd)
-    return result.stdout.strip() if result and result.stdout.strip() else None
+    # Obtener todos los tags
+    result = run_command("git tag --list", cwd=cwd)
+    if not result or not result.stdout.strip():
+        return None
+
+    all_tags = [tag.strip() for tag in result.stdout.split('\n') if tag.strip()]
+
+    # Filtrar solo tags que son versiones válidas (semantic versioning)
+    import re
+    version_pattern = re.compile(r'^v?\d+\.\d+\.\d+.*$')
+    valid_versions = []
+
+    for tag in all_tags:
+        if version_pattern.match(tag):
+            # Normalizar: añadir 'v' si no lo tiene
+            if not tag.startswith('v'):
+                tag = f"v{tag}"
+            valid_versions.append(tag)
+
+    if not valid_versions:
+        return None
+
+    # Ordenar versiones correctamente (semantic versioning)
+    def version_key(tag):
+        # Remover 'v' prefix para ordenamiento
+        version = tag[1:] if tag.startswith('v') else tag
+        # Split por puntos y convertir a números
+        parts = version.split('.')
+        # Asegurar que tenemos al menos 3 partes (major.minor.patch)
+        while len(parts) < 3:
+            parts.append('0')
+        # Convertir a números para ordenamiento correcto
+        return [int(part) for part in parts[:3]]
+
+    # Ordenar de más reciente a más antigua
+    valid_versions.sort(key=version_key, reverse=True)
+
+    return valid_versions[0]
 
 def get_commits_since_tag(tag, cwd=None):
     """Obtiene commits desde un tag específico."""
@@ -114,7 +150,7 @@ def release(version, message, push, regenerate_changelog, dry_run, path, force_m
     latest_tag = get_latest_tag(project_path)
 
     console.print(f"[blue]Rama actual:[/blue] {current_branch}")
-    console.print(f"[blue]Último tag:[/blue] {latest_tag or 'Ninguno'}")
+    console.print(f"[blue]Último Tag:[/blue] {latest_tag or 'Ninguno'}")
     console.print(f"[blue]Directorio del proyecto:[/blue] {project_path}")
 
     # Verificar que estamos en main
@@ -182,6 +218,11 @@ def release(version, message, push, regenerate_changelog, dry_run, path, force_m
         console.print("[red]Error: Formato de versión inválido. Usa formato semántico (ej: v1.0.0)[/red]")
         sys.exit(1)
 
+    # Asegurar que la versión tenga prefijo 'v'
+    if not version.startswith('v'):
+        version = f"v{version}"
+        console.print(f"[blue]Versión normalizada:[/blue] {version}")
+
     # Obtener mensaje
     if not message:
         message = Prompt.ask(
@@ -219,19 +260,19 @@ def release(version, message, push, regenerate_changelog, dry_run, path, force_m
     console.print("\n[green]🚀 Iniciando release...[/green]")
 
     # 1. Crear tag
-    console.print("[blue]1. Creando tag...[/blue]")
+    console.print("[blue]1. Creando Tag...[/blue]")
     tag_command = f'git tag -a {version} -m "{message}"'
     if not run_command(tag_command, cwd=project_path):
-        console.print("[red]Error creando tag[/red]")
+        console.print("[red]Error creando Tag[/red]")
         sys.exit(1)
     console.print(f"[green]✓ Tag {version} creado[/green]")
 
     # 2. Push del tag
     if push:
-        console.print("[blue]2. Subiendo tag al remoto...[/blue]")
+        console.print("[blue]2. Subiendo Tag al remoto...[/blue]")
         push_command = f"git push origin {version}"
         if not run_command(push_command, cwd=project_path):
-            console.print("[red]Error subiendo tag[/red]")
+            console.print("[red]Error subiendo Tag[/red]")
             sys.exit(1)
         console.print(f"[green]✓ Tag {version} subido al remoto[/green]")
 

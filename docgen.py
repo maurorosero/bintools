@@ -1172,6 +1172,30 @@ class ChangelogAnalyzer:
             if result.returncode == 0 and result.stdout:
                 tags = [tag.strip() for tag in result.stdout.split('\n') if tag.strip()]
 
+            # Filtrar solo tags que son versiones válidas (semantic versioning)
+            import re
+            version_pattern = re.compile(r'^v?\d+\.\d+\.\d+$')  # Solo versiones exactas, sin sufijos
+            valid_versions = []
+
+            for tag in tags:
+                if version_pattern.match(tag):
+                    valid_versions.append(tag)  # Mantener el nombre original del tag
+
+            # Ordenar versiones correctamente (semantic versioning)
+            def version_key(tag):
+                # Remover 'v' prefix si existe para ordenamiento
+                version = tag[1:] if tag.startswith('v') else tag
+                # Split por puntos y convertir a números
+                parts = version.split('.')
+                # Asegurar que tenemos al menos 3 partes (major.minor.patch)
+                while len(parts) < 3:
+                    parts.append('0')
+                # Convertir a números para ordenamiento correcto
+                return [int(part) for part in parts[:3]]
+
+            # Ordenar de más reciente a más antigua
+            valid_versions.sort(key=version_key, reverse=True)
+
             # Obtener fecha del último commit
             result = subprocess.run([
                 'git', 'log', '-1', '--format=%cd', '--date=short'
@@ -1180,8 +1204,8 @@ class ChangelogAnalyzer:
             last_commit_date = result.stdout.strip() if result.returncode == 0 else None
 
             return {
-                'tags': tags,
-                'latest_tag': tags[0] if tags else None,
+                'tags': valid_versions,
+                'latest_tag': valid_versions[0] if valid_versions else None,
                 'last_commit_date': last_commit_date
             }
 
@@ -1210,7 +1234,6 @@ class ChangelogAnalyzer:
 
     def _generate_without_ai(self, analysis: Dict) -> str:
         """Genera CHANGELOG usando solo templates y datos."""
-        categorized = analysis.get('categorized', {})
         versions = analysis.get('versions', {})
         statistics = analysis.get('statistics', {})
 
@@ -1224,24 +1247,112 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 """
 
-        # Sección Unreleased
-        unreleased_commits = []
-        for category, commits in categorized.items():
-            if commits:
-                unreleased_commits.extend(commits)
+        # Obtener tags ordenados
+        tags = versions.get('tags', [])
 
-        if unreleased_commits:
-            changelog += "## [Unreleased]\n\n"
-            changelog += self._format_section(categorized)
-            changelog += "\n"
+        if not tags:
+            # Si no hay tags, mostrar solo commits unreleased
+            all_commits = analysis.get('commits', [])
+            if all_commits:
+                changelog += "## [Unreleased]\n\n"
+                parsed_commits = self._parse_commits(all_commits)
+                categorized = self._categorize_commits(parsed_commits)
+                changelog += self._format_section(categorized)
+                changelog += "\n"
+        else:
+            # Distribuir commits por versiones
+            for i, tag in enumerate(tags):
+                # Obtener commits para esta versión
+                if i == 0:
+                    # Para la versión más reciente, obtener commits entre esta versión y la anterior
+                    if len(tags) > 1:
+                        previous_tag = tags[1]
+                        commits = self._get_commits_between_tags(previous_tag, tag)
+                    else:
+                        # Si solo hay una versión, obtener todos los commits hasta ese tag
+                        commits = self._get_commits_until_tag(tag)
+                else:
+                    # Para versiones anteriores, obtener commits entre este tag y el anterior
+                    if i + 1 < len(tags):
+                        previous_tag = tags[i + 1]
+                        commits = self._get_commits_between_tags(previous_tag, tag)
+                    else:
+                        # Para la versión más antigua, obtener commits desde el inicio hasta ese tag
+                        commits = self._get_commits_until_tag(tag)
 
-        # Secciones por versión (si hay tags)
-        if versions.get('tags'):
-            latest_tag = versions['tags'][0]
-            changelog += f"## [{latest_tag}] - {versions.get('last_commit_date', 'TBD')}\n\n"
-            changelog += self._format_section(categorized)
+                if commits:
+                    parsed_commits = self._parse_commits(commits)
+                    # Obtener fecha del tag
+                    tag_date = self._get_tag_date(tag)
+
+                    # Categorizar commits
+                    categorized = self._categorize_commits(parsed_commits)
+
+                    # Añadir sección de versión
+                    changelog += f"## [{tag}] - {tag_date}\n\n"
+                    changelog += self._format_section(categorized)
+                    changelog += "\n"
+
+            # Sección Unreleased (commits después del tag más reciente)
+            latest_tag = tags[0]
+            unreleased_commits = self._get_commits_since_tag(latest_tag)
+            if unreleased_commits:
+                parsed_commits = self._parse_commits(unreleased_commits)
+                changelog += "## [Unreleased]\n\n"
+                categorized = self._categorize_commits(parsed_commits)
+                changelog += self._format_section(categorized)
+                changelog += "\n"
 
         return changelog
+
+    def _get_commits_between_tags(self, from_tag: str, to_tag: str) -> List[str]:
+        """Obtiene commits entre dos tags específicos como líneas de git log."""
+        try:
+            # Obtener commits entre tags
+            result = subprocess.run([
+                'git', 'log', '--oneline', '--reverse', f'{from_tag}..{to_tag}'
+            ], capture_output=True, text=True, cwd=self.base_path)
+
+            if result.returncode == 0 and result.stdout:
+                return [line.strip() for line in result.stdout.split('\n') if line.strip()]
+
+            return []
+        except Exception as e:
+            self.console.print(f"[red]Error obteniendo commits entre {from_tag} y {to_tag}: {str(e)}[/red]")
+            return []
+
+    def _get_tag_date(self, tag: str) -> str:
+        """Obtiene la fecha de un tag específico."""
+        try:
+            result = subprocess.run([
+                'git', 'log', '-1', '--format=%ad', '--date=short', tag
+            ], capture_output=True, text=True, cwd=self.base_path)
+
+            if result.returncode == 0 and result.stdout.strip():
+                return result.stdout.strip()
+
+            return 'TBD'
+        except Exception as e:
+            self.console.print(f"[red]Error obteniendo fecha del Tag {tag}: {str(e)}[/red]")
+            return 'TBD'
+
+    def _get_commits_until_tag(self, tag: str) -> List[str]:
+        """Obtiene commits hasta el tag especificado (desde el inicio hasta el tag)."""
+        try:
+            # Obtener commits hasta el tag especificado
+            result = subprocess.run([
+                'git', 'log', '--oneline', '--reverse', f'..{tag}'
+            ], capture_output=True, text=True, cwd=self.base_path)
+
+            if result.returncode == 0 and result.stdout:
+                return [line.strip() for line in result.stdout.split('\n') if line.strip()]
+            else:
+                self.console.print("[yellow]No se encontraron commits o error en git log[/yellow]")
+                return []
+
+        except Exception as e:
+            self.console.print(f"[red]Error ejecutando git log: {str(e)}[/red]")
+            return []
 
     def _format_section(self, categorized: Dict) -> str:
         """Formatea una sección del CHANGELOG."""

@@ -70,7 +70,7 @@ def get_last_version_tag():
     if tag:
         return tag
     else:
-        print("No se encontró un tag vX.Y.Z. Usando el primer commit como referencia.", file=sys.stderr)
+        print("No se encontró un Tag vX.Y.Z. Usando el primer commit como referencia.", file=sys.stderr)
         first_commit = run_git_command("git rev-list --max-parents=0 HEAD")
         return first_commit
 

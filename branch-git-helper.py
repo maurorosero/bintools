@@ -380,14 +380,16 @@ class GitRepository:
             existing_tags = stdout_list_tags.split()
 
         for tag in existing_tags:
-            print(f"{Fore.CYAN}🗑️  Eliminando tag '{tag}' (local)...{Style.RESET_ALL}")
-            self.run_command(["git", "tag", "-d", tag], check=False) # Eliminar localmente
+            print(f"{Fore.CYAN}🗑️  Eliminando Tag '{tag}' (local)...{Style.RESET_ALL}")
+            if not self.run_command(["git", "tag", "-d", tag], check=False):
+                print(f"{Fore.RED}❌ Error eliminando Tag local '{tag}'{Style.RESET_ALL}")
+                return False
+
             if push_to_remote_tags:
-                print(f"{Fore.CYAN}🗑️  Eliminando tag '{tag}' (remoto)...{Style.RESET_ALL}")
-                # Eliminar tag remoto, importante usar ':'
-                success_rm_remote, _, error_rm_remote = self.run_command(["git", "push", "origin", f":refs/tags/{tag}"], check=False)
-                if not success_rm_remote and "remote ref does not exist" not in error_rm_remote:
-                    print(f"{Fore.YELLOW}⚠️  No se pudo eliminar tag remoto '{tag}': {error_rm_remote}{Style.RESET_ALL}")
+                print(f"{Fore.CYAN}🗑️  Eliminando Tag '{tag}' (remoto)...{Style.RESET_ALL}")
+                error_rm_remote = self.run_command(["git", "push", "origin", f":refs/tags/{tag}"], check=False, capture_output=True)
+                if error_rm_remote:
+                    print(f"{Fore.YELLOW}⚠️  No se pudo eliminar Tag remoto '{tag}': {error_rm_remote}{Style.RESET_ALL}")
 
         # Obtener el HEAD de la rama para las notas
         success_head_hash, stdout_head_hash, _ = self.run_command(["git", "rev-parse", branch_name])
@@ -411,16 +413,16 @@ class GitRepository:
         # 3. Crear y empujar nuevos tags (si el estado es final y se solicita)
         if state in ['MERGED', 'DELETED'] and push_to_remote_tags:
             tag_name = f"{state.lower()}-{branch_name}"
-            print(f"{Fore.CYAN}🏷️  Creando tag '{tag_name}' (local)...{Style.RESET_ALL}")
+            print(f"{Fore.CYAN}🏷️  Creando Tag '{tag_name}' (local)...{Style.RESET_ALL}")
             success_tag_create, _, error_tag_create = self.run_command(["git", "tag", tag_name])
             if not success_tag_create:
-                print(f"{Fore.YELLOW}⚠️  No se pudo crear tag '{tag_name}': {error_tag_create}{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}⚠️  No se pudo crear Tag '{tag_name}': {error_tag_create}{Style.RESET_ALL}")
                 return False
 
-            print(f"{Fore.CYAN}📤 Empujando tag '{tag_name}' al remoto...{Style.RESET_ALL}")
+            print(f"{Fore.CYAN}📤 Empujando Tag '{tag_name}' al remoto...{Style.RESET_ALL}")
             success_tag_push, _, error_tag_push = self.run_command(["git", "push", "origin", tag_name])
             if not success_tag_push:
-                print(f"{Fore.YELLOW}⚠️  No se pudo empujar tag '{tag_name}' al remoto: {error_tag_push}{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}⚠️  No se pudo empujar Tag '{tag_name}' al remoto: {error_tag_push}{Style.RESET_ALL}")
                 return False
 
         return True
@@ -877,7 +879,7 @@ class BranchHelper:
                 print(f"{Fore.CYAN}📝 Marcando estado a DELETED (debido a eliminación local) para '{branch_name}'...{Style.RESET_ALL}")
                 success_set_deleted_tag = self.git_repo.set_branch_state(branch_name, "DELETED", push_to_remote_tags=True)
                 if not success_set_deleted_tag:
-                    print(f"{Fore.YELLOW}⚠️  No se pudo establecer el tag DELETED para '{branch_name}' a pesar de la eliminación local.{Style.RESET_ALL}")
+                    print(f"{Fore.YELLOW}⚠️  No se pudo establecer el Tag DELETED para '{branch_name}' a pesar de la eliminación local.{Style.RESET_ALL}")
                     # No es un error crítico para el flujo, pero se advierte.
 
                 print(f"{Fore.CYAN}🗑️  Eliminando rama local '{branch_name}'...{Style.RESET_ALL}")
@@ -926,7 +928,7 @@ class BranchHelper:
 
         elif state == "WIP":
             # Para WIP, simplemente establecemos el estado y limpiamos tags si existen
-            print(f"{Fore.CYAN}📝 Marcando estado a WIP para '{branch_name}' (limpiando tags de estado)...{Style.RESET_ALL}")
+            print(f"{Fore.CYAN}📝 Marcando estado a WIP para '{branch_name}' (limpiando Tags de estado)...{Style.RESET_ALL}")
             success_set_state = self.git_repo.set_branch_state(branch_name, "WIP", push_to_remote_tags=True)
             if not success_set_state:
                 print(f"{Fore.YELLOW}⚠️  No se pudo establecer el estado WIP para '{branch_name}'.{Style.RESET_ALL}")

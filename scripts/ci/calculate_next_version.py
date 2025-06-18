@@ -46,10 +46,10 @@ def get_latest_release_tag():
     # Asume que gh está instalado y autenticado en el runner de CI
     tag = run_command("gh release list --limit 1 --json tagName --jq .[0].tagName")
     if tag and tag.startswith('v'):
-        print(f"Último tag de release encontrado: {tag}", file=sys.stderr)
+        print(f"Último Tag de release encontrado: {tag}", file=sys.stderr)
         return tag
     else:
-        print("No se encontró un último release válido (tag vX.Y.Z).", file=sys.stderr)
+        print("No se encontró un último release válido (Tag vX.Y.Z).", file=sys.stderr)
         return None
 
 def parse_version(version_str):
@@ -115,7 +115,7 @@ def main():
 
     current_version_tuple = parse_version(current_version_str)
     if current_version_tuple == (0, 0, 0) and last_tag_name:
-         print(f"Warning: No se pudo parsear la versión del último tag '{last_tag_name}'. Tratando como 0.0.0.", file=sys.stderr)
+         print(f"Warning: No se pudo parsear la versión del último Tag '{last_tag_name}'. Tratando como 0.0.0.", file=sys.stderr)
 
     # Determinar la siguiente versión
     next_version_tuple = None
