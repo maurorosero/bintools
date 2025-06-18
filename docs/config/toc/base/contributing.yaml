@@ -1,0 +1,187 @@
+structure:
+  - section: "Contributing Header"
+    required: true
+    subsections:
+      - "Title"
+      - "Introduction"
+      - "Project Philosophy"
+
+  - section: "Code of Conduct"
+    required: false
+    subsections:
+      - "Conduct Guidelines"
+      - "Reporting Issues"
+      - "Enforcement"
+
+  - section: "Environment Setup"
+    required: true
+    subsections:
+      - "Prerequisites"
+      - "Installation Steps"
+      - "Configuration"
+      - "Verification"
+
+  - section: "Git Workflow"
+    required: true
+    subsections:
+      - "Branch Strategy"
+      - "Branch Naming"
+      - "Pull Request Process"
+      - "Code Review"
+      - "Integration"
+
+  - section: "Commit Messages"
+    required: true
+    subsections:
+      - "Format"
+      - "Conventions"
+      - "Examples"
+      - "Validation"
+
+  - section: "Versioning System"
+    required: true
+    subsections:
+      - "Semantic Versioning"
+      - "Release Process"
+      - "Changelog"
+      - "Tagging"
+
+  - section: "Code Style"
+    required: true
+    subsections:
+      - "Linters"
+      - "Formatters"
+      - "Conventions"
+      - "Pre-commit Hooks"
+
+  - section: "Testing"
+    required: true
+    subsections:
+      - "Framework"
+      - "Coverage"
+      - "Running Tests"
+      - "Writing Tests"
+
+  - section: "Documentation"
+    required: true
+    subsections:
+      - "Standards"
+      - "API Documentation"
+      - "User Guides"
+      - "Code Comments"
+
+  - section: "Contribution Process"
+    required: true
+    subsections:
+      - "Reporting Bugs"
+      - "Feature Requests"
+      - "Review Process"
+      - "Acceptance Criteria"
+
+  - section: "Architecture"
+    required: false
+    subsections:
+      - "Project Structure"
+      - "Design Patterns"
+      - "Dependencies"
+      - "Integration Points"
+
+  - section: "Deployment"
+    required: false
+    subsections:
+      - "Environment Setup"
+      - "Build Process"
+      - "Deployment Steps"
+      - "Monitoring"
+
+  - section: "Troubleshooting"
+    required: false
+    subsections:
+      - "Common Issues"
+      - "Solutions"
+      - "Debugging"
+      - "Support"
+
+  - section: "Roadmap"
+    required: false
+    subsections:
+      - "Future Plans"
+      - "Milestones"
+      - "Contributing to Roadmap"
+      - "Timeline"
+
+# Configuración específica por tipo de proyecto
+project_type_sections:
+  monorepo:
+    additional_sections:
+      - "Project Structure"
+      - "Dependency Management"
+      - "Cross-Project Development"
+
+  library:
+    additional_sections:
+      - "API Design"
+      - "Backward Compatibility"
+      - "Documentation Standards"
+
+  cli_tool:
+    additional_sections:
+      - "Command Interface"
+      - "Configuration"
+      - "Installation"
+
+  web_app:
+    additional_sections:
+      - "Frontend Development"
+      - "Backend Development"
+      - "Database"
+      - "Deployment"
+
+# Configuración específica por tecnología
+technology_sections:
+  python:
+    additional_subsections:
+      - "Virtual Environment"
+      - "Dependency Management"
+      - "Type Hints"
+
+  javascript:
+    additional_subsections:
+      - "Node.js Setup"
+      - "Package Management"
+      - "Build Tools"
+
+  typescript:
+    additional_subsections:
+      - "TypeScript Configuration"
+      - "Type Definitions"
+      - "Compilation"
+
+  bash:
+    additional_subsections:
+      - "Shell Configuration"
+      - "Script Testing"
+      - "Cross-Platform Compatibility"
+
+# Validaciones de estructura
+validation:
+  required_sections:
+    - "Contributing Header"
+    - "Environment Setup"
+    - "Git Workflow"
+    - "Commit Messages"
+    - "Versioning System"
+    - "Code Style"
+    - "Testing"
+    - "Documentation"
+    - "Contribution Process"
+
+  optional_sections:
+    - "Code of Conduct"
+    - "Architecture"
+    - "Deployment"
+    - "Troubleshooting"
+    - "Roadmap"
+
+  min_sections: 9
+  max_sections: 15

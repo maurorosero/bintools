@@ -1518,6 +1518,602 @@ Devuelve solo el CHANGELOG mejorado en formato Markdown."""
 
         return consolidated
 
+class ContributingAnalyzer:
+    """Analizador específico para generación de CONTRIBUTING.md."""
+
+    def __init__(self, base_path: Path, config: Optional[Dict] = None):
+        """Inicializa el analizador de CONTRIBUTING.
+
+        Args:
+            base_path: Ruta base del repositorio
+            config: Configuración del analizador
+        """
+        self.base_path = base_path
+        self.config = config or {}
+        self.console = Console()
+
+    def analyze_project(self) -> Dict:
+        """Analiza el proyecto para generar CONTRIBUTING.md.
+
+        Returns:
+            Diccionario con análisis completo del proyecto
+        """
+        try:
+            analysis = {
+                'project_structure': self._analyze_project_structure(),
+                'technologies': self._analyze_technologies(),
+                'workflow': self._analyze_workflow(),
+                'configuration': self._analyze_configuration(),
+                'versioning': self._analyze_versioning_system(),
+                'testing': self._analyze_testing_framework(),
+                'documentation': self._analyze_documentation(),
+                'security': self._analyze_security_tools()
+            }
+
+            # Determinar tipo de proyecto
+            analysis['project_type'] = self._determine_project_type(analysis)
+
+            return analysis
+
+        except Exception as e:
+            self.console.print(f"[red]Error analizando proyecto: {str(e)}[/red]")
+            return {}
+
+    def _analyze_project_structure(self) -> Dict:
+        """Analiza la estructura del proyecto."""
+        structure = {
+            'is_monorepo': False,
+            'main_components': [],
+            'directory_structure': {},
+            'package_files': []
+        }
+
+        # Detectar archivos de paquete
+        package_files = []
+        for pattern in ['package.json', 'setup.py', 'pyproject.toml', 'Pipfile', 'Cargo.toml', 'go.mod']:
+            files = list(self.base_path.glob(pattern))
+            package_files.extend([str(f) for f in files])
+
+        structure['package_files'] = package_files
+        structure['is_monorepo'] = len(package_files) > 1
+
+        # Analizar estructura de directorios
+        main_dirs = ['src', 'lib', 'app', 'backend', 'frontend', 'api', 'docs', 'tests', 'scripts']
+        for dir_name in main_dirs:
+            dir_path = self.base_path / dir_name
+            if dir_path.exists():
+                structure['directory_structure'][dir_name] = {
+                    'exists': True,
+                    'files': len(list(dir_path.rglob('*')))
+                }
+                structure['main_components'].append(dir_name)
+
+        return structure
+
+    def _analyze_technologies(self) -> Dict:
+        """Analiza las tecnologías utilizadas en el proyecto."""
+        technologies = {
+            'languages': [],
+            'frameworks': [],
+            'build_tools': [],
+            'dependencies': {}
+        }
+
+        # Detectar lenguajes de programación
+        language_patterns = {
+            'python': ['*.py', 'requirements.txt', 'setup.py', 'pyproject.toml'],
+            'javascript': ['*.js', 'package.json'],
+            'typescript': ['*.ts', 'tsconfig.json'],
+            'bash': ['*.sh'],
+            'go': ['*.go', 'go.mod'],
+            'rust': ['*.rs', 'Cargo.toml']
+        }
+
+        for lang, patterns in language_patterns.items():
+            for pattern in patterns:
+                files = list(self.base_path.glob(pattern))
+                if files:
+                    technologies['languages'].append(lang)
+                    break
+
+        # Detectar frameworks
+        framework_indicators = {
+            'django': ['manage.py', 'settings.py'],
+            'flask': ['app.py'],
+            'react': ['package.json'],  # Solo si contiene dependencias de React
+            'vue': ['vue.config.js', '*.vue'],
+            'angular': ['angular.json']
+        }
+
+        for framework, indicators in framework_indicators.items():
+            for indicator in indicators:
+                files = list(self.base_path.glob(indicator))
+                if files:
+                    # Para React, verificar que realmente sea un proyecto React
+                    if framework == 'react':
+                        for file in files:
+                            try:
+                                import json
+                                with open(file, 'r') as f:
+                                    pkg_data = json.load(f)
+                                    dependencies = pkg_data.get('dependencies', {})
+                                    dev_dependencies = pkg_data.get('devDependencies', {})
+                                    all_deps = {**dependencies, **dev_dependencies}
+
+                                    # Solo detectar React si tiene dependencias específicas de React
+                                    react_deps = ['react', 'react-dom', '@types/react', '@types/react-dom']
+                                    if any(dep in all_deps for dep in react_deps):
+                                        technologies['frameworks'].append(framework)
+                                        break
+                            except:
+                                continue
+                    else:
+                        technologies['frameworks'].append(framework)
+                    break
+
+        # Detectar herramientas de build
+        build_tools = {
+            'webpack': ['webpack.config.js'],
+            'vite': ['vite.config.js'],
+            'poetry': ['pyproject.toml'],
+            'pipenv': ['Pipfile']
+        }
+
+        for tool, indicators in build_tools.items():
+            for indicator in indicators:
+                files = list(self.base_path.glob(indicator))
+                if files:
+                    technologies['build_tools'].append(tool)
+                    break
+
+        return technologies
+
+    def _analyze_workflow(self) -> Dict:
+        """Analiza el flujo de trabajo de Git y CI/CD."""
+        workflow = {
+            'git_workflow': 'unknown',
+            'ci_cd_tools': [],
+            'code_quality_tools': [],
+            'branch_strategy': 'unknown',
+            'commit_hooks': [],
+            'commit_format': 'unknown',
+            'pre_commit_hooks': [],
+            'ci_pipelines': []
+        }
+
+        # Detectar herramientas de CI/CD
+        ci_patterns = {
+            'github_actions': ['.github/workflows/*.yml', '.github/workflows/*.yaml'],
+            'gitlab_ci': ['.gitlab-ci.yml'],
+            'jenkins': ['Jenkinsfile', 'Jenkinsfile.groovy'],
+            'circleci': ['.circleci/config.yml'],
+            'bitbucket_pipelines': ['bitbucket-pipelines.yml'],
+            'azure_devops': ['.azure-pipelines.yml', 'azure-pipelines.yml'],
+            'travis_ci': ['.travis.yml']
+        }
+
+        for ci_tool, patterns in ci_patterns.items():
+            for pattern in patterns:
+                files = list(self.base_path.glob(pattern))
+                if files:
+                    workflow['ci_cd_tools'].append(ci_tool)
+                    workflow['ci_pipelines'].extend([str(f) for f in files])
+                    break
+
+        # Detectar configuración de commitlint y formato de commits
+        commitlint_configs = [
+            'commitlint.config.js',
+            'commitlint.config.ts',
+            '.commitlintrc.js',
+            '.commitlintrc.json',
+            '.commitlintrc.yml'
+        ]
+
+        for config_file in commitlint_configs:
+            config_path = self.base_path / config_file
+            if config_path.exists():
+                workflow['commit_hooks'].append('commitlint')
+                # Intentar determinar el formato de commits
+                try:
+                    with open(config_path, 'r') as f:
+                        content = f.read()
+                        if 'conventional' in content.lower():
+                            workflow['commit_format'] = 'conventional'
+                        elif 'semantic' in content.lower():
+                            workflow['commit_format'] = 'semantic'
+                        elif 'angular' in content.lower():
+                            workflow['commit_format'] = 'angular'
+                        elif 'minimal' in content.lower():
+                            workflow['commit_format'] = 'minimal'
+                        else:
+                            workflow['commit_format'] = 'custom'
+                except:
+                    workflow['commit_format'] = 'unknown'
+                break
+
+        # Detectar configuración de pre-commit hooks
+        pre_commit_configs = [
+            '.pre-commit-config.yaml',
+            '.pre-commit-config.yml',
+            'pre-commit-config.yaml',
+            'pre-commit-config.yml'
+        ]
+
+        for config_file in pre_commit_configs:
+            config_path = self.base_path / config_file
+            if config_path.exists():
+                workflow['pre_commit_hooks'].append('pre-commit')
+                # Intentar leer los hooks configurados
+                try:
+                    import yaml
+                    with open(config_path, 'r') as f:
+                        config = yaml.safe_load(f)
+                        if 'repos' in config:
+                            for repo in config['repos']:
+                                if 'hooks' in repo:
+                                    for hook in repo['hooks']:
+                                        hook_name = hook.get('id', 'unknown')
+                                        workflow['pre_commit_hooks'].append(hook_name)
+                except:
+                    pass
+                break
+
+        # Detectar configuración de Git hooks personalizados
+        git_hooks_dirs = ['.githooks', '.git/hooks', 'hooks']
+        for hook_dir in git_hooks_dirs:
+            hook_path = self.base_path / hook_dir
+            if hook_path.exists():
+                workflow['commit_hooks'].append('custom_git_hooks')
+                # Listar hooks disponibles
+                hook_files = list(hook_path.glob('*'))
+                for hook_file in hook_files:
+                    if hook_file.is_file() and not hook_file.name.startswith('.'):
+                        workflow['commit_hooks'].append(f"hook_{hook_file.name}")
+
+        # Detectar herramientas de calidad de código
+        quality_tools = {
+            'eslint': ['.eslintrc*', 'eslint.config.js'],
+            'flake8': ['.flake8', 'setup.cfg'],
+            'black': ['pyproject.toml', 'setup.cfg'],
+            'pylint': ['.pylintrc', 'pyproject.toml'],
+            'shellcheck': ['.shellcheckrc', '.shellcheck'],
+            'stylelint': ['.stylelintrc*', 'stylelint.config.js'],
+            'prettier': ['.prettierrc*', 'prettier.config.js'],
+            'rubocop': ['.rubocop.yml', '.rubocop.yaml'],
+            'gofmt': ['go.mod'],  # Indicador de Go
+            'rustfmt': ['Cargo.toml']  # Indicador de Rust
+        }
+
+        for tool, patterns in quality_tools.items():
+            for pattern in patterns:
+                files = list(self.base_path.glob(pattern))
+                if files:
+                    workflow['code_quality_tools'].append(tool)
+                    break
+
+        # Determinar estrategia de ramas y workflow
+        if (self.base_path / '.githooks').exists() or 'pre-commit' in workflow['pre_commit_hooks']:
+            workflow['branch_strategy'] = 'gitflow'
+        elif 'github_actions' in workflow['ci_cd_tools']:
+            workflow['git_workflow'] = 'github_flow'
+        elif 'gitlab_ci' in workflow['ci_cd_tools']:
+            workflow['git_workflow'] = 'gitlab_flow'
+
+        # Detectar estrategia de ramas basada en configuración
+        if (self.base_path / '.gitflow').exists() or (self.base_path / 'gitflow').exists():
+            workflow['branch_strategy'] = 'gitflow'
+        elif any('main' in str(f) for f in self.base_path.glob('.github/workflows/*.yml')):
+            workflow['branch_strategy'] = 'trunk_based'
+
+        return workflow
+
+    def _analyze_configuration(self) -> Dict:
+        """Analiza la configuración del proyecto."""
+        config = {
+            'git_hooks': [],
+            'linting_config': {},
+            'formatting_config': {},
+            'editor_config': {},
+            'active_hooks': [],
+            'hook_configurations': {}
+        }
+
+        # Detectar configuración de Git hooks activos
+        hook_patterns = {
+            'pre_commit': ['.pre-commit-config.yaml', '.pre-commit-config.yml'],
+            'husky': ['package.json'],  # Buscar scripts de husky
+            'git_hooks': ['.githooks/*'],
+            'custom_hooks': ['hooks/*', '.git/hooks/*']
+        }
+
+        for hook_type, patterns in hook_patterns.items():
+            for pattern in patterns:
+                files = list(self.base_path.glob(pattern))
+                if files:
+                    config['git_hooks'].append(hook_type)
+                    config['active_hooks'].append(hook_type)
+
+                    # Analizar configuración específica de cada tipo de hook
+                    if hook_type == 'pre_commit':
+                        for file in files:
+                            try:
+                                import yaml
+                                with open(file, 'r') as f:
+                                    hook_config = yaml.safe_load(f)
+                                    config['hook_configurations']['pre_commit'] = {
+                                        'file': str(file),
+                                        'repos': len(hook_config.get('repos', [])),
+                                        'hooks': []
+                                    }
+                                    for repo in hook_config.get('repos', []):
+                                        for hook in repo.get('hooks', []):
+                                            config['hook_configurations']['pre_commit']['hooks'].append({
+                                                'id': hook.get('id', 'unknown'),
+                                                'name': hook.get('name', ''),
+                                                'stages': hook.get('stages', [])
+                                            })
+                            except Exception as e:
+                                config['hook_configurations']['pre_commit'] = {'error': str(e)}
+
+                    elif hook_type == 'husky':
+                        for file in files:
+                            try:
+                                import json
+                                with open(file, 'r') as f:
+                                    pkg_config = json.load(f)
+                                    if 'husky' in pkg_config:
+                                        config['hook_configurations']['husky'] = {
+                                            'file': str(file),
+                                            'hooks': list(pkg_config['husky'].keys())
+                                        }
+                            except Exception as e:
+                                config['hook_configurations']['husky'] = {'error': str(e)}
+
+                    elif hook_type == 'git_hooks':
+                        for file in files:
+                            if file.is_file():
+                                config['hook_configurations']['git_hooks'] = {
+                                    'file': str(file),
+                                    'type': 'custom_git_hook'
+                                }
+                    break
+
+        # Detectar configuración de commitlint activa
+        commitlint_configs = [
+            'commitlint.config.js',
+            'commitlint.config.ts',
+            '.commitlintrc.js',
+            '.commitlintrc.json',
+            '.commitlintrc.yml'
+        ]
+
+        for config_file in commitlint_configs:
+            config_path = self.base_path / config_file
+            if config_path.exists():
+                config['active_hooks'].append('commitlint')
+                try:
+                    with open(config_path, 'r') as f:
+                        content = f.read()
+                        config['hook_configurations']['commitlint'] = {
+                            'file': str(config_path),
+                            'content_preview': content[:200] + '...' if len(content) > 200 else content
+                        }
+                except Exception as e:
+                    config['hook_configurations']['commitlint'] = {'error': str(e)}
+                break
+
+        # Detectar configuración de linting
+        linting_configs = {
+            'eslint': ['.eslintrc*', 'eslint.config.js'],
+            'flake8': ['.flake8', 'setup.cfg'],
+            'pylint': ['.pylintrc', 'pyproject.toml'],
+            'shellcheck': ['.shellcheckrc', '.shellcheck'],
+            'stylelint': ['.stylelintrc*', 'stylelint.config.js'],
+            'rubocop': ['.rubocop.yml', '.rubocop.yaml']
+        }
+
+        for linter, patterns in linting_configs.items():
+            for pattern in patterns:
+                files = list(self.base_path.glob(pattern))
+                if files:
+                    config['linting_config'][linter] = {
+                        'active': True,
+                        'files': [str(f) for f in files]
+                    }
+                    break
+                else:
+                    config['linting_config'][linter] = {'active': False}
+
+        # Detectar configuración de formateo
+        formatting_configs = {
+            'black': ['pyproject.toml', 'setup.cfg'],
+            'prettier': ['.prettierrc*', 'prettier.config.js'],
+            'gofmt': ['go.mod'],
+            'rustfmt': ['Cargo.toml']
+        }
+
+        for formatter, patterns in formatting_configs.items():
+            for pattern in patterns:
+                files = list(self.base_path.glob(pattern))
+                if files:
+                    config['formatting_config'][formatter] = {
+                        'active': True,
+                        'files': [str(f) for f in files]
+                    }
+                    break
+                else:
+                    config['formatting_config'][formatter] = {'active': False}
+
+        # Detectar configuración del editor
+        editor_configs = {
+            'vscode': ['.vscode/settings.json', '.vscode/launch.json'],
+            'vim': ['.vimrc', '.vim'],
+            'emacs': ['.emacs', '.emacs.d'],
+            'editorconfig': ['.editorconfig']
+        }
+
+        for editor, patterns in editor_configs.items():
+            for pattern in patterns:
+                files = list(self.base_path.glob(pattern))
+                if files:
+                    config['editor_config'][editor] = {
+                        'active': True,
+                        'files': [str(f) for f in files]
+                    }
+                    break
+                else:
+                    config['editor_config'][editor] = {'active': False}
+
+        return config
+
+    def _analyze_versioning_system(self) -> Dict:
+        """Analiza el sistema de versionado."""
+        versioning = {
+            'type': 'unknown',
+            'semantic_versioning': False,
+            'conventional_commits': False,
+            'auto_versioning': False,
+            'version_files': []
+        }
+
+        # Detectar archivos de versión
+        version_patterns = ['VERSION', 'version.py', 'version.txt']
+        for pattern in version_patterns:
+            files = list(self.base_path.glob(f'**/{pattern}'))
+            versioning['version_files'].extend([str(f) for f in files])
+
+        # Detectar conventional commits
+        if (self.base_path / 'commitlint.config.js').exists():
+            versioning['conventional_commits'] = True
+            versioning['type'] = 'conventional'
+
+        # Detectar versionado semántico
+        if versioning['version_files'] or 'conventional_commits' in versioning:
+            versioning['semantic_versioning'] = True
+
+        return versioning
+
+    def _analyze_testing_framework(self) -> Dict:
+        """Analiza el framework de testing."""
+        testing = {
+            'frameworks': [],
+            'coverage_tools': [],
+            'test_directories': []
+        }
+
+        # Detectar frameworks de testing
+        test_frameworks = {
+            'pytest': ['pytest.ini', 'pyproject.toml'],
+            'jest': ['package.json'],
+            'mocha': ['package.json'],
+            'cypress': ['cypress.config.js'],
+            'playwright': ['playwright.config.js']
+        }
+
+        for framework, patterns in test_frameworks.items():
+            for pattern in patterns:
+                files = list(self.base_path.glob(pattern))
+                if files:
+                    testing['frameworks'].append(framework)
+                    break
+
+        # Detectar directorios de tests
+        test_dirs = ['tests', 'test', '__tests__', 'spec']
+        for dir_name in test_dirs:
+            dir_path = self.base_path / dir_name
+            if dir_path.exists():
+                testing['test_directories'].append(dir_name)
+
+        return testing
+
+    def _analyze_documentation(self) -> Dict:
+        """Analiza la documentación del proyecto."""
+        documentation = {
+            'tools': [],
+            'formats': [],
+            'directories': []
+        }
+
+        # Detectar herramientas de documentación
+        doc_tools = {
+            'sphinx': ['docs/conf.py'],
+            'mkdocs': ['mkdocs.yml'],
+            'docusaurus': ['docusaurus.config.js'],
+            'storybook': ['.storybook/main.js']
+        }
+
+        for tool, patterns in doc_tools.items():
+            for pattern in patterns:
+                files = list(self.base_path.glob(pattern))
+                if files:
+                    documentation['tools'].append(tool)
+                    break
+
+        # Detectar formatos de documentación
+        doc_formats = ['*.md', '*.rst', '*.txt']
+        for pattern in doc_formats:
+            files = list(self.base_path.glob(pattern))
+            if files:
+                ext = pattern.split('.')[-1]
+                if ext not in documentation['formats']:
+                    documentation['formats'].append(ext)
+
+        # Detectar directorios de documentación
+        doc_dirs = ['docs', 'documentation', 'doc']
+        for dir_name in doc_dirs:
+            dir_path = self.base_path / dir_name
+            if dir_path.exists():
+                documentation['directories'].append(dir_name)
+
+        return documentation
+
+    def _analyze_security_tools(self) -> Dict:
+        """Analiza las herramientas de seguridad."""
+        security = {
+            'tools': [],
+            'practices': []
+        }
+
+        # Detectar herramientas de seguridad
+        security_tools = {
+            'snyk': ['.snyk'],
+            'bandit': ['pyproject.toml'],
+            'safety': ['requirements.txt'],
+            'npm_audit': ['package.json']
+        }
+
+        for tool, patterns in security_tools.items():
+            for pattern in patterns:
+                files = list(self.base_path.glob(pattern))
+                if files:
+                    security['tools'].append(tool)
+                    break
+
+        return security
+
+    def _determine_project_type(self, analysis: Dict) -> str:
+        """Determina el tipo de proyecto basado en el análisis."""
+        structure = analysis.get('project_structure', {})
+        technologies = analysis.get('technologies', {})
+
+        if structure.get('is_monorepo'):
+            return 'monorepo'
+
+        frameworks = technologies.get('frameworks', [])
+        if 'django' in frameworks or 'flask' in frameworks:
+            return 'web_app'
+        elif 'react' in frameworks or 'vue' in frameworks or 'angular' in frameworks:
+            return 'web_app'
+
+        languages = technologies.get('languages', [])
+        if 'bash' in languages and len(languages) == 1:
+            return 'cli_tool'
+
+        if 'python' in languages and 'javascript' not in languages:
+            return 'library'
+
+        return 'single_repo'
+
 class DocumentationGenerator:
     """Generador de documentación usando IA."""
 
@@ -1549,6 +2145,11 @@ class DocumentationGenerator:
             self.analyzer = ChangelogAnalyzer(self.base_path, config)
             if not self.analyzer:
                 raise RuntimeError("No se pudo inicializar el analizador de CHANGELOG")
+        # Para CONTRIBUTING, usar ContributingAnalyzer
+        elif config.get('doc_type') == 'contributing':
+            self.analyzer = ContributingAnalyzer(self.base_path, config)
+            if not self.analyzer:
+                raise RuntimeError("No se pudo inicializar el analizador de CONTRIBUTING")
         else:
             # Para otros tipos de documento, usar CodeAnalyzer
             self.analyzer = CodeAnalyzer(self.base_path, config)
@@ -1606,17 +2207,31 @@ class DocumentationGenerator:
         else:
             self.console.print("[yellow]⚠ Advertencia: No se encontró docs/config/model.yaml[/yellow]")
 
-        # 2. Cargar configuración de análisis
-        analysis_config_path = self.base_path / 'docs/config/analysis/default.yaml'
-        if analysis_config_path.exists():
-            try:
-                with open(analysis_config_path, 'r', encoding='utf-8') as f:
-                    analysis_config = yaml.safe_load(f)
-                    config['analysis'].update(analysis_config.get('default_analysis', {}))
-            except Exception as e:
-                self.console.print(f"[yellow]⚠ Advertencia: Error cargando configuración de análisis: {str(e)}[/yellow]")
+        # 2. Cargar configuración de análisis específica por tipo de documento
+        if doc_type == 'contributing':
+            # Para CONTRIBUTING.md, cargar configuración específica
+            analysis_config_path = self.base_path / 'docs/config/analysis/contributing.yaml'
+            if analysis_config_path.exists():
+                try:
+                    with open(analysis_config_path, 'r', encoding='utf-8') as f:
+                        analysis_config = yaml.safe_load(f)
+                        config['analysis'].update(analysis_config.get('analysis_methods', {}))
+                except Exception as e:
+                    self.console.print(f"[yellow]⚠ Advertencia: Error cargando configuración de análisis de CONTRIBUTING: {str(e)}[/yellow]")
+            else:
+                self.console.print("[yellow]⚠ Advertencia: No se encontró docs/config/analysis/contributing.yaml[/yellow]")
         else:
-            self.console.print("[yellow]⚠ Advertencia: No se encontró docs/config/analysis/default.yaml[/yellow]")
+            # Para otros tipos, cargar configuración por defecto
+            analysis_config_path = self.base_path / 'docs/config/analysis/default.yaml'
+            if analysis_config_path.exists():
+                try:
+                    with open(analysis_config_path, 'r', encoding='utf-8') as f:
+                        analysis_config = yaml.safe_load(f)
+                        config['analysis'].update(analysis_config.get('default_analysis', {}))
+                except Exception as e:
+                    self.console.print(f"[yellow]⚠ Advertencia: Error cargando configuración de análisis: {str(e)}[/yellow]")
+            else:
+                self.console.print("[yellow]⚠ Advertencia: No se encontró docs/config/analysis/default.yaml[/yellow]")
 
         # 3. Cargar configuración específica si existe
         if custom_type:
@@ -1646,6 +2261,17 @@ class DocumentationGenerator:
             else:
                 self.console.print(f"[yellow]⚠ Advertencia: No se encontró docs/config/toc/custom/{custom_type}.yaml[/yellow]")
 
+        # 4. Cargar TOC base para CONTRIBUTING.md si no hay TOC personalizado
+        if doc_type == 'contributing' and 'toc' not in config:
+            toc_path = self.base_path / 'docs/config/toc/base/contributing.yaml'
+            if toc_path.exists():
+                try:
+                    with open(toc_path, 'r', encoding='utf-8') as f:
+                        toc_config = yaml.safe_load(f)
+                        config['toc'] = toc_config
+                except Exception as e:
+                    self.console.print(f"[yellow]⚠ Advertencia: Error cargando TOC base de CONTRIBUTING: {str(e)}[/yellow]")
+
         return config
 
     def generate_documentation(self, output_file: str, custom_instructions: Optional[str] = None, use_ai: bool = False) -> None:
@@ -1654,6 +2280,11 @@ class DocumentationGenerator:
             # Para CHANGELOG, usar generación sin IA por defecto
             if self.config.get('doc_type') == 'changelog':
                 self._generate_changelog(output_file, custom_instructions, use_ai)
+                return
+
+            # Para CONTRIBUTING, usar análisis de proyecto
+            if self.config.get('doc_type') == 'contributing':
+                self._generate_contributing(output_file, custom_instructions, use_ai)
                 return
 
             # Para otros tipos de documento, usar el flujo normal con IA
@@ -1745,12 +2376,526 @@ class DocumentationGenerator:
             ))
             raise click.Abort()
 
+    def _generate_contributing(self, output_file: str, custom_instructions: Optional[str] = None, use_ai: bool = False) -> None:
+        """Genera CONTRIBUTING.md específicamente."""
+        try:
+            self.console.print("[blue]Analizando estructura del proyecto para CONTRIBUTING.md...[/blue]")
+
+            # Analizar proyecto
+            analysis = self.analyzer.analyze_project()
+
+            if not analysis:
+                self.console.print("[yellow]No se pudo analizar el proyecto para generar CONTRIBUTING.md[/yellow]")
+                return
+
+            # Generar contenido del CONTRIBUTING.md
+            if use_ai:
+                self.console.print("[blue]Generando contenido del CONTRIBUTING.md con IA...[/blue]")
+                content = self._generate_contributing_with_ai(analysis, custom_instructions)
+            else:
+                self.console.print("[blue]Generando contenido del CONTRIBUTING.md sin IA...[/blue]")
+                content = self._generate_contributing_without_ai(analysis)
+
+            # Guardar el CONTRIBUTING.md
+            output_path = Path(output_file)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+
+            # Mostrar información del análisis
+            project_type = analysis.get('project_type', 'unknown')
+            technologies = analysis.get('technologies', {})
+            languages = technologies.get('languages', [])
+
+            self.console.print(f"[green]✓ CONTRIBUTING.md generado y guardado en: {output_file}[/green]")
+            self.console.print(f"[blue]📊 Tipo de proyecto: {project_type}[/blue]")
+            self.console.print(f"[blue]🔧 Tecnologías detectadas: {', '.join(languages)}[/blue]")
+
+        except Exception as e:
+            self.console.print(Panel(
+                f"[bold red]✗ Error generando CONTRIBUTING.md[/bold red]\n{str(e)}",
+                border_style="red"
+            ))
+            raise click.Abort()
+
+    def _generate_contributing_without_ai(self, analysis: Dict) -> str:
+        """Genera CONTRIBUTING.md sin usar IA, basado en el análisis del proyecto."""
+        project_type = analysis.get('project_type', 'unknown')
+        structure = analysis.get('structure', {})
+        technologies = analysis.get('technologies', {})
+        workflow = analysis.get('workflow', {})
+        configuration = analysis.get('configuration', {})
+        versioning = analysis.get('versioning', {})
+        testing = analysis.get('testing', {})
+        documentation = analysis.get('documentation', {})
+        security = analysis.get('security', {})
+
+        # Leer descripción del proyecto si existe
+        project_description = ""
+        project_desc_path = self.base_path / '.project/description'
+        if project_desc_path.exists():
+            try:
+                with open(project_desc_path, 'r', encoding='utf-8') as f:
+                    project_description = f.read().strip()
+            except:
+                pass
+
+        content = []
+
+        # Título
+        content.append("# Contributing")
+        content.append("")
+
+        # Descripción del proyecto
+        if project_description:
+            content.append(f"## Sobre este proyecto")
+            content.append("")
+            content.append(project_description)
+            content.append("")
+        else:
+            content.append(f"## Sobre este proyecto")
+            content.append("")
+            content.append(f"Este es un proyecto de tipo **{project_type}** que utiliza las siguientes tecnologías principales:")
+            content.append("")
+
+            languages = technologies.get('languages', [])
+            if languages:
+                content.append(f"- **Lenguajes de programación**: {', '.join(languages)}")
+
+            frameworks = technologies.get('frameworks', [])
+            if frameworks:
+                content.append(f"- **Frameworks**: {', '.join(frameworks)}")
+
+            databases = technologies.get('databases', [])
+            if databases:
+                content.append(f"- **Bases de datos**: {', '.join(databases)}")
+            content.append("")
+
+        # Cómo contribuir
+        content.append("## Cómo contribuir")
+        content.append("")
+        content.append("Agradecemos tu interés en contribuir a este proyecto. Aquí encontrarás toda la información necesaria para comenzar.")
+        content.append("")
+
+        # Configuración del entorno
+        content.append("### Configuración del entorno de desarrollo")
+        content.append("")
+
+        # Detectar herramientas de gestión de dependencias
+        package_managers = []
+        if (self.base_path / 'requirements.txt').exists():
+            package_managers.append("pip")
+        if (self.base_path / 'package.json').exists():
+            package_managers.append("npm")
+        if (self.base_path / 'Cargo.toml').exists():
+            package_managers.append("cargo")
+        if (self.base_path / 'go.mod').exists():
+            package_managers.append("go modules")
+
+        if package_managers:
+            content.append("#### Instalación de dependencias")
+            content.append("")
+            for pm in package_managers:
+                if pm == "pip":
+                    content.append("```bash")
+                    content.append("pip install -r requirements.txt")
+                    content.append("```")
+                elif pm == "npm":
+                    content.append("```bash")
+                    content.append("npm install")
+                    content.append("```")
+                elif pm == "cargo":
+                    content.append("```bash")
+                    content.append("cargo build")
+                    content.append("```")
+                elif pm == "go modules":
+                    content.append("```bash")
+                    content.append("go mod download")
+                    content.append("```")
+            content.append("")
+
+        # Configuración de hooks y herramientas de calidad
+        active_hooks = configuration.get('active_hooks', [])
+        if active_hooks:
+            content.append("#### Configuración de hooks y herramientas de calidad")
+            content.append("")
+
+            if 'pre-commit' in active_hooks:
+                content.append("Este proyecto utiliza **pre-commit hooks** para mantener la calidad del código:")
+                content.append("")
+                content.append("```bash")
+                content.append("pip install pre-commit")
+                content.append("pre-commit install")
+                content.append("```")
+                content.append("")
+
+                # Mostrar hooks configurados
+                pre_commit_config = configuration.get('hook_configurations', {}).get('pre_commit', {})
+                if 'hooks' in pre_commit_config:
+                    content.append("**Hooks configurados:**")
+                    content.append("")
+                    for hook in pre_commit_config['hooks']:
+                        hook_id = hook.get('id', 'unknown')
+                        hook_name = hook.get('name', '')
+                        if hook_name:
+                            content.append(f"- **{hook_id}**: {hook_name}")
+                        else:
+                            content.append(f"- **{hook_id}**")
+                    content.append("")
+
+            if 'commitlint' in active_hooks:
+                content.append("Este proyecto utiliza **commitlint** para validar el formato de los mensajes de commit:")
+                content.append("")
+                commit_format = workflow.get('commit_format', 'unknown')
+                if commit_format != 'unknown':
+                    content.append(f"**Formato de commits**: {commit_format}")
+                    content.append("")
+                    if commit_format == 'conventional':
+                        content.append("Los commits deben seguir el formato Conventional Commits:")
+                        content.append("")
+                        content.append("```")
+                        content.append("<type>[optional scope]: <description>")
+                        content.append("")
+                        content.append("[optional body]")
+                        content.append("")
+                        content.append("[optional footer(s)]")
+                        content.append("```")
+                        content.append("")
+                        content.append("**Tipos válidos**: feat, fix, docs, style, refactor, test, chore")
+                        content.append("")
+
+            # Mostrar otros hooks activos
+            other_hooks = [hook for hook in active_hooks if hook not in ['pre-commit', 'commitlint']]
+            if other_hooks:
+                content.append("**Otros hooks activos:**")
+                content.append("")
+                for hook in other_hooks:
+                    content.append(f"- **{hook}**")
+                content.append("")
+
+        # Flujo de trabajo
+        content.append("### Flujo de trabajo")
+        content.append("")
+
+        git_workflow = workflow.get('git_workflow', 'unknown')
+        branch_strategy = workflow.get('branch_strategy', 'unknown')
+
+        if branch_strategy != 'unknown':
+            content.append(f"**Estrategia de ramas**: {branch_strategy}")
+            content.append("")
+
+            if branch_strategy == 'gitflow':
+                content.append("1. Crea una rama feature desde `develop`")
+                content.append("2. Realiza tus cambios y commits")
+                content.append("3. Crea un Pull Request hacia `develop`")
+                content.append("4. Después de la revisión, se mergea a `develop`")
+                content.append("5. Para releases, se crea una rama desde `develop` hacia `main`")
+            elif branch_strategy == 'trunk_based':
+                content.append("1. Crea una rama feature desde `main`")
+                content.append("2. Realiza tus cambios y commits")
+                content.append("3. Crea un Pull Request hacia `main`")
+                content.append("4. Después de la revisión, se mergea a `main`")
+        else:
+            content.append("1. Crea una rama feature desde la rama principal")
+            content.append("2. Realiza tus cambios y commits")
+            content.append("3. Crea un Pull Request")
+            content.append("4. Después de la revisión, se mergea")
+        content.append("")
+
+        # Herramientas de CI/CD
+        ci_cd_tools = workflow.get('ci_cd_tools', [])
+        if ci_cd_tools:
+            content.append("### Integración Continua")
+            content.append("")
+            content.append("Este proyecto utiliza las siguientes herramientas de CI/CD:")
+            content.append("")
+            for tool in ci_cd_tools:
+                content.append(f"- **{tool}**")
+            content.append("")
+            content.append("Los pipelines se ejecutan automáticamente en cada Pull Request.")
+            content.append("")
+
+        # Estándares de código
+        content.append("### Estándares de código")
+        content.append("")
+
+        # Herramientas de linting activas
+        linting_config = configuration.get('linting_config', {})
+        active_linters = [linter for linter, config in linting_config.items() if config.get('active', False)]
+
+        if active_linters:
+            content.append("**Herramientas de linting configuradas:**")
+            content.append("")
+            for linter in active_linters:
+                content.append(f"- **{linter}**")
+            content.append("")
+            content.append("Asegúrate de que tu código pase todas las validaciones antes de hacer commit.")
+            content.append("")
+        else:
+            content.append("Este proyecto no tiene herramientas de linting específicas configuradas.")
+            content.append("")
+
+        # Herramientas de formateo
+        formatting_config = configuration.get('formatting_config', {})
+        active_formatters = [formatter for formatter, config in formatting_config.items() if config.get('active', False)]
+
+        if active_formatters:
+            content.append("**Herramientas de formateo configuradas:**")
+            content.append("")
+            for formatter in active_formatters:
+                content.append(f"- **{formatter}**")
+            content.append("")
+            content.append("Utiliza estas herramientas para mantener un estilo de código consistente.")
+            content.append("")
+        else:
+            content.append("Este proyecto no tiene herramientas de formateo específicas configuradas.")
+            content.append("")
+
+        # Testing
+        content.append("### Testing")
+        content.append("")
+
+        test_frameworks = testing.get('frameworks', [])
+        if test_frameworks:
+            content.append("**Frameworks de testing:**")
+            content.append("")
+            for framework in test_frameworks:
+                content.append(f"- **{framework}**")
+            content.append("")
+
+            test_dirs = testing.get('test_directories', [])
+            if test_dirs:
+                content.append("**Directorios de tests:**")
+                content.append("")
+                for test_dir in test_dirs:
+                    content.append(f"- `{test_dir}/`")
+                content.append("")
+
+            content.append("**Ejecutar tests:**")
+            content.append("")
+            for framework in test_frameworks:
+                if framework == 'pytest':
+                    content.append("```bash")
+                    content.append("pytest")
+                    content.append("```")
+                elif framework == 'jest':
+                    content.append("```bash")
+                    content.append("npm test")
+                    content.append("```")
+                elif framework == 'mocha':
+                    content.append("```bash")
+                    content.append("npm test")
+                    content.append("```")
+            content.append("")
+            content.append("Asegúrate de que todos los tests pasen antes de hacer commit.")
+        else:
+            content.append("Este proyecto no tiene frameworks de testing configurados específicamente.")
+            content.append("")
+
+        # Documentación
+        content.append("### Documentación")
+        content.append("")
+
+        doc_tools = documentation.get('tools', [])
+        if doc_tools:
+            content.append("**Herramientas de documentación:**")
+            content.append("")
+            for tool in doc_tools:
+                content.append(f"- **{tool}**")
+            content.append("")
+
+        doc_dirs = documentation.get('directories', [])
+        if doc_dirs:
+            content.append("**Directorios de documentación:**")
+            content.append("")
+            for doc_dir in doc_dirs:
+                content.append(f"- `{doc_dir}/`")
+            content.append("")
+
+        content.append("Mantén la documentación actualizada con tus cambios.")
+        content.append("")
+
+        # Proceso de Pull Request
+        content.append("### Proceso de Pull Request")
+        content.append("")
+        content.append("1. **Fork del repositorio** (si no tienes acceso directo)")
+        content.append("2. **Crea una rama** para tu feature/fix")
+        content.append("3. **Realiza tus cambios** siguiendo los estándares del proyecto")
+        content.append("4. **Ejecuta los tests** localmente")
+        content.append("5. **Haz commit** con mensajes descriptivos")
+        content.append("6. **Crea el Pull Request** con una descripción clara")
+        content.append("7. **Espera la revisión** y responde a los comentarios")
+        content.append("8. **Una vez aprobado**, se mergeará al repositorio")
+        content.append("")
+
+        # Código de conducta
+        content.append("### Código de conducta")
+        content.append("")
+        content.append("Este proyecto se compromete a proporcionar un entorno de contribución abierto y acogedor para todos.")
+        content.append("")
+        content.append("Al participar en este proyecto, aceptas respetar el código de conducta del proyecto.")
+        content.append("")
+
+        # Contacto
+        content.append("### Contacto")
+        content.append("")
+        content.append("Si tienes preguntas sobre cómo contribuir, puedes:")
+        content.append("")
+        content.append("- Abrir un issue en el repositorio")
+        content.append("- Contactar a los mantenedores del proyecto")
+        content.append("")
+        content.append("¡Gracias por contribuir!")
+        content.append("")
+
+        return "\n".join(content)
+
+    def _generate_contributing_with_ai(self, analysis: Dict, custom_instructions: Optional[str] = None) -> str:
+        """Genera CONTRIBUTING.md usando IA."""
+        # Construir prompt específico para CONTRIBUTING.md
+        prompt = self._build_contributing_prompt(analysis, custom_instructions)
+
+        response = self.client.messages.create(
+            model=self.model,
+            max_tokens=self.config.get('max_tokens', 8000),
+            temperature=self.config.get('temperature', 0.8),
+            system=prompt,
+            messages=[
+                {
+                    "role": "user",
+                    "content": "Genera un CONTRIBUTING.md completo y profesional basado en el análisis del proyecto proporcionado."
+                }
+            ]
+        )
+
+        return response.content[0].text
+
+    def _build_contributing_prompt(self, analysis: Dict, custom_instructions: Optional[str] = None) -> str:
+        """Construye el prompt específico para CONTRIBUTING.md."""
+        # Cargar prompt base para CONTRIBUTING.md
+        prompt_path = self.base_path / 'docs/config/prompts/system/contributing.yaml'
+        base_prompt = ""
+        if prompt_path.exists():
+            try:
+                with open(prompt_path, 'r', encoding='utf-8') as f:
+                    config = yaml.safe_load(f)
+                    base_prompt = config.get('prompt', '')
+            except Exception as e:
+                self.console.print(f"[yellow]⚠ Advertencia: Error cargando prompt de CONTRIBUTING: {str(e)}[/yellow]")
+
+        # Cargar TOC para CONTRIBUTING.md
+        toc_path = self.base_path / 'docs/config/toc/base/contributing.yaml'
+        toc_config = {}
+        if toc_path.exists():
+            try:
+                with open(toc_path, 'r', encoding='utf-8') as f:
+                    toc_config = yaml.safe_load(f)
+            except Exception as e:
+                self.console.print(f"[yellow]⚠ Advertencia: Error cargando TOC de CONTRIBUTING: {str(e)}[/yellow]")
+
+        # Construir prompt completo
+        prompt_parts = [
+            base_prompt,
+            f"\n\nAnálisis del proyecto:",
+            yaml.dump(analysis, default_flow_style=False),
+            f"\n\nEstructura requerida:",
+            yaml.dump(toc_config, default_flow_style=False)
+        ]
+
+        if custom_instructions:
+            prompt_parts.append(f"\n\nInstrucciones personalizadas:\n{custom_instructions}")
+
+        return "\n".join(prompt_parts)
+
+    def _get_commit_message_format(self, versioning: Dict) -> str:
+        """Obtiene el formato de mensajes de commit."""
+        if versioning.get('conventional_commits'):
+            return """Utilizamos Conventional Commits:
+
+- `feat:` Nuevas funcionalidades
+- `fix:` Correcciones de bugs
+- `docs:` Documentación
+- `style:` Cambios de estilo
+- `refactor:` Refactorización
+- `test:` Pruebas
+- `chore:` Tareas de mantenimiento"""
+        else:
+            return """Utilizamos el formato: `[TAG] Descripción`
+
+- `[FEAT]` Nuevas funcionalidades
+- `[FIX]` Correcciones de bugs
+- `[DOCS]` Documentación
+- `[STYLE]` Cambios de estilo
+- `[REFACTOR]` Refactorización
+- `[TEST]` Pruebas
+- `[CHORE]` Tareas de mantenimiento"""
+
+    def _get_versioning_info(self, versioning: Dict) -> str:
+        """Obtiene información del sistema de versionado."""
+        if versioning.get('semantic_versioning'):
+            return """Utilizamos Semantic Versioning (MAJOR.MINOR.PATCH):
+
+- MAJOR: Cambios incompatibles con versiones anteriores
+- MINOR: Nuevas funcionalidades compatibles
+- PATCH: Correcciones de bugs compatibles"""
+        else:
+            return """El versionado se maneja automáticamente basado en los commits."""
+
+    def _get_code_style_info(self, technologies: Dict, workflow: Dict) -> str:
+        """Obtiene información del estilo de código."""
+        info = []
+
+        # Linters detectados
+        code_quality_tools = workflow.get('code_quality_tools', [])
+        if 'pre_commit' in code_quality_tools:
+            info.append("- Pre-commit hooks configurados")
+        if 'eslint' in code_quality_tools:
+            info.append("- ESLint para JavaScript/TypeScript")
+        if 'flake8' in code_quality_tools:
+            info.append("- Flake8 para Python")
+        if 'shellcheck' in code_quality_tools:
+            info.append("- ShellCheck para Bash")
+
+        # Frameworks de formateo
+        languages = technologies.get('languages', [])
+        if 'python' in languages:
+            info.append("- Black para formateo de Python")
+        if 'javascript' in languages or 'typescript' in languages:
+            info.append("- Prettier para formateo de JavaScript/TypeScript")
+
+        return "\n".join(info) if info else "Sigue las convenciones estándar del lenguaje."
+
+    def _get_testing_info(self, testing: Dict) -> str:
+        """Obtiene información de testing."""
+        frameworks = testing.get('frameworks', [])
+        if frameworks:
+            return f"""Utilizamos {', '.join(frameworks)} para las pruebas.
+
+Ejecuta las pruebas con:
+{chr(10).join([f"- {framework}" for framework in frameworks])}"""
+        else:
+            return "Se recomienda incluir pruebas para nuevas funcionalidades."
+
+    def _get_documentation_info(self, documentation: Dict) -> str:
+        """Obtiene información de documentación."""
+        tools = documentation.get('tools', [])
+        if tools:
+            return f"""Utilizamos {', '.join(tools)} para la documentación.
+
+Mantén actualizada la documentación cuando hagas cambios."""
+        else:
+            return "Documenta tus cambios en el código y actualiza la documentación cuando sea necesario."
+
     def _analyze_codebase(self) -> Dict:
         """Analiza el código base para generar documentación."""
         if not self.analyzer:
             raise RuntimeError("El analizador no está inicializado")
 
-        # Usar el método _analyze_codebase del analizador
+        # Para ContributingAnalyzer, usar analyze_project
+        if isinstance(self.analyzer, ContributingAnalyzer):
+            return self.analyzer.analyze_project()
+
+        # Para otros analizadores, usar el método _analyze_codebase
         return self.analyzer._analyze_codebase(self.config.get('doc_type'), self.config.get('custom_type'))
 
     def _build_prompt(self, config: Dict, analysis: Dict, custom_instructions: Optional[str] = None) -> str:
@@ -1826,20 +2971,28 @@ Para CHANGELOG:
 - No usa IA por defecto (opcional con --use-ai).
 - El resultado es un CHANGELOG profesional, limpio y legible.
 
+Para CONTRIBUTING:
+- Analiza automáticamente la estructura del proyecto.
+- Detecta tecnologías, flujo de trabajo y configuración.
+- Genera CONTRIBUTING.md adaptado al proyecto.
+- Opcional con --use-ai para mejorar el contenido.
+
 Ejemplo:
   python docgen.py generate --doc-type changelog --output CHANGELOG.md
   python docgen.py generate --doc-type changelog --output CHANGELOG.md --use-ai
+  python docgen.py generate --doc-type contributing --output CONTRIBUTING.md
+  python docgen.py generate --doc-type contributing --output CONTRIBUTING.md --use-ai
 """,
     context_settings={"help_option_names": ["--help", "-h"]}
 )
-@click.option('--doc-type', required=True, help='Tipo de documentación a generar. Ej: changelog, readme, user_guide, api_docs.')
+@click.option('--doc-type', required=True, help='Tipo de documentación a generar. Ej: changelog, contributing, readme, user_guide, api_docs.')
 @click.option('--output', required=True, help='Archivo de salida para la documentación.')
 @click.option('--context', help='Contexto específico a usar para la generación.')
 @click.option('--custom-type', help='Tipo personalizado para cargar configuraciones específicas de análisis y TOC.')
 @click.option('--custom-instructions', help='Instrucciones personalizadas para añadir al prompt.')
 @click.option('--model', help='Modelo de IA a usar (sobrescribe la configuración).')
 @click.option('--base-path', default=os.getcwd(), help='Ruta base del proyecto.')
-@click.option('--use-ai', is_flag=True, help='Usar IA para mejorar el contenido (solo para CHANGELOG).')
+@click.option('--use-ai', is_flag=True, help='Usar IA para mejorar el contenido (solo para CHANGELOG y CONTRIBUTING).')
 def generate(doc_type, output, context, custom_instructions, custom_type, model, base_path, use_ai):
     """Genera la documentación para un tipo de documento específico."""
     console = Console()

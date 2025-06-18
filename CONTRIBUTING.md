@@ -1,166 +1,503 @@
-# Contribuyendo a Utilitarios Personales Monorepo
+# Contribuyendo a este Proyecto
 
-¡Gracias por tu interés en contribuir y mantener esta colección de utilitarios! Este documento guía el proceso de desarrollo, versionado y release dentro de este monorepo.
+## Introducción
 
-## Filosofía del Proyecto
+¡Gracias por tu interés en contribuir a este proyecto! Este es un repositorio de herramientas y scripts de desarrollo que incluye múltiples tecnologías (Python, JavaScript, Bash) con un enfoque en la calidad de código y la automatización de procesos.
 
-Este es un monorepo que alberga una colección de scripts y utilidades personales, principalmente en Python, Bash y TypeScript/Node.js. Aunque los componentes pueden ser lógicamente independientes, se versionan y gestionan como un todo cohesionado, pero con un sistema de versionado dual:
-1.  **Versionado de Archivos Individuales:** Cada script o módulo principal (`.py`, `.sh`, `.js`, `.ts`) dentro del repositorio que contenga una variable `VERSION = "X.Y.Z"` (o formato similar) se versionará individualmente de forma automática.
-2.  **Release Unificada del Repositorio:** El repositorio en su conjunto tendrá una versión global (ej. `vA.B.C`) que se gestiona a través de releases en GitHub.
+### Filosofía del Proyecto
 
-## Código de Conducta
+- **Calidad ante todo**: Priorizamos código limpio, bien documentado y probado
+- **Automatización**: Utilizamos hooks y herramientas para mantener estándares consistentes
+- **Colaboración**: Fomentamos un ambiente inclusivo y constructivo
+- **Mejora continua**: Siempre buscamos optimizar procesos y herramientas
 
-Se espera que todos los participantes sigan el [Código de Conducta](CODE_OF_CONDUCT.md). (Asumido, crear si es necesario).
+## Configuración del Entorno de Desarrollo
 
-## Licencia
+### Prerrequisitos
 
-Al contribuir a este proyecto, aceptas que tus contribuciones se licenciarán bajo la **GNU General Public License v3 (GPLv3)**, como se detalla en el archivo `LICENSE`. Para usos comerciales, se requiere una licencia separada.
+- **Python 3.12+** (requerido para scripts de Python)
+- **Node.js 16+** (requerido para herramientas de JavaScript)
+- **Git 2.30+** (requerido para hooks avanzados)
+- **Bash 4.0+** (para scripts de shell)
 
-## Configuración del Entorno
+### Instalación
 
-Asegúrate de tener el entorno base configurado y las herramientas necesarias:
-*   **`binsetup.sh`**: Ejecuta `~/bin/binsetup.sh --persistent` para la configuración inicial.
-*   **`pre-commit`**: Instálalo (`pip install pre-commit`) y activa los hooks con `pre-commit install --hook-type commit-msg --hook-type pre-commit`. Esto asegurará la validación de mensajes de commit con `commitlint` y otros checks.
-*   **`promanager.py`**: Utilidad para la gestión del proyecto y ramas (ver más abajo).
-*   **`wfwdevs.py`**: Utilidad para asistir en la creación y gestión de ramas de trabajo.
+1. **Clona el repositorio**:
+   ```bash
+   git clone <repository-url>
+   cd <project-directory>
+   ```
 
-## Flujo de Trabajo de Git y Ramas
+2. **Configura el entorno virtual de Python**:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # En Windows: .venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
 
-Utilizamos un flujo de Git estructurado para asegurar la estabilidad de `main` y la correcta integración de cambios.
+3. **Instala dependencias de Node.js**:
+   ```bash
+   npm install
+   ```
 
-### Ramas Principales:
+4. **Configura pre-commit hooks**:
+   ```bash
+   pre-commit install --install-hooks
+   pre-commit install --hook-type commit-msg
+   pre-commit install --hook-type pre-push
+   ```
 
-*   **`main`**: Rama de producción. Contiene el código más estable y desde aquí se generan las releases. Solo recibe fusiones desde `hotfix/*` o desde `develop` (a través de un proceso de promoción, posiblemente involucrando una rama `staging` si se usa). Los pushes directos están desaconsejados y deberían estar protegidos.
-*   **`develop`**: Rama de integración principal. Todas las nuevas características (`feature/*`) y correcciones no urgentes (`fix/*`, `docs/*`, etc.) se fusionan aquí primero.
-*   **(Opcional) `staging`**: Puede usarse como un paso intermedio entre `develop` y `main` para pruebas de integración finales antes de una release a producción.
+5. **Configura hooks personalizados**:
+   ```bash
+   # Los hooks personalizados se configuran automáticamente
+   # Verifica que estén activos:
+   ls -la .git/hooks/
+   ```
 
-### Ramas de Trabajo:
+### Verificación de la Configuración
 
-Para cualquier cambio, crea una rama descriptiva a partir de la rama base adecuada. Utiliza `promanager.py` o `wfwdevs.py` para facilitar la creación de estas ramas, o créalas manualmente siguiendo las convenciones:
+```bash
+# Verifica Python
+python --version
+pip list
 
-1.  **`feature/<nombre-feature>`**:
-    *   **Propósito**: Nuevas funcionalidades.
-    *   **Desde**: `develop`
-    *   **Hacia**: `develop` (vía Pull Request)
-    *   **Ejemplo**: `git checkout develop; git pull; git checkout -b feature/soporte-multi-idioma`
+# Verifica Node.js
+node --version
+npm list
 
-2.  **`fix/<nombre-fix>`**:
-    *   **Propósito**: Correcciones de bugs no urgentes.
-    *   **Desde**: `develop`
-    *   **Hacia**: `develop` (vía Pull Request)
-    *   **Ejemplo**: `git checkout develop; git pull; git checkout -b fix/error-calculo-iva`
+# Verifica pre-commit
+pre-commit --version
+pre-commit run --all-files
 
-3.  **`hotfix/<nombre-hotfix>`**:
-    *   **Propósito**: Correcciones críticas en producción.
-    *   **Desde**: `main`
-    *   **Hacia**: `main` (vía Pull Request) y luego fusionar `main` (o el hotfix directamente) a `develop`.
-    *   **Ejemplo**: `git checkout main; git pull; git checkout -b hotfix/vulnerabilidad-pago-urgente`
+# Verifica hooks personalizados
+python .githooks/branch-workflow-validator.py --help
+```
 
-4.  **`docs/<descripcion-documentacion>`**:
-    *   **Propósito**: Cambios exclusivos en documentación (READMEs, guías, etc.).
-    *   **Desde**: `develop`
-    *   **Hacia**: `develop` (vía Pull Request)
-    *   **Ejemplo**: `git checkout develop; git pull; git checkout -b docs/actualizar-api-endpoints`
+## Flujo de Trabajo de Git
 
-5.  **`style/<descripcion-estilo>`**, **`refactor/<descripcion-refactor>`**, **`perf/<descripcion-rendimiento>`**, **`test/<descripcion-tests>`**, **`chore/<descripcion-tarea>`**:
-    *   **Propósito**: Mejoras de estilo, refactorizaciones, optimizaciones de rendimiento, adición/mejora de tests, o tareas de mantenimiento menores que no son features ni fixes.
-    *   **Desde**: `develop`
-    *   **Hacia**: `develop` (vía Pull Request)
+### Estrategia de Ramas (GitFlow)
 
-6.  **`ci/<descripcion-cambio-ci>`**:
-    *   **Propósito**: Cambios en la configuración de Integración Continua/Despliegue Continuo (CI/CD), como workflows de GitHub Actions, scripts en `scripts/ci/`, configuración de `pre-commit`, etc.
-    *   **Desde**: `main`
-    *   **Hacia**: `main` (vía Pull Request)
-    *   **Ejemplo**: `git checkout main; git pull; git checkout -b ci/actualizar-version-node-workflow`
-    *   **Nota**: Estos cambios buscan mantener la infraestructura de CI/CD de la rama principal actualizada y estable.
+Utilizamos GitFlow como estrategia principal:
 
-### Pull Requests (PRs)
+- **`main`**: Rama principal de producción
+- **`develop`**: Rama de desarrollo e integración
+- **`feature/*`**: Ramas para nuevas funcionalidades
+- **`hotfix/*`**: Ramas para correcciones urgentes
+- **`release/*`**: Ramas para preparar releases
 
-*   Todos los cambios deben integrarse a las ramas principales (`develop`, `main`) a través de Pull Requests.
-*   Asegúrate de que tu rama esté actualizada con la rama destino antes de crear el PR (`git pull origin <rama-destino>`).
-*   Describe claramente los cambios en el PR. Referencia cualquier Issue de GitHub que resuelva.
-*   Los workflows de CI se ejecutarán en el PR. Asegúrate de que todos los checks pasen.
-*   Espera la revisión y aprobación antes de fusionar.
+### Convenciones de Nombres de Ramas
 
-## Mensajes de Commit: ¡Formato Estricto Obligatorio!
+```bash
+# Funcionalidades
+feature/descripcion-corta
+feature/TICKET-123-descripcion
 
-Utilizamos `commitlint` (configurado vía `pre-commit`) para validar el formato de los mensajes de commit. Es **crucial** para el sistema de versionado automático de archivos y la generación de changelogs para la release unificada.
+# Correcciones
+hotfix/bug-critico
+hotfix/TICKET-456-fix-security
 
-**Formato:** `[TAG] (#IssueNumber opcional) Descripción corta en presente`
+# Releases
+release/v1.2.0
+release/2023.10.1
+```
 
-*   **`[TAG]`**: Etiqueta en MAYÚSCULAS que describe el tipo de cambio.
-*   **`(#IssueNumber opcional)`**: Referencia a un Issue de GitHub (ej. `(#123)`).
-*   **`Descripción corta en presente`**: Imperativo, conciso (ej. "añade X" no "añadido X").
+### Proceso de Contribución
 
-### Tags y su Impacto en el Versionado:
+1. **Crea una rama desde `develop`**:
+   ```bash
+   git checkout develop
+   git pull origin develop
+   git checkout -b feature/mi-nueva-funcionalidad
+   ```
 
-| TAG         | Impacto en `VERSION` del Archivo Modificado (Script `scripts/ci/update_file_versions.py`) | Impacto en Release Unificada (Workflow `.github/workflows/release-on-merge.yml`) |
-|-------------|-------------------------------------------------------------------------------|----------------------------------------------------------------|
-| `[FEAT]`    | Incrementa **MINOR** (resetea Patch)                                          | Puede llevar a **MINOR** (si PR a `main` no es hotfix/major)   |
-| `[FIX]`     | Incrementa **PATCH**                                                          | Puede llevar a **PATCH** (si PR `hotfix/*` a `main`)           |
-| `[STYLE]`   | Incrementa **PATCH**                                                          | No influye directamente en el tipo de bump de release          |
-| `[REFACTOR]`| Incrementa **MAJOR** (resetea Minor, Patch)                                   | No influye directamente en el tipo de bump de release          |
-| `[PERF]`    | Incrementa **MINOR** (resetea Patch)                                          | No influye directamente en el tipo de bump de release          |
-| `[RELEASE]` | Incrementa **MAJOR** (generalmente no usado manualmente en archivos)            | Usado por el sistema de release (tag global `vX.Y.Z`)        |
-| `[DOCS]`    | Ninguno                                                                       | No influye directamente en el tipo de bump de release          |
-| `[TEST]`    | Ninguno                                                                       | No influye directamente en el tipo de bump de release          |
-| `[BUILD]`   | Ninguno                                                                       | No influye directamente en el tipo de bump de release          |
-| `[CI]`      | Ninguno                                                                       | No influye directamente en el tipo de bump de release          |
-| `[CHORE]`   | Ninguno                                                                       | No influye directamente en el tipo de bump de release          |
+2. **Desarrolla tu funcionalidad**:
+   - Escribe código siguiendo las convenciones
+   - Añade pruebas para tu código
+   - Actualiza documentación si es necesario
 
-**Ejemplos de Mensajes de Commit:**
-'''
-[FEAT] Añade soporte para autenticación OAuth2 en cliente_api.py
-[FIX] (#78) Corrige cálculo de descuento en procesador_pedidos.sh
-[STYLE] Aplica black a utils/formatters.py
-[REFACTOR] Simplifica lógica de manejo de errores en core/scheduler.py
-[PERF] Optimiza consulta a base de datos en report_generator.ts
-[DOCS] Actualiza sección de instalación en README.md
-[TEST] Añade pruebas unitarias para validador_email.py
-[CI] Actualiza versión de action de checkout en release-on-merge.yml
-[CHORE] Incrementa versión de dependencia 'requests'
-'''
-**Importante**: El script `scripts/ci/update_file_versions.py` (ejecutado por el workflow `.github/workflows/release-on-merge.yml`) es responsable de actualizar las variables `VERSION` en los archivos basándose en los tags de los commits que los modificaron desde su último tag de versión individual (o desde el inicio si es nuevo). La versión inicial para archivos nuevos con una variable `VERSION` debe ser `0.1.0`.
+3. **Commit tus cambios**:
+   ```bash
+   git add .
+   git commit -m "feat: añadir nueva funcionalidad"
+   ```
 
-## Sistema de Versionado y Releases
+4. **Push y crea Pull Request**:
+   ```bash
+   git push origin feature/mi-nueva-funcionalidad
+   # Crea PR desde GitHub/GitLab hacia develop
+   ```
 
-### 1. Versionado de Archivos Individuales
+### Validación de Ramas
 
-*   Cuando un PR se fusiona a `main`, el workflow `.github/workflows/release-on-merge.yml` ejecuta `scripts/ci/update_file_versions.py`.
-*   Este script analiza los commits aplicados a cada archivo modificado (que contenga una variable `VERSION`) desde la última vez que su versión fue actualizada (o desde su creación).
-*   Calcula e implementa el incremento SemVer necesario (Major, Minor, Patch) para la variable `VERSION` de cada archivo afectado, según los tags de commit listados arriba.
-*   Los cambios en las versiones de los archivos se commitean automáticamente con un mensaje como `[CI] Auto-update individual file versions [skip ci]`.
+El proyecto incluye validadores automáticos que verifican:
+- Nombres de ramas según convenciones
+- Flujo de trabajo GitFlow
+- Commits válidos en cada rama
+- Integración correcta entre ramas
 
-### 2. Release Unificada del Repositorio
+## Mensajes de Commit
 
-*   Después de actualizar las versiones de los archivos individuales, el mismo workflow `.github/workflows/release-on-merge.yml` procede a crear una release unificada para todo el repositorio.
-*   **Determinación del Tipo de Incremento Global:**
-    *   Push directo a `main` (no recomendado, pero cubierto) -> **PATCH**.
-    *   PR desde una rama `hotfix/*` fusionado a `main` -> **PATCH**.
-    *   PR fusionado a `main` con la etiqueta `release-major` -> **MAJOR**.
-    *   Cualquier otro PR fusionado a `main` (típicamente desde `develop` o `staging`) -> **MINOR**.
-*   **Proceso de Release:**
-    1.  El script `scripts/ci/calculate_next_version.py` calcula la nueva versión global (ej. `v1.2.3`) basándose en el último tag de release global y el tipo de incremento determinado.
-    2.  Se crea un tag Git (ej. `v1.2.3`).
-    3.  Se empujan los commits (incluyendo el de las versiones individuales actualizadas) y el nuevo tag a `main`.
-    4.  Se crea una Release formal en GitHub, generando automáticamente las notas del changelog a partir de los mensajes de commit desde la última release.
+### Formato Conventional Commits
 
-## Documentación de Componentes
+Utilizamos el formato de Conventional Commits:
 
-*   Si modificas un componente existente o añades uno nuevo que tenga una interfaz de usuario o configuración significativa, actualiza o crea su `README.md` correspondiente en el directorio `docs/` (ej. `docs/nombre_componente.md`).
-*   Para la documentación de la API de funciones o clases, utiliza docstrings siguiendo las convenciones del lenguaje (ej. Google Style para Python).
+```
+<tipo>[ámbito opcional]: <descripción>
 
-## Estilo de Código y Linters
+[cuerpo opcional]
 
-*   Sigue el estilo de código existente en el proyecto.
-*   Utilizamos `pre-commit` para ejecutar linters y formateadores automáticamente (ej. `flake8`, `black` para Python; `shellcheck` para Bash; `eslint`/`prettier` para JS/TS).
-*   Asegúrate de que tu código pase estos checks antes de hacer commit o al menos antes de crear un PR.
+[pie opcional]
+```
 
-## Pruebas (Testing)
+### Tipos de Commit
 
-*   Fomentamos la inclusión de pruebas para nuevas funcionalidades y correcciones de bugs.
-*   Esto ayuda a mantener la calidad, prevenir regresiones y documentar el comportamiento esperado.
-*   Añade pruebas unitarias, de integración o funcionales según sea apropiado para tus cambios.
+- **feat**: Nueva funcionalidad
+- **fix**: Corrección de bug
+- **docs**: Cambios en documentación
+- **style**: Cambios de formato (espacios, punto y coma, etc.)
+- **refactor**: Refactorización de código
+- **test**: Añadir o modificar pruebas
+- **chore**: Tareas de mantenimiento
+
+### Ejemplos
+
+```bash
+# Funcionalidad simple
+git commit -m "feat: añadir validador de archivos"
+
+# Corrección con contexto
+git commit -m "fix(hooks): corregir validación de ramas en pre-commit"
+
+# Cambio con breaking change
+git commit -m "feat!: cambiar formato de configuración
+
+BREAKING CHANGE: El formato de configuración ha cambiado de YAML a JSON"
+```
+
+### Validación de Commits
+
+Los commits se validan automáticamente usando:
+- **commitlint**: Verifica formato de conventional commits
+- **Hook personalizado**: Valida coherencia con el flujo de trabajo
+
+## Sistema de Versionado
+
+### Semantic Versioning (SemVer)
+
+Seguimos Semantic Versioning:
+- **MAJOR**: Cambios incompatibles en la API
+- **MINOR**: Nuevas funcionalidades compatibles
+- **PATCH**: Correcciones compatibles
+
+### Proceso de Release
+
+1. **Crear rama de release**:
+   ```bash
+   git checkout develop
+   git checkout -b release/v1.2.0
+   ```
+
+2. **Actualizar versión**:
+   ```bash
+   # Actualizar package.json, __version__.py, etc.
+   npm version 1.2.0
+   ```
+
+3. **Finalizar release**:
+   ```bash
+   git checkout main
+   git merge release/v1.2.0
+   git tag v1.2.0
+   git checkout develop
+   git merge release/v1.2.0
+   ```
+
+4. **Publicar**:
+   ```bash
+   git push origin main develop --tags
+   ```
+
+## Estilo de Código
+
+### Herramientas de Calidad
+
+El proyecto utiliza múltiples herramientas para mantener la calidad:
+
+#### Pre-commit Hooks Activos
+
+- **trailing-whitespace**: Elimina espacios al final de línea
+- **end-of-file-fixer**: Asegura nueva línea al final de archivos
+- **mixed-line-ending**: Normaliza terminaciones de línea
+- **check-executables-have-shebangs**: Verifica shebangs en ejecutables
+- **check-added-large-files**: Previene archivos grandes en Git
+
+#### Hooks Personalizados
+
+- **format-all**: Formatea código en todos los lenguajes
+- **exec-check-all**: Verifica permisos de ejecución
+- **size-check-all**: Verifica tamaño de archivos
+- **header-validate**: Valida headers de archivos
+- **header-update**: Actualiza headers automáticamente
+
+#### Seguridad
+
+- **detect-secrets**: Detecta secretos en el código
+- **safety**: Verifica vulnerabilidades en dependencias Python
+- **npm audit**: Verifica vulnerabilidades en dependencias Node.js
+
+### Convenciones por Lenguaje
+
+#### Python
+```python
+# Usar type hints
+def process_data(data: List[str]) -> Dict[str, Any]:
+    """Procesa datos de entrada.
+
+    Args:
+        data: Lista de strings a procesar
+
+    Returns:
+        Diccionario con datos procesados
+    """
+    return {"processed": data}
+```
+
+#### JavaScript
+```javascript
+// Usar JSDoc para documentación
+/**
+ * Procesa datos de entrada
+ * @param {string[]} data - Array de strings
+ * @returns {Object} Datos procesados
+ */
+function processData(data) {
+    return { processed: data };
+}
+```
+
+#### Bash
+```bash
+#!/bin/bash
+# Usar set -euo pipefail para seguridad
+set -euo pipefail
+
+# Documentar funciones
+# Procesa datos de entrada
+# Argumentos:
+#   $1: Archivo de entrada
+# Retorna:
+#   0: Éxito, 1: Error
+process_data() {
+    local input_file="$1"
+    # Implementación...
+}
+```
+
+## Pruebas
+
+### Frameworks de Testing
+
+- **Jest**: Para código JavaScript
+- **Mocha**: Para pruebas adicionales de JavaScript
+- **Python unittest/pytest**: Para scripts Python (configurar según necesidad)
+- **Bash testing**: Para scripts de shell
+
+### Ejecutar Pruebas
+
+```bash
+# Pruebas JavaScript
+npm test
+npm run test:coverage
+
+# Pruebas Python (si están configuradas)
+python -m pytest tests/
+python -m pytest --cov=src tests/
+
+# Validación de scripts Bash
+shellcheck scripts/*.sh
+```
+
+### Escribir Pruebas
+
+#### JavaScript (Jest)
+```javascript
+// tests/utils.test.js
+describe('Utils', () => {
+    test('should process data correctly', () => {
+        const result = processData(['a', 'b']);
+        expect(result.processed).toEqual(['a', 'b']);
+    });
+});
+```
+
+#### Python (pytest)
+```python
+# tests/test_utils.py
+def test_process_data():
+    """Test data processing function."""
+    result = process_data(['a', 'b'])
+    assert result['processed'] == ['a', 'b']
+```
+
+## Documentación
+
+### Estándares de Documentación
+
+- **README.md**: Documentación principal del proyecto
+- **docs/**: Documentación detallada en Markdown
+- **Código**: Comentarios inline y docstrings
+- **API**: Documentación generada automáticamente
+
+### Estructura de Documentación
+
+```
+docs/
+├── README.md              # Documentación principal
+├── installation.md        # Guía de instalación
+├── usage.md              # Guía de uso
+├── api/                  # Documentación de API
+├── examples/             # Ejemplos de uso
+└── troubleshooting.md    # Solución de problemas
+```
+
+### Convenciones de Documentación
+
+- Usar Markdown para toda la documentación
+- Incluir ejemplos de código
+- Mantener documentación actualizada con cambios
+- Usar enlaces relativos para referencias internas
+
+## Proceso de Contribución
+
+### Reportar Bugs
+
+1. **Busca issues existentes** para evitar duplicados
+2. **Usa el template de bug report** si está disponible
+3. **Incluye información relevante**:
+   - Versión del proyecto
+   - Sistema operativo
+   - Pasos para reproducir
+   - Comportamiento esperado vs actual
+   - Logs o capturas de pantalla
+
+### Solicitar Funcionalidades
+
+1. **Describe el problema** que resuelve la funcionalidad
+2. **Propón una solución** con detalles técnicos
+3. **Considera alternativas** y sus pros/contras
+4. **Discute antes de implementar** funcionalidades grandes
+
+### Proceso de Revisión
+
+#### Criterios de Aceptación
+
+- ✅ Código sigue las convenciones del proyecto
+- ✅ Incluye pruebas apropiadas
+- ✅ Documentación actualizada
+- ✅ Pasa todos los checks automáticos
+- ✅ No introduce breaking changes sin justificación
+- ✅ Commit messages siguen convenciones
+
+#### Timeline de Revisión
+
+- **Bugs críticos**: 24-48 horas
+- **Funcionalidades**: 3-7 días
+- **Documentación**: 1-3 días
+- **Refactoring**: 5-10 días
+
+### Integración Continua
+
+El proyecto utiliza GitHub Actions para:
+- **Lint**: Verificación de estilo de código
+- **Critical Validations**: Validaciones críticas
+- **Update Metrics**: Actualización de métricas del proyecto
+
+Los workflows se ejecutan automáticamente en:
+- Pull requests
+- Push a ramas principales
+- Releases
+
+## Hooks y Automatización
+
+### Pre-commit Hooks
+
+Los hooks se ejecutan automáticamente antes de cada commit:
+
+```bash
+# Ejecutar manualmente todos los hooks
+pre-commit run --all-files
+
+# Ejecutar hook específico
+pre-commit run trailing-whitespace
+pre-commit run detect-secrets
+```
+
+### Hooks Personalizados
+
+#### Branch Workflow Validator
+```bash
+# Validar flujo de trabajo de ramas
+python .githooks/branch-workflow-validator.py
+```
+
+#### Quality Manager
+```bash
+# Gestionar calidad de código
+python .githooks/quality_manager.py
+```
+
+### Configuración de Hooks
+
+Los hooks están configurados en:
+- `.pre-commit-config.yaml`: Configuración de pre-commit
+- `.githooks/`: Scripts personalizados
+- `package.json`: Configuración de husky (si aplica)
+
+## Solución de Problemas
+
+### Problemas Comunes
+
+#### Pre-commit Hooks Fallan
+```bash
+# Reinstalar hooks
+pre-commit uninstall
+pre-commit install --install-hooks
+
+# Limpiar cache
+pre-commit clean
+```
+
+#### Errores de Validación de Ramas
+```bash
+# Verificar nombre de rama
+git branch --show-current
+
+# Cambiar nombre de rama
+git branch -m nuevo-nombre-valido
+```
+
+#### Problemas con Entorno Virtual
+```bash
+# Recrear entorno virtual
+rm -rf .venv
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### Obtener Ayuda
+
+- **Issues**: Crear issue en el repositorio
+- **Documentación**: Revisar carpeta `docs/`
+- **Logs**: Revisar logs de CI/CD para errores específicos
+
+## Recursos Adicionales
+
+- [Conventional Commits](https://www.conventionalcommits.org/)
+- [GitFlow Workflow](https://nvie.com/posts/a-successful-git-branching-model/)
+- [Semantic Versioning](https://semver.org/)
+- [Pre-commit Documentation](https://pre-commit.com/)
 
 ---
-¡Gracias por tu dedicación a mantener este proyecto organizado y robusto!
+
+¡Gracias por contribuir! Tu participación hace que este proyecto sea mejor para toda la comunidad. 🚀

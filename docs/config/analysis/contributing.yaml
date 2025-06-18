@@ -1,0 +1,303 @@
+# Configuración de análisis para CONTRIBUTING.md
+# Detecta automáticamente la estructura del proyecto y genera CONTRIBUTING.md apropiado
+
+analysis_methods:
+  project_structure:
+    tools:
+      - "detect_project_type"
+      - "analyze_directory_structure"
+      - "identify_main_components"
+      - "detect_monorepo_structure"
+
+  technologies:
+    tools:
+      - "detect_programming_languages"
+      - "identify_frameworks"
+      - "detect_build_tools"
+      - "analyze_dependencies"
+
+  workflow:
+    tools:
+      - "detect_git_workflow"
+      - "analyze_branch_strategy"
+      - "identify_ci_cd_tools"
+      - "detect_code_quality_tools"
+
+  configuration:
+    tools:
+      - "analyze_git_hooks"
+      - "detect_versioning_system"
+      - "identify_testing_framework"
+      - "analyze_linting_config"
+
+validation:
+  checks:
+    - "validate_project_structure"
+    - "validate_workflow_config"
+    - "validate_technology_stack"
+    - "validate_contributing_requirements"
+
+# Configuración específica por tipo de proyecto
+project_types:
+  monorepo:
+    indicators:
+      - "multiple_package_files"
+      - "workspace_config"
+      - "shared_config"
+      - "multiple_languages"
+
+  single_repo:
+    indicators:
+      - "single_package_file"
+      - "single_language"
+      - "simple_structure"
+
+  library:
+    indicators:
+      - "api_documentation"
+      - "setup_py_or_pyproject"
+      - "package_json"
+      - "exported_functions"
+
+  cli_tool:
+    indicators:
+      - "click_decorators"
+      - "argparse_usage"
+      - "command_line_interface"
+      - "entry_points"
+
+  web_app:
+    indicators:
+      - "frontend_framework"
+      - "backend_framework"
+      - "database_config"
+      - "web_server_config"
+
+# Detección de tecnologías
+technology_detection:
+  languages:
+    python:
+      indicators:
+        - "*.py files"
+        - "requirements.txt"
+        - "setup.py"
+        - "pyproject.toml"
+        - "Pipfile"
+
+    javascript:
+      indicators:
+        - "*.js files"
+        - "*.ts files"
+        - "package.json"
+        - "yarn.lock"
+        - "npm-shrinkwrap.json"
+
+    bash:
+      indicators:
+        - "*.sh files"
+        - "shebang #!/bin/bash"
+        - "shell scripts"
+
+    typescript:
+      indicators:
+        - "*.ts files"
+        - "tsconfig.json"
+        - "typescript dependencies"
+
+    go:
+      indicators:
+        - "*.go files"
+        - "go.mod"
+        - "go.sum"
+
+    rust:
+      indicators:
+        - "*.rs files"
+        - "Cargo.toml"
+        - "Cargo.lock"
+
+  frameworks:
+    django:
+      indicators:
+        - "manage.py"
+        - "settings.py"
+        - "urls.py"
+
+    flask:
+      indicators:
+        - "app.py with Flask()"
+        - "flask dependencies"
+
+    react:
+      indicators:
+        - "react dependencies"
+        - "jsx files"
+        - "create-react-app"
+
+    vue:
+      indicators:
+        - "vue dependencies"
+        - "vue.config.js"
+        - "*.vue files"
+
+    angular:
+      indicators:
+        - "angular dependencies"
+        - "angular.json"
+        - "*.component.ts"
+
+  build_tools:
+    webpack:
+      indicators:
+        - "webpack.config.js"
+        - "webpack dependencies"
+
+    vite:
+      indicators:
+        - "vite.config.js"
+        - "vite dependencies"
+
+    poetry:
+      indicators:
+        - "pyproject.toml"
+        - "poetry.lock"
+
+    pipenv:
+      indicators:
+        - "Pipfile"
+        - "Pipfile.lock"
+
+# Detección de flujo de trabajo
+workflow_detection:
+  git_workflow:
+    gitflow:
+      indicators:
+        - "develop branch"
+        - "feature branches"
+        - "hotfix branches"
+        - "release branches"
+
+    github_flow:
+      indicators:
+        - "main branch only"
+        - "feature branches"
+        - "pull requests"
+
+    trunk_based:
+      indicators:
+        - "main branch only"
+        - "short-lived branches"
+        - "direct commits"
+
+  ci_cd_tools:
+    github_actions:
+      indicators:
+        - ".github/workflows/"
+        - "*.yml workflow files"
+
+    gitlab_ci:
+      indicators:
+        - ".gitlab-ci.yml"
+
+    jenkins:
+      indicators:
+        - "Jenkinsfile"
+        - "jenkins configuration"
+
+    circleci:
+      indicators:
+        - ".circleci/config.yml"
+
+  code_quality:
+    pre_commit:
+      indicators:
+        - ".pre-commit-config.yaml"
+        - "pre-commit hooks"
+
+    commitlint:
+      indicators:
+        - "commitlint.config.js"
+        - "commitlint dependencies"
+
+    linting:
+      python:
+        - "flake8"
+        - "pylint"
+        - "black"
+        - "isort"
+
+      javascript:
+        - "eslint"
+        - "prettier"
+        - "stylelint"
+
+      bash:
+        - "shellcheck"
+
+# Configuración de versionado
+versioning_detection:
+  semantic_versioning:
+    indicators:
+      - "VERSION variables"
+      - "version.py"
+      - "semantic version tags"
+
+  conventional_commits:
+    indicators:
+      - "commitlint conventional config"
+      - "conventional commit messages"
+
+  auto_versioning:
+    indicators:
+      - "version update scripts"
+      - "automated versioning"
+      - "CI version management"
+
+# Configuración de testing
+testing_detection:
+  frameworks:
+    python:
+      - "pytest"
+      - "unittest"
+      - "nose"
+      - "tox"
+
+    javascript:
+      - "jest"
+      - "mocha"
+      - "cypress"
+      - "playwright"
+
+    integration:
+      - "docker-compose.test.yml"
+      - "integration test configs"
+
+# Configuración de documentación
+documentation_detection:
+  tools:
+    - "sphinx"
+    - "mkdocs"
+    - "docusaurus"
+    - "storybook"
+    - "typedoc"
+
+  formats:
+    - "README.md"
+    - "docs/ directory"
+    - "API documentation"
+    - "user guides"
+
+# Configuración de seguridad
+security_detection:
+  tools:
+    - "snyk"
+    - "bandit"
+    - "safety"
+    - "npm audit"
+    - "yarn audit"
+
+  practices:
+    - "dependency scanning"
+    - "code scanning"
+    - "secret scanning"
+    - "vulnerability management"

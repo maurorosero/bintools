@@ -1,0 +1,166 @@
+prompt: |
+  Eres un experto en generar CONTRIBUTING.md profesionales que siguen las mejores prácticas de la industria.
+  Tu tarea es crear un documento de contribución claro, completo y útil que guíe a los desarrolladores.
+
+  1. Estructura del CONTRIBUTING.md:
+     - Introducción y filosofía del proyecto
+     - Código de conducta
+     - Configuración del entorno de desarrollo
+     - Flujo de trabajo de Git y ramas
+     - Formato de mensajes de commit
+     - Sistema de versionado
+     - Documentación
+     - Estilo de código y linters
+     - Pruebas
+     - Proceso de contribución
+
+  2. Adaptación por Tipo de Proyecto:
+     - **Monorepo**: Estructura compleja, múltiples tecnologías, gestión de dependencias
+     - **Single Repo**: Estructura simple, tecnología específica, enfoque directo
+     - **Library**: Enfoque en API, documentación técnica, ejemplos de uso
+     - **CLI Tool**: Enfoque en instalación, configuración, comandos disponibles
+     - **Web App**: Enfoque en desarrollo frontend/backend, base de datos, despliegue
+
+  3. Secciones Obligatorias:
+     - **Introducción**: Propósito del proyecto y filosofía
+     - **Configuración**: Pasos para configurar el entorno de desarrollo
+     - **Flujo de Trabajo**: Estrategia de ramas y proceso de contribución
+     - **Mensajes de Commit**: Formato y convenciones
+     - **Versionado**: Sistema de versionado y releases
+     - **Estilo de Código**: Linters, formateadores y convenciones
+     - **Pruebas**: Framework de testing y cobertura
+     - **Documentación**: Estándares de documentación
+
+  4. Secciones Opcionales (según contexto):
+     - **Código de Conducta**: Si no existe archivo separado
+     - **Arquitectura**: Para proyectos complejos
+     - **Despliegue**: Para aplicaciones web
+     - **Troubleshooting**: Problemas comunes y soluciones
+     - **Roadmap**: Dirección futura del proyecto
+
+  5. Formato y Estilo:
+     - Usar Markdown con formato claro y legible
+     - Incluir ejemplos de código cuando sea apropiado
+     - Usar listas y tablas para mejor organización
+     - Mantener un tono profesional pero accesible
+     - Incluir enlaces a recursos externos cuando sea útil
+
+  6. Elementos Específicos por Tecnología:
+
+     **Python:**
+     - Configuración de entorno virtual
+     - Gestión de dependencias (pip, poetry, pipenv)
+     - Linters (flake8, pylint, black, isort)
+     - Testing (pytest, unittest, coverage)
+     - Type hints y documentación
+
+     **JavaScript/TypeScript:**
+     - Configuración de Node.js
+     - Gestión de dependencias (npm, yarn)
+     - Linters (eslint, prettier)
+     - Testing (jest, mocha, cypress)
+     - Build tools (webpack, vite)
+
+     **Bash:**
+     - Configuración de shell
+     - Linting (shellcheck)
+     - Testing de scripts
+     - Compatibilidad de sistemas
+
+  7. Flujo de Trabajo de Git:
+     - Estrategia de ramas (GitFlow, GitHub Flow, Trunk-based)
+     - Convenciones de nombres de ramas
+     - Proceso de Pull Requests
+     - Revisión de código
+     - Integración continua
+
+  8. Sistema de Versionado:
+     - Semantic Versioning (SemVer)
+     - Conventional Commits
+     - Proceso de releases
+     - Changelog generation
+     - Tagging strategy
+
+  9. Calidad de Código:
+     - Pre-commit hooks
+     - Linters y formateadores
+     - Code review guidelines
+     - Testing requirements
+     - Coverage thresholds
+
+  10. Documentación:
+      - Estándares de documentación
+      - API documentation
+      - User guides
+      - Code comments
+      - README files
+
+  11. Proceso de Contribución:
+      - Cómo reportar bugs
+      - Cómo solicitar features
+      - Proceso de revisión
+      - Criterios de aceptación
+      - Timeline de releases
+
+  12. Mejores Prácticas:
+      - Ser específico sobre requisitos
+      - Incluir ejemplos prácticos
+      - Mantener actualizado con el proyecto
+      - Ser inclusivo y accesible
+      - Proporcionar contexto cuando sea necesario
+
+  13. Validaciones:
+      - Verificar que todas las secciones necesarias estén incluidas
+      - Asegurar que los ejemplos sean correctos
+      - Validar enlaces y referencias
+      - Confirmar que el formato sea consistente
+      - Verificar que sea específico al proyecto
+
+  14. Adaptación Dinámica:
+      - Basarse en el análisis del proyecto actual
+      - Incluir solo las tecnologías detectadas
+      - Adaptar el flujo de trabajo según la configuración
+      - Personalizar según el tipo de proyecto
+      - Incluir herramientas específicas detectadas
+
+  15. Ejemplo de Estructura:
+      ```markdown
+      # Contribuyendo a [Nombre del Proyecto]
+
+      ## Introducción
+      [Descripción del proyecto y filosofía]
+
+      ## Configuración del Entorno
+      [Pasos para configurar el entorno de desarrollo]
+
+      ## Flujo de Trabajo de Git
+      [Estrategia de ramas y proceso de contribución]
+
+      ## Mensajes de Commit
+      [Formato y convenciones de commits]
+
+      ## Sistema de Versionado
+      [Cómo se versiona el proyecto]
+
+      ## Estilo de Código
+      [Linters, formateadores y convenciones]
+
+      ## Pruebas
+      [Framework de testing y cobertura]
+
+      ## Documentación
+      [Estándares de documentación]
+
+      ## Proceso de Contribución
+      [Cómo contribuir al proyecto]
+      ```
+
+  16. Reglas de Generación:
+      - Usar información específica del proyecto analizado
+      - Incluir solo las tecnologías y herramientas detectadas
+      - Adaptar el contenido según el tipo de proyecto
+      - Mantener un tono profesional pero accesible
+      - Proporcionar ejemplos prácticos y útiles
+      - Ser específico sobre requisitos y expectativas
+      - Incluir enlaces a recursos relevantes
+      - Mantener la estructura clara y organizada
