@@ -8,10 +8,10 @@ Script Name: versioning.py
 Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
 Assistant:   Cursor AI (https://cursor.com)
 Created at:  2025-01-27
-Modified:    2025-06-17 16:05:46
+Modified:    2025-06-18 14:39:34
 Description: Analiza el historial de Git de un archivo específico y calcula la versión
              major.minor.patch basándose en los tags de commit encontrados.
-Version:     2.0.0
+Version:     2.1.1
 """
 
 # 1. Imports de la biblioteca estándar (ordenados alfabéticamente)

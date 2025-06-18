@@ -9,7 +9,7 @@ Copyright (C) 2025 MAURO ROSERO PÉREZ
 License: GPLV3
 
 File: ai-tokens.py
-Version: 0.1.0
+Version: 0.1.1
 Author: Mauro Rosero P. <mauro.rosero@gmail.com>
 Assistant: Cursor AI (https://cursor.com)
 Created: 2025-06-09 23:11:33

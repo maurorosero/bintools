@@ -8,9 +8,9 @@ Script Name: licensing.py
 Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
 Assistant:   Cursor AI (https://cursor.com)
 Created at:  2025-01-27
-Modified:    2025-06-18 12:58:41
+Modified:    2025-06-18 14:39:34
 Description: Gestiona las licencias de software en proyectos Git.
-Version:     0.1.0
+Version:     0.1.1
 """
 
 """

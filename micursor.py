@@ -8,9 +8,9 @@ Script Name: micursor.py
 Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
 Assistant:   Cursor AI (https://cursor.com)
 Created at:  2025-01-27
-Modified:    2025-06-17 15:58:37
+Modified:    2025-06-18 14:39:34
 Description: Un script para ayudar a instalar y desinstalar Cursor AI.
-Version:     0.3.0
+Version:     0.3.2
 """
 
 """

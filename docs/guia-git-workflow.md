@@ -10,7 +10,7 @@
 *   **`develop` es el Campo de Pruebas:** La rama `develop` es donde integramos todas las nuevas funcionalidades y correcciones. Es como la versión "beta" interna. TODO el trabajo nuevo empieza desde aquí.
 *   **Trabajo en Ramas Separadas:** Cada nueva tarea (funcionalidad, corrección) se hace en su propia rama temporal (`feature/algo`, `fix/otro-algo`). Esto aísla los cambios y facilita la revisión.
 *   **Pull Requests (PRs) para Revisar:** Antes de que el código de una rama de trabajo llegue a `develop` (y luego a `main`), pasa por un "Pull Request". Es como pedir permiso para fusionar, permitiendo que otros revisen el código y que se ejecuten pruebas automáticas.
-*   **Tags para Versiones:** Cada vez que lanzamos una nueva versión a producción desde `main`, le ponemos una "etiqueta" (tag) como `v0.1.0`, `v1.1.0`, etc., para saber exactamente qué código corresponde a qué versión.
+*   **Tags para Versiones:** Cada vez que lanzamos una nueva versión a producción desde `main`, le ponemos una "etiqueta" (tag) como `v0.1.1`, `v1.1.0`, etc., para saber exactamente qué código corresponde a qué versión.
 *   **Mensajes de Commit Claros:** Cada "guardado" (commit) debe tener un mensaje que explique QUÉ se cambió y POR QUÉ, siguiendo un formato específico.
 
 **Las Ramas Principales:**
