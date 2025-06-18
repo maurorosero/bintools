@@ -19,6 +19,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskPr
 from rich.panel import Panel
 from rich import print as rprint
 import re
+import subprocess
 
 console = Console()
 
@@ -861,6 +862,551 @@ class CodeAnalyzer:
 
         return analysis
 
+class ChangelogAnalyzer:
+    """Analizador específico para generación de CHANGELOG."""
+
+    def __init__(self, base_path: Path, config: Optional[Dict] = None):
+        """Inicializa el analizador de CHANGELOG.
+
+        Args:
+            base_path: Ruta base del repositorio
+            config: Configuración del analizador
+        """
+        self.base_path = base_path
+        self.config = config or {}
+        self.console = Console()
+
+        # Mapeo de tags a categorías Keep a Changelog
+        self.CATEGORY_MAP = {
+            'FEAT': 'Added',
+            'FIX': 'Fixed',
+            'REFACTOR': 'Changed',
+            'PERF': 'Changed',
+            'STYLE': 'Changed',
+            'DOCS': 'Changed',
+            'TEST': 'Changed',
+            'BUILD': 'Changed',
+            'CI': 'Changed',
+            'CHORE': 'Changed',
+            'REVERT': 'Changed',
+            'BREAKING': 'Breaking Changes'
+        }
+
+        # Palabras clave para detectar deprecaciones
+        self.DEPRECATED_KEYWORDS = [
+            "deprecate", "deprecated", "deprecation",
+            "obsolete", "legacy", "will be removed",
+            "no longer supported", "use instead",
+            "replaced by", "migration"
+        ]
+
+        # Patrones para detectar deprecaciones
+        self.DEPRECATED_PATTERNS = [
+            r"deprecat[ei].*function",
+            r"deprecat[ei].*method",
+            r"deprecat[ei].*api",
+            r"mark.*as.*deprecated",
+            r"deprecat[ei].*in favor of"
+        ]
+
+        # Emojis para cada categoría
+        self.CATEGORY_EMOJIS = {
+            'Added': '🎉',
+            'Changed': '⚡',
+            'Deprecated': '⚠️',
+            'Removed': '🗑️',
+            'Fixed': '🐛',
+            'Security': '🔒',
+            'Breaking Changes': '❌'
+        }
+
+    def analyze_git_history(self, since_tag: Optional[str] = None) -> Dict:
+        """Analiza el historial de Git para generar CHANGELOG.
+
+        Args:
+            since_tag: Tag desde el cual analizar (opcional)
+
+        Returns:
+            Diccionario con commits categorizados
+        """
+        try:
+            # Obtener commits desde el último tag o desde el inicio
+            commits = self._get_commits_since_tag(since_tag)
+
+            # Parsear y categorizar commits
+            parsed_commits = self._parse_commits(commits)
+
+            # Categorizar por tipo de cambio
+            categorized = self._categorize_commits(parsed_commits)
+
+            # Obtener información de versiones
+            versions = self._get_version_info(since_tag)
+
+            return {
+                'commits': parsed_commits,
+                'categorized': categorized,
+                'versions': versions,
+                'statistics': self._calculate_statistics(categorized)
+            }
+
+        except Exception as e:
+            self.console.print(f"[red]Error analizando historial de Git: {str(e)}[/red]")
+            return {}
+
+    def _get_commits_since_tag(self, since_tag: Optional[str] = None) -> List[str]:
+        """Obtiene commits desde un tag específico o desde el inicio."""
+        try:
+            if since_tag:
+                # Commits desde un tag específico
+                result = subprocess.run([
+                    'git', 'log', '--oneline', '--reverse', f'{since_tag}..HEAD'
+                ], capture_output=True, text=True, cwd=self.base_path)
+            else:
+                # Todos los commits
+                result = subprocess.run([
+                    'git', 'log', '--oneline', '--reverse'
+                ], capture_output=True, text=True, cwd=self.base_path)
+
+            if result.returncode == 0 and result.stdout:
+                return [line.strip() for line in result.stdout.split('\n') if line.strip()]
+            else:
+                self.console.print("[yellow]No se encontraron commits o error en git log[/yellow]")
+                return []
+
+        except Exception as e:
+            self.console.print(f"[red]Error ejecutando git log: {str(e)}[/red]")
+            return []
+
+    def _parse_commits(self, commits: List[str]) -> List[Dict]:
+        """Parsea los commits según diferentes formatos."""
+        parsed_commits = []
+
+        # Palabras clave para identificar commits de prueba
+        test_keywords = ['prueba', 'test', 'testing', 'línea de prueba', 'línea adicional']
+
+        for commit in commits:
+            # Extraer hash del commit
+            parts = commit.split(' ', 1)
+            if len(parts) < 2:
+                continue
+
+            commit_hash = parts[0]
+            message = parts[1]
+
+            # Verificar si es un commit de prueba
+            message_lower = message.lower()
+            if any(keyword in message_lower for keyword in test_keywords):
+                continue
+
+            # Patrón 1: [TAG] (#Issue) Descripción
+            pattern1 = r'^\[([A-Z]+)\](?: \(#(\d+)\))? (.+)$'
+            match1 = re.match(pattern1, message)
+
+            if match1:
+                tag, issue, description = match1.groups()
+                # Excluir commits de TEST
+                if tag == 'TEST':
+                    continue
+                parsed_commits.append({
+                    'hash': commit_hash,
+                    'tag': tag,
+                    'issue': issue,
+                    'description': description,
+                    'full_message': message,
+                    'is_deprecation': self._is_deprecation_commit(description),
+                    'is_security': self._is_security_commit(description),
+                    'is_breaking': self._is_breaking_commit(description)
+                })
+                continue
+
+            # Patrón 2: tag: descripción (formato convencional)
+            pattern2 = r'^([a-z]+): (.+)$'
+            match2 = re.match(pattern2, message)
+
+            if match2:
+                tag, description = match2.groups()
+                # Convertir a mayúsculas para consistencia
+                tag = tag.upper()
+                # Excluir commits de TEST
+                if tag == 'TEST':
+                    continue
+                parsed_commits.append({
+                    'hash': commit_hash,
+                    'tag': tag,
+                    'issue': None,
+                    'description': description,
+                    'full_message': message,
+                    'is_deprecation': self._is_deprecation_commit(description),
+                    'is_security': self._is_security_commit(description),
+                    'is_breaking': self._is_breaking_commit(description)
+                })
+                continue
+
+            # Patrón 3: tag(scope): descripción (formato angular)
+            pattern3 = r'^([a-z]+)(?:\(([^)]+)\))?: (.+)$'
+            match3 = re.match(pattern3, message)
+
+            if match3:
+                tag, scope, description = match3.groups()
+                # Convertir a mayúsculas para consistencia
+                tag = tag.upper()
+                # Excluir commits de TEST
+                if tag == 'TEST':
+                    continue
+                parsed_commits.append({
+                    'hash': commit_hash,
+                    'tag': tag,
+                    'issue': None,
+                    'description': description,
+                    'full_message': message,
+                    'is_deprecation': self._is_deprecation_commit(description),
+                    'is_security': self._is_security_commit(description),
+                    'is_breaking': self._is_breaking_commit(description)
+                })
+                continue
+
+            # Patrón 4: TAG descripción (formato simple)
+            pattern4 = r'^([A-Z]+)\s+(.+)$'
+            match4 = re.match(pattern4, message)
+
+            if match4:
+                tag, description = match4.groups()
+                # Excluir commits de TEST
+                if tag == 'TEST':
+                    continue
+                parsed_commits.append({
+                    'hash': commit_hash,
+                    'tag': tag,
+                    'issue': None,
+                    'description': description,
+                    'full_message': message,
+                    'is_deprecation': self._is_deprecation_commit(description),
+                    'is_security': self._is_security_commit(description),
+                    'is_breaking': self._is_breaking_commit(description)
+                })
+                continue
+
+            # Si no coincide con ningún patrón, tratar como CHORE
+            parsed_commits.append({
+                'hash': commit_hash,
+                'tag': 'CHORE',
+                'issue': None,
+                'description': message,
+                'full_message': message,
+                'is_deprecation': self._is_deprecation_commit(message),
+                'is_security': self._is_security_commit(message),
+                'is_breaking': self._is_breaking_commit(message)
+            })
+
+        return parsed_commits
+
+    def _categorize_commits(self, commits: List[Dict]) -> Dict[str, List[Dict]]:
+        """Categoriza los commits según Keep a Changelog."""
+        categorized = {
+            'Added': [],
+            'Changed': [],
+            'Deprecated': [],
+            'Removed': [],
+            'Fixed': [],
+            'Security': [],
+            'Breaking Changes': []
+        }
+
+        for commit in commits:
+            # Determinar categoría principal
+            if commit['is_breaking']:
+                category = 'Breaking Changes'
+            elif commit['is_deprecation']:
+                category = 'Deprecated'
+            elif commit['is_security']:
+                category = 'Security'
+            else:
+                category = self.CATEGORY_MAP.get(commit['tag'], 'Changed')
+
+            # Agregar emoji a la descripción
+            emoji = self.CATEGORY_EMOJIS.get(category, '')
+            commit['emoji'] = emoji
+            commit['category'] = category
+
+            categorized[category].append(commit)
+
+        # Aplicar deduplicación a cada categoría
+        for category in categorized:
+            categorized[category] = self._deduplicate_commits(categorized[category])
+
+        return categorized
+
+    def _is_deprecation_commit(self, description: str) -> bool:
+        """Determina si un commit es de deprecación."""
+        description_lower = description.lower()
+
+        # Buscar palabras clave
+        if any(keyword in description_lower for keyword in self.DEPRECATED_KEYWORDS):
+            return True
+
+        # Buscar patrones específicos
+        if any(re.search(pattern, description_lower) for pattern in self.DEPRECATED_PATTERNS):
+            return True
+
+        return False
+
+    def _is_security_commit(self, description: str) -> bool:
+        """Determina si un commit es de seguridad."""
+        security_keywords = ['security', 'vulnerability', 'auth', 'permission', 'cve']
+        return any(keyword in description.lower() for keyword in security_keywords)
+
+    def _is_breaking_commit(self, description: str) -> bool:
+        """Determina si un commit es breaking change."""
+        breaking_keywords = ['breaking', 'remove', 'delete', 'drop', 'eliminate']
+        return any(keyword in description.lower() for keyword in breaking_keywords)
+
+    def _get_version_info(self, since_tag: Optional[str] = None) -> Dict:
+        """Obtiene información de versiones."""
+        try:
+            # Obtener tags
+            result = subprocess.run([
+                'git', 'tag', '--sort=-version:refname'
+            ], capture_output=True, text=True, cwd=self.base_path)
+
+            tags = []
+            if result.returncode == 0 and result.stdout:
+                tags = [tag.strip() for tag in result.stdout.split('\n') if tag.strip()]
+
+            # Obtener fecha del último commit
+            result = subprocess.run([
+                'git', 'log', '-1', '--format=%cd', '--date=short'
+            ], capture_output=True, text=True, cwd=self.base_path)
+
+            last_commit_date = result.stdout.strip() if result.returncode == 0 else None
+
+            return {
+                'tags': tags,
+                'latest_tag': tags[0] if tags else None,
+                'last_commit_date': last_commit_date
+            }
+
+        except Exception as e:
+            self.console.print(f"[red]Error obteniendo información de versiones: {str(e)}[/red]")
+            return {}
+
+    def _calculate_statistics(self, categorized: Dict) -> Dict:
+        """Calcula estadísticas de los cambios."""
+        total_commits = sum(len(commits) for commits in categorized.values())
+
+        return {
+            'total_commits': total_commits,
+            'by_category': {category: len(commits) for category, commits in categorized.items()},
+            'has_breaking_changes': len(categorized['Breaking Changes']) > 0,
+            'has_security_updates': len(categorized['Security']) > 0,
+            'has_deprecations': len(categorized['Deprecated']) > 0
+        }
+
+    def generate_changelog_content(self, analysis: Dict, use_ai: bool = False) -> str:
+        """Genera el contenido del CHANGELOG."""
+        if use_ai:
+            return self._generate_with_ai(analysis)
+        else:
+            return self._generate_without_ai(analysis)
+
+    def _generate_without_ai(self, analysis: Dict) -> str:
+        """Genera CHANGELOG usando solo templates y datos."""
+        categorized = analysis.get('categorized', {})
+        versions = analysis.get('versions', {})
+        statistics = analysis.get('statistics', {})
+
+        # Template del CHANGELOG
+        changelog = """# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+"""
+
+        # Sección Unreleased
+        unreleased_commits = []
+        for category, commits in categorized.items():
+            if commits:
+                unreleased_commits.extend(commits)
+
+        if unreleased_commits:
+            changelog += "## [Unreleased]\n\n"
+            changelog += self._format_section(categorized)
+            changelog += "\n"
+
+        # Secciones por versión (si hay tags)
+        if versions.get('tags'):
+            latest_tag = versions['tags'][0]
+            changelog += f"## [{latest_tag}] - {versions.get('last_commit_date', 'TBD')}\n\n"
+            changelog += self._format_section(categorized)
+
+        return changelog
+
+    def _format_section(self, categorized: Dict) -> str:
+        """Formatea una sección del CHANGELOG."""
+        section = ""
+
+        for category, commits in categorized.items():
+            if commits:
+                section += f"### {category}\n"
+                for commit in commits:
+                    emoji = commit.get('emoji', '')
+                    description = commit['description']
+                    issue = commit.get('issue')
+
+                    if issue:
+                        section += f"- {emoji} {description} (#{issue})\n"
+                    else:
+                        section += f"- {emoji} {description}\n"
+
+                section += "\n"
+
+        return section
+
+    def _generate_with_ai(self, analysis: Dict) -> str:
+        """Genera CHANGELOG mejorado con IA."""
+        try:
+            # Primero generar el CHANGELOG básico
+            basic_changelog = self._generate_without_ai(analysis)
+
+            # Construir prompt para mejorar con IA
+            prompt = self._build_ai_prompt(basic_changelog, analysis)
+
+            # Llamar a la API de Claude
+            client = anthropic.Anthropic(api_key=AnthropicAuth.get_api_token())
+
+            response = client.messages.create(
+                model="claude-4-sonnet-20250514",
+                max_tokens=6000,
+                temperature=0.8,
+                system=prompt,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": "Mejora este CHANGELOG haciéndolo más profesional y claro."
+                    }
+                ]
+            )
+
+            return response.content[0].text
+
+        except Exception as e:
+            self.console.print(f"[yellow]⚠ Error usando IA, generando sin IA: {str(e)}[/yellow]")
+            return self._generate_without_ai(analysis)
+
+    def _build_ai_prompt(self, basic_changelog: str, analysis: Dict) -> str:
+        """Construye el prompt para mejorar el CHANGELOG con IA."""
+        statistics = analysis.get('statistics', {})
+
+        prompt = f"""Eres un experto en generar CHANGELOGs profesionales siguiendo el estándar Keep a Changelog.
+
+Tu tarea es mejorar este CHANGELOG haciéndolo más profesional, claro y útil para usuarios y desarrolladores.
+
+CHANGELOG actual:
+{basic_changelog}
+
+Estadísticas del análisis:
+- Total de commits: {statistics.get('total_commits', 0)}
+- Breaking changes: {statistics.get('has_breaking_changes', False)}
+- Security updates: {statistics.get('has_security_updates', False)}
+- Deprecations: {statistics.get('has_deprecations', False)}
+
+Instrucciones para mejorar:
+1. Mantén la estructura Keep a Changelog
+2. Mejora las descripciones para que sean más claras y específicas
+3. Agrupa cambios relacionados cuando sea apropiado
+4. Añade contexto útil cuando sea necesario
+5. Usa emojis apropiados para mejorar la legibilidad
+6. Mantén un tono profesional pero accesible
+7. Asegúrate de que breaking changes estén claramente marcados
+8. Incluye información de seguridad cuando sea relevante
+
+Reglas importantes:
+- NO cambies la estructura básica del CHANGELOG
+- NO elimines información importante
+- NO inventes cambios que no existan
+- SÍ mejora la claridad y profesionalismo
+- SÍ agrupa cambios relacionados
+- SÍ añade contexto útil cuando sea necesario
+
+Devuelve solo el CHANGELOG mejorado en formato Markdown."""
+
+        return prompt
+
+    def _deduplicate_commits(self, commits: List[Dict]) -> List[Dict]:
+        """Deduplica commits similares agrupándolos por descripción."""
+        if not commits:
+            return commits
+
+        # Agrupar commits por descripción normalizada
+        grouped_commits = {}
+
+        for commit in commits:
+            # Normalizar descripción para comparación
+            normalized_desc = self._normalize_description(commit['description'])
+
+            if normalized_desc not in grouped_commits:
+                grouped_commits[normalized_desc] = {
+                    'commits': [],
+                    'count': 0,
+                    'representative': commit
+                }
+
+            grouped_commits[normalized_desc]['commits'].append(commit)
+            grouped_commits[normalized_desc]['count'] += 1
+
+        # Crear lista deduplicada
+        deduplicated = []
+
+        for normalized_desc, group in grouped_commits.items():
+            if group['count'] == 1:
+                # Commit único, mantener como está
+                deduplicated.append(group['representative'])
+            else:
+                # Commits duplicados, crear uno consolidado
+                consolidated = self._consolidate_commits(group['commits'])
+                deduplicated.append(consolidated)
+
+        return deduplicated
+
+    def _normalize_description(self, description: str) -> str:
+        """Normaliza una descripción para comparación."""
+        # Convertir a minúsculas
+        normalized = description.lower()
+
+        # Remover palabras comunes que no aportan significado
+        common_words = ['el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'y', 'o', 'de', 'del', 'a', 'al', 'en', 'con', 'por', 'para', 'sin', 'sobre', 'entre', 'tras', 'durante', 'mediante', 'según', 'contra', 'hacia', 'hasta', 'desde', 'hacia', 'cerca', 'lejos', 'dentro', 'fuera', 'arriba', 'abajo', 'antes', 'después', 'ahora', 'siempre', 'nunca', 'también', 'tampoco', 'muy', 'más', 'menos', 'poco', 'mucho', 'todo', 'nada', 'algo', 'nadie', 'alguien', 'cualquier', 'cualquiera', 'cada', 'varios', 'varias', 'algunos', 'algunas', 'ningún', 'ninguna', 'este', 'esta', 'estos', 'estas', 'ese', 'esa', 'esos', 'esas', 'aquel', 'aquella', 'aquellos', 'aquellas', 'mío', 'mía', 'míos', 'mías', 'tuyo', 'tuya', 'tuyos', 'tuyas', 'suyo', 'suya', 'suyos', 'suyas', 'nuestro', 'nuestra', 'nuestros', 'nuestras', 'vuestro', 'vuestra', 'vuestros', 'vuestras']
+
+        # Remover palabras comunes
+        words = normalized.split()
+        filtered_words = [word for word in words if word not in common_words and len(word) > 2]
+
+        # Unir palabras filtradas
+        return ' '.join(filtered_words)
+
+    def _consolidate_commits(self, commits: List[Dict]) -> Dict:
+        """Consolida múltiples commits similares en uno solo."""
+        if not commits:
+            return {}
+
+        # Usar el primer commit como base
+        consolidated = commits[0].copy()
+
+        # Si hay más de un commit, agregar indicador de cantidad
+        if len(commits) > 1:
+            count = len(commits)
+            if count == 2:
+                consolidated['description'] = f"{consolidated['description']} (2 commits)"
+            else:
+                consolidated['description'] = f"{consolidated['description']} ({count} commits)"
+
+            # Agregar información de hashes para referencia
+            hashes = [commit['hash'][:8] for commit in commits]
+            consolidated['related_hashes'] = hashes
+
+        return consolidated
+
 class DocumentationGenerator:
     """Generador de documentación usando IA."""
 
@@ -887,14 +1433,21 @@ class DocumentationGenerator:
         if self._analyzer_initialized:
             return
 
-        self.analyzer = CodeAnalyzer(self.base_path, config)
-        if not self.analyzer:
-            raise RuntimeError("No se pudo inicializar el analizador de código")
+        # Para CHANGELOG, usar ChangelogAnalyzer
+        if config.get('doc_type') == 'changelog':
+            self.analyzer = ChangelogAnalyzer(self.base_path, config)
+            if not self.analyzer:
+                raise RuntimeError("No se pudo inicializar el analizador de CHANGELOG")
+        else:
+            # Para otros tipos de documento, usar CodeAnalyzer
+            self.analyzer = CodeAnalyzer(self.base_path, config)
+            if not self.analyzer:
+                raise RuntimeError("No se pudo inicializar el analizador de código")
 
-        required_methods = ['_analyze_workflows', '_analyze_examples', '_analyze_configs', '_analyze_dependencies', '_analyze_use_cases']
-        for method in required_methods:
-            if not hasattr(self.analyzer, method):
-                raise RuntimeError(f"El analizador no tiene el método requerido: {method}")
+            required_methods = ['_analyze_workflows', '_analyze_examples', '_analyze_configs', '_analyze_dependencies', '_analyze_use_cases']
+            for method in required_methods:
+                if not hasattr(self.analyzer, method):
+                    raise RuntimeError(f"El analizador no tiene el método requerido: {method}")
 
         self._analyzer_initialized = True
         self.console.print("✓ [green]Analizador inicializado correctamente[/green]")
@@ -984,9 +1537,15 @@ class DocumentationGenerator:
 
         return config
 
-    def generate_documentation(self, output_file: str, custom_instructions: Optional[str] = None) -> None:
+    def generate_documentation(self, output_file: str, custom_instructions: Optional[str] = None, use_ai: bool = False) -> None:
         """Genera la documentación usando el modelo de Anthropic."""
         try:
+            # Para CHANGELOG, usar generación sin IA por defecto
+            if self.config.get('doc_type') == 'changelog':
+                self._generate_changelog(output_file, custom_instructions, use_ai)
+                return
+
+            # Para otros tipos de documento, usar el flujo normal con IA
             # 1. Analizar el código base
             if hasattr(self, 'progress') and hasattr(self, 'analysis_task'):
                 self.analyzer.progress = self.progress
@@ -1025,6 +1584,52 @@ class DocumentationGenerator:
         except Exception as e:
             self.console.print(Panel(
                 f"[bold red]✗ Error[/bold red]\n{str(e)}",
+                border_style="red"
+            ))
+            raise click.Abort()
+
+    def _generate_changelog(self, output_file: str, custom_instructions: Optional[str] = None, use_ai: bool = False) -> None:
+        """Genera CHANGELOG específicamente."""
+        try:
+            self.console.print("[blue]Analizando historial de Git para CHANGELOG...[/blue]")
+
+            # Analizar historial de Git
+            analysis = self.analyzer.analyze_git_history()
+
+            if not analysis:
+                self.console.print("[yellow]No se encontraron commits para generar CHANGELOG[/yellow]")
+                return
+
+            # Generar contenido del CHANGELOG
+            if use_ai:
+                self.console.print("[blue]Generando contenido del CHANGELOG con IA...[/blue]")
+            else:
+                self.console.print("[blue]Generando contenido del CHANGELOG sin IA...[/blue]")
+
+            changelog_content = self.analyzer.generate_changelog_content(analysis, use_ai=use_ai)
+
+            # Guardar el CHANGELOG
+            output_path = Path(output_file)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(changelog_content)
+
+            # Mostrar estadísticas
+            statistics = analysis.get('statistics', {})
+            self.console.print(f"[green]✓ CHANGELOG generado y guardado en: {output_file}[/green]")
+            self.console.print(f"[blue]📊 Estadísticas: {statistics.get('total_commits', 0)} commits analizados[/blue]")
+
+            if statistics.get('has_breaking_changes'):
+                self.console.print("[red]⚠ Breaking changes detectados[/red]")
+            if statistics.get('has_security_updates'):
+                self.console.print("[orange]🔒 Actualizaciones de seguridad detectadas[/orange]")
+            if statistics.get('has_deprecations'):
+                self.console.print("[yellow]⚠ Deprecaciones detectadas[/yellow]")
+
+        except Exception as e:
+            self.console.print(Panel(
+                f"[bold red]✗ Error generando CHANGELOG[/bold red]\n{str(e)}",
                 border_style="red"
             ))
             raise click.Abort()
@@ -1099,15 +1704,32 @@ def cli():
     """Generador de documentación para el ecosistema Git Branch Tools."""
     pass
 
-@cli.command()
-@click.option('--doc-type', required=True, help='Tipo de documentación a generar.')
+@cli.command(
+    help="""
+Genera la documentación para un tipo de documento específico.
+
+Para CHANGELOG:
+- Filtra automáticamente commits de prueba y testing.
+- Deduplica mensajes repetidos y consolida cambios similares.
+- Sigue el estándar Keep a Changelog.
+- No usa IA por defecto (opcional con --use-ai).
+- El resultado es un CHANGELOG profesional, limpio y legible.
+
+Ejemplo:
+  python docgen.py generate --doc-type changelog --output CHANGELOG.md
+  python docgen.py generate --doc-type changelog --output CHANGELOG.md --use-ai
+""",
+    context_settings={"help_option_names": ["--help", "-h"]}
+)
+@click.option('--doc-type', required=True, help='Tipo de documentación a generar. Ej: changelog, readme, user_guide, api_docs.')
 @click.option('--output', required=True, help='Archivo de salida para la documentación.')
 @click.option('--context', help='Contexto específico a usar para la generación.')
 @click.option('--custom-type', help='Tipo personalizado para cargar configuraciones específicas de análisis y TOC.')
 @click.option('--custom-instructions', help='Instrucciones personalizadas para añadir al prompt.')
 @click.option('--model', help='Modelo de IA a usar (sobrescribe la configuración).')
 @click.option('--base-path', default=os.getcwd(), help='Ruta base del proyecto.')
-def generate(doc_type, output, context, custom_instructions, custom_type, model, base_path):
+@click.option('--use-ai', is_flag=True, help='Usar IA para mejorar el contenido (solo para CHANGELOG).')
+def generate(doc_type, output, context, custom_instructions, custom_type, model, base_path, use_ai):
     """Genera la documentación para un tipo de documento específico."""
     console = Console()
     try:
@@ -1154,7 +1776,8 @@ def generate(doc_type, output, context, custom_instructions, custom_type, model,
             try:
                 generator.generate_documentation(
                     output_file=output,
-                    custom_instructions=custom_instructions
+                    custom_instructions=custom_instructions,
+                    use_ai=use_ai
                 )
                 progress.update(analysis_task, completed=100)
                 console.print("[green]✓ Proceso completado exitosamente[/green]")
