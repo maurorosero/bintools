@@ -20,3 +20,8 @@ document_types:
     model: "claude-4-sonnet-20250514"
     max_tokens: 6000
     temperature: 0.9
+
+  changelog:
+    model: "claude-4-sonnet-20250514"
+    max_tokens: 6000
+    temperature: 0.8

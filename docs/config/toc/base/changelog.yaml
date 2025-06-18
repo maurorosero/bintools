@@ -1,0 +1,38 @@
+structure:
+  - section: "Changelog Header"
+    required: true
+    subsections:
+      - "Title"
+      - "Description"
+      - "Format Reference"
+      - "Versioning Reference"
+
+  - section: "Unreleased"
+    required: true
+    subsections:
+      - "Added"
+      - "Changed"
+      - "Deprecated"
+      - "Removed"
+      - "Fixed"
+      - "Security"
+
+  - section: "Version Sections"
+    required: true
+    subsections:
+      - "Version Header"
+      - "Added"
+      - "Changed"
+      - "Deprecated"
+      - "Removed"
+      - "Fixed"
+      - "Security"
+      - "Breaking Changes"
+
+  - section: "Metadata"
+    required: false
+    subsections:
+      - "Version Info"
+      - "Release Date"
+      - "Breaking Changes Flag"
+      - "Security Updates Flag"

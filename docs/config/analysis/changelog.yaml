@@ -1,0 +1,135 @@
+# Configuración de análisis para generación de CHANGELOG
+changelog_analysis:
+  # Análisis específico para CHANGELOG
+  tools:
+    - git_history  # Análisis del historial de Git
+    - commit_parser  # Parser de mensajes de commit
+    - version_analyzer  # Análisis de versiones y tags
+    - change_categorizer  # Categorización de cambios
+
+  checks:
+    - commit_format_validation  # Validación de formato de commits
+    - version_consistency  # Consistencia de versionado
+    - change_categorization  # Categorización correcta
+
+  # Configuración de detección de cambios
+  change_detection:
+    commit_patterns:
+      - pattern: "^\\[([A-Z]+)\\](?: \\(#(\\d+)\\))? (.+)$"
+        groups: ["type", "issue", "description"]
+        types:
+          FEAT: "Nuevas características"
+          FIX: "Correcciones de bugs"
+          DOCS: "Documentación"
+          STYLE: "Cambios de estilo"
+          REFACTOR: "Refactorizaciones"
+          PERF: "Mejoras de rendimiento"
+          TEST: "Tests"
+          BUILD: "Build y CI/CD"
+          CI: "Integración continua"
+          CHORE: "Tareas de mantenimiento"
+          REVERT: "Revertir cambios"
+          BREAKING: "Cambios breaking"
+
+    # Configuración de análisis de impacto
+    impact_analysis:
+      breaking_changes:
+        - keywords: ["breaking", "deprecate", "remove", "change"]
+        - patterns: ["\\[BREAKING\\]", "BREAKING CHANGE"]
+        - file_patterns: ["api/", "public/", "interface"]
+
+      security_changes:
+        - keywords: ["security", "vulnerability", "auth", "permission"]
+        - file_patterns: ["auth/", "security/", "permissions/"]
+
+      performance_changes:
+        - keywords: ["performance", "optimize", "speed", "memory"]
+        - file_patterns: ["performance/", "optimization/"]
+
+    # Configuración de categorización
+    categorization:
+      features:
+        - types: ["FEAT"]
+        - keywords: ["add", "new", "implement", "support"]
+        - priority: "high"
+
+      bugfixes:
+        - types: ["FIX"]
+        - keywords: ["fix", "correct", "resolve", "patch"]
+        - priority: "high"
+
+      improvements:
+        - types: ["PERF", "REFACTOR"]
+        - keywords: ["improve", "optimize", "enhance"]
+        - priority: "medium"
+
+      documentation:
+        - types: ["DOCS"]
+        - keywords: ["document", "update", "clarify"]
+        - priority: "low"
+
+      maintenance:
+        - types: ["CHORE", "BUILD", "CI", "TEST"]
+        - keywords: ["update", "maintain", "clean"]
+        - priority: "low"
+
+  # Configuración de formato de salida
+  output_format:
+    sections:
+      - name: "Unreleased"
+        required: true
+        subsections:
+          - "Added"
+          - "Changed"
+          - "Deprecated"
+          - "Removed"
+          - "Fixed"
+          - "Security"
+
+      - name: "Version Sections"
+        required: true
+        subsections:
+          - "Added"
+          - "Changed"
+          - "Deprecated"
+          - "Removed"
+          - "Fixed"
+          - "Security"
+          - "Breaking Changes"
+
+    # Configuración de metadatos
+    metadata:
+      include_links: true
+      include_authors: false
+      include_dates: true
+      include_issues: true
+      include_commit_hashes: false
+      include_file_changes: false
+
+    # Configuración de estilo
+    styling:
+      use_emoji: true
+      use_badges: false
+      use_tables: false
+      use_collapsible_sections: false
+      max_line_length: 100
+      include_summary: false
+      include_statistics: false
+
+  # Configuración de validación
+  validation:
+    required_fields:
+      - "version"
+      - "date"
+      - "changes"
+
+    optional_fields:
+      - "issues"
+      - "breaking_changes"
+      - "security_notes"
+
+    format_checks:
+      - "semantic_versioning"
+      - "date_format"
+      - "markdown_syntax"
+      - "link_validity"
