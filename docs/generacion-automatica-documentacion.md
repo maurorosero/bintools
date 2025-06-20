@@ -1,1 +1,0 @@
-# Generación Automática de Documentación
