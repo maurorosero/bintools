@@ -1,0 +1,74 @@
+# Configuración de análisis para project_description
+project_description_analysis:
+  # Análisis de estructura del proyecto
+  project_structure:
+    tools:
+      - directory_scanner
+      - file_analyzer
+      - config_detector
+    checks:
+      - detect_project_type
+      - identify_main_components
+      - find_config_files
+      - analyze_directory_structure
+
+  # Análisis de funcionalidades
+  functionality_analysis:
+    tools:
+      - script_analyzer
+      - tool_detector
+      - utility_finder
+      - automation_detector
+    checks:
+      - identify_all_tools
+      - detect_automation_workflows
+      - find_utility_scripts
+      - analyze_productivity_tools
+
+  # Análisis de tecnologías
+  technology_analysis:
+    tools:
+      - language_detector
+      - framework_analyzer
+      - dependency_parser
+      - platform_detector
+    checks:
+      - detect_all_languages
+      - identify_frameworks
+      - analyze_dependencies
+      - detect_platform_support
+
+  # Análisis de propósito y audiencia
+  purpose_analysis:
+    tools:
+      - purpose_detector
+      - audience_analyzer
+      - problem_solver_detector
+      - use_case_analyzer
+    checks:
+      - determine_project_purpose
+      - identify_target_audience
+      - detect_problems_solved
+      - analyze_use_cases
+
+  # Análisis de diferenciadores
+  differentiators_analysis:
+    tools:
+      - uniqueness_detector
+      - feature_comparator
+      - value_proposition_analyzer
+    checks:
+      - identify_unique_features
+      - compare_with_alternatives
+      - detect_value_propositions
+
+  # Análisis de estado y enlaces
+  metadata_analysis:
+    tools:
+      - status_detector
+      - link_finder
+      - tag_analyzer
+    checks:
+      - determine_project_status
+      - find_related_links
+      - generate_relevant_tags

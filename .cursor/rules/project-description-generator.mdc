@@ -1,0 +1,129 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Project Description Generator - Universal Prompt
+# =============================================
+# Este archivo contiene el prompt universal para generar automáticamente
+# archivos .project/description.md para cualquier proyecto
+
+# Configuración del Prompt
+# ----
+prompt_config:
+  name: "project_description_generator"
+  version: "1.0"
+  description: "Generador universal de descripciones de proyectos"
+  author: "mrosero"
+  last_updated: "2024-12-19"
+
+# Prompt Universal para Análisis de Proyectos
+# ----
+universal_prompt: |
+  Eres un experto analista de proyectos UNIVERSAL y especialista en documentación técnica. Tu tarea es analizar COMPLETAMENTE cualquier proyecto y generar automáticamente un archivo .project/description.md con estructura profesional.
+
+  CONTEXTO DE ANÁLISIS:
+  Analiza el proyecto proporcionado considerando TODOS los aspectos: propósito, funcionalidades, tecnologías, audiencia, y contexto de uso, SIN asumir que es solo un proyecto de desarrollo de software.
+
+  ANÁLISIS REQUERIDO:
+
+  1. **ANÁLISIS FUNCIONAL UNIVERSAL**
+     - Identificar TODAS las funcionalidades del proyecto (no solo desarrollo)
+     - Detectar herramientas de utilidad, automatización, gestión, etc.
+     - Analizar scripts, aplicaciones, y utilidades de cualquier tipo
+     - Considerar herramientas de productividad, administración, etc.
+
+  2. **ANÁLISIS DE TECNOLOGÍAS NEUTRAL**
+     - Identificar TODOS los lenguajes y tecnologías sin sesgo
+     - Analizar configuraciones, scripts, y archivos de cualquier tipo
+     - Considerar herramientas multiplataforma y específicas de sistema
+
+  3. **ANÁLISIS DE PROPÓSITO AMPLIO**
+     - Determinar el propósito general del proyecto
+     - Identificar problemas que resuelve (no solo de desarrollo)
+     - Analizar audiencia objetivo (desarrolladores, administradores, usuarios generales, etc.)
+
+  4. **ANÁLISIS DE ARQUITECTURA NEUTRAL**
+     - Identificar patrones de organización sin asumir tipo de proyecto
+     - Analizar estructura de directorios y archivos
+     - Detectar configuraciones y metadatos
+
+  ESTRUCTURA DE SALIDA:
+  Genera automáticamente el archivo .project/description.md con esta estructura exacta:
+
+  # Descripción del Proyecto
+
+  ## 📖 Descripción del Repositorio
+  [Descripción principal que capture TODAS las funcionalidades]
+
+  ## 🎯 Propósito
+  [Propósito general del proyecto, no solo desarrollo]
+
+  ## 🔍 Problema que Resuelve
+  [Todos los problemas que aborda, no solo de desarrollo]
+
+  ## 💡 Solución
+  [Cómo resuelve los problemas de manera integral]
+
+  ## 👥 Público Objetivo
+  [Audiencia completa, no solo desarrolladores]
+
+  ## 🚀 Diferenciadores
+  [Qué hace único este proyecto vs alternativas]
+
+  ## 📊 Estado del Proyecto
+  [Development/Beta/Stable/Deprecated]
+
+  ## 🔗 Enlaces Relacionados
+  - [Documentación](mdc:link)
+  - [Issues](mdc:link)
+  - [Discusiones](mdc:link)
+  - [Wiki](mdc:link)
+
+  ## 🏷️ Tags y Temas
+  [Tags relevantes para el repositorio]
+
+  INSTRUCCIONES ESPECÍFICAS:
+  - NO asumas que es solo un proyecto de desarrollo de software
+  - Captura TODAS las funcionalidades, no solo las técnicas
+  - Considera herramientas de utilidad, administración, productividad
+  - Analiza el propósito general del proyecto
+  - Identifica audiencias diversas (desarrolladores, administradores, usuarios finales)
+
+# Instrucciones de Uso
+# ----
+usage_instructions:
+  - name: "activar_generador"
+    description: "Activa el generador de descripciones de proyectos"
+    command: |
+      # Para usar este prompt en Cursor:
+      # 1. Copia el contenido de universal_prompt
+      # 2. Pégalo en el chat de Cursor
+      # 3. Agrega: "Analiza este proyecto y genera el archivo .project/description.md"
+
+  - name: "generar_descripcion"
+    description: "Genera la descripción del proyecto actual"
+    command: |
+      # Comando directo:
+      # "Usa el prompt universal para analizar este proyecto y generar .project/description.md"
+
+# Configuración de Activación
+# ----
+activation:
+  triggers:
+    - "generar descripción del proyecto"
+    - "crear .project/description.md"
+    - "analizar proyecto para descripción"
+    - "project description generator"
+
+  auto_load: false
+  require_confirmation: true
+
+# Notas de Implementación
+# ----
+implementation_notes:
+  - "Este prompt es universal y funciona para cualquier tipo de proyecto"
+  - "No tiene sesgo hacia desarrollo de software"
+  - "Captura todas las funcionalidades del proyecto"
+  - "Genera estructura profesional y consistente"
+  - "Puede ser usado en cualquier workspace de Cursor"

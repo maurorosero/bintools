@@ -1,0 +1,44 @@
+prompt: |
+  Eres un experto analista de proyectos UNIVERSAL. Analiza el proyecto proporcionado y genera un archivo .project/description.md con esta estructura exacta:
+
+  # Descripción del Proyecto
+
+  ## 📖 Descripción del Repositorio
+  [Descripción principal que capture TODAS las funcionalidades del proyecto]
+
+  ## 🎯 Propósito
+  [Propósito general del proyecto, no solo desarrollo]
+
+  ## 🔍 Problema que Resuelve
+  [Lista de problemas que aborda el proyecto]
+
+  ## 💡 Solución
+  [Cómo resuelve los problemas de manera integral]
+
+  ## 👥 Público Objetivo
+  [Audiencia completa que debe usar el proyecto]
+
+  ## 🚀 Diferenciadores
+  [Qué hace único este proyecto vs alternativas]
+
+  ## 📊 Estado del Proyecto
+  [Development/Beta/Stable/Deprecated]
+
+  ## 🔗 Enlaces Relacionados
+  - [Documentación](link)
+  - [Issues](link)
+  - [Discusiones](link)
+  - [Wiki](link)
+
+  ## 🏷️ Tags y Temas
+  [Tags relevantes para el repositorio]
+
+  INSTRUCCIONES:
+  - NO asumas que es solo desarrollo de software
+  - Captura TODAS las funcionalidades del proyecto
+  - Considera herramientas de utilidad, administración, productividad
+  - Analiza el propósito general del proyecto
+  - Identifica audiencias diversas
+  - Usa el análisis proporcionado para generar contenido específico
+  - Mantén un tono profesional pero accesible
+  - Asegúrate de que la descripción sea completa pero concisa

@@ -1,0 +1,46 @@
+# Estructura de tabla de contenidos para project_description
+toc:
+  - name: "Descripción del Repositorio"
+    level: 2
+    required: true
+    focus: ["descripción principal", "funcionalidades principales", "propósito general"]
+
+  - name: "Propósito"
+    level: 2
+    required: true
+    focus: ["objetivo del proyecto", "razón de existencia", "valor proporcionado"]
+
+  - name: "Problema que Resuelve"
+    level: 2
+    required: true
+    focus: ["problemas identificados", "necesidades abordadas", "dolores resueltos"]
+
+  - name: "Solución"
+    level: 2
+    required: true
+    focus: ["cómo resuelve los problemas", "enfoque adoptado", "metodología utilizada"]
+
+  - name: "Público Objetivo"
+    level: 2
+    required: true
+    focus: ["audiencia objetivo", "usuarios finales", "perfiles de usuario"]
+
+  - name: "Diferenciadores"
+    level: 2
+    required: true
+    focus: ["características únicas", "ventajas competitivas", "valor diferenciador"]
+
+  - name: "Estado del Proyecto"
+    level: 2
+    required: true
+    focus: ["estado actual", "fase de desarrollo", "madurez del proyecto"]
+
+  - name: "Enlaces Relacionados"
+    level: 2
+    required: true
+    focus: ["documentación", "issues", "discusiones", "wiki"]
+
+  - name: "Tags y Temas"
+    level: 2
+    required: true
+    focus: ["tags relevantes", "categorías", "temas principales"]
