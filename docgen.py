@@ -21,6 +21,19 @@ from rich import print as rprint
 import re
 import subprocess
 
+# Importar el analizador de project_description
+try:
+    from scripts.project_description_analyzer import ProjectDescriptionAnalyzer
+except ImportError:
+    # Si no se puede importar, crear una clase dummy
+    class ProjectDescriptionAnalyzer:
+        def __init__(self, base_path, config=None):
+            self.base_path = base_path
+            self.config = config or {}
+
+        def analyze_project(self):
+            return {}
+
 console = Console()
 
 class AnthropicAuth:
@@ -2136,20 +2149,30 @@ class DocumentationGenerator:
             self._initialize_analyzer(self.config)
 
     def _initialize_analyzer(self, config: Dict) -> None:
-        """Inicializa el analizador con la configuración proporcionada."""
+        """Inicializa el analizador apropiado según el tipo de documento."""
         if self._analyzer_initialized:
             return
 
         # Para CHANGELOG, usar ChangelogAnalyzer
-        if config.get('doc_type') == 'changelog':
+        if self.config.get('doc_type') == 'changelog':
             self.analyzer = ChangelogAnalyzer(self.base_path, config)
             if not self.analyzer:
                 raise RuntimeError("No se pudo inicializar el analizador de CHANGELOG")
         # Para CONTRIBUTING, usar ContributingAnalyzer
-        elif config.get('doc_type') == 'contributing':
+        elif self.config.get('doc_type') == 'contributing':
             self.analyzer = ContributingAnalyzer(self.base_path, config)
             if not self.analyzer:
                 raise RuntimeError("No se pudo inicializar el analizador de CONTRIBUTING")
+        # Para PROJECT_DESCRIPTION, usar ProjectDescriptionAnalyzer
+        elif self.config.get('doc_type') == 'project_description':
+            self.analyzer = ProjectDescriptionAnalyzer(self.base_path, config)
+            if not self.analyzer:
+                raise RuntimeError("No se pudo inicializar el analizador de PROJECT_DESCRIPTION")
+        # Para README, usar ProjectDescriptionAnalyzer también
+        elif self.config.get('doc_type') == 'readme':
+            self.analyzer = ProjectDescriptionAnalyzer(self.base_path, config)
+            if not self.analyzer:
+                raise RuntimeError("No se pudo inicializar el analizador de README")
         else:
             # Para otros tipos de documento, usar CodeAnalyzer
             self.analyzer = CodeAnalyzer(self.base_path, config)
@@ -2220,6 +2243,18 @@ class DocumentationGenerator:
                     self.console.print(f"[yellow]⚠ Advertencia: Error cargando configuración de análisis de CONTRIBUTING: {str(e)}[/yellow]")
             else:
                 self.console.print("[yellow]⚠ Advertencia: No se encontró docs/config/analysis/contributing.yaml[/yellow]")
+        elif doc_type == 'project_description':
+            # Para PROJECT_DESCRIPTION, cargar configuración específica
+            analysis_config_path = self.base_path / 'docs/config/analysis/project_description.yaml'
+            if analysis_config_path.exists():
+                try:
+                    with open(analysis_config_path, 'r', encoding='utf-8') as f:
+                        analysis_config = yaml.safe_load(f)
+                        config['analysis'].update(analysis_config.get('project_description_analysis', {}))
+                except Exception as e:
+                    self.console.print(f"[yellow]⚠ Advertencia: Error cargando configuración de análisis de PROJECT_DESCRIPTION: {str(e)}[/yellow]")
+            else:
+                self.console.print("[yellow]⚠ Advertencia: No se encontró docs/config/analysis/project_description.yaml[/yellow]")
         else:
             # Para otros tipos, cargar configuración por defecto
             analysis_config_path = self.base_path / 'docs/config/analysis/default.yaml'
@@ -2272,6 +2307,17 @@ class DocumentationGenerator:
                 except Exception as e:
                     self.console.print(f"[yellow]⚠ Advertencia: Error cargando TOC base de CONTRIBUTING: {str(e)}[/yellow]")
 
+        # 5. Cargar TOC base para PROJECT_DESCRIPTION si no hay TOC personalizado
+        if doc_type == 'project_description' and 'toc' not in config:
+            toc_path = self.base_path / 'docs/config/toc/base/project_description.yaml'
+            if toc_path.exists():
+                try:
+                    with open(toc_path, 'r', encoding='utf-8') as f:
+                        toc_config = yaml.safe_load(f)
+                        config['toc'] = toc_config
+                except Exception as e:
+                    self.console.print(f"[yellow]⚠ Advertencia: Error cargando TOC base de PROJECT_DESCRIPTION: {str(e)}[/yellow]")
+
         return config
 
     def generate_documentation(self, output_file: str, custom_instructions: Optional[str] = None, use_ai: bool = False) -> None:
@@ -2285,6 +2331,16 @@ class DocumentationGenerator:
             # Para CONTRIBUTING, usar análisis de proyecto
             if self.config.get('doc_type') == 'contributing':
                 self._generate_contributing(output_file, custom_instructions, use_ai)
+                return
+
+            # Para README, usar nuestro sistema híbrido
+            if self.config.get('doc_type') == 'readme':
+                self._generate_readme_hybrid(output_file, custom_instructions, use_ai)
+                return
+
+            # Para PROJECT_DESCRIPTION, usar análisis de proyecto específico
+            if self.config.get('doc_type') == 'project_description':
+                self._generate_project_description(output_file, custom_instructions, use_ai)
                 return
 
             # Para otros tipos de documento, usar el flujo normal con IA
@@ -2321,14 +2377,11 @@ class DocumentationGenerator:
             with open(output_path, 'w', encoding='utf-8') as f:
                 f.write(response.content[0].text)
 
-            self.console.print(f"[green]✓ Documentación generada y guardada en: {output_file}[/green]")
+            self.console.print(f"✓ Documentación generada y guardada en: {output_file}")
 
         except Exception as e:
-            self.console.print(Panel(
-                f"[bold red]✗ Error[/bold red]\n{str(e)}",
-                border_style="red"
-            ))
-            raise click.Abort()
+            self.console.print(f"[red]Error generando documentación: {str(e)}[/red]")
+            raise
 
     def _generate_changelog(self, output_file: str, custom_instructions: Optional[str] = None, use_ai: bool = False) -> None:
         """Genera CHANGELOG específicamente."""
@@ -2418,6 +2471,38 @@ class DocumentationGenerator:
                 border_style="red"
             ))
             raise click.Abort()
+
+    def _generate_project_description(self, output_file: str, custom_instructions: Optional[str] = None, use_ai: bool = False) -> None:
+        """Genera README.md usando enfoque híbrido con mejores prácticas."""
+        try:
+            # 1. Analizar el proyecto
+            self.console.print("Analizando proyecto para README.md...")
+            analysis = self.analyzer.analyze_project()
+
+            # 2. Generar contenido base sin IA
+            self.console.print("Generando contenido base de README.md...")
+            base_content = self._generate_readme_without_ai(analysis)
+
+            # 3. Si se solicita IA, mejorar el contenido
+            if use_ai:
+                self.console.print("Mejorando contenido con IA...")
+                enhanced_content = self._enhance_readme_with_ai(base_content, analysis, custom_instructions)
+                final_content = enhanced_content
+            else:
+                final_content = base_content
+
+            # 4. Guardar el archivo
+            output_path = Path(output_file)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(final_content)
+
+            self.console.print(f"✓ README.md generado y guardado en: {output_file}")
+
+        except Exception as e:
+            self.console.print(f"[red]Error generando README.md: {str(e)}[/red]")
+            raise
 
     def _generate_contributing_without_ai(self, analysis: Dict) -> str:
         """Genera CONTRIBUTING.md sin usar IA, basado en el análisis del proyecto."""
@@ -2955,6 +3040,537 @@ Mantén actualizada la documentación cuando hagas cambios."""
 
         return "\n".join(prompt_parts)
 
+    def _generate_project_description_with_ai(self, analysis: Dict, custom_instructions: Optional[str] = None) -> str:
+        """Genera PROJECT_DESCRIPTION usando IA."""
+        try:
+            # Construir prompt específico para PROJECT_DESCRIPTION
+            prompt = self._build_project_description_prompt(analysis, custom_instructions)
+
+            # Generar con IA
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=self.config.get('max_tokens', 4000),
+                temperature=self.config.get('temperature', 0.7),
+                system=prompt,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": "Genera el archivo .project/description.md basado en el análisis del proyecto proporcionado."
+                    }
+                ]
+            )
+
+            return response.content[0].text
+
+        except Exception as e:
+            self.console.print(f"[red]Error generando PROJECT_DESCRIPTION con IA: {str(e)}[/red]")
+            # Fallback a generación sin IA
+            return self._generate_project_description_without_ai(analysis)
+
+    def _generate_project_description_without_ai(self, analysis: Dict) -> str:
+        """Genera PROJECT_DESCRIPTION sin usar IA."""
+        try:
+            # Extraer información del análisis
+            project_structure = analysis.get('project_structure', {})
+            functionality = analysis.get('functionality', {})
+            technologies = analysis.get('technologies', {})
+            purpose = analysis.get('purpose', {})
+            differentiators = analysis.get('differentiators', {})
+            metadata = analysis.get('metadata', {})
+            global_analysis = analysis.get('global_analysis', {})
+
+            # Construir contenido básico
+            content = []
+            content.append("# Descripción del Proyecto")
+            content.append("")
+
+            # Descripción del Repositorio
+            project_name = project_structure.get('project_name', 'Proyecto')
+            project_type = project_structure.get('project_type', 'general_project')
+            content.append("## 📖 Descripción del Repositorio")
+            content.append(f"Ecosistema de herramientas y utilidades para {project_name.lower()}.")
+            content.append("")
+
+            # Propósito
+            main_purpose = purpose.get('main_purpose', f'Proporcionar herramientas y utilidades para {project_name.lower()}')
+            content.append("## 🎯 Propósito")
+            content.append(main_purpose)
+            content.append("")
+
+            # Problema que Resuelve
+            problems = purpose.get('problems_solved', ['Automatización de tareas repetitivas'])
+            content.append("## 🔍 Problema que Resuelve")
+            for problem in problems:
+                content.append(f"- {problem}")
+            content.append("")
+
+            # Solución
+            content.append("## 💡 Solución")
+            content.append("Conjunto de herramientas y scripts que automatizan y optimizan los flujos de trabajo.")
+            content.append("")
+
+            # Público Objetivo
+            audience = purpose.get('target_audience', ['Desarrolladores', 'Administradores de sistemas'])
+            content.append("## 👥 Público Objetivo")
+            for target in audience:
+                content.append(f"- {target}")
+            content.append("")
+
+            # Diferenciadores
+            unique_features = differentiators.get('unique_features', ['Herramientas multiplataforma'])
+            content.append("## 🚀 Diferenciadores")
+            for feature in unique_features:
+                content.append(f"- {feature}")
+            content.append("")
+
+            # Estado del Proyecto
+            status = metadata.get('status', 'Development')
+            content.append("## 📊 Estado del Proyecto")
+            content.append(status)
+            content.append("")
+
+            # Enlaces Relacionados
+            content.append("## 🔗 Enlaces Relacionados")
+            content.append("- [Documentación](docs/)")
+            content.append("- [Issues](.githooks/)")
+            content.append("- [Discusiones](ideas/)")
+            content.append("- [Wiki](docs/)")
+            content.append("")
+
+            # Tags y Temas
+            tags = metadata.get('tags', ['tools', 'automation', 'productivity'])
+            content.append("## 🏷️ Tags y Temas")
+            content.append(", ".join(tags))
+            content.append("")
+
+            return "\n".join(content)
+
+        except Exception as e:
+            self.console.print(f"[red]Error generando PROJECT_DESCRIPTION sin IA: {str(e)}[/red]")
+            return "# Error generando descripción del proyecto"
+
+    def _build_project_description_prompt(self, analysis: Dict, custom_instructions: Optional[str] = None) -> str:
+        """Construye el prompt específico para PROJECT_DESCRIPTION usando solo un resumen compacto."""
+        prompt_parts = []
+
+        # Cargar prompt base desde configuración
+        prompt_config_path = self.base_path / 'docs/config/prompts/system/project_description.yaml'
+        if prompt_config_path.exists():
+            try:
+                with open(prompt_config_path, 'r', encoding='utf-8') as f:
+                    prompt_config = yaml.safe_load(f)
+                    base_prompt = prompt_config.get('prompt', '')
+                    prompt_parts.append(base_prompt)
+            except Exception as e:
+                self.console.print(f"[yellow]⚠ Advertencia: Error cargando prompt de PROJECT_DESCRIPTION: {str(e)}[/yellow]")
+        else:
+            self.console.print("[yellow]⚠ Advertencia: No se encontró docs/config/prompts/system/project_description.yaml[/yellow]")
+
+        # Crear un resumen muy compacto del análisis
+        compact_summary = self._create_compact_summary(analysis)
+        prompt_parts.append("\nRESUMEN COMPACTO DEL PROYECTO:")
+        prompt_parts.append(compact_summary)
+
+        # Agregar instrucciones personalizadas si existen
+        if custom_instructions:
+            prompt_parts.append(f"\nINSTRUCCIONES PERSONALIZADAS:\n{custom_instructions}")
+
+        return "\n".join(prompt_parts)
+
+    def _enhance_readme_with_ai(self, base_content: str, analysis: Dict, custom_instructions: Optional[str] = None) -> str:
+        """Mejora el contenido base del README usando IA con resumen compacto."""
+        try:
+            # Debug: mostrar qué modelo se está usando
+            self.console.print(f"[blue]🔧 Usando modelo: {self.model}[/blue]")
+            self.console.print(f"[blue]🔧 Max tokens: {self.config.get('max_tokens', 4000)}[/blue]")
+            self.console.print(f"[blue]🔧 Temperature: {self.config.get('temperature', 0.7)}[/blue]")
+
+            # Crear resumen compacto del análisis
+            compact_analysis = self._create_compact_analysis_summary(analysis)
+
+            # Construir prompt para mejora
+            prompt = self._build_readme_enhancement_prompt(base_content, compact_analysis, custom_instructions)
+
+            # Generar mejora con IA usando streaming
+            with self.client.messages.stream(
+                model=self.model,
+                max_tokens=self.config.get('max_tokens', 4000),
+                temperature=self.config.get('temperature', 0.7),
+                system=prompt,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": "Mejora el contenido del archivo README.md basado en el análisis del proyecto."
+                    }
+                ]
+            ) as stream:
+                enhanced_content = ""
+                for chunk in stream:
+                    if chunk.type == "content_block_delta":
+                        enhanced_content += chunk.delta.text
+
+                return enhanced_content
+
+        except Exception as e:
+            self.console.print(f"[red]Error mejorando README con IA: {str(e)}[/red]")
+            # Fallback al contenido base
+            return base_content
+
+    def _build_readme_enhancement_prompt(self, base_content: str, compact_analysis: str, custom_instructions: Optional[str] = None) -> str:
+        """Construye el prompt para mejorar el README base."""
+        prompt_parts = []
+
+        # Cargar prompt base desde configuración
+        prompt_config_path = self.base_path / 'docs/config/prompts/system/project_description.yaml'
+        if prompt_config_path.exists():
+            try:
+                with open(prompt_config_path, 'r', encoding='utf-8') as f:
+                    prompt_config = yaml.safe_load(f)
+                    base_prompt = prompt_config.get('prompt', '')
+                    prompt_parts.append(base_prompt)
+            except Exception as e:
+                self.console.print(f"[yellow]⚠ Advertencia: Error cargando prompt de README: {str(e)}[/yellow]")
+
+        # Agregar instrucciones específicas para mejora de README
+        enhancement_instructions = """
+INSTRUCCIONES PARA MEJORA DE README:
+- Mejora el contenido existente sin cambiar la estructura básica
+- Añade detalles específicos basados en el análisis del proyecto
+- Mejora las descripciones para que sean más informativas y atractivas
+- Mantén el formato markdown y la estructura de secciones
+- Asegúrate de que el contenido sea preciso y útil para desarrolladores
+- Optimiza los ejemplos de código para que sean más realistas
+- Mejora las instrucciones de instalación y configuración
+- Añade información específica del proyecto donde sea relevante
+"""
+        prompt_parts.append(enhancement_instructions)
+
+        # Agregar contenido base actual
+        prompt_parts.append("CONTENIDO ACTUAL DEL README:")
+        prompt_parts.append(base_content)
+
+        # Agregar resumen compacto del análisis
+        prompt_parts.append("\nRESUMEN DEL ANÁLISIS DEL PROYECTO:")
+        prompt_parts.append(compact_analysis)
+
+        # Agregar instrucciones personalizadas si existen
+        if custom_instructions:
+            prompt_parts.append(f"\nINSTRUCCIONES PERSONALIZADAS:\n{custom_instructions}")
+
+        return "\n".join(prompt_parts)
+
+    def _generate_readme_without_ai(self, analysis: Dict) -> str:
+        """Genera README.md completo con mejores prácticas sin IA."""
+        try:
+            content = []
+
+            # Extraer información del análisis
+            project_name = analysis.get('project_name', 'Proyecto')
+            project_type = analysis.get('project_type', 'unknown')
+            technologies = analysis.get('technologies', {})
+            structure = analysis.get('structure', {})
+            purpose = analysis.get('purpose', {})
+            metadata = analysis.get('metadata', {})
+            differentiators = analysis.get('differentiators', {})
+            global_analysis = analysis.get('global_analysis', {})
+
+            # 1. TÍTULO Y BADGES
+            content.append(f"# {project_name}")
+            content.append("")
+
+            # Badges basados en tecnologías detectadas
+            languages = technologies.get('languages', [])
+            if 'Python' in languages:
+                content.append("![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)")
+            if 'Bash' in languages:
+                content.append("![Bash](https://img.shields.io/badge/Bash-5.0+-green.svg)")
+            if 'Go' in languages:
+                content.append("![Go](https://img.shields.io/badge/Go-1.19+-00ADD8.svg)")
+            if 'Rust' in languages:
+                content.append("![Rust](https://img.shields.io/badge/Rust-1.65+-orange.svg)")
+
+            content.append("![License](https://img.shields.io/badge/License-GPLv3-green.svg)")
+            content.append("![Status](https://img.shields.io/badge/Status-Development-orange.svg)")
+            content.append("")
+
+            # 2. DESCRIPCIÓN BREVE
+            main_purpose = purpose.get('main_purpose', f'Ecosistema de herramientas y utilidades para {project_name.lower()}')
+            content.append("## 📖 Descripción")
+            content.append(main_purpose)
+            content.append("")
+
+            # 3. CARACTERÍSTICAS PRINCIPALES
+            content.append("## ✨ Características")
+            features = differentiators.get('unique_features', [])
+            if not features:
+                # Generar características basadas en análisis real
+                if global_analysis.get('file_categories', {}).get('python_scripts'):
+                    features.append('Scripts Python para automatización')
+                if global_analysis.get('file_categories', {}).get('shell_scripts'):
+                    features.append('Scripts de shell para tareas del sistema')
+                if global_analysis.get('file_categories', {}).get('config_files'):
+                    features.append('Sistema de configuración')
+                if global_analysis.get('file_categories', {}).get('templates'):
+                    features.append('Generador de templates')
+                if global_analysis.get('file_categories', {}).get('documentation'):
+                    features.append('Sistema de documentación')
+
+            for feature in features:
+                content.append(f"- {feature}")
+            content.append("")
+
+            # 4. INSTALACIÓN (más realista)
+            content.append("## 🚀 Instalación")
+            content.append("")
+            content.append("### Prerrequisitos")
+
+            # Basado en tecnologías detectadas
+            if 'Python' in languages:
+                content.append("- Python 3.8 o superior")
+            if 'Go' in languages:
+                content.append("- Go 1.19+ (opcional)")
+            if 'Rust' in languages:
+                content.append("- Rust (opcional)")
+            if 'Node.js' in languages or 'JavaScript' in languages:
+                content.append("- Node.js (opcional)")
+
+            content.append("- Git")
+            content.append("")
+            content.append("### Instalación")
+            content.append("```bash")
+            content.append("git clone <repository-url>")
+            content.append(f"cd {project_name}")
+            if 'Python' in languages:
+                content.append("pip install -r requirements.txt")
+            content.append("```")
+            content.append("")
+
+            # 5. USO RÁPIDO (más realista)
+            content.append("## 🎯 Uso Rápido")
+            content.append("")
+            content.append("```bash")
+
+            # Basado en archivos principales detectados
+            main_files = global_analysis.get('main_functions', [])
+            if main_files:
+                # Usar el primer archivo principal encontrado
+                main_file = main_files[0].split('/')[-1]  # Solo el nombre del archivo
+                content.append(f"# Ejemplo básico de uso")
+                content.append(f"python {main_file} --help")
+            else:
+                content.append("# Ejemplo básico de uso")
+                content.append("python main.py --help")
+
+            content.append("```")
+            content.append("")
+
+            # 6. DOCUMENTACIÓN
+            content.append("## 📚 Documentación")
+            content.append("")
+
+            # Basado en archivos de documentación detectados
+            doc_files = global_analysis.get('file_categories', {}).get('documentation', [])
+            if doc_files:
+                for doc_file in doc_files[:5]:  # Máximo 5 archivos
+                    if doc_file.endswith('.md'):
+                        name = doc_file.replace('.md', '').replace('_', ' ').title()
+                        content.append(f"- [{name}]({doc_file})")
+
+            # Enlaces estándar
+            content.append("- [Contributing](CONTRIBUTING.md)")
+            content.append("- [Changelog](CHANGELOG.md)")
+            content.append("")
+
+            # 7. ESTRUCTURA DEL PROYECTO
+            content.append("## 📁 Estructura del Proyecto")
+            content.append("")
+            main_dirs = structure.get('main_directories', [])
+            if main_dirs:
+                content.append("```")
+                for directory in main_dirs[:10]:  # Máximo 10 directorios
+                    content.append(f"{directory}/")
+                content.append("```")
+            content.append("")
+
+            # 8. TECNOLOGÍAS
+            content.append("## 🛠️ Tecnologías")
+            content.append("")
+            if languages:
+                content.append("**Lenguajes de programación:**")
+                content.append(", ".join(languages))
+                content.append("")
+
+            frameworks = technologies.get('frameworks', [])
+            if frameworks:
+                content.append("**Frameworks y librerías:**")
+                content.append(", ".join(frameworks))
+                content.append("")
+
+            # 9. CONFIGURACIÓN (más realista)
+            content.append("## ⚙️ Configuración")
+            content.append("")
+            content.append("### Variables de entorno")
+            content.append("```bash")
+            content.append("export PROJECT_ENV=development")
+            content.append("```")
+            content.append("")
+
+            # 10. DESARROLLO
+            content.append("## 🔧 Desarrollo")
+            content.append("")
+            content.append("### Configurar entorno de desarrollo")
+            content.append("```bash")
+            if 'Python' in languages:
+                content.append("python -m venv venv")
+                content.append("source venv/bin/activate  # Linux/Mac")
+                content.append("# o")
+                content.append("venv\\Scripts\\activate  # Windows")
+                content.append("pip install -r requirements.txt")
+            content.append("```")
+            content.append("")
+
+            # 11. TESTING
+            content.append("## 🧪 Testing")
+            content.append("")
+            content.append("```bash")
+            content.append("# Ejecutar tests")
+            content.append("python -m pytest")
+            content.append("```")
+            content.append("")
+
+            # 12. DESPLIEGUE
+            content.append("## 🚀 Despliegue")
+            content.append("")
+            content.append("### Producción")
+            content.append("```bash")
+            content.append("# Configurar para producción")
+            content.append("export PROJECT_ENV=production")
+            content.append("```")
+            content.append("")
+
+            # 13. CONTRIBUCIÓN
+            content.append("## 🤝 Contribución")
+            content.append("")
+            content.append("¡Las contribuciones son bienvenidas! Por favor lee [CONTRIBUTING.md](CONTRIBUTING.md) para detalles sobre nuestro código de conducta y el proceso para enviar pull requests.")
+            content.append("")
+
+            # 14. LICENCIA
+            content.append("## 📄 Licencia")
+            content.append("")
+            content.append("Este proyecto está bajo la Licencia GPLv3 - ver el archivo [LICENSE.md](LICENSE.md) para detalles.")
+            content.append("")
+
+            # 15. AUTORES
+            content.append("## 👥 Autores")
+            content.append("")
+            content.append("- **Mauro Rosero** - *Desarrollo inicial* - [mrosero](https://github.com/mrosero)")
+            content.append("")
+
+            # 16. AGRADECIMIENTOS
+            content.append("## 🙏 Agradecimientos")
+            content.append("")
+            content.append("- A todos los contribuidores que han ayudado con este proyecto")
+            content.append("- A la comunidad de desarrolladores por su apoyo")
+            content.append("")
+
+            # 17. ENLACES ÚTILES
+            content.append("## 🔗 Enlaces Útiles")
+            content.append("")
+            content.append("- [Issues](.githooks/)")
+            content.append("- [Discusiones](ideas/)")
+            content.append("- [Wiki](docs/)")
+            content.append("")
+
+            # 18. ESTADO DEL PROYECTO
+            status = metadata.get('status', 'Development')
+            content.append("## 📊 Estado del Proyecto")
+            content.append("")
+            content.append(f"**Estado actual:** {status}")
+            content.append("")
+            content.append("Este proyecto está en desarrollo activo. Las nuevas características se añaden regularmente.")
+            content.append("")
+
+            return "\n".join(content)
+
+        except Exception as e:
+            self.console.print(f"[red]Error generando README sin IA: {str(e)}[/red]")
+            return "# Error generando README del proyecto"
+
+    def _create_compact_analysis_summary(self, analysis: Dict) -> str:
+        """Crea un resumen muy compacto del análisis para evitar problemas de tokens."""
+        summary_parts = []
+
+        # Información básica del proyecto
+        project_name = analysis.get('project_name', 'Unknown')
+        project_type = analysis.get('project_type', 'unknown')
+        summary_parts.append(f"PROYECTO: {project_name} (Tipo: {project_type})")
+
+        # Tecnologías principales (solo las más importantes)
+        technologies = analysis.get('technologies', {})
+        languages = technologies.get('languages', [])
+        if languages:
+            summary_parts.append(f"TECNOLOGÍAS: {', '.join(languages[:5])}")  # Máximo 5 lenguajes
+
+        # Estructura del proyecto (solo directorios principales)
+        structure = analysis.get('structure', {})
+        main_dirs = structure.get('main_directories', [])
+        if main_dirs:
+            summary_parts.append(f"DIRECTORIOS: {', '.join(main_dirs[:5])}")  # Máximo 5 directorios
+
+        # Propósito del proyecto
+        purpose = analysis.get('purpose', {})
+        main_purpose = purpose.get('main_purpose', 'Herramientas y utilidades')
+        summary_parts.append(f"PROPÓSITO: {main_purpose}")
+
+        # Problemas que resuelve (solo los principales)
+        problems = purpose.get('problems_solved', [])
+        if problems:
+            summary_parts.append(f"PROBLEMAS: {', '.join(problems[:3])}")  # Máximo 3 problemas
+
+        # Público objetivo
+        audience = purpose.get('target_audience', [])
+        if audience:
+            summary_parts.append(f"PÚBLICO: {', '.join(audience[:3])}")  # Máximo 3 tipos
+
+        # Estado del proyecto
+        metadata = analysis.get('metadata', {})
+        status = metadata.get('status', 'Development')
+        summary_parts.append(f"ESTADO: {status}")
+
+        return "\n".join(summary_parts)
+
+    def _generate_readme_hybrid(self, output_file: str, custom_instructions: Optional[str] = None, use_ai: bool = False) -> None:
+        """Genera README.md usando enfoque híbrido con mejores prácticas."""
+        try:
+            # 1. Analizar el proyecto
+            self.console.print("Analizando proyecto para README.md...")
+            analysis = self.analyzer.analyze_project()
+
+            # 2. Generar contenido base sin IA
+            self.console.print("Generando contenido base de README.md...")
+            base_content = self._generate_readme_without_ai(analysis)
+
+            # 3. Si se solicita IA, mejorar el contenido
+            if use_ai:
+                self.console.print("Mejorando contenido con IA...")
+                enhanced_content = self._enhance_readme_with_ai(base_content, analysis, custom_instructions)
+                final_content = enhanced_content
+            else:
+                final_content = base_content
+
+            # 4. Guardar el archivo
+            output_path = Path(output_file)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(final_content)
+
+            self.console.print(f"✓ README.md generado y guardado en: {output_file}")
+
+        except Exception as e:
+            self.console.print(f"[red]Error generando README.md: {str(e)}[/red]")
+            raise
+
 @click.group()
 def cli():
     """Generador de documentación para el ecosistema Git Branch Tools."""
@@ -2977,11 +3593,18 @@ Para CONTRIBUTING:
 - Genera CONTRIBUTING.md adaptado al proyecto.
 - Opcional con --use-ai para mejorar el contenido.
 
+Para PROJECT_DESCRIPTION:
+- Analiza automáticamente el proyecto.
+- Genera un archivo PROJECT_DESCRIPTION.md con información detallada.
+- Opcional con --use-ai para mejorar el contenido.
+
 Ejemplo:
   python docgen.py generate --doc-type changelog --output CHANGELOG.md
   python docgen.py generate --doc-type changelog --output CHANGELOG.md --use-ai
   python docgen.py generate --doc-type contributing --output CONTRIBUTING.md
   python docgen.py generate --doc-type contributing --output CONTRIBUTING.md --use-ai
+  python docgen.py generate --doc-type project_description --output PROJECT_DESCRIPTION.md
+  python docgen.py generate --doc-type project_description --output PROJECT_DESCRIPTION.md --use-ai
 """,
     context_settings={"help_option_names": ["--help", "-h"]}
 )
