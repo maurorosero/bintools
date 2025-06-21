@@ -3384,12 +3384,16 @@ INSTRUCCIONES PARA MEJORA DE README:
             # 7. ESTRUCTURA DEL PROYECTO
             content.append("## 📁 Estructura del Proyecto")
             content.append("")
-            main_dirs = structure.get('main_directories', [])
-            if main_dirs:
+
+            # Obtener estructura real del proyecto
+            real_directories = self._get_real_project_structure()
+            if real_directories:
                 content.append("```")
-                for directory in main_dirs[:10]:  # Máximo 10 directorios
+                for directory in real_directories:
                     content.append(f"{directory}/")
                 content.append("```")
+            else:
+                content.append("*Estructura del proyecto no disponible*")
             content.append("")
 
             # 8. TECNOLOGÍAS
@@ -3719,6 +3723,40 @@ INSTRUCCIONES PARA MEJORA DE README:
                 merged_sections.append("")
 
         return '\n'.join(merged_sections)
+
+    def _get_real_project_structure(self) -> List[str]:
+        """Obtiene la estructura real del proyecto escaneando el filesystem."""
+        directories = []
+
+        # Directorios a ignorar
+        ignore_dirs = {
+            '.git', '.gitignore', '.gitattributes', '.github',
+            '__pycache__', '.pytest_cache', '.coverage',
+            'node_modules', '.venv', 'venv', 'env',
+            '.vscode', '.idea', '.DS_Store', 'Thumbs.db',
+            '*.pyc', '*.pyo', '*.pyd', '*.so', '*.dll',
+            '.mypy_cache', '.ruff_cache', '.tox'
+        }
+
+        try:
+            # Escanear directorios en el proyecto (máximo 2 niveles de profundidad)
+            for item in self.base_path.iterdir():
+                if item.is_dir() and not item.name.startswith('.') and item.name not in ignore_dirs:
+                    directories.append(item.name)
+                elif item.is_file() and not item.name.startswith('.') and item.name not in ignore_dirs:
+                    # Para archivos en la raíz, mostrar solo los principales
+                    if item.suffix in ['.py', '.sh', '.md', '.yml', '.yaml', '.json', '.toml']:
+                        continue  # Estos archivos no se muestran en la estructura de directorios
+
+            # Ordenar alfabéticamente
+            directories.sort()
+
+            # Limitar a un número razonable de directorios
+            return directories[:15]  # Máximo 15 directorios
+
+        except Exception as e:
+            self.console.print(f"[yellow]Advertencia: Error al escanear estructura del proyecto: {str(e)}[/yellow]")
+            return []
 
 @click.group()
 def cli():
