@@ -3591,6 +3591,9 @@ INSTRUCCIONES PARA MEJORA DE README:
             with open(project_description_path, 'r', encoding='utf-8') as f:
                 project_description_content = f.read()
 
+            # Extraer título del archivo de descripción del proyecto
+            project_title = self._extract_project_title(project_description_content)
+
             # Extraer secciones del archivo de descripción del proyecto
             project_sections = self._extract_markdown_sections(project_description_content)
 
@@ -3598,7 +3601,7 @@ INSTRUCCIONES PARA MEJORA DE README:
             readme_sections = self._extract_markdown_sections(base_content)
 
             # Fusionar secciones
-            merged_content = self._merge_sections(readme_sections, project_sections)
+            merged_content = self._merge_sections(readme_sections, project_sections, project_title)
 
             self.console.print("✓ Secciones fusionadas exitosamente")
             return merged_content
@@ -3607,6 +3610,18 @@ INSTRUCCIONES PARA MEJORA DE README:
             self.console.print(f"[yellow]Advertencia: Error al procesar .project/description.md: {str(e)}[/yellow]")
             self.console.print("Usando contenido base del README")
             return base_content
+
+    def _extract_project_title(self, content: str) -> Optional[str]:
+        """Extrae el título principal del archivo de descripción del proyecto."""
+        lines = content.split('\n')
+        for line in lines:
+            line = line.strip()
+            if line.startswith('# ') and not line.startswith('## '):
+                # Es el título principal (no una sección)
+                title = line[2:].strip()  # Remover '# ' del inicio
+                self.console.print(f"  ✓ Título encontrado en .project/description.md: {title}")
+                return title
+        return None
 
     def _extract_markdown_sections(self, content: str) -> Dict[str, str]:
         """Extrae secciones de un documento Markdown basado en encabezados."""
@@ -3649,7 +3664,7 @@ INSTRUCCIONES PARA MEJORA DE README:
 
         return sections
 
-    def _merge_sections(self, readme_sections: Dict[str, str], project_sections: Dict[str, str]) -> str:
+    def _merge_sections(self, readme_sections: Dict[str, str], project_sections: Dict[str, str], project_title: Optional[str] = None) -> str:
         """Fusiona secciones del README con las del archivo de descripción del proyecto."""
         merged_sections = []
 
@@ -3679,8 +3694,13 @@ INSTRUCCIONES PARA MEJORA DE README:
             '📄 licencia': ['📄 licencia', 'licencia', 'license']
         }
 
-        # Procesar el título primero si existe
-        if '__title__' in readme_sections:
+        # Procesar el título primero
+        if project_title:
+            # Usar el título del archivo de descripción del proyecto
+            merged_sections.append(f"# {project_title}")
+            merged_sections.append("")
+        elif '__title__' in readme_sections:
+            # Usar el título original del README
             merged_sections.append(readme_sections['__title__'])
             merged_sections.append("")
 
