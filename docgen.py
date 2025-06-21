@@ -3725,8 +3725,8 @@ INSTRUCCIONES PARA MEJORA DE README:
         return '\n'.join(merged_sections)
 
     def _get_real_project_structure(self) -> List[str]:
-        """Obtiene la estructura real del proyecto escaneando el filesystem."""
-        directories = []
+        """Obtiene la estructura real del proyecto escaneando el filesystem hasta 3 niveles."""
+        structure_lines = []
 
         # Directorios a ignorar
         ignore_dirs = {
@@ -3734,25 +3734,41 @@ INSTRUCCIONES PARA MEJORA DE README:
             '__pycache__', '.pytest_cache', '.coverage',
             'node_modules', '.venv', 'venv', 'env',
             '.vscode', '.idea', '.DS_Store', 'Thumbs.db',
-            '*.pyc', '*.pyo', '*.pyd', '*.so', '*.dll',
             '.mypy_cache', '.ruff_cache', '.tox'
         }
 
         try:
-            # Escanear directorios en el proyecto (máximo 2 niveles de profundidad)
-            for item in self.base_path.iterdir():
+            # Escanear directorios de primer nivel
+            for item in sorted(self.base_path.iterdir()):
                 if item.is_dir() and not item.name.startswith('.') and item.name not in ignore_dirs:
-                    directories.append(item.name)
-                elif item.is_file() and not item.name.startswith('.') and item.name not in ignore_dirs:
-                    # Para archivos en la raíz, mostrar solo los principales
-                    if item.suffix in ['.py', '.sh', '.md', '.yml', '.yaml', '.json', '.toml']:
-                        continue  # Estos archivos no se muestran en la estructura de directorios
+                    structure_lines.append(f"{item.name}/")
 
-            # Ordenar alfabéticamente
-            directories.sort()
+                    # Escanear subdirectorios de segundo nivel
+                    try:
+                        for subitem in sorted(item.iterdir()):
+                            if subitem.is_dir() and not subitem.name.startswith('.') and subitem.name not in ignore_dirs:
+                                structure_lines.append(f"  {subitem.name}/")
 
-            # Limitar a un número razonable de directorios
-            return directories[:15]  # Máximo 15 directorios
+                                # Escanear subdirectorios de tercer nivel
+                                try:
+                                    for subsubitem in sorted(subitem.iterdir()):
+                                        if subsubitem.is_dir() and not subsubitem.name.startswith('.') and subsubitem.name not in ignore_dirs:
+                                            structure_lines.append(f"    {subsubitem.name}/")
+                                except PermissionError:
+                                    # Ignorar directorios sin permisos
+                                    pass
+                                except Exception as e:
+                                    # Ignorar otros errores en tercer nivel
+                                    pass
+                    except PermissionError:
+                        # Ignorar directorios sin permisos
+                        pass
+                    except Exception as e:
+                        # Ignorar otros errores en segundo nivel
+                        pass
+
+            # Limitar el número total de líneas para evitar READMEs muy largos
+            return structure_lines[:50]  # Máximo 50 líneas de estructura
 
         except Exception as e:
             self.console.print(f"[yellow]Advertencia: Error al escanear estructura del proyecto: {str(e)}[/yellow]")
