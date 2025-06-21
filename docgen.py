@@ -3550,15 +3550,16 @@ INSTRUCCIONES PARA MEJORA DE README:
             self.console.print("Generando contenido base de README.md...")
             base_content = self._generate_readme_without_ai(analysis)
 
-            # 3. Si se solicita IA, mejorar el contenido
+            # 3. Validar y usar .project/description.md si existe
+            final_content = self._merge_with_project_description(base_content)
+
+            # 4. Si se solicita IA, mejorar el contenido
             if use_ai:
                 self.console.print("Mejorando contenido con IA...")
-                enhanced_content = self._enhance_readme_with_ai(base_content, analysis, custom_instructions)
+                enhanced_content = self._enhance_readme_with_ai(final_content, analysis, custom_instructions)
                 final_content = enhanced_content
-            else:
-                final_content = base_content
 
-            # 4. Guardar el archivo
+            # 5. Guardar el archivo
             output_path = Path(output_file)
             output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -3570,6 +3571,154 @@ INSTRUCCIONES PARA MEJORA DE README:
         except Exception as e:
             self.console.print(f"[red]Error generando README.md: {str(e)}[/red]")
             raise
+
+    def _merge_with_project_description(self, base_content: str) -> str:
+        """Valida si existe .project/description.md y fusiona secciones coincidentes."""
+        project_description_path = self.base_path / ".project" / "description.md"
+
+        if not project_description_path.exists():
+            self.console.print("No se encontró .project/description.md, usando contenido base")
+            return base_content
+
+        try:
+            self.console.print("Encontrado .project/description.md, fusionando secciones...")
+
+            # Leer el archivo de descripción del proyecto
+            with open(project_description_path, 'r', encoding='utf-8') as f:
+                project_description_content = f.read()
+
+            # Extraer secciones del archivo de descripción del proyecto
+            project_sections = self._extract_markdown_sections(project_description_content)
+
+            # Extraer secciones del contenido base del README
+            readme_sections = self._extract_markdown_sections(base_content)
+
+            # Fusionar secciones
+            merged_content = self._merge_sections(readme_sections, project_sections)
+
+            self.console.print("✓ Secciones fusionadas exitosamente")
+            return merged_content
+
+        except Exception as e:
+            self.console.print(f"[yellow]Advertencia: Error al procesar .project/description.md: {str(e)}[/yellow]")
+            self.console.print("Usando contenido base del README")
+            return base_content
+
+    def _extract_markdown_sections(self, content: str) -> Dict[str, str]:
+        """Extrae secciones de un documento Markdown basado en encabezados."""
+        sections = {}
+        lines = content.split('\n')
+        current_section = None
+        current_content = []
+        title_content = []
+        in_title = True
+
+        for line in lines:
+            # Detectar encabezados (##, ###, etc.) pero no el título principal (#)
+            if line.strip().startswith('##'):
+                # Guardar sección anterior si existe
+                if current_section and current_content:
+                    sections[current_section] = '\n'.join(current_content).strip()
+
+                # Extraer nombre de la nueva sección
+                section_name = line.strip().lstrip('#').strip()
+                current_section = section_name
+                current_content = []
+                in_title = False
+            elif line.strip().startswith('#'):
+                # Es el título principal, no una sección
+                if in_title:
+                    title_content.append(line)
+            else:
+                if in_title:
+                    title_content.append(line)
+                elif current_section is not None:
+                    current_content.append(line)
+
+        # Guardar la última sección
+        if current_section and current_content:
+            sections[current_section] = '\n'.join(current_content).strip()
+
+        # Agregar el título como una sección especial
+        if title_content:
+            sections['__title__'] = '\n'.join(title_content).strip()
+
+        return sections
+
+    def _merge_sections(self, readme_sections: Dict[str, str], project_sections: Dict[str, str]) -> str:
+        """Fusiona secciones del README con las del archivo de descripción del proyecto."""
+        merged_sections = []
+
+        # Mapeo de nombres de secciones para coincidencia flexible
+        # Basado en la estructura real del README generado
+        section_mapping = {
+            '📖 descripción': ['📖 descripción del repositorio', '📖 descripción', 'descripción del repositorio', 'descripción', 'resumen'],
+            '🎯 propósito': ['🎯 propósito', 'propósito', 'objetivo', 'meta'],
+            '🔍 problema que resuelve': ['🔍 problema que resuelve', 'problema que resuelve', 'problemas', 'necesidades'],
+            '💡 solución': ['💡 solución', 'solución', 'enfoque', 'metodología'],
+            '👥 público objetivo': ['👥 público objetivo', 'público objetivo', 'audiencia', 'usuarios'],
+            '🚀 diferenciadores': ['🚀 diferenciadores', 'diferenciadores', 'características únicas', 'ventajas'],
+            '📊 estado del proyecto': ['📊 estado del proyecto', 'estado del proyecto', 'estado', 'status'],
+            '🔗 enlaces relacionados': ['🔗 enlaces relacionados', 'enlaces relacionados', 'enlaces', 'links'],
+            '🏷️ tags y temas': ['🏷️ tags y temas', 'tags y temas', 'tags', 'temas', 'categorías'],
+            # Secciones adicionales del README generado
+            '✨ características': ['✨ características', 'características', 'features'],
+            '🚀 instalación': ['🚀 instalación', 'instalación', 'setup'],
+            '🎯 uso rápido': ['🎯 uso rápido', 'uso rápido', 'quick start'],
+            '📚 documentación': ['📚 documentación', 'documentación', 'docs'],
+            '📁 estructura del proyecto': ['📁 estructura del proyecto', 'estructura del proyecto', 'estructura'],
+            '🛠️ tecnologías': ['🛠️ tecnologías', 'tecnologías', 'tech stack'],
+            '⚙️ configuración': ['⚙️ configuración', 'configuración', 'config'],
+            '🔧 desarrollo': ['🔧 desarrollo', 'desarrollo', 'development'],
+            '🧪 testing': ['🧪 testing', 'testing', 'tests'],
+            '🤝 contribución': ['🤝 contribución', 'contribución', 'contributing'],
+            '📄 licencia': ['📄 licencia', 'licencia', 'license']
+        }
+
+        # Procesar el título primero si existe
+        if '__title__' in readme_sections:
+            merged_sections.append(readme_sections['__title__'])
+            merged_sections.append("")
+
+        # Procesar cada sección del README
+        for readme_section_name, readme_content in readme_sections.items():
+            # Saltar el título ya que ya se procesó
+            if readme_section_name == '__title__':
+                continue
+
+            readme_section_lower = readme_section_name.lower()
+
+            # Buscar sección coincidente en el archivo de descripción del proyecto
+            matching_project_section = None
+            for mapped_name, possible_names in section_mapping.items():
+                if any(name in readme_section_lower for name in possible_names):
+                    # Buscar en las secciones del proyecto
+                    for project_section_name, project_content in project_sections.items():
+                        project_section_lower = project_section_name.lower()
+                        if any(name in project_section_lower for name in possible_names):
+                            matching_project_section = (project_section_name, project_content)
+                            break
+                    if matching_project_section:
+                        break
+
+            # Si se encuentra una sección coincidente, usar el contenido del proyecto
+            if matching_project_section:
+                project_section_name, project_content = matching_project_section
+                self.console.print(f"  ✓ Reemplazando sección '{readme_section_name}' con contenido de '{project_section_name}'")
+
+                # Mantener el nombre original del README pero usar contenido del proyecto
+                merged_sections.append(f"## {readme_section_name}")
+                merged_sections.append("")
+                merged_sections.append(project_content)
+                merged_sections.append("")
+            else:
+                # Usar contenido original del README
+                merged_sections.append(f"## {readme_section_name}")
+                merged_sections.append("")
+                merged_sections.append(readme_content)
+                merged_sections.append("")
+
+        return '\n'.join(merged_sections)
 
 @click.group()
 def cli():
