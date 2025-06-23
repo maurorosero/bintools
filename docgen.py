@@ -3264,6 +3264,10 @@ INSTRUCCIONES PARA MEJORA DE README:
         try:
             content = []
 
+            # Verificar si existe .project/description.md
+            project_description_path = self.base_path / ".project" / "description.md"
+            has_project_description = project_description_path.exists()
+
             # Extraer información del análisis
             project_name = analysis.get('project_name', 'Proyecto')
             project_type = analysis.get('project_type', 'unknown')
@@ -3274,231 +3278,244 @@ INSTRUCCIONES PARA MEJORA DE README:
             differentiators = analysis.get('differentiators', {})
             global_analysis = analysis.get('global_analysis', {})
 
-            # 1. TÍTULO Y BADGES
-            content.append(f"# {project_name}")
-            content.append("")
+            # Si existe .project/description.md, obtener las secciones excluidas
+            excluded_sections = set()
+            if has_project_description:
+                try:
+                    with open(project_description_path, 'r', encoding='utf-8') as f:
+                        project_description_content = f.read()
 
-            # Badges basados en tecnologías detectadas
-            languages = technologies.get('languages', [])
-            if 'Python' in languages:
-                content.append("![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)")
-            if 'Bash' in languages:
-                content.append("![Bash](https://img.shields.io/badge/Bash-5.0+-green.svg)")
-            if 'Go' in languages:
-                content.append("![Go](https://img.shields.io/badge/Go-1.19+-00ADD8.svg)")
-            if 'Rust' in languages:
-                content.append("![Rust](https://img.shields.io/badge/Rust-1.65+-orange.svg)")
+                    # Extraer secciones del archivo de descripción para ver cuáles están excluidas
+                    project_sections = self._extract_project_sections(project_description_content)
+                    for section_name, section_info in project_sections.items():
+                        if section_name != '__title__':
+                            attributes = section_info.get('attributes', {})
+                            if attributes.get('exclude', 'false').lower() == 'true':
+                                # Normalizar el nombre de la sección para comparación
+                                normalized_name = self._normalize_section_name(section_name)
+                                excluded_sections.add(normalized_name)
+                                self.console.print(f"[blue]DEBUG: Sección excluida detectada: '{section_name}' -> '{normalized_name}'[/blue]")
 
-            content.append("![License](https://img.shields.io/badge/License-GPLv3-green.svg)")
-            content.append("![Status](https://img.shields.io/badge/Status-Development-orange.svg)")
-            content.append("")
+                    self.console.print(f"[blue]DEBUG: Secciones excluidas: {excluded_sections}[/blue]")
+                except Exception as e:
+                    self.console.print(f"[yellow]Advertencia: Error leyendo secciones excluidas: {e}[/yellow]")
 
-            # 2. DESCRIPCIÓN BREVE
-            main_purpose = purpose.get('main_purpose', f'Ecosistema de herramientas y utilidades para {project_name.lower()}')
-            content.append("## 📖 Descripción")
-            content.append(main_purpose)
-            content.append("")
+            # Si existe .project/description.md, generar un README base más simple
+            if has_project_description:
+                # NO generar título aquí - el título vendrá del archivo de descripción
+                # NO generar badges aquí - los badges vendrán del archivo de descripción si existen
+                # Solo generar secciones básicas que no estén en el archivo de descripción
 
-            # 3. CARACTERÍSTICAS PRINCIPALES
-            content.append("## ✨ Características")
-            features = differentiators.get('unique_features', [])
-            if not features:
-                # Generar características basadas en análisis real
-                if global_analysis.get('file_categories', {}).get('python_scripts'):
-                    features.append('Scripts Python para automatización')
-                if global_analysis.get('file_categories', {}).get('shell_scripts'):
-                    features.append('Scripts de shell para tareas del sistema')
-                if global_analysis.get('file_categories', {}).get('config_files'):
-                    features.append('Sistema de configuración')
-                if global_analysis.get('file_categories', {}).get('templates'):
-                    features.append('Generador de templates')
-                if global_analysis.get('file_categories', {}).get('documentation'):
-                    features.append('Sistema de documentación')
-
-            for feature in features:
-                content.append(f"- {feature}")
-            content.append("")
-
-            # 4. INSTALACIÓN (más realista)
-            content.append("## 🚀 Instalación")
-            content.append("")
-            content.append("### Prerrequisitos")
-
-            # Basado en tecnologías detectadas
-            if 'Python' in languages:
-                content.append("- Python 3.8 o superior")
-            if 'Go' in languages:
-                content.append("- Go 1.19+ (opcional)")
-            if 'Rust' in languages:
-                content.append("- Rust (opcional)")
-            if 'Node.js' in languages or 'JavaScript' in languages:
-                content.append("- Node.js (opcional)")
-
-            content.append("- Git")
-            content.append("")
-            content.append("### Instalación")
-            content.append("```bash")
-            content.append("git clone <repository-url>")
-            content.append(f"cd {project_name}")
-            if 'Python' in languages:
-                content.append("pip install -r requirements.txt")
-            content.append("```")
-            content.append("")
-
-            # 5. USO RÁPIDO (más realista)
-            content.append("## 🎯 Uso Rápido")
-            content.append("")
-            content.append("```bash")
-
-            # Basado en archivos principales detectados
-            main_files = global_analysis.get('main_functions', [])
-            if main_files:
-                # Usar el primer archivo principal encontrado
-                main_file = main_files[0].split('/')[-1]  # Solo el nombre del archivo
-                content.append(f"# Ejemplo básico de uso")
-                content.append(f"python {main_file} --help")
-            else:
-                content.append("# Ejemplo básico de uso")
-                content.append("python main.py --help")
-
-            content.append("```")
-            content.append("")
-
-            # 6. DOCUMENTACIÓN
-            content.append("## 📚 Documentación")
-            content.append("")
-
-            # Basado en archivos de documentación detectados
-            doc_files = global_analysis.get('file_categories', {}).get('documentation', [])
-            if doc_files:
-                for doc_file in doc_files[:5]:  # Máximo 5 archivos
-                    if doc_file.endswith('.md'):
-                        name = doc_file.replace('.md', '').replace('_', ' ').title()
-                        content.append(f"- [{name}]({doc_file})")
-
-            # Enlaces estándar
-            content.append("- [Contributing](CONTRIBUTING.md)")
-            content.append("- [Changelog](CHANGELOG.md)")
-            content.append("")
-
-            # 7. ESTRUCTURA DEL PROYECTO
-            content.append("## 📁 Estructura del Proyecto")
-            content.append("")
-
-            # Obtener estructura real del proyecto
-            real_directories = self._get_real_project_structure()
-            if real_directories:
-                content.append("```")
-                for directory in real_directories:
-                    content.append(f"{directory}/")
-                content.append("```")
-            else:
-                content.append("*Estructura del proyecto no disponible*")
-            content.append("")
-
-            # 8. TECNOLOGÍAS
-            content.append("## 🛠️ Tecnologías")
-            content.append("")
-            if languages:
-                content.append("**Lenguajes de programación:**")
-                content.append(", ".join(languages))
+                # Sección de descripción básica (será reemplazada si existe en .project/description.md)
+                main_purpose = purpose.get('main_purpose', f'Ecosistema de herramientas y utilidades para {project_name.lower()}')
+                content.append("## 📖 Descripción")
+                content.append(main_purpose)
                 content.append("")
 
-            frameworks = technologies.get('frameworks', [])
-            if frameworks:
-                content.append("**Frameworks y librerías:**")
-                content.append(", ".join(frameworks))
+                # Sección de características básica (solo si no está excluida)
+                if 'caracteristicas' not in excluded_sections:
+                    content.append("## ✨ Características")
+                    features = differentiators.get('unique_features', [])
+                    if features:
+                        for feature in features[:5]:  # Máximo 5 características
+                            content.append(f"- {feature}")
+                    else:
+                        content.append("- Herramientas multiplataforma")
+                        content.append("- Automatización de tareas")
+                        content.append("- Configuración flexible")
+                    content.append("")
+                else:
+                    pass
+
+                # Sección de instalación básica (solo si no está excluida)
+                if 'instalacion' not in excluded_sections and 'instalación' not in excluded_sections:
+                    content.append("## 🚀 Instalación")
+                    content.append("")
+                    content.append("```bash")
+                    languages = technologies.get('languages', [])
+                    if 'Python' in languages:
+                        content.append("pip install -r requirements.txt")
+                    content.append("```")
+                    content.append("")
+                else:
+                    pass
+
+                # Sección de uso básica (solo si no está excluida)
+                if 'uso rapido' not in excluded_sections and 'uso rápido' not in excluded_sections:
+                    content.append("## 🎯 Uso Rápido")
+                    content.append("")
+                    content.append("```bash")
+                    main_files = global_analysis.get('main_functions', [])
+                    if main_files:
+                        main_file = main_files[0].split('/')[-1]
+                        content.append(f"# Ejemplo básico de uso")
+                        content.append(f"python {main_file} --help")
+                    else:
+                        content.append("# Ejemplo básico de uso")
+                        content.append("python main.py --help")
+                    content.append("```")
+                    content.append("")
+                else:
+                    pass
+
+                # Sección de documentación básica
+                content.append("## 📚 Documentación")
+                content.append("")
+                doc_files = global_analysis.get('file_categories', {}).get('documentation', [])
+                if doc_files:
+                    for doc_file in doc_files[:5]:
+                        if doc_file.endswith('.md'):
+                            name = doc_file.replace('.md', '').replace('_', ' ').title()
+                            content.append(f"- [{name}]({doc_file})")
+                content.append("- [Contributing](CONTRIBUTING.md)")
+                content.append("- [Changelog](CHANGELOG.md)")
                 content.append("")
 
-            # 9. CONFIGURACIÓN (más realista)
-            content.append("## ⚙️ Configuración")
-            content.append("")
-            content.append("### Variables de entorno")
-            content.append("```bash")
-            content.append("export PROJECT_ENV=development")
-            content.append("```")
-            content.append("")
+                # Sección de estructura básica
+                content.append("## 📁 Estructura del Proyecto")
+                content.append("")
+                real_directories = self._get_real_project_structure()
+                if real_directories:
+                    for directory in real_directories[:10]:  # Máximo 10 directorios
+                        content.append(f"`{directory}/`")
+                else:
+                    content.append("`src/` - Código fuente")
+                    content.append("`docs/` - Documentación")
+                    content.append("`tests/` - Tests")
+                content.append("")
 
-            # 10. DESARROLLO
-            content.append("## 🔧 Desarrollo")
-            content.append("")
-            content.append("### Configurar entorno de desarrollo")
-            content.append("```bash")
-            if 'Python' in languages:
-                content.append("python -m venv venv")
-                content.append("source venv/bin/activate  # Linux/Mac")
-                content.append("# o")
-                content.append("venv\\Scripts\\activate  # Windows")
-                content.append("pip install -r requirements.txt")
-            content.append("```")
-            content.append("")
+                # Sección de contribución básica
+                content.append("## 🤝 Contribución")
+                content.append("")
+                content.append("Las contribuciones son bienvenidas. Por favor, lee [CONTRIBUTING.md](CONTRIBUTING.md) para detalles.")
+                content.append("")
 
-            # 11. TESTING
-            content.append("## 🧪 Testing")
-            content.append("")
-            content.append("```bash")
-            content.append("# Ejecutar tests")
-            content.append("python -m pytest")
-            content.append("```")
-            content.append("")
+                # Sección de licencia básica (solo si no está excluida)
+                if 'licencia' not in excluded_sections:
+                    content.append("## 📄 Licencia")
+                    content.append("")
+                    content.append("Este proyecto está bajo la Licencia GPLv3. Ver [LICENSE.md](LICENSE.md) para más detalles.")
+                    content.append("")
 
-            # 12. DESPLIEGUE
-            content.append("## 🚀 Despliegue")
-            content.append("")
-            content.append("### Producción")
-            content.append("```bash")
-            content.append("# Configurar para producción")
-            content.append("export PROJECT_ENV=production")
-            content.append("```")
-            content.append("")
+            else:
+                # Generar README completo como antes (código original)
+                # 1. TÍTULO Y BADGES
+                content.append(f"# {project_name}")
+                content.append("")
 
-            # 13. CONTRIBUCIÓN
-            content.append("## 🤝 Contribución")
-            content.append("")
-            content.append("¡Las contribuciones son bienvenidas! Por favor lee [CONTRIBUTING.md](CONTRIBUTING.md) para detalles sobre nuestro código de conducta y el proceso para enviar pull requests.")
-            content.append("")
+                # Badges basados en tecnologías detectadas
+                languages = technologies.get('languages', [])
+                if 'Python' in languages:
+                    content.append("![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)")
+                if 'Bash' in languages:
+                    content.append("![Bash](https://img.shields.io/badge/Bash-5.0+-green.svg)")
+                if 'Go' in languages:
+                    content.append("![Go](https://img.shields.io/badge/Go-1.19+-00ADD8.svg)")
+                if 'Rust' in languages:
+                    content.append("![Rust](https://img.shields.io/badge/Rust-1.65+-orange.svg)")
 
-            # 14. LICENCIA
-            content.append("## 📄 Licencia")
-            content.append("")
-            content.append("Este proyecto está bajo la Licencia GPLv3 - ver el archivo [LICENSE.md](LICENSE.md) para detalles.")
-            content.append("")
+                content.append("![License](https://img.shields.io/badge/License-GPLv3-green.svg)")
+                content.append("![Status](https://img.shields.io/badge/Status-Development-orange.svg)")
+                content.append("")
 
-            # 15. AUTORES
-            content.append("## 👥 Autores")
-            content.append("")
-            content.append("- **Mauro Rosero** - *Desarrollo inicial* - [mrosero](https://github.com/mrosero)")
-            content.append("")
+                # 2. DESCRIPCIÓN BREVE
+                main_purpose = purpose.get('main_purpose', f'Ecosistema de herramientas y utilidades para {project_name.lower()}')
+                content.append("## 📖 Descripción")
+                content.append(main_purpose)
+                content.append("")
 
-            # 16. AGRADECIMIENTOS
-            content.append("## 🙏 Agradecimientos")
-            content.append("")
-            content.append("- A todos los contribuidores que han ayudado con este proyecto")
-            content.append("- A la comunidad de desarrolladores por su apoyo")
-            content.append("")
+                # 3. CARACTERÍSTICAS PRINCIPALES
+                content.append("## ✨ Características")
+                features = differentiators.get('unique_features', [])
+                if features:
+                    for feature in features:
+                        content.append(f"- {feature}")
+                else:
+                    content.append("- Herramientas multiplataforma")
+                    content.append("- Automatización de tareas")
+                    content.append("- Configuración flexible")
+                    content.append("- Integración con sistemas existentes")
+                content.append("")
 
-            # 17. ENLACES ÚTILES
-            content.append("## 🔗 Enlaces Útiles")
-            content.append("")
-            content.append("- [Issues](.githooks/)")
-            content.append("- [Discusiones](ideas/)")
-            content.append("- [Wiki](docs/)")
-            content.append("")
+                # 4. INSTALACIÓN
+                content.append("## 🚀 Instalación")
+                content.append("")
+                content.append("```bash")
+                languages = technologies.get('languages', [])
+                if 'Python' in languages:
+                    content.append("pip install -r requirements.txt")
+                content.append("```")
+                content.append("")
 
-            # 18. ESTADO DEL PROYECTO
-            status = metadata.get('status', 'Development')
-            content.append("## 📊 Estado del Proyecto")
-            content.append("")
-            content.append(f"**Estado actual:** {status}")
-            content.append("")
-            content.append("Este proyecto está en desarrollo activo. Las nuevas características se añaden regularmente.")
-            content.append("")
+                # 5. USO RÁPIDO (más realista)
+                content.append("## 🎯 Uso Rápido")
+                content.append("")
+                content.append("```bash")
+
+                # Basado en archivos principales detectados
+                main_files = global_analysis.get('main_functions', [])
+                if main_files:
+                    # Usar el primer archivo principal encontrado
+                    main_file = main_files[0].split('/')[-1]  # Solo el nombre del archivo
+                    content.append(f"# Ejemplo básico de uso")
+                    content.append(f"python {main_file} --help")
+                else:
+                    content.append("# Ejemplo básico de uso")
+                    content.append("python main.py --help")
+
+                content.append("```")
+                content.append("")
+
+                # 6. DOCUMENTACIÓN
+                content.append("## 📚 Documentación")
+                content.append("")
+
+                # Basado en archivos de documentación detectados
+                doc_files = global_analysis.get('file_categories', {}).get('documentation', [])
+                if doc_files:
+                    for doc_file in doc_files[:5]:  # Máximo 5 archivos
+                        if doc_file.endswith('.md'):
+                            name = doc_file.replace('.md', '').replace('_', ' ').title()
+                            content.append(f"- [{name}]({doc_file})")
+
+                # Enlaces estándar
+                content.append("- [Contributing](CONTRIBUTING.md)")
+                content.append("- [Changelog](CHANGELOG.md)")
+                content.append("")
+
+                # 7. ESTRUCTURA DEL PROYECTO
+                content.append("## 📁 Estructura del Proyecto")
+                content.append("")
+
+                # Usar estructura real del proyecto
+                real_directories = self._get_real_project_structure()
+                if real_directories:
+                    for directory in real_directories[:15]:  # Máximo 15 directorios
+                        content.append(f"`{directory}/`")
+                else:
+                    content.append("`src/` - Código fuente")
+                    content.append("`docs/` - Documentación")
+                    content.append("`tests/` - Tests")
+                    content.append("`config/` - Configuraciones")
+                content.append("")
+
+                # 8. CONTRIBUCIÓN
+                content.append("## 🤝 Contribución")
+                content.append("")
+                content.append("Las contribuciones son bienvenidas. Por favor, lee [CONTRIBUTING.md](CONTRIBUTING.md) para detalles sobre nuestro código de conducta y el proceso para enviar pull requests.")
+                content.append("")
+
+                # 9. LICENCIA
+                content.append("## 📄 Licencia")
+                content.append("")
+                content.append("Este proyecto está bajo la Licencia GPLv3. Ver [LICENSE.md](LICENSE.md) para más detalles.")
+                content.append("")
 
             return "\n".join(content)
 
         except Exception as e:
-            self.console.print(f"[red]Error generando README sin IA: {str(e)}[/red]")
-            return "# Error generando README del proyecto"
+            self.console.print(f"[red]Error generando README base: {str(e)}[/red]")
+            raise
 
     def _create_compact_analysis_summary(self, analysis: Dict) -> str:
         """Crea un resumen muy compacto del análisis para evitar problemas de tokens."""
@@ -3555,7 +3572,13 @@ INSTRUCCIONES PARA MEJORA DE README:
             base_content = self._generate_readme_without_ai(analysis)
 
             # 3. Validar y usar .project/description.md si existe
-            final_content = self._merge_with_project_description(base_content)
+            project_description_path = self.base_path / ".project" / "description.md"
+            if project_description_path.exists():
+                self.console.print("Encontrado .project/description.md, fusionando secciones...")
+                final_content = self._merge_with_project_description(base_content, str(project_description_path))
+            else:
+                self.console.print("No se encontró .project/description.md, usando contenido base")
+                final_content = base_content
 
             # 4. Si se solicita IA, mejorar el contenido
             if use_ai:
@@ -3576,179 +3599,770 @@ INSTRUCCIONES PARA MEJORA DE README:
             self.console.print(f"[red]Error generando README.md: {str(e)}[/red]")
             raise
 
-    def _merge_with_project_description(self, base_content: str) -> str:
-        """Valida si existe .project/description.md y fusiona secciones coincidentes."""
-        project_description_path = self.base_path / ".project" / "description.md"
-
-        if not project_description_path.exists():
-            self.console.print("No se encontró .project/description.md, usando contenido base")
-            return base_content
-
+    def _merge_with_project_description(self, base_content: str, project_description_path: str) -> str:
+        """Fusiona el contenido base con el archivo de descripción del proyecto."""
         try:
-            self.console.print("Encontrado .project/description.md, fusionando secciones...")
-
             # Leer el archivo de descripción del proyecto
             with open(project_description_path, 'r', encoding='utf-8') as f:
                 project_description_content = f.read()
 
             # Extraer título del archivo de descripción del proyecto
-            project_title = self._extract_project_title(project_description_content)
+            project_title = self._extract_title_from_project_description(project_description_content)
 
             # Extraer secciones del archivo de descripción del proyecto
-            project_sections = self._extract_markdown_sections(project_description_content)
+            project_sections = self._extract_project_sections(project_description_content)
 
-            # Extraer secciones del contenido base del README
-            readme_sections = self._extract_markdown_sections(base_content)
+            # Extraer secciones del README generado
+            readme_sections = self._extract_readme_sections(base_content)
 
             # Fusionar secciones
             merged_content = self._merge_sections(readme_sections, project_sections, project_title)
 
-            self.console.print("✓ Secciones fusionadas exitosamente")
+            self.console.print(f"  ✓ Contenido fusionado con {project_description_path}")
             return merged_content
 
         except Exception as e:
-            self.console.print(f"[yellow]Advertencia: Error al procesar .project/description.md: {str(e)}[/yellow]")
-            self.console.print("Usando contenido base del README")
+            self.console.print(f"  ⚠️ Error fusionando con {project_description_path}: {e}")
             return base_content
 
-    def _extract_project_title(self, content: str) -> Optional[str]:
-        """Extrae el título principal del archivo de descripción del proyecto."""
-        lines = content.split('\n')
-        for line in lines:
-            line = line.strip()
-            if line.startswith('# ') and not line.startswith('## '):
-                # Es el título principal (no una sección)
-                title = line[2:].strip()  # Remover '# ' del inicio
-                self.console.print(f"  ✓ Título encontrado en .project/description.md: {title}")
-                return title
+    def _extract_title_from_project_description(self, content: str) -> Optional[str]:
+        """Extrae el título del archivo de descripción del proyecto."""
+        sections = self._extract_markdown_sections(content)
+
+        if '__title__' in sections:
+            title_content = sections['__title__']['content']
+            # Extraer solo el texto del título (sin #) y cualquier contenido adicional
+            lines = title_content.split('\n')
+            title_line = None
+            additional_content = []
+
+            for line in lines:
+                if line.strip().startswith('#'):
+                    title_line = line.strip().lstrip('#').strip()
+                else:
+                    additional_content.append(line)
+
+            # Si hay contenido adicional (como badges), incluirlo
+            if additional_content:
+                return f"{title_line}\n\n{''.join(additional_content)}"
+            else:
+                return title_line
+
         return None
 
-    def _extract_markdown_sections(self, content: str) -> Dict[str, str]:
-        """Extrae secciones de un documento Markdown basado en encabezados."""
+    def _extract_markdown_sections(self, content: str) -> Dict[str, Dict]:
+        """Extrae TODAS las secciones ## ... como bloques markdown literales, respetando subsecciones y formato."""
+        import re
         sections = {}
         lines = content.split('\n')
-        current_section = None
-        current_content = []
         title_content = []
         in_title = True
+        section_starts = []
+        # Encontrar los índices de todos los encabezados ## (pero no ###)
+        for idx, line in enumerate(lines):
+            if line.strip().startswith('##') and not line.strip().startswith('###'):
+                section_starts.append(idx)
+        # Agregar el final del archivo como último límite
+        section_starts.append(len(lines))
+        # Extraer el título (antes del primer ##)
+        if section_starts and section_starts[0] > 0:
+            title_content = lines[:section_starts[0]]
+        # Extraer cada sección como bloque literal
+        for i in range(len(section_starts)-1):
+            start = section_starts[i]
+            end = section_starts[i+1]
+            header_line = lines[start]
+            # Extraer nombre y atributos
+            section_info = self._parse_section_header(header_line)
+            section_name = section_info['name']
+            section_block = '\n'.join(lines[start+1:end]).strip()
 
-        for line in lines:
-            # Detectar encabezados (##, ###, etc.) pero no el título principal (#)
-            if line.strip().startswith('##'):
-                # Guardar sección anterior si existe
-                if current_section and current_content:
-                    sections[current_section] = '\n'.join(current_content).strip()
+            # Procesar el bloque para detectar prompts GENERATE
+            has_generate = False
+            generate_prompt = None
+            processed_content = []
 
-                # Extraer nombre de la nueva sección
-                section_name = line.strip().lstrip('#').strip()
-                current_section = section_name
-                current_content = []
-                in_title = False
-            elif line.strip().startswith('#'):
-                # Es el título principal, no una sección
-                if in_title:
-                    title_content.append(line)
-            else:
-                if in_title:
-                    title_content.append(line)
-                elif current_section is not None:
-                    current_content.append(line)
+            for line in section_block.split('\n'):
+                if '<!-- GENERATE:' in line:
+                    has_generate = True
+                    generate_prompt = line.split('<!-- GENERATE:')[1].split('-->')[0].strip()
+                    # No incluir la línea del prompt en el contenido final
+                else:
+                    processed_content.append(line)
 
-        # Guardar la última sección
-        if current_section and current_content:
-            sections[current_section] = '\n'.join(current_content).strip()
+            # Unir el contenido procesado
+            final_content = '\n'.join(processed_content).strip()
 
+            sections[section_name] = {
+                'content': final_content,
+                'attributes': section_info.get('attributes', {}),
+                'has_generate': has_generate,
+                'generate_prompt': generate_prompt
+            }
         # Agregar el título como una sección especial
         if title_content:
-            sections['__title__'] = '\n'.join(title_content).strip()
-
+            sections['__title__'] = {
+                'content': '\n'.join(title_content).strip(),
+                'attributes': {},
+                'has_generate': False,
+                'generate_prompt': None
+            }
         return sections
 
-    def _merge_sections(self, readme_sections: Dict[str, str], project_sections: Dict[str, str], project_title: Optional[str] = None) -> str:
-        """Fusiona secciones del README con las del archivo de descripción del proyecto."""
-        merged_sections = []
+    def _parse_section_header(self, line: str) -> Dict:
+        """Parsea el encabezado de una sección y extrae atributos."""
+        line = line.strip()
 
-        # Mapeo de nombres de secciones para coincidencia flexible
-        # Basado en la estructura real del README generado
-        section_mapping = {
-            '📖 descripción': ['📖 descripción del repositorio', '📖 descripción', 'descripción del repositorio', 'descripción', 'resumen'],
-            '🎯 propósito': ['🎯 propósito', 'propósito', 'objetivo', 'meta'],
-            '🔍 problema que resuelve': ['🔍 problema que resuelve', 'problema que resuelve', 'problemas', 'necesidades'],
-            '💡 solución': ['💡 solución', 'solución', 'enfoque', 'metodología'],
-            '👥 público objetivo': ['👥 público objetivo', 'público objetivo', 'audiencia', 'usuarios'],
-            '🚀 diferenciadores': ['🚀 diferenciadores', 'diferenciadores', 'características únicas', 'ventajas'],
-            '📊 estado del proyecto': ['📊 estado del proyecto', 'estado del proyecto', 'estado', 'status'],
-            '🔗 enlaces relacionados': ['🔗 enlaces relacionados', 'enlaces relacionados', 'enlaces', 'links'],
-            '🏷️ tags y temas': ['🏷️ tags y temas', 'tags y temas', 'tags', 'temas', 'categorías'],
-            # Secciones adicionales del README generado
-            '✨ características': ['✨ características', 'características', 'features'],
-            '🚀 instalación': ['🚀 instalación', 'instalación', 'setup'],
-            '🎯 uso rápido': ['🎯 uso rápido', 'uso rápido', 'quick start'],
-            '📚 documentación': ['📚 documentación', 'documentación', 'docs'],
-            '📁 estructura del proyecto': ['📁 estructura del proyecto', 'estructura del proyecto', 'estructura'],
-            '🛠️ tecnologías': ['🛠️ tecnologías', 'tecnologías', 'tech stack'],
-            '⚙️ configuración': ['⚙️ configuración', 'configuración', 'config'],
-            '🔧 desarrollo': ['🔧 desarrollo', 'desarrollo', 'development'],
-            '🧪 testing': ['🧪 testing', 'testing', 'tests'],
-            '🤝 contribución': ['🤝 contribución', 'contribución', 'contributing'],
-            '📄 licencia': ['📄 licencia', 'licencia', 'license']
+        # Extraer el nombre de la sección (sin ##)
+        section_name = line.lstrip('#').strip()
+
+        # Buscar atributos en formato {atributo: valor}
+        attributes = {}
+        import re
+
+        # Buscar patrones como {position: after descripción} o {exclude: true}
+        attr_pattern = r'\{([^}]+)\}'
+        matches = re.findall(attr_pattern, section_name)
+
+        for match in matches:
+            # Limpiar el nombre de la sección removiendo los atributos
+            section_name = re.sub(attr_pattern, '', section_name).strip()
+
+            # Parsear atributos
+            for attr in match.split(','):
+                attr = attr.strip()
+                if ':' in attr:
+                    key, value = attr.split(':', 1)
+                    attributes[key.strip()] = value.strip()
+
+        return {
+            'name': section_name,
+            'attributes': attributes,
+            'has_generate': False,
+            'generate_prompt': None
         }
 
-        # Procesar el título primero
-        if project_title:
-            # Usar el título del archivo de descripción del proyecto
-            merged_sections.append(f"# {project_title}")
-            merged_sections.append("")
-        elif '__title__' in readme_sections:
-            # Usar el título original del README
-            merged_sections.append(readme_sections['__title__'])
-            merged_sections.append("")
+    def _merge_sections(self, readme_sections: Dict[str, str], project_sections: Dict[str, Dict], project_title: Optional[str] = None) -> str:
+        """Fusiona secciones del README con las del archivo de descripción del proyecto."""
+        merged_content = []
 
-        # Procesar cada sección del README
-        for readme_section_name, readme_content in readme_sections.items():
-            # Saltar el título ya que ya se procesó
-            if readme_section_name == '__title__':
+        # Solo agregar el título si existe en el archivo de descripción del proyecto
+        if project_title:
+            # Verificar si el título tiene contenido adicional (como badges)
+            title_lines = project_title.split('\n')
+            if len(title_lines) > 1:
+                # El primer elemento es el título, el resto es contenido adicional
+                main_title = title_lines[0]
+                additional_content = '\n'.join(title_lines[1:])
+
+                merged_content.append(f"# {main_title}")
+                merged_content.append("")  # Línea en blanco después del título
+
+                # Agregar contenido adicional (como badges)
+                if additional_content.strip():
+                    merged_content.append(additional_content)
+                    merged_content.append("")  # Línea en blanco después del contenido adicional
+            else:
+                # Solo título, sin contenido adicional
+                merged_content.append(f"# {project_title}")
+                merged_content.append("")  # Línea en blanco después del título
+
+        # Crear un mapeo de secciones del README para facilitar la búsqueda
+        readme_section_map = {}
+        for section_name, content in readme_sections.items():
+            normalized_name = self._normalize_section_name(section_name)
+            readme_section_map[normalized_name] = {
+                'original_name': section_name,
+                'content': content
+            }
+
+        # Procesar secciones del proyecto con sus atributos
+        positioned_sections = []  # Secciones con posicionamiento específico
+        regular_sections = []     # Secciones sin posicionamiento
+        processed_sections = set()
+
+        for section_name, section_info in project_sections.items():
+            if section_name == '__title__':
+                continue  # El título ya se procesó arriba
+
+            attributes = section_info.get('attributes', {})
+            content = section_info.get('content', '')
+            has_generate = section_info.get('has_generate', False)
+            generate_prompt = section_info.get('generate_prompt', None)
+
+            # Verificar si la sección debe excluirse
+            if attributes.get('exclude', 'false').lower() == 'true':
                 continue
 
-            readme_section_lower = readme_section_name.lower()
-
-            # Buscar sección coincidente en el archivo de descripción del proyecto
-            matching_project_section = None
-            for mapped_name, possible_names in section_mapping.items():
-                if any(name in readme_section_lower for name in possible_names):
-                    # Buscar en las secciones del proyecto
-                    for project_section_name, project_content in project_sections.items():
-                        project_section_lower = project_section_name.lower()
-                        if any(name in project_section_lower for name in possible_names):
-                            matching_project_section = (project_section_name, project_content)
-                            break
-                    if matching_project_section:
-                        break
-
-            # Si se encuentra una sección coincidente, usar el contenido del proyecto
-            if matching_project_section:
-                project_section_name, project_content = matching_project_section
-                self.console.print(f"  ✓ Reemplazando sección '{readme_section_name}' con contenido de '{project_section_name}'")
-
-                # Mantener el nombre original del README pero usar contenido del proyecto
-                merged_sections.append(f"## {readme_section_name}")
-                merged_sections.append("")
-                merged_sections.append(project_content)
-                merged_sections.append("")
+            # Verificar si tiene posicionamiento específico
+            position_after = attributes.get('position', '').replace('after ', '').strip()
+            if position_after:
+                positioned_sections.append({
+                    'name': section_name,
+                    'content': content,
+                    'has_generate': has_generate,
+                    'generate_prompt': generate_prompt,
+                    'position_after': position_after
+                })
             else:
-                # Usar contenido original del README
-                merged_sections.append(f"## {readme_section_name}")
-                merged_sections.append("")
-                merged_sections.append(readme_content)
-                merged_sections.append("")
+                regular_sections.append({
+                    'name': section_name,
+                    'content': content,
+                    'has_generate': has_generate,
+                    'generate_prompt': generate_prompt
+                })
 
-        return '\n'.join(merged_sections)
+        # Crear una lista ordenada de todas las secciones
+        all_sections = []
+
+        # Agregar secciones regulares del proyecto (sin posicionamiento) primero
+        for section in regular_sections:
+            all_sections.append({
+                'name': section['name'],
+                'content': section['content'],
+                'source': 'project',
+                'has_generate': section['has_generate'],
+                'generate_prompt': section['generate_prompt'],
+                'processed': False
+            })
+            processed_sections.add(self._normalize_section_name(section['name']))
+
+        # Procesar secciones con posicionamiento específico
+        for positioned_section in positioned_sections:
+            target_section = positioned_section['position_after']
+            target_normalized = self._normalize_section_name(target_section)
+
+            # Buscar la sección objetivo en la lista
+            insert_index = -1
+            for i, section in enumerate(all_sections):
+                if self._normalize_section_name(section['name']) == target_normalized:
+                    insert_index = i + 1
+                    break
+
+            # Si no se encuentra la sección objetivo, agregar al final
+            if insert_index == -1:
+                insert_index = len(all_sections)
+
+            # Insertar la sección posicionada
+            all_sections.insert(insert_index, {
+                'name': positioned_section['name'],
+                'content': positioned_section['content'],
+                'source': 'project',
+                'has_generate': positioned_section['has_generate'],
+                'generate_prompt': positioned_section['generate_prompt'],
+                'processed': False
+            })
+            processed_sections.add(self._normalize_section_name(positioned_section['name']))
+
+        # Agregar secciones del README que no fueron procesadas por el proyecto
+        for section_name, content in readme_sections.items():
+            normalized_name = self._normalize_section_name(section_name)
+            if normalized_name not in processed_sections:
+                all_sections.append({
+                    'name': section_name,
+                    'content': content,
+                    'source': 'readme',
+                    'processed': False
+                })
+
+        # Generar el contenido final respetando el orden
+        for section in all_sections:
+            section_name = section['name']
+            content = section['content']
+            source = section['source']
+            has_generate = section.get('has_generate', False)
+            generate_prompt = section.get('generate_prompt', None)
+
+            # Si es una sección del proyecto con generación de IA
+            if source == 'project' and has_generate and generate_prompt:
+                generated_content = self._generate_section_content(generate_prompt, section_name)
+                if generated_content:
+                    content = generated_content
+
+            # Si es una sección del proyecto sin contenido, generar contenido automático para ciertas secciones
+            if source == 'project' and not content.strip():
+                auto_content = self._generate_auto_content(section_name)
+                if auto_content:
+                    content = auto_content
+
+            # Agregar la sección al contenido final
+            merged_content.append(f"## {section_name}")
+            merged_content.append("")
+            merged_content.append(content)
+            merged_content.append("")
+
+        return '\n'.join(merged_content)
+
+    def _generate_section_content(self, prompt: str, section_name: str) -> Optional[str]:
+        """Genera contenido para una sección usando IA."""
+        try:
+            # Construir el prompt completo
+            full_prompt = f"""Genera contenido para la sección '{section_name}' del README.
+
+Prompt específico: {prompt}
+
+Genera solo el contenido de la sección, sin incluir el encabezado. El contenido debe ser:
+- Relevante para el proyecto
+- Bien estructurado en Markdown
+- Conciso pero informativo
+- Sin incluir el título de la sección
+
+Contenido:"""
+
+            # Usar el modelo de IA configurado
+            response = self._call_ai_model(full_prompt, max_tokens=1000)
+            return response.strip() if response else None
+
+        except Exception as e:
+            print(f"Error generando contenido para sección '{section_name}': {e}")
+            return None
 
     def _get_real_project_structure(self) -> List[str]:
-        """Obtiene la estructura real del proyecto escaneando el filesystem hasta 3 niveles."""
+        """Obtiene la estructura real del proyecto escaneando el filesystem hasta 4 niveles con formato gráfico."""
         structure_lines = []
 
-        # Directorios a ignorar
+        # Directorios a ignorar (estándar para cualquier proyecto)
+        ignore_dirs = {
+            '.git', '.gitignore', '.gitattributes', '.github',
+            '__pycache__', '.pytest_cache', '.coverage',
+            'node_modules', '.venv', 'venv', 'env',
+            '.vscode', '.idea', '.DS_Store', 'Thumbs.db',
+            '.mypy_cache', '.ruff_cache', '.tox'
+            # Removido '.cursor' para que se incluya si existe
+        }
+
+        # Extensiones de archivos importantes (detectadas dinámicamente)
+        important_extensions = {'.py', '.js', '.ts', '.json', '.yml', '.yaml', '.md', '.sh', '.txt', '.toml', '.ini', '.cfg'}
+
+        # Leer .gitignore y agregar patrones a ignorar
+        gitignore_patterns = self._read_gitignore_patterns()
+
+        # Directorios que siempre se deben mostrar (excepciones al .gitignore)
+        always_show = {'.githooks', '.project', '.cursor'}
+
+        try:
+            # Agregar el repositorio raíz
+            repo_name = self.base_path.name
+            structure_lines.append(f"🌳 {repo_name}/")
+
+            # Escanear directorios y archivos de primer nivel
+            items = sorted(self.base_path.iterdir(), key=lambda x: (x.is_file(), x.name.lower()))
+
+            # Separar directorios y archivos para mejor organización
+            dirs = [item for item in items if item.is_dir() and not item.name.startswith('.') and item.name not in ignore_dirs]
+            files = [item for item in items if item.is_file() and (item.suffix in important_extensions or self._is_important_file(item.name))]
+
+            # Incluir directorios .cursor y .project si existen
+            cursor_dir = self.base_path / '.cursor'
+            project_dir = self.base_path / '.project'
+
+            if cursor_dir.exists() and cursor_dir.is_dir():
+                dirs.append(cursor_dir)
+            if project_dir.exists() and project_dir.is_dir():
+                dirs.append(project_dir)
+
+            # Filtrar directorios según .gitignore
+            dirs = [item for item in dirs if not self._should_ignore_path(item, gitignore_patterns) or item.name in always_show]
+
+            # Procesar directorios primero
+            for i, item in enumerate(dirs):
+                is_last_dir = i == len(dirs) - 1 and len(files) == 0
+                is_last = i == len(dirs) - 1
+
+                # Icono dinámico basado en el nombre del directorio
+                icon = self._get_directory_icon(item.name)
+
+                connector = "└── " if is_last_dir else "├── "
+                structure_lines.append(f"   {connector}{icon} {item.name}/")
+
+                # Escanear subdirectorios de segundo nivel
+                try:
+                    subitems = sorted(item.iterdir(), key=lambda x: (x.is_file(), x.name.lower()))
+                    subitems = [x for x in subitems if not x.name.startswith('.') and x.name not in ignore_dirs]
+
+                    # Filtrar subdirectorios según .gitignore
+                    subitems = [x for x in subitems if not self._should_ignore_path(x, gitignore_patterns)]
+
+                    for j, subitem in enumerate(subitems):
+                        sub_is_last = j == len(subitems) - 1
+
+                        if subitem.is_dir():
+                            sub_icon = self._get_directory_icon(subitem.name)
+                            sub_connector = "    └── " if sub_is_last else "    ├── "
+                            structure_lines.append(f"   {sub_connector}{sub_icon} {subitem.name}/")
+
+                            # Escanear subdirectorios de tercer nivel
+                            try:
+                                subsubitems = sorted(subitem.iterdir(), key=lambda x: (x.is_file(), x.name.lower()))
+                                subsubitems = [x for x in subsubitems if not x.name.startswith('.') and x.name not in ignore_dirs]
+
+                                # Filtrar subsubdirectorios según .gitignore
+                                subsubitems = [x for x in subsubitems if not self._should_ignore_path(x, gitignore_patterns)]
+
+                                for k, subsubitem in enumerate(subsubitems):
+                                    subsub_is_last = k == len(subsubitems) - 1
+
+                                    if subsubitem.is_dir():
+                                        subsub_icon = "📁"
+                                        subsub_connector = "        └── " if subsub_is_last else "        ├── "
+                                        structure_lines.append(f"   {subsub_connector}{subsub_icon} {subsubitem.name}/")
+
+                                        # Escanear archivos importantes en cuarto nivel
+                                        try:
+                                            files = [x for x in subsubitem.iterdir() if x.is_file() and (x.suffix in important_extensions or self._is_important_file(x.name))]
+                                            # Filtrar archivos según .gitignore
+                                            files = [x for x in files if not self._should_ignore_path(x, gitignore_patterns)]
+                                            for l, file in enumerate(files):
+                                                file_is_last = l == len(files) - 1
+                                                file_icon = self._get_file_icon(file.name)
+                                                file_connector = "            └── " if file_is_last else "            ├── "
+                                                structure_lines.append(f"   {file_connector}{file_icon} {file.name}")
+                                        except PermissionError:
+                                            pass
+                                        except Exception:
+                                            pass
+                                    else:
+                                        # Archivo en tercer nivel
+                                        if subsubitem.suffix in important_extensions or self._is_important_file(subsubitem.name):
+                                            file_icon = self._get_file_icon(subsubitem.name)
+                                            subsub_connector = "        └── " if subsub_is_last else "        ├── "
+                                            structure_lines.append(f"   {subsub_connector}{file_icon} {subsubitem.name}")
+
+                            except PermissionError:
+                                pass
+                            except Exception:
+                                pass
+                        else:
+                            # Archivo en segundo nivel
+                            if subitem.suffix in important_extensions or self._is_important_file(subitem.name):
+                                file_icon = self._get_file_icon(subitem.name)
+                                sub_connector = "    └── " if sub_is_last else "    ├── "
+                                structure_lines.append(f"   {sub_connector}{file_icon} {subitem.name}")
+
+                except PermissionError:
+                    pass
+                except Exception:
+                    pass
+
+            # Procesar archivos importantes en primer nivel
+            for i, item in enumerate(files):
+                is_last = i == len(files) - 1
+
+                file_icon = self._get_file_icon(item.name)
+                connector = "   └── " if is_last else "   ├── "
+                structure_lines.append(f"{connector}{file_icon} {item.name}")
+
+            # Limitar el número total de líneas para evitar READMEs muy largos
+            return structure_lines[:100]  # Aumentado a 100 líneas para mostrar más estructura
+
+        except Exception as e:
+            self.console.print(f"[yellow]Advertencia: Error al escanear estructura del proyecto: {str(e)}[/yellow]")
+            return []
+
+    def _read_gitignore_patterns(self) -> List[str]:
+        """Lee los patrones del archivo .gitignore."""
+        patterns = []
+        gitignore_path = self.base_path / '.gitignore'
+
+        if gitignore_path.exists():
+            try:
+                with open(gitignore_path, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        # Ignorar líneas vacías y comentarios
+                        if line and not line.startswith('#'):
+                            patterns.append(line)
+            except Exception as e:
+                self.console.print(f"[yellow]Advertencia: Error leyendo .gitignore: {str(e)}[/yellow]")
+
+        return patterns
+
+    def _should_ignore_path(self, path: Path, gitignore_patterns: List[str]) -> bool:
+        """Determina si un path debe ser ignorado según los patrones de .gitignore."""
+        if not gitignore_patterns:
+            return False
+
+        # Convertir el path a string relativo para comparar con patrones
+        try:
+            relative_path = str(path.relative_to(self.base_path))
+        except ValueError:
+            # Si no es relativo, usar el nombre del archivo/directorio
+            relative_path = path.name
+
+        # Normalizar separadores de path
+        relative_path = relative_path.replace('\\', '/')
+
+        for pattern in gitignore_patterns:
+            # Normalizar el patrón
+            pattern = pattern.replace('\\', '/')
+
+            # Patrones que coinciden con archivos/directorios específicos
+            if pattern == relative_path or pattern == path.name:
+                return True
+
+            # Patrones con wildcards
+            if '*' in pattern:
+                if self._matches_pattern(relative_path, pattern):
+                    return True
+
+            # Patrones de directorios (terminan en /)
+            if pattern.endswith('/'):
+                if relative_path.startswith(pattern) or path.is_dir() and path.name == pattern[:-1]:
+                    return True
+
+            # Patrones de archivos específicos
+            if pattern.startswith('/'):
+                # Patrón absoluto desde la raíz del proyecto
+                if relative_path == pattern[1:]:
+                    return True
+            else:
+                # Patrón relativo
+                if relative_path == pattern or relative_path.endswith('/' + pattern):
+                    return True
+
+        return False
+
+    def _matches_pattern(self, path: str, pattern: str) -> bool:
+        """Verifica si un path coincide con un patrón con wildcards."""
+        import fnmatch
+
+        # Convertir patrón de .gitignore a patrón de fnmatch
+        fnmatch_pattern = pattern.replace('*', '*')
+
+        # Si el patrón termina en /, es un directorio
+        if pattern.endswith('/'):
+            fnmatch_pattern = fnmatch_pattern[:-1] + '*'
+
+        return fnmatch.fnmatch(path, fnmatch_pattern) or fnmatch.fnmatch(path.split('/')[-1], fnmatch_pattern)
+
+    def _is_important_file(self, filename: str) -> bool:
+        """Determina si un archivo es importante basándose en su nombre."""
+        important_names = {
+            'readme', 'license', 'changelog', 'contributing', 'contributors',
+            'requirements', 'package', 'setup', 'makefile', 'dockerfile',
+            'docker-compose', '.env.example', 'pyproject', 'cargo', 'composer',
+            'gemfile', 'pom.xml', 'build.gradle', 'package.json', 'tsconfig',
+            'webpack', 'rollup', 'vite', 'jest', 'eslint', 'prettier',
+            'gitignore', 'gitattributes', 'editorconfig', 'travis', 'circle',
+            'github', 'gitlab', 'bitbucket', 'azure', 'jenkins', 'sonar'
+        }
+
+        name_lower = filename.lower()
+        return any(important_name in name_lower for important_name in important_names)
+
+    def _get_directory_icon(self, dirname: str) -> str:
+        """Obtiene el icono apropiado para un directorio basándose en su nombre."""
+        name_lower = dirname.lower()
+
+        # Mapeo dinámico de iconos basado en patrones de nombres
+        icon_mapping = {
+            'docs': '📚', 'documentation': '📚', 'doc': '📚',
+            'src': '💻', 'source': '💻', 'app': '💻', 'lib': '💻', 'libs': '💻',
+            'tests': '🧪', 'test': '🧪', 'spec': '🧪', 'testing': '🧪',
+            'config': '⚙️', 'conf': '⚙️', 'settings': '⚙️', 'cfg': '⚙️',
+            'scripts': '🔧', 'tools': '🔧', 'bin': '🔧', 'utils': '🔧',
+            'assets': '🎨', 'static': '🎨', 'public': '🎨', 'resources': '🎨',
+            'data': '🗄️', 'db': '🗄️', 'database': '🗄️', 'storage': '🗄️',
+            'deploy': '🚀', 'deployment': '🚀', 'dist': '🚀', 'build': '🚀',
+            'ci': '🔄', 'cd': '🔄', 'pipeline': '🔄', 'workflows': '🔄',
+            'vendor': '📦', 'third_party': '📦', 'deps': '📦', 'dependencies': '📦',
+            'scaffold': '🏗️', 'templates': '🏗️', 'boilerplate': '🏗️',
+            'ideas': '💡', 'brainstorming': '💡', 'concepts': '💡',
+            'logs': '📋', 'tmp': '📋', 'temp': '📋', 'cache': '📋',
+            'api': '🔌', 'endpoints': '🔌', 'routes': '🔌',
+            'models': '🏗️', 'entities': '🏗️', 'schemas': '🏗️',
+            'middleware': '🔗', 'interceptors': '🔗', 'filters': '🔗',
+            'migrations': '🗃️', 'schema': '🗃️', 'seeds': '🗃️',
+            'analysis': '📊', 'prompts': '📊', 'toc': '📊',
+            'rules': '⚙️', 'licenses': '📜', 'license': '📜',
+            'bitbucket-pipelines': '🔄', 'ci-projects': '🔄',
+            'commit-format': '🔧', 'cursor': '🔧'
+        }
+
+        # Buscar coincidencias exactas primero
+        for pattern, icon in icon_mapping.items():
+            if pattern in name_lower:
+                return icon
+
+        # Si no hay coincidencias, usar icono genérico
+        return "📁"
+
+    def _get_file_icon(self, filename: str) -> str:
+        """Obtiene el icono apropiado para un archivo basándose en su extensión y nombre."""
+        name_lower = filename.lower()
+
+        # Mapeo por extensión
+        extension_mapping = {
+            '.py': '🐍', '.js': '🟨', '.ts': '🔷', '.jsx': '🟨', '.tsx': '🔷',
+            '.json': '📋', '.yml': '⚙️', '.yaml': '⚙️', '.md': '📝',
+            '.sh': '🐚', '.bash': '🐚', '.zsh': '🐚', '.fish': '🐚',
+            '.txt': '📄', '.toml': '📋', '.ini': '⚙️', '.cfg': '⚙️',
+            '.xml': '📋', '.html': '🌐', '.css': '🎨', '.scss': '🎨',
+            '.sass': '🎨', '.less': '🎨', '.vue': '🟢', '.svelte': '🟠',
+            '.rs': '🦀', '.go': '🔵', '.java': '☕', '.kt': '🟣',
+            '.swift': '🍎', '.c': '🔵', '.cpp': '🔵', '.h': '🔵',
+            '.php': '🟣', '.rb': '💎', '.scala': '🔴', '.clj': '🟢',
+            '.hs': '🟣', '.ml': '🟠', '.f90': '🔵', '.r': '🔵',
+            '.sql': '🗄️', '.db': '🗄️', '.sqlite': '🗄️',
+            '.dockerfile': '🐳', '.docker': '🐳', '.compose': '🐳',
+            '.gitignore': '📝', '.gitattributes': '📝', '.editorconfig': '⚙️'
+        }
+
+        # Buscar por extensión
+        for ext, icon in extension_mapping.items():
+            if name_lower.endswith(ext):
+                return icon
+
+        # Buscar por nombres específicos
+        name_icon_mapping = {
+            'readme': '📖', 'license': '📜', 'changelog': '📋',
+            'contributing': '🤝', 'contributors': '👥',
+            'requirements': '📦', 'package': '📦', 'setup': '⚙️',
+            'makefile': '🔧', 'dockerfile': '🐳', 'docker-compose': '🐳',
+            'pyproject': '🐍', 'cargo': '🦀', 'composer': '🟣',
+            'gemfile': '💎', 'pom.xml': '☕', 'build.gradle': '☕',
+            'webpack': '📦', 'rollup': '📦', 'vite': '⚡',
+            'jest': '🧪', 'eslint': '🔍', 'prettier': '💅',
+            'travis': '🔄', 'circle': '🔄', 'github': '🐙',
+            'gitlab': '🦊', 'bitbucket': '🦘', 'azure': '☁️',
+            'jenkins': '🤖', 'sonar': '🔍', 'hexroute': '🌐'
+        }
+
+        for pattern, icon in name_icon_mapping.items():
+            if pattern in name_lower:
+                return icon
+
+        # Icono genérico para archivos
+        return "📄"
+
+    def _extract_readme_sections(self, content: str) -> Dict[str, str]:
+        """Extrae secciones del README generado."""
+        sections = self._extract_markdown_sections(content)
+
+        # Convertir la nueva estructura a la estructura simple esperada por _merge_sections
+        simple_sections = {}
+        for section_name, section_info in sections.items():
+            # NO incluir la sección __title__ del README base, ya que el título debe venir del archivo de descripción
+            if section_name != '__title__':
+                simple_sections[section_name] = section_info['content']
+
+        return simple_sections
+
+    def _extract_project_sections(self, content: str) -> Dict[str, Dict]:
+        """Extrae secciones del archivo de descripción del proyecto con sus atributos."""
+        return self._extract_markdown_sections(content)
+
+    def _normalize_section_name(self, section_name: str) -> str:
+        """Normaliza el nombre de una sección para comparación flexible."""
+        # Remover emojis y caracteres especiales, convertir a minúsculas
+        import re
+        normalized = re.sub(r'[^\w\s]', '', section_name.lower())
+        return normalized.strip()
+
+    def _call_ai_model(self, prompt: str, max_tokens: int = 1000) -> Optional[str]:
+        """Llama al modelo de IA para generar contenido."""
+        try:
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=max_tokens,
+                temperature=self.config.get('temperature', 0.7),
+                system="Eres un asistente experto en documentación técnica. Genera contenido claro, conciso y bien estructurado en Markdown.",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ]
+            )
+            return response.content[0].text
+        except Exception as e:
+            print(f"Error llamando al modelo de IA: {e}")
+            return None
+
+    def _generate_auto_content(self, section_name: str) -> Optional[str]:
+        """Genera contenido automático para secciones específicas basándose en el análisis del proyecto."""
+        try:
+            # Obtener el análisis del proyecto
+            analysis = self.analyzer.analyze_project()
+
+            # Generar contenido según el tipo de sección
+            if 'estructura' in section_name.lower() or 'structure' in section_name.lower():
+                return self._generate_structure_content(analysis)
+            elif 'características' in section_name.lower() or 'features' in section_name.lower():
+                return self._generate_features_content(analysis)
+            elif 'instalación' in section_name.lower() or 'installation' in section_name.lower():
+                return self._generate_installation_content(analysis)
+            elif 'uso' in section_name.lower() or 'usage' in section_name.lower():
+                return self._generate_usage_content(analysis)
+            elif 'licencia' in section_name.lower() or 'license' in section_name.lower():
+                return self._generate_license_content(analysis)
+
+            return None
+
+        except Exception as e:
+            self.console.print(f"[yellow]Advertencia: Error generando contenido automático para '{section_name}': {e}[/yellow]")
+            return None
+
+    def _generate_structure_content(self, analysis: Dict) -> str:
+        """Genera contenido para la sección de estructura del proyecto con formato gráfico mejorado."""
+        content = []
+
+        # Obtener estructura real del proyecto
+        real_directories = self._get_real_project_structure()
+
+        if real_directories:
+            content.append("")
+            content.append("```")
+            content.append("📁 Estructura del Proyecto")
+            content.append("")
+            for line in real_directories:
+                content.append(line)
+            content.append("```")
+            content.append("")
+            content.append("### 📋 Descripción de Directorios")
+            content.append("")
+
+            # Generar descripciones dinámicamente basándose en los directorios encontrados
+            dir_descriptions = self._generate_directory_descriptions()
+
+            for dir_icon, description in dir_descriptions.items():
+                content.append(f"- **{dir_icon}** {description}")
+
+            content.append("")
+            content.append("### 📄 Archivos Principales")
+            content.append("")
+
+            # Generar descripciones de archivos dinámicamente
+            file_descriptions = self._generate_file_descriptions()
+
+            for file_icon, description in file_descriptions.items():
+                content.append(f"- **{file_icon}** {description}")
+        else:
+            content.append("")
+            content.append("```")
+            content.append("📁 Estructura Básica")
+            content.append("")
+            content.append("🌳 proyecto/")
+            content.append("   ├── 📚 docs/")
+            content.append("   ├── 💻 src/")
+            content.append("   ├── 🧪 tests/")
+            content.append("   ├── ⚙️ config/")
+            content.append("   └── 📄 README.md")
+            content.append("```")
+
+        return '\n'.join(content)
+
+    def _generate_directory_descriptions(self) -> Dict[str, str]:
+        """Genera descripciones de directorios dinámicamente basándose en los encontrados."""
+        descriptions = {}
+
+        # Leer patrones de .gitignore
+        gitignore_patterns = self._read_gitignore_patterns()
+
+        # Directorios que siempre se deben mostrar (excepciones al .gitignore)
+        always_show = {'.githooks', '.project', '.cursor'}
+
+        # Directorios a ignorar (mismas reglas que en _get_real_project_structure)
         ignore_dirs = {
             '.git', '.gitignore', '.gitattributes', '.github',
             '__pycache__', '.pytest_cache', '.coverage',
@@ -3757,42 +4371,203 @@ INSTRUCCIONES PARA MEJORA DE README:
             '.mypy_cache', '.ruff_cache', '.tox'
         }
 
+        # Escanear directorios reales del proyecto
         try:
-            # Escanear directorios de primer nivel
-            for item in sorted(self.base_path.iterdir()):
-                if item.is_dir() and not item.name.startswith('.') and item.name not in ignore_dirs:
-                    structure_lines.append(f"{item.name}/")
+            for item in self.base_path.iterdir():
+                if item.is_dir():
+                    # Aplicar las mismas reglas de filtrado que en _get_real_project_structure
+                    should_include = True
 
-                    # Escanear subdirectorios de segundo nivel
-                    try:
-                        for subitem in sorted(item.iterdir()):
-                            if subitem.is_dir() and not subitem.name.startswith('.') and subitem.name not in ignore_dirs:
-                                structure_lines.append(f"  {subitem.name}/")
+                    # Verificar si está en la lista de directorios a ignorar
+                    if item.name in ignore_dirs:
+                        should_include = False
+                    # Verificar si debe ser ignorado según .gitignore
+                    elif self._should_ignore_path(item, gitignore_patterns) and item.name not in always_show:
+                        should_include = False
 
-                                # Escanear subdirectorios de tercer nivel
-                                try:
-                                    for subsubitem in sorted(subitem.iterdir()):
-                                        if subsubitem.is_dir() and not subsubitem.name.startswith('.') and subsubitem.name not in ignore_dirs:
-                                            structure_lines.append(f"    {subsubitem.name}/")
-                                except PermissionError:
-                                    # Ignorar directorios sin permisos
-                                    pass
-                                except Exception as e:
-                                    # Ignorar otros errores en tercer nivel
-                                    pass
-                    except PermissionError:
-                        # Ignorar directorios sin permisos
-                        pass
-                    except Exception as e:
-                        # Ignorar otros errores en segundo nivel
-                        pass
+                    if should_include:
+                        icon = self._get_directory_icon(item.name)
+                        description = self._get_directory_description(item.name)
+                        descriptions[f"{icon} {item.name}/"] = description
+        except Exception:
+            pass
 
-            # Limitar el número total de líneas para evitar READMEs muy largos
-            return structure_lines[:50]  # Máximo 50 líneas de estructura
+        # Si no se encontraron directorios, usar descripciones genéricas
+        if not descriptions:
+            descriptions = {
+                "📚 docs/": "Documentación del proyecto, guías y manuales",
+                "💻 src/": "Código fuente principal de la aplicación",
+                "🧪 tests/": "Tests unitarios, de integración y e2e",
+                "⚙️ config/": "Archivos de configuración y settings",
+                "🔧 scripts/": "Scripts de automatización y utilidades",
+                "🎨 assets/": "Recursos estáticos (imágenes, CSS, JS)",
+                "🗄️ data/": "Datos, bases de datos y archivos de datos",
+                "🚀 deploy/": "Configuración de despliegue y Docker",
+                "🔄 ci/": "Configuración de CI/CD y pipelines",
+                "📦 vendor/": "Dependencias de terceros y librerías"
+            }
 
-        except Exception as e:
-            self.console.print(f"[yellow]Advertencia: Error al escanear estructura del proyecto: {str(e)}[/yellow]")
-            return []
+        return descriptions
+
+    def _get_directory_description(self, dirname: str) -> str:
+        """Obtiene una descripción para un directorio basándose en su nombre."""
+        name_lower = dirname.lower()
+
+        descriptions = {
+            'docs': 'Documentación del proyecto, guías y manuales',
+            'documentation': 'Documentación del proyecto, guías y manuales',
+            'src': 'Código fuente principal de la aplicación',
+            'source': 'Código fuente principal de la aplicación',
+            'app': 'Aplicación principal',
+            'lib': 'Librerías y módulos reutilizables',
+            'tests': 'Tests unitarios, de integración y e2e',
+            'test': 'Tests unitarios, de integración y e2e',
+            'config': 'Archivos de configuración y settings',
+            'conf': 'Archivos de configuración y settings',
+            'scripts': 'Scripts de automatización y utilidades',
+            'tools': 'Scripts de automatización y utilidades',
+            'bin': 'Scripts ejecutables y herramientas',
+            'assets': 'Recursos estáticos (imágenes, CSS, JS)',
+            'static': 'Recursos estáticos (imágenes, CSS, JS)',
+            'public': 'Archivos públicos y estáticos',
+            'data': 'Datos, bases de datos y archivos de datos',
+            'db': 'Bases de datos y esquemas',
+            'deploy': 'Configuración de despliegue y Docker',
+            'dist': 'Archivos de distribución y build',
+            'build': 'Archivos de construcción y compilación',
+            'ci': 'Configuración de CI/CD y pipelines',
+            'cd': 'Configuración de CI/CD y pipelines',
+            'vendor': 'Dependencias de terceros y librerías',
+            'deps': 'Dependencias de terceros y librerías',
+            'scaffold': 'Plantillas y estructuras base',
+            'templates': 'Plantillas y estructuras base',
+            'ideas': 'Ideas y conceptos del proyecto',
+            'logs': 'Archivos de log y temporales',
+            'tmp': 'Archivos temporales',
+            'api': 'Endpoints y APIs del proyecto',
+            'models': 'Modelos de datos y entidades',
+            'schemas': 'Esquemas de datos y validaciones',
+            'migrations': 'Migraciones de base de datos',
+            'analysis': 'Análisis y reportes',
+            'licenses': 'Licencias y archivos legales',
+            'cursor': 'Configuración del editor Cursor IDE',
+            'project': 'Configuración y metadatos del proyecto',
+            'githooks': 'Hooks de Git y configuraciones de commit',
+            'sops': 'Archivos de configuración SOPS',
+            'mo': 'Archivos de modelo y configuración',
+            'pr': 'Configuración de Pull Requests',
+            'ws': 'Configuración de workspace',
+            'brain': 'Configuración de IA y contexto del proyecto'
+        }
+
+        for pattern, description in descriptions.items():
+            if pattern in name_lower:
+                return description
+
+        return f"Directorio {dirname} del proyecto"
+
+    def _generate_file_descriptions(self) -> Dict[str, str]:
+        """Genera descripciones de archivos dinámicamente basándose en los encontrados."""
+        descriptions = {}
+
+        # Extensiones comunes con descripciones
+        extension_descriptions = {
+            "🐍 *.py": "Scripts y módulos Python",
+            "🟨 *.js": "Archivos JavaScript",
+            "🔷 *.ts": "Archivos TypeScript",
+            "📋 *.json": "Configuraciones y metadatos",
+            "⚙️ *.yml/*.yaml": "Configuraciones de servicios",
+            "📝 *.md": "Documentación en Markdown",
+            "🐚 *.sh": "Scripts de shell y bash",
+            "📄 *.txt": "Archivos de texto y documentación",
+            "📋 *.toml": "Configuraciones en formato TOML",
+            "⚙️ *.ini/*.cfg": "Archivos de configuración",
+            "🌐 *.html": "Archivos HTML",
+            "🎨 *.css": "Hojas de estilo CSS",
+            "🟢 *.vue": "Componentes Vue.js",
+            "🟠 *.svelte": "Componentes Svelte",
+            "🦀 *.rs": "Código Rust",
+            "🔵 *.go": "Código Go",
+            "☕ *.java": "Código Java",
+            "🟣 *.kt": "Código Kotlin",
+            "🍎 *.swift": "Código Swift",
+            "🔵 *.c/*.cpp": "Código C/C++",
+            "🟣 *.php": "Código PHP",
+            "💎 *.rb": "Código Ruby",
+            "🗄️ *.sql": "Consultas y esquemas SQL",
+            "🐳 Dockerfile": "Configuración de contenedores Docker",
+            "📖 README": "Documentación principal del proyecto",
+            "📜 LICENSE": "Licencia del proyecto",
+            "📋 CHANGELOG": "Registro de cambios del proyecto",
+            "🤝 CONTRIBUTING": "Guía de contribución al proyecto"
+        }
+
+        return extension_descriptions
+
+    def _generate_features_content(self, analysis: Dict) -> str:
+        """Genera contenido para la sección de características."""
+        content = []
+
+        # Obtener características del análisis
+        differentiators = analysis.get('differentiators', {})
+        features = differentiators.get('unique_features', [])
+
+        if features:
+            for feature in features[:8]:  # Máximo 8 características
+                content.append(f"- {feature}")
+        else:
+            content.append("- Herramientas multiplataforma")
+            content.append("- Automatización de tareas")
+            content.append("- Configuración flexible")
+            content.append("- Integración con sistemas existentes")
+
+        return '\n'.join(content)
+
+    def _generate_installation_content(self, analysis: Dict) -> str:
+        """Genera contenido para la sección de instalación."""
+        content = []
+
+        # Obtener tecnologías del análisis
+        technologies = analysis.get('technologies', {})
+        languages = technologies.get('languages', [])
+
+        content.append("")
+        content.append("```bash")
+        if 'Python' in languages:
+            content.append("pip install -r requirements.txt")
+        content.append("```")
+
+        return '\n'.join(content)
+
+    def _generate_usage_content(self, analysis: Dict) -> str:
+        """Genera contenido para la sección de uso."""
+        content = []
+
+        # Obtener archivos principales del análisis
+        global_analysis = analysis.get('global_analysis', {})
+        main_files = global_analysis.get('main_functions', [])
+
+        content.append("")
+        content.append("```bash")
+        if main_files:
+            main_file = main_files[0].split('/')[-1]
+            content.append(f"# Ejemplo básico de uso")
+            content.append(f"python {main_file} --help")
+        else:
+            content.append("# Ejemplo básico de uso")
+            content.append("python main.py --help")
+        content.append("```")
+
+        return '\n'.join(content)
+
+    def _generate_license_content(self, analysis: Dict) -> str:
+        """Genera contenido para la sección de licencia."""
+        content = []
+
+        content.append("")
+        content.append("Este proyecto está bajo la Licencia GPLv3. Ver [LICENSE.md](LICENSE.md) para más detalles.")
+
+        return '\n'.join(content)
 
 @click.group()
 def cli():
