@@ -3313,7 +3313,7 @@ INSTRUCCIONES PARA MEJORA DE README:
                 content.append("")
 
                 # Sección de características básica (solo si no está excluida)
-                if 'caracteristicas' not in excluded_sections:
+                if 'características' not in excluded_sections:
                     content.append("## ✨ Características")
                     features = differentiators.get('unique_features', [])
                     if features:
