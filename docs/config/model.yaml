@@ -9,7 +9,7 @@ document_types:
   readme:
     model: "claude-4-sonnet-20250514"  # Modelo con mayor límite de tokens
     max_tokens: 8000  # Aumentado para descripciones más detalladas
-    temperature: 0.6
+    temperature: 0.7
 
   user_guide:
     model: "claude-4-opus-20250514"
