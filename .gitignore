@@ -50,7 +50,8 @@ wheels/
 .virtualenv/
 
 # Definición y metadatos de Proyecto
-.project/
+.project/*
+!.project/description.md
 
 # Jupyter Notebook
 .ipynb_checkpoints
