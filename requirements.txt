@@ -28,6 +28,7 @@ keyring>=24.3.1                  # Gestión de claves para Python
 rich>=13.0.0                     # Formateo de texto enriquecido en la terminal (colores, estilos, tablas, spinners, etc.)
 questionary>=2.0.0               # Prompts interactivos y bonitos (selecciones, confirmaciones, entradas)
 textual>=0.1.10                  # Librería para crear interfaces de usuario con Rich
+click>=8.1.7                     # Librería para crear interfaces de línea de comandos
 
 # --- Herramientas de Desarrollo y Calidad de Código ---
 pre-commit>=2.17.0               # Framework para gestionar y mantener hooks de pre-commit
@@ -45,9 +46,14 @@ atlassian-python-api>=3.15.0     # Cliente Python para la API REST de Atlassian 
 tomli; python_version < '3.11'   # Parser para archivos TOML (necesario para Python < 3.11)
 tomli-w                          # Librería para escribir archivos TOML
 
-# --- Dependencias principales ---
-anthropic>=0.18.1                # Cliente Python para la API de Anthropic Claude
-click>=8.1.7                     # Librería para crear interfaces de línea de comandos
-
 # --- Dependencias para análisis de código ---
 astroid>=2.15.0                  # Para análisis de código Python
+
+# --- APIs de IA y generación de contenido ---
+openai>=1.0.0                    # Cliente oficial de OpenAI para APIs modernas (GPT, DALL-E, etc.)
+anthropic>=0.18.1                # Cliente Python para la API de Anthropic Claude
+
+# --- Renderizado y conversión de documentos ---
+playwright>=1.40.0               # Automatización de navegadores para renderizar HTML a PDF usando Chromium
+PyPDF2>=3.0.0                    # Librería para manipular y unir archivos PDF
+reportlab>=4.0.0                 # Generación de PDFs con Python (usado para brochures)
