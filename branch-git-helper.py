@@ -387,8 +387,8 @@ class GitRepository:
 
             if push_to_remote_tags:
                 print(f"{Fore.CYAN}🗑️  Eliminando Tag '{tag}' (remoto)...{Style.RESET_ALL}")
-                error_rm_remote = self.run_command(["git", "push", "origin", f":refs/tags/{tag}"], check=False, capture_output=True)
-                if error_rm_remote:
+                success_rm_remote, _, error_rm_remote = self.run_command(["git", "push", "origin", f":refs/tags/{tag}"], check=False)
+                if not success_rm_remote:
                     print(f"{Fore.YELLOW}⚠️  No se pudo eliminar Tag remoto '{tag}': {error_rm_remote}{Style.RESET_ALL}")
 
         # Obtener el HEAD de la rama para las notas
