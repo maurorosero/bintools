@@ -5,7 +5,7 @@
 # License: GPLV3
 # Author: Mauro Rosero P. (mauro.rosero@gmail.com)
 # Created: 2025-05-13 00:27:13
-# Version: 0.1.2
+# Version: 0.2.1
 #
 # calculate_next_version.py - Calcula la siguiente versión SemVer global basándose en el último release de GitHub
 # -----------------------------------------------------------------------------

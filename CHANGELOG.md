@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v14.14.2] - 2025-07-07
+
+### Added
+- 🎉 Integrar validación de .project/description.md en generación de README
+- 🎉 Mostrar estructura real del proyecto hasta 3 niveles
+- 🎉 Usar título del archivo .project/description.md en README
+- 🎉 Agregar script para corregir audio HDMI
+- 🎉 Agregar dependencias para APIs de IA y generación de PDFs
+
+### Changed
+- ⚡ Actualización del CHANGELOG.md
+- ⚡ Agregar README.md generado automáticamente
+- ⚡ Agregar guía de uso de git-branch-tools
+- ⚡ Mejorar README y configuración de gitignore
+
+### Fixed
+- 🐛 Mostrar estructura real del proyecto en README
+- 🐛 Corregir inconsistencias en estructura del proyecto
+- 🐛 Actualizar descripción del proyecto
+- 🐛 Actualizar modelo de configuración
+- 🐛 Eliminar manual obsoleto de git-branch-tools
+- 🐛 Corregir normalización de nombres de secciones excluidas
+- 🐛 Corregir extracción de contenido específico del changelog en release.py
+- 🐛 Corregir error de capture_output en run_command de GitRepository
+
+
 ## [v14.9.0] - 2025-06-20
 
 ### Added
@@ -301,27 +327,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ❌ Remove context-sync.py and ensure .venv is ignored
 - ❌ Reemplaza --remove con --remove-global y --remove-local interactivo [pymanager.sh]
 - ❌ Mejora --remove-local con gum y añade comando --install [pymanager.sh] - Corrige error en --remove-local donde seleccionar un entorno individual   con `gum` (presionando Enter) no funcionaba o se interpretaba   incorrectamente como cancelación. - Cambia el modo de `gum choose` en --remove-local de multiselección   (`--no-limit`) a selección única. Ahora Enter selecciona directamente   y Escape cancela, eliminando la necesidad de marcar con Espacio. - Refactoriza la lógica de procesamiento de selección en `remove_local_env`   para manejar la elección única con una estructura `case`. - Añade el comando `--install` como atajo para crear/asegurar el entorno   global (`~/.venv/default`) e instalar los requisitos por defecto   (`bin/requirements.txt`) usando `install_global_package`. - Actualiza la función de ayuda (`show_help`) para reflejar el nuevo   comportamiento de selección de `--remove-local` y la nueva opción   `--install`.
-
-
-## [Unreleased]
-
-### Added
-- 🎉 Integrar validación de .project/description.md en generación de README
-- 🎉 Mostrar estructura real del proyecto hasta 3 niveles
-- 🎉 Usar título del archivo .project/description.md en README
-- 🎉 Agregar script para corregir audio HDMI
-- 🎉 Agregar dependencias para APIs de IA y generación de PDFs
-
-### Changed
-- ⚡ Actualización del CHANGELOG.md
-- ⚡ Agregar README.md generado automáticamente
-- ⚡ Agregar guía de uso de git-branch-tools
-- ⚡ Mejorar README y configuración de gitignore
-
-### Fixed
-- 🐛 Mostrar estructura real del proyecto en README
-- 🐛 Corregir inconsistencias en estructura del proyecto
-- 🐛 Actualizar descripción del proyecto
-- 🐛 Actualizar modelo de configuración
-- 🐛 Eliminar manual obsoleto de git-branch-tools
-- 🐛 Corregir normalización de nombres de secciones excluidas

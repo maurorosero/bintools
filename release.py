@@ -6,10 +6,10 @@ Check Heading
 Copyright (C) <2025> MAURO ROSERO PÉREZ (ROSERO ONE DEVELOPMENT)
 
 Script Name: release.py
-Version:     0.0.0
+Version:     0.1.2
 Description: Script para automatizar el proceso de release con integración de APIs de plataformas Git.
 Created:     2025-06-18 14:40:00
-Modified:    2025-07-07 21:46:23
+Modified:    2025-07-08 09:43:36
 Author:      Mauro Rosero Pérez <mauro@rosero.one>
 Assistant:   Cursor AI (https://cursor.com)
 """
