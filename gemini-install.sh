@@ -16,7 +16,7 @@
 #
 # HEADER_END_TAG - DO NOT REMOVE OR MODIFY THIS LINE
 
-set -uo pipefail
+set -euo pipefail
 
 # --- Variables globales --- #
 SCRIPT_NAME="gemini-install.sh"
@@ -234,23 +234,16 @@ uninstall_gemini_cli() {
     log_info "Desinstalando Gemini CLI..."
 
     if ! is_gemini_installed; then
-        log_warning "Gemini CLI no está instalado"
+        log_warning "Gemini CLI no está 'instalado' en el sentido tradicional (npx lo descarga bajo demanda)."
+        log_info "Si deseas eliminar el alias permanente, usa: $SCRIPT_NAME set-alias unset"
         return 0
     fi
 
-    # Limpiar caché de npx
-    log_info "Limpiando caché de npx..."
-    npx --yes "$GEMINI_CLI_PACKAGE" --help &> /dev/null || true
-
-    # Limpiar caché de npm
-    if npm cache clean --force &> /dev/null; then
-        log_success "Caché de npm limpiado"
-    else
-        log_warning "No se pudo limpiar el caché de npm"
-    fi
-
-    log_success "Gemini CLI desinstalado"
-    log_info "Nota: npx descarga automáticamente los paquetes cuando se necesitan"
+    log_info "Gemini CLI no se 'desinstala' de forma tradicional ya que npx lo descarga bajo demanda."
+    log_info "Se recomienda eliminar el alias permanente si ya no lo necesitas."
+    log_info "Para eliminar el alias permanente, ejecuta: $SCRIPT_NAME set-alias unset"
+    log_success "Proceso de 'desinstalación' completado."
+    log_info "Nota: npx descarga automáticamente los paquetes cuando se necesitan."
 }
 
 # Función para actualizar Gemini CLI
@@ -258,7 +251,7 @@ update_gemini_cli() {
     log_info "Actualizando Gemini CLI..."
 
     if ! is_gemini_installed; then
-        log_warning "Gemini CLI no está instalado. Instalando..."
+        log_warning "Gemini CLI no está 'instalado'. Procediendo con la 'instalación' (ejecución inicial)."
         install_gemini_cli
         return $?
     fi
@@ -267,20 +260,16 @@ update_gemini_cli() {
     current_version=$(get_gemini_version)
     log_info "Versión actual: $current_version"
 
-    # Limpiar caché para forzar descarga de la última versión
-    log_info "Limpiando caché para obtener la última versión..."
-    npm cache clean --force &> /dev/null
-
-    # Ejecutar para descargar la última versión
-    log_info "Descargando la última versión..."
-    if npx --yes "$GEMINI_CLI_PACKAGE" --version &> /dev/null; then
+    log_info "npx siempre intenta usar la última versión disponible del paquete."
+    log_info "Forzando la descarga de la última versión..."
+    if npx --yes "$GEMINI_CLI_PACKAGE"@latest --version &> /dev/null; then
         local new_version
         new_version=$(get_gemini_version)
-        log_success "Gemini CLI actualizado correctamente"
+        log_success "Gemini CLI actualizado correctamente (o ya estaba en la última versión)."
         log_info "Nueva versión: $new_version"
         return 0
     else
-        log_error "Error al actualizar Gemini CLI"
+        log_error "Error al intentar actualizar Gemini CLI. Asegúrate de tener conexión a internet."
         return 1
     fi
 }
@@ -323,21 +312,7 @@ show_version() {
     fi
 }
 
-# Función para ejecutar un comando de Gemini CLI
-run_gemini_command() {
-    local command="$1"
-    shift
 
-    log_info "Ejecutando: gemini $command $*"
-
-    if npx --yes "$GEMINI_CLI_PACKAGE" "$command" "$@"; then
-        log_success "Comando ejecutado correctamente"
-        return 0
-    else
-        log_error "Error al ejecutar el comando"
-        return 1
-    fi
-}
 
 # Función para detectar el archivo de configuración del shell
 get_shell_config_file() {
@@ -378,7 +353,7 @@ set_permanent_alias() {
         fi
 
         # Remover alias existente
-        sed -i '/^alias gemini=/d' "$config_file"
+        sed '/^alias gemini=/d' "$config_file" > "${config_file}.tmp" && mv "${config_file}.tmp" "$config_file"
         log_info "Alias anterior removido"
     fi
 
@@ -391,31 +366,7 @@ set_permanent_alias() {
 }
 
 # Función para establecer alias de sesión
-set_session_alias() {
-    log_info "Configurando alias para la sesión actual"
-
-    # Establecer el alias directamente
-    alias gemini="npx @google/gemini-cli"
-
-    # Verificar que se estableció correctamente
-    if alias | grep -q "gemini="; then
-        log_success "Alias 'gemini' configurado para esta sesión"
-        log_info "Puedes usar 'gemini' directamente en esta terminal"
-        log_info "Nota: Este alias se perderá al cerrar la terminal"
-
-        # Mostrar el alias configurado
-        log_info "Alias configurado: $(alias gemini)"
-
-        # Mostrar instrucciones para usar el alias
-        echo -e "\n${COLOR_GREEN}Para usar el alias en esta sesión, ejecuta:${COLOR_RESET}"
-        echo "alias gemini=\"npx @google/gemini-cli\""
-
-        return 0
-    else
-        log_error "Error al configurar el alias de sesión"
-        return 1
-    fi
-}
+set_session_alias() {    log_info "Configurando alias para la sesión actual"    log_info "Para usar 'gemini' directamente en esta terminal, ejecuta el siguiente comando:"    echo -e "${COLOR_CYAN}alias gemini=\"npx @google/gemini-cli\"${COLOR_RESET}"    log_info "Nota: Este alias solo será válido para la sesión actual de la terminal y se perderá al cerrarla."    return 0}
 
 # Función para remover alias permanente
 unset_permanent_alias() {
@@ -429,8 +380,8 @@ unset_permanent_alias() {
         cp "$config_file" "${config_file}.bak"
 
         # Remover alias
-        sed -i '/^# Gemini CLI alias$/d' "$config_file"
-        sed -i '/^alias gemini=/d' "$config_file"
+        sed '/^# Gemini CLI alias$/d' "$config_file" > "${config_file}.tmp" && mv "${config_file}.tmp" "$config_file"
+        sed '/^alias gemini=/d' "$config_file" > "${config_file}.tmp" && mv "${config_file}.tmp" "$config_file"
 
         log_success "Alias 'gemini' removido de $config_file"
         log_info "Backup guardado en ${config_file}.bak"
