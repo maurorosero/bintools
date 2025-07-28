@@ -29,6 +29,7 @@ APP_NAME="Gestor de Entornos Python (pymanager)"
 VERSION="0.4.0"
 AUTHOR="Mauro Rosero P."
 ORIGINAL_ARGS=("$@")
+APT_UPDATED=""
 
 # Colores y formatos (estilo packages.sh)
 COLOR_GREEN="\033[0;32m"
@@ -70,12 +71,106 @@ fi
 # Verificar prerrequisitos (Python3 y venv)
 check_prerequisites() {
     log "INFO" "Verificando prerrequisitos (python3, python3-venv)"
+
+    # 1. Verificar python3
+    if ! command -v python3 &> /dev/null; then
+        mostrar_advertencia "Python 3 no está instalado. Intentando instalarlo..."
+        install_python_package "python" # 'python' en Arch, 'python3' en otras. 'python' suele ser un symlink o paquete de transición.
+    fi
+
+    # 2. Verificar el módulo venv
+    if ! python3 -c "import venv" &> /dev/null; then
+        mostrar_advertencia "Módulo 'venv' para Python 3 no disponible. Intentando instalarlo..."
+
+        local venv_package_name=""
+        local os_id
+        os_id=$(grep -E '^ID=' /etc/os-release | cut -d'=' -f2 | tr -d '"')
+
+        case "$os_id" in
+            arch)
+                # En Arch, venv viene con el paquete python principal. Si no está, el problema es otro.
+                mostrar_error "El módulo 'venv' debería estar incluido con Python en Arch. Puede que tu instalación de Python esté corrupta."
+                log "ERROR" "Módulo venv no encontrado en Arch a pesar de que Python parece estar instalado."
+                exit 1
+                ;;
+            debian|ubuntu|linuxmint)
+                venv_package_name="python3-venv"
+                ;;
+            fedora|centos|rhel)
+                venv_package_name="python3-virtualenv" # O python3-venv, dependiendo de la versión
+                ;;
+            *)
+                # Para otras distros, intentamos un nombre común
+                venv_package_name="python3-venv"
+                mostrar_advertencia "No se conoce el nombre exacto del paquete venv para '$os_id'. Se intentará con '$venv_package_name'."
+                ;;
+        esac
+
+        if [ -n "$venv_package_name" ]; then
+            install_python_package "$venv_package_name"
+        fi
+    fi
+
+    # Re-verificar después de la instalación
     local error_found=0
-    if ! command -v python3 &> /dev/null; then mostrar_error "Python 3 no está instalado..."; error_found=1; fi
-    if ! python3 -c "import venv" &> /dev/null; then mostrar_error "Módulo 'venv' no disponible..."; error_found=1; fi
-    if [ "$error_found" -eq 1 ]; then exit 1; fi
-    log "INFO" "Prerrequisitos verificados."
+    if ! command -v python3 &> /dev/null; then
+        mostrar_error "La instalación de Python 3 falló. No se puede continuar."
+        error_found=1
+    fi
+    if ! python3 -c "import venv" &> /dev/null; then
+        mostrar_error "La instalación del módulo 'venv' falló. No se puede continuar."
+        error_found=1
+    fi
+
+    if [ "$error_found" -eq 1 ]; then
+        exit 1
+    fi
+
+    log "INFO" "Prerrequisitos verificados y cumplidos."
 }
+
+# Nueva función para instalar paquetes de Python según la distro
+install_python_package() {
+    local package_name=$1
+    local os_id
+    os_id=$(grep -E '^ID=' /etc/os-release | cut -d'=' -f2 | tr -d '"')
+
+    mostrar_info "Intentando instalar el paquete '$package_name' para la distro '$os_id'..."
+    log "INFO" "Instalando paquete '$package_name' para distro '$os_id'"
+
+    case "$os_id" in
+        arch)
+            sudo pacman -Syu --noconfirm "$package_name"
+            ;;
+        debian|ubuntu|linuxmint)
+            if [ -z "$APT_UPDATED" ]; then
+                sudo apt-get update
+                APT_UPDATED=true
+            fi
+            sudo apt-get install -y "$package_name"
+            ;;
+        fedora)
+            sudo dnf install -y "$package_name"
+            ;;
+        centos|rhel)
+            sudo yum install -y "$package_name"
+            ;;
+        *)
+            mostrar_error "Distribución '$os_id' no soportada para la instalación automática."
+            log "ERROR" "Distribución '$os_id' no soportada para la instalación automática de '$package_name'."
+            exit 1
+            ;;
+    esac
+
+    if [ $? -ne 0 ]; then
+        mostrar_error "Falló la instalación de '$package_name'. Por favor, instálalo manualmente."
+        log "ERROR" "Falló la instalación de '$package_name' con el gestor de paquetes."
+        exit 1
+    fi
+    mostrar_exito "'$package_name' instalado correctamente."
+    log "INFO" "'$package_name' instalado exitosamente."
+}
+
 # Asegurar que el directorio base de venv exista
 ensure_venv_dir() {
     if [ ! -d "$VENV_DIR" ]; then
