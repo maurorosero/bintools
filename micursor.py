@@ -8,7 +8,7 @@ Script Name: micursor.py
 Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
 Assistant:   Cursor AI (https://cursor.com)
 Created at:  2025-01-27
-Modified:    2025-06-18 14:39:34
+Modified:    2025-07-28 17:24:33
 Description: Un script para ayudar a instalar y desinstalar Cursor AI.
 Version:     0.3.2
 """
@@ -31,6 +31,7 @@ from pathlib import Path
 import re
 import time
 import tempfile
+import distro  # Importar la librería distro
 
 # --- Constantes Globales ---
 APP_NAME = "Instalación y Configuración de Cursor IDE"
@@ -240,9 +241,75 @@ def get_latest_download_url():
     print_error("No se encontró la tabla o la fila de datos esperada en el README después de iterar todas las líneas.")
     return None
 
+def is_arch_linux():
+    """Verifica si el sistema operativo es Arch Linux."""
+    try:
+        distro_id = distro.id()
+        return distro_id.lower() == 'arch'
+    except Exception as e:
+        print_debug(f"No se pudo determinar la distribución de Linux: {e}")
+        return False
+
+def install_aur_helper(helper='yay'):
+    """Guía para instalar un AUR helper si no se encuentra."""
+    print_warning(f"El AUR helper '{helper}' no se encontró.")
+    print_info(f"Para instalar Cursor desde el AUR, necesitas un AUR helper como '{helper}'.")
+    if helper == 'yay':
+        print_info("Puedes instalar 'yay' con los siguientes comandos:")
+        print("  sudo pacman -S --needed base-devel git")
+        print("  git clone https://aur.archlinux.org/yay.git")
+        print("  cd yay")
+        print("  makepkg -si")
+    else:
+        print_info(f"Por favor, consulta la documentación de Arch Linux para instalar '{helper}'.")
+    print_info("\nDespués de instalar el AUR helper, ejecuta este script de nuevo.")
+
+def install_from_aur(package_name="cursor-bin"):
+    """Intenta instalar un paquete desde el AUR usando yay."""
+    aur_helper = "yay"
+    if not shutil.which(aur_helper):
+        install_aur_helper(aur_helper)
+        return False
+
+    print_info(f"Intentando instalar '{package_name}' desde el AUR usando '{aur_helper}'...")
+    try:
+        # Usamos --noconfirm para automatizar, pero esto requiere que el usuario
+        # ya confíe en el proceso.
+        # --needed asegura que no se reinstale si ya está actualizado.
+        subprocess.run([aur_helper, "-S", "--needed", "--noconfirm", package_name], check=True)
+        print_success(f"'{package_name}' instalado/actualizado exitosamente desde el AUR.")
+        return True
+    except FileNotFoundError:
+        # Esto no debería pasar si shutil.which funciona
+        install_aur_helper(aur_helper)
+        return False
+    except subprocess.CalledProcessError as e:
+        print_error(f"Falló la instalación de '{package_name}' desde el AUR con '{aur_helper}'.")
+        print_error(f"Código de retorno: {e.returncode}")
+        print_error(f"Salida: {e.stdout}")
+        print_error(f"Error: {e.stderr}")
+        return False
+    except Exception as e:
+        print_error(f"Ocurrió un error inesperado al usar '{aur_helper}': {e}")
+        return False
+
 def install_linux():
     """Instala Cursor AI en Linux."""
     print_info(f"Iniciando la instalación de {APP_NAME} para Linux...")
+
+    # --- Lógica específica para Arch Linux ---
+    if is_arch_linux():
+        print_info("Se ha detectado Arch Linux.")
+        if install_from_aur():
+            # Si la instalación desde AUR fue exitosa, no necesitamos continuar
+            # con el método AppImage.
+            return
+        else:
+            # Si la instalación desde AUR falla, informamos al usuario y continuamos
+            # con el método de instalación por defecto (AppImage).
+            print_warning("La instalación desde el AUR falló o fue cancelada.")
+            print_info("Continuando con el método de instalación estándar (AppImage)...")
+    # --- Fin de la lógica específica para Arch Linux ---
 
     # No necesitamos verificar si el SO es Linux aquí, ya que esta función solo se llama si es Linux.
     # Crear directorios necesarios
