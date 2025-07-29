@@ -8,7 +8,7 @@ Script Name: micursor.py
 Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
 Assistant:   Cursor AI (https://cursor.com)
 Created at:  2025-01-27
-Modified:    2025-07-28 21:09:47
+Modified:    2025-07-28 21:47:26
 Description: Un script para ayudar a instalar y desinstalar Cursor AI.
 Version:     0.3.2
 """
@@ -94,7 +94,9 @@ def get_readme_content():
 
     print_debug(f"Descargando README.md desde {COMMUNITY_README_URL}...")
     try:
-        with urllib.request.urlopen(COMMUNITY_README_URL) as response:
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+        req = urllib.request.Request(COMMUNITY_README_URL, headers=headers)
+        with urllib.request.urlopen(req) as response:
             if response.status == 200:
                 content = response.read().decode("utf-8")
                 try:
@@ -358,7 +360,9 @@ def install_linux():
     # 2. Descargar el archivo
     try:
         print_info(f"Descargando {file_name}...")
-        with urllib.request.urlopen(download_url) as response, open(temp_download_path, 'wb') as out_file:
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+        req = urllib.request.Request(download_url, headers=headers)
+        with urllib.request.urlopen(req) as response, open(temp_download_path, 'wb') as out_file:
             shutil.copyfileobj(response, out_file)
         print_success("Descarga completada.")
     except Exception as e:
