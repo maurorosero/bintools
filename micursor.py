@@ -8,7 +8,7 @@ Script Name: micursor.py
 Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
 Assistant:   Cursor AI (https://cursor.com)
 Created at:  2025-01-27
-Modified:    2025-07-28 17:24:33
+Modified:    2025-07-28 21:09:47
 Description: Un script para ayudar a instalar y desinstalar Cursor AI.
 Version:     0.3.2
 """
@@ -31,7 +31,6 @@ from pathlib import Path
 import re
 import time
 import tempfile
-import distro  # Importar la librería distro
 
 # --- Constantes Globales ---
 APP_NAME = "Instalación y Configuración de Cursor IDE"
@@ -242,13 +241,32 @@ def get_latest_download_url():
     return None
 
 def is_arch_linux():
-    """Verifica si el sistema operativo es Arch Linux."""
-    try:
-        distro_id = distro.id()
-        return distro_id.lower() == 'arch'
-    except Exception as e:
-        print_debug(f"No se pudo determinar la distribución de Linux: {e}")
-        return False
+    """
+    Verifica si el sistema operativo es Arch Linux sin dependencias externas,
+    leyendo /etc/os-release.
+    """
+    # Esta función solo se llama en sistemas Linux.
+    os_release_path = Path("/etc/os-release")
+    if os_release_path.exists():
+        try:
+            with os_release_path.open(encoding="utf-8") as f:
+                for line in f:
+                    if line.strip().startswith("ID="):
+                        # La línea es como ID=arch o ID="archlinux"
+                        distro_id = line.split("=")[1].strip().lower()
+                        # Quitar comillas
+                        distro_id = distro_id.strip('"\'')
+                        return distro_id == 'arch'
+        except Exception as e:
+            print_debug(f"No se pudo determinar la distribución desde /etc/os-release: {e}")
+
+    # Como fallback, si /etc/os-release falla, podemos buscar la existencia
+    # del gestor de paquetes pacman.
+    if shutil.which("pacman"):
+        print_debug("Detectado 'pacman' en el PATH, asumiendo sistema tipo Arch.")
+        return True
+
+    return False
 
 def install_aur_helper(helper='yay'):
     """Guía para instalar un AUR helper si no se encuentra."""
