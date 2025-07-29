@@ -8,7 +8,7 @@ Script Name: micursor.py
 Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
 Assistant:   Cursor AI (https://cursor.com)
 Created at:  2025-01-27
-Modified:    2025-07-28 21:47:26
+Modified:    2025-07-28 21:55:04
 Description: Un script para ayudar a instalar y desinstalar Cursor AI.
 Version:     0.3.2
 """
@@ -379,7 +379,8 @@ def install_linux():
             # Usar capture_output para evitar que pkill imprima a la consola
             # Usar check=False para no fallar si no hay procesos o pkill no está.
             # El argumento -f busca en toda la línea de comandos, no solo el nombre del proceso.
-            pkill_result = subprocess.run(["pkill", "-f", "cursor"], check=False, capture_output=True, text=True)
+            # Se ha eliminado -f para evitar que el script se mate a sí mismo (`micursor.py`).
+            pkill_result = subprocess.run(["pkill", "cursor"], check=False, capture_output=True, text=True)
             if pkill_result.returncode == 0:
                 print_debug("Señal de terminación enviada a procesos de Cursor.")
             elif pkill_result.returncode == 1: # Código de salida 1 de pkill: no se encontraron procesos
