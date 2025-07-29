@@ -8,7 +8,7 @@ Script Name: micursor.py
 Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
 Assistant:   Cursor AI (https://cursor.com)
 Created at:  2025-01-27
-Modified:    2025-07-28 21:55:04
+Modified:    2025-07-28 22:32:08
 Description: Un script para ayudar a instalar y desinstalar Cursor AI.
 Version:     0.3.2
 """
@@ -48,6 +48,7 @@ LINUX_INSTALL_DIR_BASE = Path.home() / ".local" / "share"
 LINUX_BIN_DIR = Path.home() / ".local" / "bin"
 LINUX_APPS_DIR = Path.home() / ".local" / "share" / "applications"
 LINUX_ICONS_DIR_BASE = Path.home() / ".local" / "share" / "icons" / "hicolor"
+LINUX_CONFIG_DIR = Path.home() / ".config" / "Cursor"
 MACOS_INSTALL_DIR = Path("/Applications")
 MACOS_CONFIG_DIR = Path.home() / "Library" / "Application Support" / "Cursor"
 WINDOWS_INSTALL_DIR_PROGRAMFILES = Path(os.getenv("ProgramFiles", r"C:\Program Files")) / "Cursor"
@@ -550,6 +551,149 @@ def remove_windows():
         print(f" - Considera eliminar el directorio: {WINDOWS_CONFIG_DIR_LOCAL}")
     print(f"   (Puedes acceder a estas rutas pegándolas en la barra de direcciones del Explorador de Archivos, ej. %APPDATA%\\Cursor)")
 
+def backup_login():
+    """Crea un backup de la configuración de Cursor."""
+    print_info("Iniciando la creación del backup de la configuración de Cursor.")
+
+    system = platform.system()
+    source_config_dir = None
+
+    if system == "Linux":
+        source_config_dir = LINUX_CONFIG_DIR
+    elif system == "Darwin":  # macOS
+        source_config_dir = MACOS_CONFIG_DIR
+    elif system == "Windows":
+        source_config_dir = WINDOWS_CONFIG_DIR_ROAMING
+
+    if not source_config_dir or not source_config_dir.exists():
+        print_error(f"No se pudo encontrar el directorio de configuración de Cursor en: {source_config_dir}")
+        print_error("Asegúrate de que Cursor esté instalado y se haya ejecutado al menos una vez.")
+        return
+
+    print_info(f"Directorio de configuración encontrado: {source_config_dir}")
+
+    # Definir el directorio base para los backups
+    backup_base_dir = Path.home() / "secure" / "cursor"
+    # Asegurarse de que el directorio base exista
+    backup_base_dir.mkdir(parents=True, exist_ok=True)
+
+    default_backup_name = f"cursor-config-backup-{time.strftime('%Y%m%d-%H%M%S')}"
+    default_backup_path = backup_base_dir / default_backup_name
+
+    backup_dest_str = input(f"Introduce la ruta completa para guardar el backup (o presiona Enter para usar '{default_backup_path}'): ").strip()
+
+    if not backup_dest_str:
+        backup_dest_path = default_backup_path
+    else:
+        backup_dest_path = Path(backup_dest_str)
+
+    if backup_dest_path.exists():
+        print_error(f"La ruta de destino ya existe: {backup_dest_path}")
+        print_error("Por favor, elige una ruta o nombre de archivo diferente.")
+        return
+
+    try:
+        print_info(f"Copiando configuración a {backup_dest_path}...")
+        shutil.copytree(source_config_dir, backup_dest_path)
+        print_success("¡Backup de la configuración creado exitosamente!")
+        print_info(f"Tu copia de seguridad está en: {backup_dest_path}")
+        print_info("Guarda esta carpeta en un lugar seguro.")
+
+    except Exception as e:
+        print_error(f"Ocurrió un error al crear el backup: {e}")
+
+
+def restore_login():
+    """Restaura la configuración de Cursor desde el backup más reciente."""
+    print_info("Iniciando la restauración de la configuración de Cursor.")
+
+    system = platform.system()
+    target_config_dir = None
+
+    if system == "Linux":
+        target_config_dir = LINUX_CONFIG_DIR
+    elif system == "Darwin":  # macOS
+        target_config_dir = MACOS_CONFIG_DIR
+    elif system == "Windows":
+        target_config_dir = WINDOWS_CONFIG_DIR_ROAMING
+
+    if not target_config_dir:
+        print_error("No se pudo determinar el directorio de configuración para este sistema operativo.")
+        return
+
+    # Buscar el backup más reciente automáticamente
+    backup_base_dir = Path.home() / "secure" / "cursor"
+    if not backup_base_dir.exists():
+        print_error(f"El directorio de backups no existe: {backup_base_dir}")
+        print_info("Por favor, crea un backup primero con --backup-login.")
+        return
+
+    try:
+        backups = sorted(
+            [d for d in backup_base_dir.iterdir() if d.is_dir() and d.name.startswith('cursor-config-backup-')],
+            key=lambda d: d.name,
+            reverse=True
+        )
+        if not backups:
+            print_error(f"No se encontraron backups en {backup_base_dir}")
+            return
+
+        latest_backup = backups[0]
+        print_info(f"Backup más reciente encontrado: {latest_backup}")
+
+    except Exception as e:
+        print_error(f"Error al buscar backups: {e}")
+        return
+
+    # Permitir al usuario confirmar o especificar otra ruta
+    backup_path_str = input(f"Introduce la ruta a tu backup (o presiona Enter para usar el más reciente): ").strip()
+
+    if not backup_path_str:
+        backup_path = latest_backup
+    else:
+        backup_path = Path(backup_path_str)
+
+    if not backup_path.is_dir():
+        print_error(f"La ruta de backup proporcionada no es un directorio válido: {backup_path}")
+        return
+
+    print_warning("¡ADVERTENCIA! Esta acción reemplazará tu configuración actual de Cursor.")
+    print_warning(f"Se eliminará: '{target_config_dir}'")
+    print_warning(f"Y se restaurará desde: '{backup_path}'")
+    confirm = input("¿Estás absolutamente seguro de que quieres continuar? (s/N): ")
+
+    if confirm.lower() != 's':
+        print_info("Operación cancelada por el usuario.")
+        return
+
+    try:
+        # Asegurarse de que Cursor no esté corriendo
+        print_info("Intentando cerrar cualquier instancia de Cursor en ejecución...")
+        pkill_result = subprocess.run(["pkill", "cursor"], check=False, capture_output=True, text=True)
+        if pkill_result.returncode == 0:
+            print_debug("Señal de terminación enviada a procesos de Cursor.")
+            print_info("Esperando 3 segundos para que los procesos se cierren...")
+            time.sleep(3)
+        else:
+            print_debug("No se encontraron instancias de Cursor en ejecución o 'pkill' no está disponible.")
+
+        # Eliminar el directorio de configuración actual si existe
+        if target_config_dir.exists():
+            print_info(f"Eliminando configuración actual en {target_config_dir}...")
+            shutil.rmtree(target_config_dir)
+            print_debug("Directorio de configuración anterior eliminado.")
+
+        # Copiar el directorio de backup al destino
+        print_info(f"Copiando backup desde {backup_path} a {target_config_dir}...")
+        shutil.copytree(backup_path, target_config_dir)
+
+        print_success("¡Configuración de Cursor restaurada exitosamente!")
+        print_info("La próxima vez que inicies Cursor, tu sesión debería estar restaurada.")
+
+    except Exception as e:
+        print_error(f"Ocurrió un error durante el proceso de restauración: {e}")
+
+
 def create_linux_desktop_entry(executable_path: Path):
     print_info(f"Intentando crear entrada .desktop para {executable_path}...")
     # La ruta ejecutable debe estar entre comillas si puede contener espacios
@@ -678,6 +822,8 @@ def main():
     action_group.add_argument("--install", action="store_true", help=f"Realiza la instalación de {APP_NAME} en el sistema.\\nPara Linux, intentará una instalación automatizada.\\nPara macOS y Windows, proporcionará instrucciones detalladas.")
     action_group.add_argument("--remove", action="store_true", help=f"Realiza la desinstalación de {APP_NAME} del sistema.\\nPara Linux, intentará una desinstalación automatizada de los componentes instalados por este script.\\nPara macOS y Windows, proporcionará instrucciones detalladas.")
     action_group.add_argument("--config-mdc", action="store_true", help="Configura los archivos de reglas MDC para Cursor.")
+    action_group.add_argument("--backup-login", action="store_true", help="Crea una copia de seguridad de la configuración de inicio de sesión de Cursor.")
+    action_group.add_argument("--restore-login", action="store_true", help="Restaura la configuración de inicio de sesión desde el backup más reciente.")
 
     if len(sys.argv) == 1: # Si no se pasan argumentos, muestra la ayuda y sale.
         parser.print_help(sys.stderr)
@@ -713,6 +859,12 @@ def main():
     elif args.config_mdc:
         if not config_mdc():
             sys.exit(1)
+
+    elif args.backup_login:
+        backup_login()
+
+    elif args.restore_login:
+        restore_login()
 
 if __name__ == "__main__":
     # Definiciones placeholder para las funciones de impresión si no existen en el contexto completo
