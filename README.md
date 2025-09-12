@@ -1,13 +1,16 @@
-# micursor.py - Gestor de Cursor IDE
+# bintools - Herramientas de Desarrollo
+
+## micursor.py - Gestor de Cursor IDE
 
 ![Python](https://img.shields.io/badge/Python-3.7+-blue.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey.svg)
 
-Una herramienta completa para la instalación, desinstalación y gestión de configuración de **Cursor IDE** en múltiples sistemas operativos.
+Una colección de herramientas de desarrollo útiles para Linux, incluyendo un gestor completo para **Cursor IDE** y otros scripts de utilidad.
 
-## 🚀 Características
+## 🛠️ Herramientas Incluidas
 
+### micursor.py - Gestor de Cursor IDE
 - ✅ **Instalación automática** en Linux (especialmente Arch Linux con AUR)
 - ✅ **Desinstalación completa** con limpieza de archivos
 - ✅ **Gestión de configuración** con backup y restore
@@ -15,6 +18,13 @@ Una herramienta completa para la instalación, desinstalación y gestión de con
 - ✅ **Multiplataforma** (Linux, macOS, Windows)
 - ✅ **Detección automática** de sistema operativo y arquitectura
 - ✅ **Descarga inteligente** de la última versión disponible
+
+### Otros Scripts de Utilidad
+- **fix_hdmi_audio.sh** - Soluciona problemas de audio HDMI
+- **hexroute** - Herramienta para manejo de rutas hexadecimales
+- **nextcloud-installer.sh** - Instalador automatizado de Nextcloud
+- **pymanager.sh** - Gestor de entornos Python
+- **videoset.sh** - Configurador de resoluciones de video
 
 ## 📋 Requisitos
 
@@ -26,8 +36,8 @@ Una herramienta completa para la instalación, desinstalación y gestión de con
 
 ```bash
 # Clonar el repositorio
-git clone https://github.com/mrosero/micursor.git
-cd micursor
+git clone https://github.com/maurorosero/bintools.git
+cd bintools
 
 # Hacer ejecutable el script
 chmod +x micursor.py
@@ -84,13 +94,16 @@ python micursor.py --config-mdc
 ## 📁 Estructura del Proyecto
 
 ```
-micursor/
-├── micursor.py          # Script principal
+bintools/
+├── micursor.py          # Gestor de Cursor IDE
+├── fix_hdmi_audio.sh    # Script para arreglar audio HDMI
+├── hexroute             # Herramienta de rutas hexadecimales
+├── nextcloud-installer.sh # Instalador de Nextcloud
+├── pymanager.sh         # Gestor de Python
+├── videoset.sh          # Configurador de video
 ├── README.md            # Este archivo
 ├── .gitignore           # Archivos ignorados por Git
-└── config/              # Archivos de configuración MDC (si existe)
-    ├── *.mdc.def        # Plantillas de reglas
-    └── .cursorrules.def # Plantilla de reglas principales
+└── LICENSE              # Licencia MIT
 ```
 
 ## 🔧 Funcionalidades Detalladas
@@ -144,7 +157,7 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 
 **Mauro Rosero Pérez**
 - Email: mauro.rosero@gmail.com
-- GitHub: [@mrosero](https://github.com/mrosero)
+- GitHub: [@maurorosero](https://github.com/maurorosero)
 
 ## 🙏 Agradecimientos
 
@@ -156,7 +169,7 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 
 Si encuentras algún problema o tienes sugerencias:
 
-1. Abre un [Issue](https://github.com/mrosero/micursor/issues)
+1. Abre un [Issue](https://github.com/maurorosero/bintools/issues)
 2. Contacta al autor por email
 3. Revisa la documentación de [Cursor IDE](https://cursor.com/docs)
 
