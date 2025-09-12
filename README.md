@@ -35,8 +35,12 @@ Una colección de herramientas de desarrollo útiles para Linux, incluyendo un g
 ## 🛠️ Instalación
 
 ```bash
-# Clonar el repositorio
+# Clonar el repositorio (HTTPS)
 git clone https://github.com/maurorosero/bintools.git
+cd bintools
+
+# O usando SSH (recomendado)
+git clone git@github.com:maurorosero/bintools.git
 cd bintools
 
 # Hacer ejecutable el script
