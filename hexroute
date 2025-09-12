@@ -1,0 +1,134 @@
+#!/bin/bash
+######################################################################
+#
+#  hexroute - Convert human readable routes to dhcpd static route info
+#             for Windows(r) clients
+#
+#  Copyright (c) 2005-2015 Karl McMurdo
+#
+#  Freely distributable, but please keep header intact
+#
+#  Update: May 10, 2015 Change Max Quad to 255
+#
+######################################################################
+
+# Validate and split an IP address into components
+# Args: $1 - IP address, $2 - Array name to store components
+function split_ipaddr() {
+    # Validate basic format
+    if [ ${1:-X} = X ] || [ "${1}" != ${1//[^.0-9]/} ] || [ "${1//[0-9]/}" != "..." ]; then
+        return 1
+    fi
+
+    local rval=0
+    local t
+    local -a T=([1]="" [2]="" [3]="" [4]="")
+
+    # Split the IP address
+    T[1]=${1%%.*}
+    T[2]=${1#*.}; T[2]=${T[2]%%.*}
+    T[3]=${1#*.*.}; T[3]=${T[3]%%.*}
+    T[4]=${1#*.*.*.}
+
+    # Validate each octet
+    [ ${T[1]} = 0 ] && rval=1
+
+    for t in 1 2 3 4; do
+        [ ${T[${t}]:-999} -gt 255 ] && rval=1
+        eval "${2}[${t}]=${T[${t}]}"
+    done
+
+    return ${rval}
+}
+
+# Constants and configuration
+VERSION="1.0"
+AUTHOR="Karl McMurdo"
+YEAR="2015"
+
+# Usage and help messages
+USAGE='echo -e "Usage: ${0//*\/} [-v|-h] target/bits [gw] gateway [target/bits [gw] gateway ...]\n\n\tie: ${0} 172.16.0.0/16 gw 192.168.1.1\n" && exit 1'
+INFO="HexRoute ${VERSION}    Copyright (c) ${YEAR} ${AUTHOR}
+
+Converts human readable route information to a dhcpd hex string
+
+	-v	Once prints full dhcpd.conf line for route(s)
+		Twice also prints option definiton lines for dhcpd.conf
+	-h	Prints this message
+"
+
+# DHCP configuration strings
+DHCPHDR="# New Option Type for Windows Client Static Routes
+option new-static-routes code 249 = string;"
+DHCPS="option new-static-routes "
+DHCPE=";"
+
+# Error messages
+BADTARG='echo -e "Invalid target network: ${1}" && exit 2'
+BADBITS='echo -e "Invalid Network bit value: ${1}" && exit 3'
+BADGW='echo -e "Invalid Gateway: ${2}" && exit 4'
+
+# Default settings
+VERBOSE=false
+EXTRAVERBOSE=false
+
+# Process command line options
+while [ "${1:0:1}" = "-" ]; do
+    case "${1}" in
+        "-v")
+            $VERBOSE && EXTRAVERBOSE=true
+            VERBOSE=true
+            ;;
+        "-h")
+            echo "${INFO}"
+            eval "${USAGE}"
+            ;;
+        *)
+            eval "${USAGE}"
+            ;;
+    esac
+    shift
+done
+
+# Check if we have enough arguments
+[ ${#} -lt 2 ] && eval "${USAGE}"
+OUT=""
+
+# Process routes
+while [ ${#} -ge 2 ]; do
+    # Parse target network
+    split_ipaddr ${1/\/*/} TARG || eval "${BADTARG}"
+    BITS=${1/*\//}
+    shift
+
+    # Validate bits
+    if [ ${BITS:-X} = X ] || [ "${BITS}" != ${BITS//[^0-9]/} ]; then
+        eval "${BADBITS}"
+    fi
+
+    if [ ${BITS} -gt 32 ] || [ ${BITS} -lt 1 ]; then
+        eval "${BADBITS}"
+    fi
+
+    # Handle optional "gw" keyword
+    [ ${1:-X} = gw ] && shift
+
+    # Parse gateway
+    split_ipaddr ${1:-X} GW || eval "${BADGW}"
+    shift
+
+    # Build output in hex format
+    OUT=${OUT}$( printf ":%02x:%02x" ${BITS} ${TARG[1]} )
+    [ ${BITS} -gt 8 ]  && OUT=${OUT}$( printf ":%02x" ${TARG[2]} )
+    [ ${BITS} -gt 16 ] && OUT=${OUT}$( printf ":%02x" ${TARG[3]} )
+    [ ${BITS} -gt 24 ] && OUT=${OUT}$( printf ":%02x" ${TARG[4]} )
+    OUT=${OUT}$( printf ":%02x:%02x:%02x:%02x" ${GW[@]} )
+done
+
+# Output results
+$EXTRAVERBOSE && echo "${DHCPHDR}"
+if $VERBOSE; then
+    echo ${DHCPS}${OUT/:/}${DHCPE}
+else
+    echo ${OUT/:/}
+fi
