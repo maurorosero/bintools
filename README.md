@@ -84,6 +84,14 @@ curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.s
 curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash -s -- --dir /opt/bintools
 ```
 
+**Lógica de Directorio de Instalación:**
+
+- **Por defecto**: `~/bin` (`$HOME/bin`)
+- **Si `~/bin` existe**: Pregunta si extender ese directorio o usar `~/bintools`
+- **Si `~/bin` no existe**: Se crea `~/bin` automáticamente
+- **Directorio personalizado**: Usa `--dir /ruta/personalizada`
+- **PATH automático**: Se agrega automáticamente a tu PATH en `~/.bashrc` o `~/.zshrc`
+
 ### Método 2: Clonado Manual (Para Desarrollo)
 
 ```bash
