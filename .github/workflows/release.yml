@@ -1,0 +1,120 @@
+name: Create Release Package
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up environment
+        run: |
+          # Extraer versión del tag
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Building release for version: $VERSION"
+      
+      - name: Create release package
+        run: |
+          # Crear directorio para el paquete
+          mkdir -p "bintools-${VERSION}"
+          
+          # Copiar archivos principales
+          cp packages.sh "bintools-${VERSION}/"
+          cp micursor.py "bintools-${VERSION}/"
+          cp pymanager.sh "bintools-${VERSION}/"
+          cp fix_hdmi_audio.sh "bintools-${VERSION}/"
+          cp videoset.sh "bintools-${VERSION}/"
+          cp nextcloud-installer.sh "bintools-${VERSION}/"
+          cp hexroute "bintools-${VERSION}/"
+          
+          # Copiar directorio de configuraciones
+          cp -r configs "bintools-${VERSION}/"
+          
+          # Crear archivo de versión
+          echo "${VERSION}" > "bintools-${VERSION}/VERSION"
+          
+          # Crear archivo de información del release
+          cat > "bintools-${VERSION}/RELEASE_INFO" << EOF
+          bintools ${VERSION}
+          Released: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          Repository: https://github.com/maurorosero/bintools
+          Install: curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash -s -- --version ${VERSION}
+          EOF
+          
+          # Crear paquete tar.gz
+          tar -czf "bintools-${VERSION}.tar.gz" "bintools-${VERSION}/"
+          
+          # Mostrar contenido del paquete
+          echo "Package contents:"
+          tar -tzf "bintools-${VERSION}.tar.gz"
+          
+          # Mostrar tamaño del paquete
+          echo "Package size: $(du -h bintools-${VERSION}.tar.gz | cut -f1)"
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            bintools-${VERSION}.tar.gz
+          body: |
+            ## bintools ${VERSION}
+            
+            ### Installation
+            ```bash
+            # Install this specific version
+            curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash -s -- --version ${VERSION}
+            
+            # Install latest version
+            curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash
+            ```
+            
+            ### What's included
+            - 📦 **packages.sh**: Multiplatform package installer
+            - 🎯 **micursor.py**: Cursor IDE manager
+            - 🐍 **pymanager.sh**: Python environment manager
+            - 🔧 **fix_hdmi_audio.sh**: HDMI audio fixer
+            - 🖥️ **videoset.sh**: Display configuration
+            - ☁️ **nextcloud-installer.sh**: Nextcloud backup manager
+            - 🌐 **hexroute**: Network route converter
+            - ⚙️ **configs/**: Package configuration files
+            
+            ### Package Contents
+            ```
+            bintools-${VERSION}/
+            ├── packages.sh
+            ├── micursor.py
+            ├── pymanager.sh
+            ├── fix_hdmi_audio.sh
+            ├── videoset.sh
+            ├── nextcloud-installer.sh
+            ├── hexroute
+            ├── configs/
+            │   ├── base.pkg
+            │   ├── devs.pkg
+            │   ├── orgs.pkg
+            │   └── user.pkg
+            ├── VERSION
+            └── RELEASE_INFO
+            ```
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Update latest symlink
+        run: |
+          # Crear un symlink simbólico para 'latest'
+          ln -sf "bintools-${VERSION}.tar.gz" "bintools-latest.tar.gz"
+          
+          # Subir el symlink como asset adicional
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary @bintools-latest.tar.gz \
+            "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ github.event.release.id }}/assets?name=bintools-latest.tar.gz"
