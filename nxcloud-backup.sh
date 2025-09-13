@@ -32,6 +32,7 @@ show_help() {
     echo "  --restore NOMBRE      Restaurar backup específico"
     echo "  --list                Listar backups disponibles"
     echo "  --secure              Configurar sincronización de carpeta ~/secure"
+    echo "  --clean               Limpiar entradas duplicadas de ~/secure"
     echo "  --help                Mostrar esta ayuda"
     echo ""
     echo "Ejemplos:"
@@ -40,6 +41,7 @@ show_help() {
     echo "  $0 --restore backup1  # Restaurar backup específico"
     echo "  $0 --list             # Listar backups disponibles"
     echo "  $0 --secure           # Configurar sync de ~/secure con Nextcloud"
+    echo "  $0 --clean            # Limpiar duplicados de configuración"
     echo ""
     echo "Ubicación de backups: $BACKUP_DIR"
 }
@@ -334,87 +336,155 @@ configure_secure_sync() {
     
     echo "⚠️  La carpeta ~/secure no está sincronizada con Nextcloud"
     echo ""
-    echo "🤖 CONFIGURACIÓN AUTOMÁTICA"
-    echo "==========================="
+    echo "🔧 CONFIGURACIÓN NECESARIA"
+    echo "=========================="
     echo ""
-    echo -n "¿Quieres que configure automáticamente la sincronización de ~/secure? (Y/n): "
-    read -r auto_response
+    echo "ℹ️  NOTA: Nextcloud requiere configuración manual desde la interfaz gráfica."
+    echo "   La configuración automática del archivo no es confiable."
+    echo ""
+    echo "📋 PASOS PARA CONFIGURAR ~/secure:"
+    echo ""
+    echo "1. 📱 Abre el cliente de Nextcloud:"
+    echo "   • Busca el icono en la bandeja del sistema (área de notificaciones)"
+    echo "   • O ejecuta: nextcloud &"
+    echo ""
+    echo "2. ⚙️  En el cliente de Nextcloud:"
+    echo "   • Haz clic en el icono de configuración (⚙️)"
+    echo "   • Ve a la pestaña 'Sincronización' o 'Folders'"
+    echo ""
+    echo "3. 📁 Agregar nueva carpeta:"
+    echo "   • Busca el botón 'Agregar carpeta' o 'Add Folder Sync Connection'"
+    echo "   • Haz clic para agregar una nueva sincronización"
+    echo ""
+    echo "4. 🗂️  Configurar rutas:"
+    echo "   • Carpeta local: $secure_dir"
+    echo "   • Carpeta remota: /secure"
+    echo "   • Deja las otras opciones por defecto"
+    echo ""
+    echo "5. ✅ Confirmar:"
+    echo "   • Haz clic en 'Agregar' o 'Add'"
+    echo "   • Espera a que aparezca en la lista de carpetas sincronizadas"
+    echo ""
+    echo "💡 CONSEJOS:"
+    echo "   • Si no ves el icono de Nextcloud, puede que necesites iniciarlo"
+    echo "   • La carpeta /secure se creará automáticamente en tu servidor"
+    echo "   • La sincronización puede tardar unos minutos en comenzar"
+    echo ""
+    echo -n "¿Quieres que abra el cliente de Nextcloud ahora? (Y/n): "
+    read -r open_response
     
-    if [[ "$auto_response" =~ ^[Nn]$ ]]; then
+    if [[ ! "$open_response" =~ ^[Nn]$ ]]; then
         echo ""
-        echo "🔧 CONFIGURACIÓN MANUAL"
-        echo "======================="
-        echo ""
-        echo "Para sincronizar ~/secure con Nextcloud manualmente:"
-        echo ""
-        echo "1. 📱 Abre el cliente de Nextcloud (icono en la bandeja del sistema)"
-        echo "2. ⚙️  Ve a 'Configuración' → 'Sincronización'"
-        echo "3. 📁 Haz clic en 'Agregar carpeta'"
-        echo "4. 🗂️  Carpeta local: $secure_dir"
-        echo "5. 🌐 Carpeta remota: /secure"
-        echo "6. ✅ Confirma para agregar"
-        echo ""
+        echo "🚀 Abriendo cliente de Nextcloud..."
+        if command -v nextcloud >/dev/null 2>&1; then
+            nextcloud &
+            echo "✅ Cliente Nextcloud iniciado"
+            echo "   Busca la ventana del cliente para continuar con la configuración"
+        else
+            echo "❌ No se pudo encontrar el comando 'nextcloud'"
+            echo "   Busca manualmente el icono en la bandeja del sistema"
+        fi
+    fi
+    
+    echo ""
+    echo "🔍 VERIFICACIÓN:"
+    echo "   Una vez configurado, ejecuta '$0 --secure' para verificar"
+    echo "   que la sincronización esté activa."
+}
+
+# Función para limpiar entradas duplicadas de secure
+clean_secure_duplicates() {
+    echo "🧹 LIMPIEZA DE ENTRADAS DUPLICADAS"
+    echo "================================="
+    echo ""
+    
+    local secure_dir="$USER_HOME/secure"
+    local config_file="$USER_HOME/.config/Nextcloud/nextcloud.cfg"
+    
+    if [[ ! -f "$config_file" ]]; then
+        echo "❌ ERROR: No se encontró el archivo de configuración"
+        return 1
+    fi
+    
+    echo "🔍 Buscando entradas duplicadas para ~/secure..."
+    
+    # Buscar todas las entradas de secure
+    local secure_entries=$(grep -n "localPath=${secure_dir}/" "$config_file" | cut -d: -f1)
+    local entry_count=$(echo "$secure_entries" | wc -l)
+    
+    if [[ $entry_count -le 1 ]]; then
+        echo "✅ No se encontraron entradas duplicadas"
+        return 0
+    fi
+    
+    echo "⚠️  Se encontraron $entry_count entradas para ~/secure"
+    echo ""
+    echo "📋 Entradas encontradas:"
+    grep -E "Folders\\\\[0-9]+\\\\localPath=${secure_dir}/" "$config_file" | sed 's/.*Folders\\\\\\([0-9]\\+\\).*/  • Carpeta #\\1/'
+    echo ""
+    echo -n "¿Quieres limpiar las entradas duplicadas dejando solo una? (Y/n): "
+    read -r clean_response
+    
+    if [[ "$clean_response" =~ ^[Nn]$ ]]; then
+        echo "✅ Se mantienen todas las entradas como están"
         return 0
     fi
     
     echo ""
-    echo "🔧 Configurando sincronización automática..."
+    echo "🔧 Limpiando entradas duplicadas..."
     
-    # Crear backup de la configuración
-    local config_backup="${config_file}.backup.$(date +%Y%m%d_%H%M%S)"
-    echo "💾 Creando backup de configuración: $config_backup"
-    cp "$config_file" "$config_backup"
+    # Crear backup
+    local backup_file="${config_file}.backup.cleanup.$(date +%Y%m%d_%H%M%S)"
+    echo "💾 Creando backup: $backup_file"
+    cp "$config_file" "$backup_file"
     
-    # Encontrar el próximo número de carpeta disponible
-    local next_folder_num=$(grep -oE "0\\\\Folders\\\\[0-9]+" "$config_file" | grep -oE "[0-9]+" | sort -n | tail -1)
-    next_folder_num=$((next_folder_num + 1))
+    # Encontrar la primera entrada (la que funciona)
+    local first_folder_num=$(grep -E "Folders\\\\[0-9]+\\\\localPath=${secure_dir}/" "$config_file" | head -1 | sed 's/.*Folders\\\\\\([0-9]\\+\\).*/\\1/')
     
-    echo "📁 Agregando carpeta ~/secure como carpeta #$next_folder_num"
+    echo "✅ Manteniendo carpeta #$first_folder_num (la primera/funcional)"
     
-    # Generar un ID único para el journal (8 caracteres hex)
-    local journal_id=$(openssl rand -hex 6 | cut -c1-12)
+    # Remover todas las otras entradas de secure
+    local temp_file=$(mktemp)
+    local removing_folder=""
+    local skip_lines=0
     
-    # Agregar la nueva configuración de carpeta al archivo
-    echo "" >> "$config_file"
-    echo "0\\Folders\\${next_folder_num}\\ignoreHiddenFiles=false" >> "$config_file"
-    echo "0\\Folders\\${next_folder_num}\\journalPath=.sync_${journal_id}.db" >> "$config_file"
-    echo "0\\Folders\\${next_folder_num}\\localPath=${secure_dir}/" >> "$config_file"
-    echo "0\\Folders\\${next_folder_num}\\paused=false" >> "$config_file"
-    echo "0\\Folders\\${next_folder_num}\\targetPath=/secure" >> "$config_file"
-    echo "0\\Folders\\${next_folder_num}\\version=2" >> "$config_file"
-    echo "0\\Folders\\${next_folder_num}\\virtualFilesMode=off" >> "$config_file"
+    while IFS= read -r line; do
+        # Detectar inicio de una carpeta de secure que no es la primera
+        if [[ "$line" =~ Folders\\\\([0-9]+)\\\\.*= ]] && [[ "$line" =~ localPath=${secure_dir}/ ]] && [[ "${BASH_REMATCH[1]}" != "$first_folder_num" ]]; then
+            removing_folder="${BASH_REMATCH[1]}"
+            echo "🗑️  Removiendo carpeta #$removing_folder"
+            skip_lines=7  # Saltar las próximas 6 líneas de esta carpeta
+            continue
+        fi
+        
+        # Si estamos removiendo una carpeta, saltar líneas relacionadas
+        if [[ -n "$removing_folder" ]] && [[ "$line" =~ Folders\\\\${removing_folder}\\\\ ]]; then
+            ((skip_lines--))
+            if [[ $skip_lines -le 0 ]]; then
+                removing_folder=""
+            fi
+            continue
+        fi
+        
+        # Si no estamos saltando líneas, mantener la línea
+        if [[ $skip_lines -le 0 ]]; then
+            echo "$line" >> "$temp_file"
+        else
+            ((skip_lines--))
+        fi
+    done < "$config_file"
     
-    echo "✅ Configuración agregada exitosamente!"
-    echo ""
-    echo "🔄 Reiniciando cliente Nextcloud para aplicar cambios..."
+    # Reemplazar el archivo original
+    mv "$temp_file" "$config_file"
     
-    # Cerrar y reiniciar Nextcloud
-    if pgrep -x "nextcloud" > /dev/null; then
-        echo "🛑 Cerrando cliente Nextcloud..."
-        pkill -x "nextcloud" 2>/dev/null || true
-        sleep 2
-    fi
-    
-    echo "🚀 Iniciando cliente Nextcloud..."
-    nohup nextcloud > /dev/null 2>&1 &
-    sleep 1
-    
-    echo ""
-    echo "✅ ¡CONFIGURACIÓN COMPLETADA!"
-    echo "=========================="
+    echo "✅ Limpieza completada!"
     echo ""
     echo "📋 Resumen:"
-    echo "  ✓ Carpeta local: $secure_dir/"
-    echo "  ✓ Carpeta remota: /secure"
-    echo "  ✓ Backups en: $secure_dir/nextcloud/"
-    echo "  ✓ Cliente Nextcloud reiniciado"
+    echo "  ✓ Entrada mantenida: Carpeta #$first_folder_num"
+    echo "  ✓ Entradas removidas: $(($entry_count - 1))"
+    echo "  ✓ Backup creado: $backup_file"
     echo ""
-    echo "📝 IMPORTANTE:"
-    echo "  • La sincronización puede tardar unos minutos en iniciar"
-    echo "  • Verifica en el cliente Nextcloud que aparezca la carpeta 'secure'"
-    echo "  • Los backups creados se sincronizarán automáticamente"
-    echo ""
-    echo "🔍 Para verificar: ejecuta '$0 --secure' nuevamente"
+    echo "🔄 Es recomendable reiniciar Nextcloud para aplicar los cambios"
 }
 
 # Procesamiento de argumentos
@@ -432,6 +502,9 @@ case "${1:-}" in
         ;;
     --secure)
         configure_secure_sync
+        ;;
+    --clean)
+        clean_secure_duplicates
         ;;
     --help|-h)
         show_help
