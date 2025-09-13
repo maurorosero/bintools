@@ -116,10 +116,25 @@ read_config() {
     local config_file="$1"
     local key="$2"
     
-    # Leer valor de una clave específica del YAML
-    awk "/^$key:/{flag=1;next}/^[a-zA-Z]/{flag=0}flag && /^[[:space:]]*-/{print \$0}" "$config_file" | \
-    sed 's/^\s*-\s*//' | \
-    sed 's/^"//' | sed 's/"$//'
+    # Manejar claves anidadas como optional_files.documentation
+    if [[ "$key" == *"."* ]]; then
+        local parent_key="${key%.*}"
+        local child_key="${key##*.}"
+        
+        # Buscar la sección padre y luego la clave hija
+        awk "
+        /^$parent_key:/ { parent_found=1; next }
+        parent_found && /^[a-zA-Z]/ && !/^[[:space:]]/ { parent_found=0 }
+        parent_found && /^[[:space:]]*$child_key:/ { child_found=1; next }
+        parent_found && child_found && /^[[:space:]]*[a-zA-Z]/ && !/^[[:space:]]*-/ { child_found=0 }
+        parent_found && child_found && /^[[:space:]]*-/ { print \$0 }
+        " "$config_file" | sed 's/^\s*-\s*//' | sed 's/^"//' | sed 's/"$//'
+    else
+        # Leer valor de una clave específica del YAML (nivel superior)
+        awk "/^$key:/{flag=1;next}/^[a-zA-Z]/{flag=0}flag && /^[[:space:]]*-/{print \$0}" "$config_file" | \
+        sed 's/^\s*-\s*//' | \
+        sed 's/^"//' | sed 's/"$//'
+    fi
 }
 
 # Función para procesar archivos principales
