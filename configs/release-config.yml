@@ -38,7 +38,6 @@ optional_files:
   
   # Archivos de configuración del proyecto
   project_config:
-    - .github/workflows/release.yml
     - configs/release-config.yml
 
 # Configuración por tipo de release

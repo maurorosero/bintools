@@ -210,7 +210,7 @@ create_github_release_direct() {
     package_path=$(./release-builder.sh \
         --type user \
         --output "/tmp/bintools-$version" \
-        --config configs/release-config.yml 2>/dev/null)
+        --config configs/release-config.yml 2>&1 | tail -1)
     
     if [[ ! -f "$package_path" ]]; then
         log "ERROR" "No se pudo crear el paquete de release"
