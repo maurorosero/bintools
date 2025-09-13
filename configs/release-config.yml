@@ -27,12 +27,14 @@ optional_files:
     - README.md
     - LICENSE
     - CHANGELOG.md
+    - install.sh
   
   # Archivos de desarrollo
   development:
     - .gitignore
     - docs/RELEASE.md
     - create-release.sh
+    - delete-release.sh
     - release-builder.sh
     - bintools-manager.sh
     - btfixperms.sh
