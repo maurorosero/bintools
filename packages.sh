@@ -2,7 +2,8 @@
 
 # Script de instalación de paquetes multiplataforma
 # Compatible con Ubuntu, Debian, Fedora, CentOS, Arch Linux y macOS
-# Autor: mrosero
+# Autor: Mauro Rosero Pérez
+# Website: https://mauro.rosero.one
 # Versión: 1.0
 
 set -euo pipefail

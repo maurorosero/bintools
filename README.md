@@ -503,6 +503,7 @@ MIT License - Puedes usar, modificar y distribuir libremente.
 
 ### Mauro Rosero Pérez
 
+- Website: [mauro.rosero.one](https://mauro.rosero.one)
 - Email: [mauro.rosero@gmail.com](mailto:mauro.rosero@gmail.com)
 - GitHub: [@maurorosero](https://github.com/maurorosero)
 
@@ -527,5 +528,6 @@ Para información detallada sobre desarrollo:
 Si tienes problemas o sugerencias:
 
 1. Abre un [Issue](https://github.com/maurorosero/bintools/issues)
-2. Contacta al autor por email
-3. Revisa la documentación de las herramientas específicas
+2. Visita [mauro.rosero.one](https://mauro.rosero.one) para más información
+3. Contacta al autor por email
+4. Revisa la documentación de las herramientas específicas
