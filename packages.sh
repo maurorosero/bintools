@@ -142,15 +142,47 @@ install_package() {
             if ! sudo apt update >/dev/null 2>&1; then
                 log "WARNING" "No se pudo actualizar la lista de paquetes"
             fi
-            if sudo apt install -y "$package"; then
-                log "SUCCESS" "Instalado: $package"
-                return 0
+            # Verificar si el paquete ya está instalado
+            if dpkg -l "$package" >/dev/null 2>&1; then
+                # Verificar si hay actualizaciones disponibles
+                if apt list --upgradable 2>/dev/null | grep -q "^$package/"; then
+                    log "INFO" "Actualizando $package (hay actualizaciones disponibles)"
+                    if sudo apt install -y "$package"; then
+                        log "SUCCESS" "Actualizado: $package"
+                        return 0
+                    fi
+                else
+                    log "INFO" "Paquete $package ya está actualizado"
+                    return 0
+                fi
+            else
+                log "INFO" "Instalando $package (no está instalado)"
+                if sudo apt install -y "$package"; then
+                    log "SUCCESS" "Instalado: $package"
+                    return 0
+                fi
             fi
             ;;
         dnf)
-            if sudo dnf install -y "$package"; then
-                log "SUCCESS" "Instalado: $package"
-                return 0
+            # Verificar si el paquete ya está instalado
+            if rpm -q "$package" >/dev/null 2>&1; then
+                # Verificar si hay actualizaciones disponibles
+                if dnf check-update "$package" >/dev/null 2>&1; then
+                    log "INFO" "Actualizando $package (hay actualizaciones disponibles)"
+                    if sudo dnf update -y "$package"; then
+                        log "SUCCESS" "Actualizado: $package"
+                        return 0
+                    fi
+                else
+                    log "INFO" "Paquete $package ya está actualizado"
+                    return 0
+                fi
+            else
+                log "INFO" "Instalando $package (no está instalado)"
+                if sudo dnf install -y "$package"; then
+                    log "SUCCESS" "Instalado: $package"
+                    return 0
+                fi
             fi
             ;;
         yum)
@@ -162,35 +194,68 @@ install_package() {
         pacman)
             # Verificar si el paquete ya está instalado
             if pacman -Q "$package" >/dev/null 2>&1; then
-                log "INFO" "Paquete $package ya está instalado"
-                return 0
-            fi
-            if sudo pacman -S --noconfirm "$package"; then
-                log "SUCCESS" "Instalado: $package"
-                return 0
+                # Verificar si hay actualizaciones disponibles
+                if pacman -Qu "$package" >/dev/null 2>&1; then
+                    log "INFO" "Actualizando $package (hay actualizaciones disponibles)"
+                    if sudo pacman -S --noconfirm "$package"; then
+                        log "SUCCESS" "Actualizado: $package"
+                        return 0
+                    fi
+                else
+                    log "INFO" "Paquete $package ya está actualizado"
+                    return 0
+                fi
+            else
+                log "INFO" "Instalando $package (no está instalado)"
+                if sudo pacman -S --noconfirm "$package"; then
+                    log "SUCCESS" "Instalado: $package"
+                    return 0
+                fi
             fi
             ;;
         yay)
             if command -v yay >/dev/null 2>&1; then
                 # Verificar si el paquete ya está instalado
                 if yay -Q "$package" >/dev/null 2>&1; then
-                    log "INFO" "Paquete $package ya está instalado"
-                    return 0
-                fi
-                if yay -S --noconfirm "$package"; then
-                    log "SUCCESS" "Instalado: $package"
-                    return 0
+                    # Verificar si hay actualizaciones disponibles
+                    if yay -Qu "$package" >/dev/null 2>&1; then
+                        log "INFO" "Actualizando $package (hay actualizaciones disponibles)"
+                        if yay -S --noconfirm "$package"; then
+                            log "SUCCESS" "Actualizado: $package"
+                            return 0
+                        fi
+                    else
+                        log "INFO" "Paquete $package ya está actualizado"
+                        return 0
+                    fi
+                else
+                    log "INFO" "Instalando $package (no está instalado)"
+                    if yay -S --noconfirm "$package"; then
+                        log "SUCCESS" "Instalado: $package"
+                        return 0
+                    fi
                 fi
             else
                 log "WARNING" "yay no está instalado, intentando con pacman para: $package"
                 # Verificar si el paquete ya está instalado con pacman
                 if pacman -Q "$package" >/dev/null 2>&1; then
-                    log "INFO" "Paquete $package ya está instalado"
-                    return 0
-                fi
-                if sudo pacman -S --noconfirm "$package"; then
-                    log "SUCCESS" "Instalado: $package (con pacman)"
-                    return 0
+                    # Verificar si hay actualizaciones disponibles
+                    if pacman -Qu "$package" >/dev/null 2>&1; then
+                        log "INFO" "Actualizando $package (hay actualizaciones disponibles)"
+                        if sudo pacman -S --noconfirm "$package"; then
+                            log "SUCCESS" "Actualizado: $package (con pacman)"
+                            return 0
+                        fi
+                    else
+                        log "INFO" "Paquete $package ya está actualizado"
+                        return 0
+                    fi
+                else
+                    log "INFO" "Instalando $package (no está instalado)"
+                    if sudo pacman -S --noconfirm "$package"; then
+                        log "SUCCESS" "Instalado: $package (con pacman)"
+                        return 0
+                    fi
                 fi
             fi
             ;;
