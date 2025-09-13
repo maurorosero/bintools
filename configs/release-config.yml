@@ -8,7 +8,7 @@ main_files:
   - pymanager.sh
   - fix_hdmi_audio.sh
   - videoset.sh
-  - nextcloud-installer.sh
+  - nxcloud-backup.sh
   - hexroute
 
 # Directorios que se incluyen completos

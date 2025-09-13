@@ -40,14 +40,14 @@ jobs:
           mkdir -p "/tmp/bintools-release"
           
           # Procesar configuración y crear paquete
-          ./release-builder.sh \
+          PACKAGE_PATH=$(./release-builder.sh \
             --type user \
             --output "/tmp/bintools-release/bintools-${VERSION}" \
             --config configs/release-config.yml \
-            --verbose
+            --verbose)
           
           # Mover el paquete al directorio de trabajo
-          mv "/tmp/bintools-release/bintools-${VERSION}.tar.gz" .
+          mv "$PACKAGE_PATH" "bintools-${VERSION}.tar.gz"
           
           # Limpiar directorio temporal
           rm -rf "/tmp/bintools-release"
