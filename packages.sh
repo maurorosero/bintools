@@ -21,15 +21,46 @@ DRY_RUN=false
 VERBOSE=false
 LIST=""
 
+# Función para mostrar listas disponibles dinámicamente
+show_available_lists() {
+    for pkg_file in "$CONFIG_DIR"/*.pkg; do
+        if [[ -f "$pkg_file" ]]; then
+            local pkg_name=$(basename "$pkg_file" .pkg)
+            local description=""
+            
+            # Intentar obtener descripción del primer comentario del archivo
+            local first_comment=$(grep -m 1 "^#.*[a-zA-Z]" "$pkg_file" 2>/dev/null | sed 's/^#\s*//')
+            if [[ -n "$first_comment" ]]; then
+                description="$first_comment"
+            else
+                description="Paquetes de $pkg_name"
+            fi
+            
+            printf "    %-8s %s\n" "$pkg_name" "$description"
+        fi
+    done
+    echo "    all      Todas las listas disponibles"
+}
+
 # Función para mostrar ayuda
 show_help() {
+    # Generar lista de archivos disponibles dinámicamente
+    local available_lists=""
+    for pkg_file in "$CONFIG_DIR"/*.pkg; do
+        if [[ -f "$pkg_file" ]]; then
+            local pkg_name=$(basename "$pkg_file" .pkg)
+            available_lists="$available_lists$pkg_name, "
+        fi
+    done
+    available_lists="${available_lists%, }, all"  # Remover última coma y agregar 'all'
+    
     cat << EOF
 Uso: $0 [OPCIONES]
 
 Script de instalación de paquetes multiplataforma
 
 OPCIONES:
-    -l, --list LISTA     Lista de paquetes a instalar (base, devs, orgs, user, vbox, all)
+    -l, --list LISTA     Lista de paquetes a instalar ($available_lists)
     -d, --dry-run        Solo mostrar qué se instalaría, sin instalar realmente
     -v, --verbose        Mostrar información detallada
     --install-yay        Instalar yay (AUR helper) en Arch Linux
@@ -46,12 +77,7 @@ EJEMPLOS:
     $0 --install-snap                # Instalar snapd en sistemas compatibles
 
 LISTAS DISPONIBLES:
-    base    Paquetes esenciales del sistema
-    devs    Paquetes para desarrollo
-    orgs    Paquetes para organización/productividad
-    user    Paquetes personalizados del usuario
-    vbox    VirtualBox y Vagrant para virtualización
-    all     Todas las listas disponibles
+$(show_available_lists)
 
 FORMATO DE ARCHIVOS:
     Los archivos de configuración están en configs/ con formato:
@@ -502,7 +528,15 @@ main() {
     # Procesar listas
     local lists
     if [[ "$LIST" == "all" ]]; then
-        lists="base devs orgs user vbox"
+        # Leer dinámicamente todos los archivos .pkg disponibles
+        lists=""
+        for pkg_file in "$CONFIG_DIR"/*.pkg; do
+            if [[ -f "$pkg_file" ]]; then
+                local pkg_name=$(basename "$pkg_file" .pkg)
+                lists="$lists $pkg_name"
+            fi
+        done
+        lists=$(echo "$lists" | xargs)  # Limpiar espacios extra
     else
         lists=$(echo "$LIST" | tr ',' ' ')
     fi

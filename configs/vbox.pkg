@@ -1,4 +1,4 @@
-# Lista de paquetes para VirtualBox y Vagrant
+# VirtualBox y Vagrant para virtualización
 # Formato: OS:Manejador:Paquete:Descripción
 # Para testing y desarrollo con VMs
 
