@@ -29,7 +29,7 @@ Herramientas especializadas para resolver problemas comunes y automatizar tareas
 
 - **`fix_hdmi_audio.sh`**: Soluciona problemas de audio HDMI con PipeWire automáticamente
 - **`videoset.sh`**: Configura resoluciones de pantalla y detecta monitores automáticamente
-- **`nextcloud-installer.sh`**: Gestiona backups y restauración completa de Nextcloud
+- **`nxcloud-backup.sh`**: Gestiona backups y restauración completa de Nextcloud
 - **`hexroute`**: Convierte rutas de red a formato hexadecimal para configuración DHCP
 
 ### 📦 Instalador de Paquetes (`packages.sh`)
@@ -168,7 +168,7 @@ bintools-manager.sh uninstall
 ./videoset.sh --auto
 
 # Backup completo de Nextcloud
-./nextcloud-installer.sh --backup
+./nxcloud-backup.sh --backup
 
 # Convertir rutas de red a formato hexadecimal
 ./hexroute 172.16.0.0/16 gw 192.168.1.1
@@ -366,7 +366,7 @@ echo "ubuntu:apt:htop:Monitor de procesos" >> configs/mitools.pkg
 
 **Uso**: `./videoset.sh --auto`
 
-### `nextcloud-installer.sh` - Gestor de Nextcloud
+### `nxcloud-backup.sh` - Gestor de Nextcloud
 
 **Problema que resuelve**: Backup y restauración de configuración Nextcloud
 
@@ -377,7 +377,7 @@ echo "ubuntu:apt:htop:Monitor de procesos" >> configs/mitools.pkg
 - Gestiona archivos de configuración de forma segura
 - Soporte para múltiples instancias
 
-**Uso**: `./nextcloud-installer.sh --backup`
+**Uso**: `./nxcloud-backup.sh --backup`
 
 ### `hexroute` - Convertidor de Rutas de Red
 

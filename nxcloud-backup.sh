@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# nextcloud-installer.sh - Script para crear, restaurar y gestionar backups de configuración de Nextcloud
+# nxcloud-backup.sh - Script para crear, restaurar y gestionar backups de configuración de Nextcloud
 #
 # Copyright (C) 2025 Mauro Rosero Pérez
 #
@@ -18,7 +18,7 @@
 
 # Configuración básica
 USER_HOME="$HOME"
-BACKUP_DIR="$USER_HOME/.local/share/nextcloud-installer/backups"
+BACKUP_DIR="$USER_HOME/.local/share/nxcloud-backup/backups"
 
 # Función para mostrar ayuda
 show_help() {
