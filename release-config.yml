@@ -1,0 +1,86 @@
+# Configuración de archivos para releases de bintools
+# Autor: Mauro Rosero Pérez
+
+# Archivos principales que se incluyen en todos los releases
+main_files:
+  - packages.sh
+  - micursor.py
+  - pymanager.sh
+  - fix_hdmi_audio.sh
+  - videoset.sh
+  - nextcloud-installer.sh
+  - hexroute
+
+# Directorios que se incluyen completos
+directories:
+  - configs
+
+# Archivos de configuración del proyecto
+config_files:
+  - VERSION
+  - RELEASE_INFO
+
+# Archivos opcionales que se pueden incluir según el tipo de release
+optional_files:
+  # Archivos de documentación
+  documentation:
+    - README.md
+    - INSTALL.md
+    - RELEASE.md
+  
+  # Archivos de desarrollo
+  development:
+    - .gitignore
+    - LICENSE
+    - create-release.sh
+    - test-release.sh
+    - bintools-manager.sh
+  
+  # Archivos de configuración del proyecto
+  project_config:
+    - .github/workflows/release.yml
+    - release-config.yml
+
+# Configuración por tipo de release
+release_types:
+  # Release completo (incluye todo)
+  full:
+    include_main: true
+    include_directories: true
+    include_config: true
+    include_optional:
+      - documentation
+      - development
+      - project_config
+  
+  # Release de usuario (solo lo necesario para usar)
+  user:
+    include_main: true
+    include_directories: true
+    include_config: true
+    include_optional:
+      - documentation
+  
+  # Release mínimo (solo archivos principales)
+  minimal:
+    include_main: true
+    include_directories: true
+    include_config: true
+    include_optional: []
+
+# Configuración por defecto
+default_release_type: "user"
+
+# Patrones de exclusión (archivos que nunca se incluyen)
+exclude_patterns:
+  - "*.tmp"
+  - "*.log"
+  - ".DS_Store"
+  - "Thumbs.db"
+  - "*.swp"
+  - "*.swo"
+  - "*~"
+  - ".env"
+  - "*.key"
+  - "*.pem"
+  - "*.p12"

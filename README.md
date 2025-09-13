@@ -64,7 +64,6 @@ Configura entornos Python de forma profesional.
 - Gestiona paquetes Python de forma organizada
 - Configura alias para acceso rápido
 
-
 ## 🚀 Instalación Rápida
 
 ```bash

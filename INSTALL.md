@@ -3,16 +3,19 @@
 ## 🚀 Instalación Rápida
 
 ### Instalar Última Versión
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash
 ```
 
 ### Instalar Versión Específica
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash -s -- --version v1.0.0
 ```
 
 ### Instalar en Directorio Personalizado
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash -s -- --dir /opt/bintools
 ```
@@ -30,11 +33,13 @@ curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.s
 ## 🎯 Comportamiento del Instalador
 
 ### Directorio de Instalación por Defecto
+
 - **Por defecto**: `~/bin`
 - **Si ~/bin existe**: Pregunta si extender o usar `~/bintools`
 - **Con --dir**: Usa el directorio especificado
 
 ### Configuración Automática
+
 - ✅ Crea directorio de instalación
 - ✅ Descarga archivos necesarios
 - ✅ Configura permisos de ejecución
@@ -44,6 +49,7 @@ curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.s
 ## 🔧 Gestión de Versiones
 
 ### Usar el Gestor de Versiones
+
 ```bash
 # Descargar el gestor
 curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/bintools-manager.sh -o bintools-manager.sh
@@ -62,7 +68,8 @@ chmod +x bintools-manager.sh
 ## 📦 Estructura de Instalación
 
 ### Instalación en ~/bin (por defecto)
-```
+
+```text
 ~/bin/
 ├── packages.sh
 ├── micursor.py
@@ -81,7 +88,8 @@ chmod +x bintools-manager.sh
 ```
 
 ### Instalación en ~/bintools
-```
+
+```text
 ~/bintools/
 ├── packages.sh
 ├── micursor.py
@@ -102,10 +110,12 @@ chmod +x bintools-manager.sh
 ## 🌐 Sistema de Releases
 
 ### Versiones Disponibles
+
 - **latest**: Última versión disponible
 - **v1.0.0, v1.1.0, etc.**: Versiones específicas
 
 ### Crear Nueva Versión (Desarrolladores)
+
 ```bash
 # 1. Actualizar versión
 echo "v1.1.0" > VERSION
@@ -126,6 +136,7 @@ git push origin v1.1.0
 ## 🔍 Verificación de Instalación
 
 ### Verificar Instalación
+
 ```bash
 # Verificar versión instalada
 bintools-manager.sh version
@@ -138,7 +149,9 @@ bintools-manager.sh info
 ```
 
 ### Comandos Disponibles
+
 Después de la instalación, estos comandos estarán disponibles:
+
 - `packages` - Instalador de paquetes multiplataforma
 - `micursor` - Gestor de Cursor IDE
 - `pymanager` - Gestor de entornos Python
@@ -150,6 +163,7 @@ Después de la instalación, estos comandos estarán disponibles:
 ## 🐛 Solución de Problemas
 
 ### Error: "Versión no encontrada"
+
 ```bash
 # Verificar versiones disponibles
 bintools-manager.sh list
@@ -159,12 +173,14 @@ curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.s
 ```
 
 ### Error: "Permisos insuficientes"
+
 ```bash
 # Instalar con sudo si es necesario
 sudo curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | sudo bash
 ```
 
 ### Error: "Directorio no encontrado"
+
 ```bash
 # Verificar instalación
 bintools-manager.sh check
@@ -177,6 +193,7 @@ curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.s
 ## 📞 Soporte
 
 Si tienes problemas con la instalación:
+
 1. Verifica la instalación: `bintools-manager.sh check`
 2. Revisa los logs con `--verbose`
 3. Abre un [Issue](https://github.com/maurorosero/bintools/issues)

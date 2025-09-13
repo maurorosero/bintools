@@ -1,9 +1,8 @@
 name: Create Release Package
 
 on:
-  push:
-    tags:
-      - 'v*'
+  repository_dispatch:
+    types: [create-release]
 
 jobs:
   release:
@@ -16,94 +15,52 @@ jobs:
       
       - name: Set up environment
         run: |
-          # Extraer versión del tag
-          VERSION=${GITHUB_REF#refs/tags/}
+          # Usar versión del payload del dispatch
+          VERSION="${{ github.event.client_payload.version }}"
+          MESSAGE="${{ github.event.client_payload.message }}"
+          DRAFT="${{ github.event.client_payload.draft }}"
+          PRERELEASE="${{ github.event.client_payload.prerelease }}"
+          
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "MESSAGE=$MESSAGE" >> $GITHUB_ENV
+          echo "DRAFT=$DRAFT" >> $GITHUB_ENV
+          echo "PRERELEASE=$PRERELEASE" >> $GITHUB_ENV
+          
           echo "Building release for version: $VERSION"
+          echo "Message: $MESSAGE"
+          echo "Draft: $DRAFT"
+          echo "Prerelease: $PRERELEASE"
       
       - name: Create release package
         run: |
-          # Crear directorio para el paquete
-          mkdir -p "bintools-${VERSION}"
+          # Usar el script de configuración para crear el paquete
+          chmod +x process-release-config.sh
           
-          # Copiar archivos principales
-          cp packages.sh "bintools-${VERSION}/"
-          cp micursor.py "bintools-${VERSION}/"
-          cp pymanager.sh "bintools-${VERSION}/"
-          cp fix_hdmi_audio.sh "bintools-${VERSION}/"
-          cp videoset.sh "bintools-${VERSION}/"
-          cp nextcloud-installer.sh "bintools-${VERSION}/"
-          cp hexroute "bintools-${VERSION}/"
+          # Crear directorio temporal
+          mkdir -p "/tmp/bintools-release"
           
-          # Copiar directorio de configuraciones
-          cp -r configs "bintools-${VERSION}/"
+          # Procesar configuración y crear paquete
+          ./process-release-config.sh \
+            --type user \
+            --output "/tmp/bintools-release/bintools-${VERSION}" \
+            --config release-config.yml \
+            --verbose
           
-          # Crear archivo de versión
-          echo "${VERSION}" > "bintools-${VERSION}/VERSION"
+          # Mover el paquete al directorio de trabajo
+          mv "/tmp/bintools-release/bintools-${VERSION}.tar.gz" .
           
-          # Crear archivo de información del release
-          cat > "bintools-${VERSION}/RELEASE_INFO" << EOF
-          bintools ${VERSION}
-          Released: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          Repository: https://github.com/maurorosero/bintools
-          Install: curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash -s -- --version ${VERSION}
-          EOF
-          
-          # Crear paquete tar.gz
-          tar -czf "bintools-${VERSION}.tar.gz" "bintools-${VERSION}/"
-          
-          # Mostrar contenido del paquete
-          echo "Package contents:"
-          tar -tzf "bintools-${VERSION}.tar.gz"
-          
-          # Mostrar tamaño del paquete
-          echo "Package size: $(du -h bintools-${VERSION}.tar.gz | cut -f1)"
+          # Limpiar directorio temporal
+          rm -rf "/tmp/bintools-release"
       
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            bintools-${VERSION}.tar.gz
-          body: |
-            ## bintools ${VERSION}
-            
-            ### Installation
-            ```bash
-            # Install this specific version
-            curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash -s -- --version ${VERSION}
-            
-            # Install latest version
-            curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash
-            ```
-            
-            ### What's included
-            - 📦 **packages.sh**: Multiplatform package installer
-            - 🎯 **micursor.py**: Cursor IDE manager
-            - 🐍 **pymanager.sh**: Python environment manager
-            - 🔧 **fix_hdmi_audio.sh**: HDMI audio fixer
-            - 🖥️ **videoset.sh**: Display configuration
-            - ☁️ **nextcloud-installer.sh**: Nextcloud backup manager
-            - 🌐 **hexroute**: Network route converter
-            - ⚙️ **configs/**: Package configuration files
-            
-            ### Package Contents
-            ```
-            bintools-${VERSION}/
-            ├── packages.sh
-            ├── micursor.py
-            ├── pymanager.sh
-            ├── fix_hdmi_audio.sh
-            ├── videoset.sh
-            ├── nextcloud-installer.sh
-            ├── hexroute
-            ├── configs/
-            │   ├── base.pkg
-            │   ├── devs.pkg
-            │   ├── orgs.pkg
-            │   └── user.pkg
-            ├── VERSION
-            └── RELEASE_INFO
-            ```
+          tag_name: ${{ github.event.client_payload.version }}
+          name: "bintools ${{ github.event.client_payload.version }}"
+          body: ${{ github.event.client_payload.message }}
+          files: bintools-${{ github.event.client_payload.version }}.tar.gz
+          draft: ${{ github.event.client_payload.draft }}
+          prerelease: ${{ github.event.client_payload.prerelease }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
@@ -117,4 +74,4 @@ jobs:
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             -H "Content-Type: application/octet-stream" \
             --data-binary @bintools-latest.tar.gz \
-            "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ github.event.release.id }}/assets?name=bintools-latest.tar.gz"
+            "https://uploads.github.com/repos/${{ github.repository }}/releases/latest/assets?name=bintools-latest.tar.gz"
