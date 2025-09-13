@@ -88,7 +88,7 @@ arch:pacman:curl:Herramienta para transferir datos desde servidores
 arch:pacman:git:Sistema de control de versiones distribuido
 arch:pacman:wget:Herramienta para descargar archivos desde la web
 arch:pacman:python3:Lenguaje de programación Python 3
-arch:pacman:python3-pip:Gestor de paquetes para Python
+arch:pacman:python-pip:Gestor de paquetes para Python
 arch:pacman:jq:Procesador de JSON desde línea de comandos
 arch:pacman:yq:Procesador de YAML desde línea de comandos
 arch:pacman:gnupg:Implementación de OpenPGP para cifrado

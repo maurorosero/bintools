@@ -160,6 +160,11 @@ install_package() {
             fi
             ;;
         pacman)
+            # Verificar si el paquete ya está instalado
+            if pacman -Q "$package" >/dev/null 2>&1; then
+                log "INFO" "Paquete $package ya está instalado"
+                return 0
+            fi
             if sudo pacman -S --noconfirm "$package"; then
                 log "SUCCESS" "Instalado: $package"
                 return 0
@@ -167,12 +172,22 @@ install_package() {
             ;;
         yay)
             if command -v yay >/dev/null 2>&1; then
+                # Verificar si el paquete ya está instalado
+                if yay -Q "$package" >/dev/null 2>&1; then
+                    log "INFO" "Paquete $package ya está instalado"
+                    return 0
+                fi
                 if yay -S --noconfirm "$package"; then
                     log "SUCCESS" "Instalado: $package"
                     return 0
                 fi
             else
                 log "WARNING" "yay no está instalado, intentando con pacman para: $package"
+                # Verificar si el paquete ya está instalado con pacman
+                if pacman -Q "$package" >/dev/null 2>&1; then
+                    log "INFO" "Paquete $package ya está instalado"
+                    return 0
+                fi
                 if sudo pacman -S --noconfirm "$package"; then
                     log "SUCCESS" "Instalado: $package (con pacman)"
                     return 0
