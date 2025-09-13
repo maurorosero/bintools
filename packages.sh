@@ -166,9 +166,17 @@ install_package() {
             fi
             ;;
         yay)
-            if yay -S --noconfirm "$package"; then
-                log "SUCCESS" "Instalado: $package"
-                return 0
+            if command -v yay >/dev/null 2>&1; then
+                if yay -S --noconfirm "$package"; then
+                    log "SUCCESS" "Instalado: $package"
+                    return 0
+                fi
+            else
+                log "WARNING" "yay no está instalado, intentando con pacman para: $package"
+                if sudo pacman -S --noconfirm "$package"; then
+                    log "SUCCESS" "Instalado: $package (con pacman)"
+                    return 0
+                fi
             fi
             ;;
         brew)
