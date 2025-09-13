@@ -33,6 +33,7 @@ show_help() {
     echo "  --list                Listar backups disponibles"
     echo "  --secure              Configurar sincronización de carpeta ~/secure"
     echo "  --clean               Limpiar entradas duplicadas de ~/secure"
+    echo "  --clean-sync          Limpiar archivos de sincronización no deseados"
     echo "  --help                Mostrar esta ayuda"
     echo ""
     echo "Ejemplos:"
@@ -42,6 +43,7 @@ show_help() {
     echo "  $0 --list             # Listar backups disponibles"
     echo "  $0 --secure           # Configurar sync de ~/secure con Nextcloud"
     echo "  $0 --clean            # Limpiar duplicados de configuración"
+    echo "  $0 --clean-sync       # Limpiar archivos .nextcloudsync.log y .sync_*.db"
     echo ""
     echo "Ubicación de backups: $BACKUP_DIR"
 }
@@ -390,6 +392,9 @@ configure_secure_sync() {
     echo "🔍 VERIFICACIÓN:"
     echo "   Una vez configurado, ejecuta '$0 --secure' para verificar"
     echo "   que la sincronización esté activa."
+    echo ""
+    echo "🧹 LIMPIEZA AUTOMÁTICA:"
+    echo "   Ejecuta '$0 --clean-sync' para limpiar archivos de sync no deseados"
 }
 
 # Función para limpiar entradas duplicadas de secure
@@ -487,6 +492,118 @@ clean_secure_duplicates() {
     echo "🔄 Es recomendable reiniciar Nextcloud para aplicar los cambios"
 }
 
+# Función para limpiar archivos de sincronización no deseados
+clean_sync_files() {
+    echo "🧹 LIMPIEZA DE ARCHIVOS DE SINCRONIZACIÓN"
+    echo "========================================"
+    echo ""
+    
+    local secure_dir="$USER_HOME/secure"
+    
+    if [[ ! -d "$secure_dir" ]]; then
+        echo "❌ ERROR: Carpeta ~/secure no existe"
+        return 1
+    fi
+    
+    echo "🔍 Buscando archivos de sincronización en ~/secure..."
+    
+    # Buscar archivos problemáticos
+    local sync_files=()
+    local found_files=0
+    
+    # Buscar archivos de log de Nextcloud
+    while IFS= read -r -d '' file; do
+        sync_files+=("$file")
+        ((found_files++))
+    done < <(find "$secure_dir" -maxdepth 1 -name ".nextcloudsync*" -print0 2>/dev/null)
+    
+    # Buscar archivos de base de datos de sync
+    while IFS= read -r -d '' file; do
+        sync_files+=("$file")
+        ((found_files++))
+    done < <(find "$secure_dir" -maxdepth 1 -name ".sync_*.db*" -print0 2>/dev/null)
+    
+    # Buscar otros archivos temporales
+    while IFS= read -r -d '' file; do
+        sync_files+=("$file")
+        ((found_files++))
+    done < <(find "$secure_dir" -maxdepth 1 -name ".*.tmp" -o -name ".owncloudsync.log" -print0 2>/dev/null)
+    
+    if [[ $found_files -eq 0 ]]; then
+        echo "✅ No se encontraron archivos de sincronización problemáticos"
+        return 0
+    fi
+    
+    echo "⚠️  Se encontraron $found_files archivos de sincronización que no deberían estar en ~/secure:"
+    echo ""
+    for file in "${sync_files[@]}"; do
+        local basename_file=$(basename "$file")
+        local size=$(du -h "$file" 2>/dev/null | cut -f1 || echo "?")
+        echo "  🗑️  $basename_file ($size)"
+    done
+    
+    echo ""
+    echo "💡 ESTOS ARCHIVOS SON:"
+    echo "  • Archivos de log de Nextcloud (.nextcloudsync.log)"
+    echo "  • Bases de datos de sincronización (.sync_*.db*)"  
+    echo "  • Archivos temporales de sincronización"
+    echo ""
+    echo "🔒 IMPORTANTE: Estos archivos contienen metadatos de sincronización"
+    echo "   pero NO son parte de tus datos personales. Es seguro eliminarlos."
+    echo ""
+    echo -n "¿Quieres eliminar estos archivos de sincronización? (Y/n): "
+    read -r clean_response
+    
+    if [[ "$clean_response" =~ ^[Nn]$ ]]; then
+        echo "✅ Se mantienen los archivos como están"
+        return 0
+    fi
+    
+    echo ""
+    echo "🔧 Eliminando archivos de sincronización..."
+    
+    local removed_count=0
+    local total_size=0
+    
+    for file in "${sync_files[@]}"; do
+        if [[ -f "$file" ]]; then
+            local file_size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file" 2>/dev/null || echo 0)
+            total_size=$((total_size + file_size))
+            
+            if rm "$file" 2>/dev/null; then
+                echo "  ✅ Eliminado: $(basename "$file")"
+                ((removed_count++))
+            else
+                echo "  ❌ Error al eliminar: $(basename "$file")"
+            fi
+        fi
+    done
+    
+    # Convertir bytes a formato legible
+    local readable_size=""
+    if [[ $total_size -gt 1048576 ]]; then
+        readable_size="$(($total_size / 1048576)) MB"
+    elif [[ $total_size -gt 1024 ]]; then
+        readable_size="$(($total_size / 1024)) KB"
+    else
+        readable_size="${total_size} bytes"
+    fi
+    
+    echo ""
+    echo "✅ LIMPIEZA COMPLETADA!"
+    echo "======================"
+    echo ""
+    echo "📋 Resumen:"
+    echo "  ✓ Archivos eliminados: $removed_count de $found_files"
+    echo "  ✓ Espacio liberado: $readable_size"
+    echo ""
+    echo "🔄 PREVENCIÓN FUTURA:"
+    echo "   Estos archivos pueden volver a crearse. Para prevenirlo:"
+    echo "   1. Asegúrate de que Nextcloud esté configurado correctamente"
+    echo "   2. Ejecuta este comando periódicamente: '$0 --clean-sync'"
+    echo "   3. Considera usar un archivo .gitignore si usas git en ~/secure"
+}
+
 # Procesamiento de argumentos
 case "${1:-}" in
     --restore)
@@ -505,6 +622,9 @@ case "${1:-}" in
         ;;
     --clean)
         clean_secure_duplicates
+        ;;
+    --clean-sync)
+        clean_sync_files
         ;;
     --help|-h)
         show_help
