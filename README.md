@@ -7,7 +7,7 @@ Una colección de herramientas esenciales para configurar y mantener sistemas Li
 
 ## 🚀 ¿Qué es bintools?
 
-bintools es un conjunto de scripts que automatizan la instalación y configuración de herramientas esenciales en tu sistema. En lugar de instalar paquete por paquete, simplemente ejecutas un comando y obtienes todo lo que necesitas.
+bintools es un conjunto de scripts que automatizan la instalación, configuración y mantenimiento de herramientas esenciales en tu sistema. Desde instalar paquetes hasta resolver problemas de audio HDMI, bintools simplifica las tareas comunes del sistema operativo.
 
 ## ✨ Características Principales
 
@@ -15,6 +15,9 @@ bintools es un conjunto de scripts que automatizan la instalación y configuraci
 - 🖥️ **Multiplataforma**: Funciona en Ubuntu, Debian, Fedora, CentOS, Arch Linux y macOS
 - 🔧 **Configuración Inteligente**: Detecta automáticamente tu sistema y usa el método correcto
 - 📦 **Paquetes Organizados**: Herramientas agrupadas por categoría (básicas, desarrollo, productividad)
+- 🛠️ **Utilidades del Sistema**: Solución automática de problemas comunes (audio, video, backups)
+- 🐍 **Gestión de Python**: Entornos virtuales profesionales con detección automática
+- 🎯 **Editor con IA**: Instalación y configuración completa de Cursor IDE
 - 🛡️ **Seguro**: Modo de prueba para ver qué se instalará antes de hacerlo
 
 ## 🛠️ Herramientas Incluidas
@@ -54,10 +57,12 @@ Configura entornos Python de forma profesional.
 
 ### 🔧 Utilidades del Sistema
 
-- **`fix_hdmi_audio.sh`**: Soluciona problemas de audio HDMI
-- **`videoset.sh`**: Configura resoluciones de pantalla automáticamente
-- **`nextcloud-installer.sh`**: Gestiona backups de Nextcloud
-- **`hexroute`**: Convierte rutas de red a formato hexadecimal
+Herramientas especializadas para resolver problemas comunes y automatizar tareas del sistema.
+
+- **`fix_hdmi_audio.sh`**: Soluciona problemas de audio HDMI con PipeWire automáticamente
+- **`videoset.sh`**: Configura resoluciones de pantalla y detecta monitores automáticamente
+- **`nextcloud-installer.sh`**: Gestiona backups y restauración completa de Nextcloud
+- **`hexroute`**: Convierte rutas de red a formato hexadecimal para configuración DHCP
 
 ## 🚀 Instalación Rápida
 
@@ -110,6 +115,22 @@ python micursor.py --backup-login
 ./pymanager.sh --create mi-proyecto
 ```
 
+### Usar Utilidades del Sistema
+
+```bash
+# Solucionar problemas de audio HDMI
+./fix_hdmi_audio.sh
+
+# Configurar resoluciones de pantalla automáticamente
+./videoset.sh --auto
+
+# Backup completo de Nextcloud
+./nextcloud-installer.sh --backup
+
+# Convertir rutas de red a formato hexadecimal
+./hexroute 172.16.0.0/16 gw 192.168.1.1
+```
+
 ## 🖥️ Sistemas Soportados
 
 | Sistema | Estado | Manejador de Paquetes |
@@ -153,6 +174,60 @@ python micursor.py --backup-login
 - neofetch (info del sistema)
 - bat, exa (herramientas modernas)
 - Spotify
+
+## 🔧 Utilidades del Sistema Detalladas
+
+### `fix_hdmi_audio.sh` - Solucionador de Audio HDMI
+
+**Problema que resuelve**: Audio HDMI que no funciona en Linux con PipeWire
+
+**¿Qué hace?**
+
+- Detecta automáticamente dispositivos HDMI
+- Configura PipeWire para usar el dispositivo correcto
+- Reinicia servicios de audio automáticamente
+- Funciona con múltiples monitores y tarjetas de audio
+
+**Uso**: `./fix_hdmi_audio.sh`
+
+### `videoset.sh` - Configurador de Pantalla
+
+**Problema que resuelve**: Resoluciones incorrectas o monitores no detectados
+
+**¿Qué hace?**
+
+- Detecta automáticamente todos los monitores conectados
+- Lista resoluciones disponibles
+- Configura la resolución óptima automáticamente
+- Soporte para múltiples monitores
+
+**Uso**: `./videoset.sh --auto`
+
+### `nextcloud-installer.sh` - Gestor de Nextcloud
+
+**Problema que resuelve**: Backup y restauración de configuración Nextcloud
+
+**¿Qué hace?**
+
+- Crea backups completos de configuración
+- Restaura configuración desde backup
+- Gestiona archivos de configuración de forma segura
+- Soporte para múltiples instancias
+
+**Uso**: `./nextcloud-installer.sh --backup`
+
+### `hexroute` - Convertidor de Rutas de Red
+
+**Problema que resuelve**: Configuración de rutas de red en formato hexadecimal para DHCP
+
+**¿Qué hace?**
+
+- Convierte rutas CIDR a formato hexadecimal
+- Genera configuración DHCP automáticamente
+- Soporte para múltiples gateways
+- Formato compatible con routers empresariales
+
+**Uso**: `./hexroute 172.16.0.0/16 gw 192.168.1.1`
 
 ## 🔧 Opciones Avanzadas
 
