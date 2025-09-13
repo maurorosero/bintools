@@ -34,13 +34,13 @@ jobs:
       - name: Create release package
         run: |
           # Usar el script de configuración para crear el paquete
-          chmod +x process-release-config.sh
+          chmod +x release-builder.sh
           
           # Crear directorio temporal
           mkdir -p "/tmp/bintools-release"
           
           # Procesar configuración y crear paquete
-          ./process-release-config.sh \
+          ./release-builder.sh \
             --type user \
             --output "/tmp/bintools-release/bintools-${VERSION}" \
             --config configs/release-config.yml \

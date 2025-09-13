@@ -42,7 +42,7 @@ git push origin main
 git push origin v1.0.0
 
 # 4. Crear paquete manualmente usando el sistema de configuración
-./process-release-config.sh --type user --output /tmp/bintools-v1.0.0
+./release-builder.sh --type user --output /tmp/bintools-v1.0.0
 tar -czf bintools-v1.0.0.tar.gz bintools-v1.0.0/
 
 # 5. Crear release en GitHub
@@ -110,13 +110,13 @@ optional_files:
   documentation:
     - README.md
     - INSTALL.md
-    - RELEASE.md
+    - LICENSE
   
   development:
     - .gitignore
-    - LICENSE
+    - RELEASE.md
     - create-release.sh
-    - test-release.sh
+    - release-builder.sh
     - bintools-manager.sh
   
   project_config:
@@ -181,7 +181,7 @@ Incluye todos los archivos del proyecto:
 **Uso:**
 
 ```bash
-./process-release-config.sh --type full --output /tmp/full-release
+./release-builder.sh --type full --output /tmp/full-release
 ```
 
 ### 2. **Release de Usuario (`user`)**
@@ -198,7 +198,7 @@ Incluye solo lo necesario para usar bintools:
 **Uso:**
 
 ```bash
-./process-release-config.sh --type user --output /tmp/user-release
+./release-builder.sh --type user --output /tmp/user-release
 ```
 
 ### 3. **Release Mínimo (`minimal`)**
@@ -215,7 +215,7 @@ Incluye solo los archivos esenciales:
 **Uso:**
 
 ```bash
-./process-release-config.sh --type minimal --output /tmp/minimal-release
+./release-builder.sh --type minimal --output /tmp/minimal-release
 ```
 
 ## 🔧 Personalización de Archivos
@@ -281,16 +281,16 @@ release_types:
 
 ```bash
 # Release básico
-./process-release-config.sh --type user --output /tmp/release
+./release-builder.sh --type user --output /tmp/release
 
 # Release completo con verbose
-./process-release-config.sh --type full --output /tmp/full-release --verbose
+./release-builder.sh --type full --output /tmp/full-release --verbose
 
 # Usar configuración personalizada
-./process-release-config.sh --type minimal --config mi-config.yml --output /tmp/minimal
+./release-builder.sh --type minimal --config mi-config.yml --output /tmp/minimal
 
 # Ver ayuda
-./process-release-config.sh --help
+./release-builder.sh --help
 ```
 
 ## 📦 Estructura del Paquete
@@ -352,7 +352,7 @@ El workflow de GitHub Actions usa automáticamente el sistema de configuración:
 # En .github/workflows/release.yml
 - name: Create release package
   run: |
-    ./process-release-config.sh \
+    ./release-builder.sh \
       --type user \
       --output "/tmp/bintools-release/bintools-${VERSION}" \
       --config configs/release-config.yml \

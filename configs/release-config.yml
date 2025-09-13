@@ -33,7 +33,7 @@ optional_files:
     - .gitignore
     - RELEASE.md
     - create-release.sh
-    - test-release.sh
+    - release-builder.sh
     - bintools-manager.sh
   
   # Archivos de configuración del proyecto
