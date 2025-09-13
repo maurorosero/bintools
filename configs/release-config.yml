@@ -25,7 +25,6 @@ optional_files:
   # Archivos de documentación
   documentation:
     - README.md
-    - docs/INSTALL.md
     - LICENSE
   
   # Archivos de desarrollo

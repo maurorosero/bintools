@@ -92,6 +92,24 @@ curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.s
 - **Directorio personalizado**: Usa `--dir /ruta/personalizada`
 - **PATH automático**: Se agrega automáticamente a tu PATH en `~/.bashrc` o `~/.zshrc`
 
+**Opciones Avanzadas del Instalador:**
+
+```bash
+# Instalación con opciones específicas
+curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash -s -- --version v1.0.0 --dir /opt/bintools
+
+# Ver qué haría sin instalar
+curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash -s -- --dry-run --verbose
+```
+
+| Opción | Descripción | Ejemplo |
+|--------|-------------|---------|
+| `--version` | Versión específica a instalar | `--version v1.0.0` |
+| `--dir` | Directorio de instalación personalizado | `--dir /opt/bintools` |
+| `--extend-bin` | Extender directorio ~/bin existente | `--extend-bin` |
+| `--dry-run` | Solo mostrar qué se haría | `--dry-run` |
+| `--verbose` | Mostrar información detallada | `--verbose` |
+
 ### Método 2: Clonado Manual (Para Desarrollo)
 
 ```bash
@@ -110,6 +128,33 @@ cd bintools
 - Ejecuta `./btfixperms.sh` después de clonar para establecer permisos correctos
 - Vuelve a ejecutarlo si experimentas problemas de permisos
 - El script solo afecta el ambiente de desarrollo, no es necesario para usuarios finales
+
+## 🔧 Gestión de Versiones
+
+Una vez instalado, puedes gestionar `bintools` con el gestor de versiones incluido:
+
+```bash
+# Verificar versión instalada
+bintools-manager.sh version
+
+# Actualizar a la última versión
+bintools-manager.sh update
+
+# Instalar versión específica
+bintools-manager.sh install v1.0.0
+
+# Listar versiones disponibles  
+bintools-manager.sh list
+
+# Verificar integridad de la instalación
+bintools-manager.sh check
+
+# Ver información completa
+bintools-manager.sh info
+
+# Desinstalar completamente
+bintools-manager.sh uninstall
+```
 
 ## 📖 Uso Básico
 
@@ -418,6 +463,30 @@ Si experimentas problemas con permisos de archivos en ambiente de desarrollo:
 ./btfixperms.sh --verbose
 ```
 
+### "Versión no encontrada"
+
+```bash
+# Verificar versiones disponibles
+bintools-manager.sh list
+
+# Instalar versión específica válida
+curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash -s -- --version v1.0.0
+```
+
+### "Error de instalación"
+
+```bash
+# Verificar instalación
+bintools-manager.sh check
+
+# Reinstalar completamente
+bintools-manager.sh uninstall
+curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash
+
+# Instalación con información detallada
+curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash -s -- --verbose
+```
+
 ## 🤝 Contribuir
 
 ¿Tienes una herramienta que te gustaría agregar? ¡Es fácil!
@@ -439,9 +508,8 @@ MIT License - Puedes usar, modificar y distribuir libremente.
 
 ## 📚 Documentación
 
-Para información detallada sobre instalación, configuración y desarrollo:
+Para información detallada sobre desarrollo:
 
-- **[Guía de Instalación](docs/INSTALL.md)** - Instalación completa y gestión de versiones
 - **[Guía de Releases](docs/RELEASE.md)** - Creación y gestión de releases (desarrolladores)
 
 ## 🙏 Agradecimientos

@@ -109,7 +109,6 @@ config_files:
 optional_files:
   documentation:
     - README.md
-    - docs/INSTALL.md
     - LICENSE
   
   development:
