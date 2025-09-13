@@ -32,6 +32,8 @@ OPCIONES:
     -l, --list LISTA     Lista de paquetes a instalar (base, devs, orgs, user, all)
     -d, --dry-run        Solo mostrar qué se instalaría, sin instalar realmente
     -v, --verbose        Mostrar información detallada
+    --install-yay        Instalar yay (AUR helper) en Arch Linux
+    --install-snap       Instalar snapd en sistemas compatibles
     -h, --help           Mostrar esta ayuda
 
 EJEMPLOS:
@@ -39,6 +41,8 @@ EJEMPLOS:
     $0 --list base,devs              # Instalar múltiples listas
     $0 --list all --dry-run          # Ver qué se instalaría
     $0 --list user --verbose         # Instalar con información detallada
+    $0 --install-yay                 # Instalar yay en Arch Linux
+    $0 --install-snap                # Instalar snapd en sistemas compatibles
 
 LISTAS DISPONIBLES:
     base    Paquetes esenciales del sistema
@@ -122,6 +126,102 @@ check_snap() {
     else
         return 1
     fi
+}
+
+# Función para instalar yay en Arch Linux
+install_yay() {
+    local os=$(detect_os)
+    
+    if [[ "$os" != "arch" ]]; then
+        log "ERROR" "yay solo está disponible en Arch Linux"
+        return 1
+    fi
+    
+    if command -v yay >/dev/null 2>&1; then
+        log "INFO" "yay ya está instalado"
+        return 0
+    fi
+    
+    log "INFO" "Instalando yay (AUR helper)..."
+    
+    # Instalar dependencias necesarias
+    if ! sudo pacman -S --noconfirm base-devel git; then
+        log "ERROR" "No se pudieron instalar las dependencias necesarias"
+        return 1
+    fi
+    
+    # Clonar y compilar yay
+    local temp_dir=$(mktemp -d)
+    cd "$temp_dir"
+    
+    if git clone https://aur.archlinux.org/yay.git; then
+        cd yay
+        if makepkg -si --noconfirm; then
+            log "SUCCESS" "yay instalado correctamente"
+            cd /
+            rm -rf "$temp_dir"
+            return 0
+        else
+            log "ERROR" "Falló la compilación de yay"
+            cd /
+            rm -rf "$temp_dir"
+            return 1
+        fi
+    else
+        log "ERROR" "No se pudo clonar el repositorio de yay"
+        cd /
+        rm -rf "$temp_dir"
+        return 1
+    fi
+}
+
+# Función para instalar snapd
+install_snap() {
+    local os=$(detect_os)
+    
+    if check_snap; then
+        log "INFO" "snap ya está instalado"
+        return 0
+    fi
+    
+    log "INFO" "Instalando snapd..."
+    
+    case "$os" in
+        ubuntu|debian)
+            if sudo apt update && sudo apt install -y snapd; then
+                log "SUCCESS" "snapd instalado correctamente"
+                log "INFO" "Reinicia tu sesión para usar snap"
+                return 0
+            else
+                log "ERROR" "Falló la instalación de snapd"
+                return 1
+            fi
+            ;;
+        fedora)
+            if sudo dnf install -y snapd; then
+                log "SUCCESS" "snapd instalado correctamente"
+                log "INFO" "Habilita el socket de snap: sudo systemctl enable --now snapd.socket"
+                return 0
+            else
+                log "ERROR" "Falló la instalación de snapd"
+                return 1
+            fi
+            ;;
+        arch)
+            if sudo pacman -S --noconfirm snapd; then
+                log "SUCCESS" "snapd instalado correctamente"
+                log "INFO" "Habilita el socket de snap: sudo systemctl enable --now snapd.socket"
+                return 0
+            else
+                log "ERROR" "Falló la instalación de snapd"
+                return 1
+            fi
+            ;;
+        *)
+            log "ERROR" "snapd no está disponible para $os"
+            return 1
+            ;;
+    esac
 }
 
 # Función para instalar un paquete
@@ -354,6 +454,14 @@ main() {
                 VERBOSE=true
                 shift
                 ;;
+            --install-yay)
+                install_yay
+                exit $?
+                ;;
+            --install-snap)
+                install_snap
+                exit $?
+                ;;
             -h|--help)
                 show_help
                 exit 0
@@ -368,7 +476,7 @@ main() {
     
     # Validar argumentos requeridos
     if [[ -z "$LIST" ]]; then
-        log "ERROR" "Debe especificar una lista con --list"
+        log "ERROR" "Debe especificar una lista con --list o usar --install-yay/--install-snap"
         show_help
         exit 1
     fi
