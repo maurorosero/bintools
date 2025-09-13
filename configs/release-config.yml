@@ -26,6 +26,7 @@ optional_files:
   documentation:
     - README.md
     - LICENSE
+    - CHANGELOG.md
   
   # Archivos de desarrollo
   development:
