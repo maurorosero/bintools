@@ -29,7 +29,7 @@ Uso: $0 [OPCIONES]
 Script de instalación de paquetes multiplataforma
 
 OPCIONES:
-    -l, --list LISTA     Lista de paquetes a instalar (base, devs, orgs, user, all)
+    -l, --list LISTA     Lista de paquetes a instalar (base, devs, orgs, user, vbox, all)
     -d, --dry-run        Solo mostrar qué se instalaría, sin instalar realmente
     -v, --verbose        Mostrar información detallada
     --install-yay        Instalar yay (AUR helper) en Arch Linux
@@ -39,6 +39,7 @@ OPCIONES:
 EJEMPLOS:
     $0 --list base                    # Instalar paquetes base
     $0 --list base,devs              # Instalar múltiples listas
+    $0 --list vbox                   # Instalar VirtualBox y Vagrant
     $0 --list all --dry-run          # Ver qué se instalaría
     $0 --list user --verbose         # Instalar con información detallada
     $0 --install-yay                 # Instalar yay en Arch Linux
@@ -49,6 +50,7 @@ LISTAS DISPONIBLES:
     devs    Paquetes para desarrollo
     orgs    Paquetes para organización/productividad
     user    Paquetes personalizados del usuario
+    vbox    VirtualBox y Vagrant para virtualización
     all     Todas las listas disponibles
 
 FORMATO DE ARCHIVOS:
@@ -500,7 +502,7 @@ main() {
     # Procesar listas
     local lists
     if [[ "$LIST" == "all" ]]; then
-        lists="base devs orgs user"
+        lists="base devs orgs user vbox"
     else
         lists=$(echo "$LIST" | tr ',' ' ')
     fi

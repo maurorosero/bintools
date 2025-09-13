@@ -1,0 +1,30 @@
+# Lista de paquetes para VirtualBox y Vagrant
+# Formato: OS:Manejador:Paquete:Descripción
+# Para testing y desarrollo con VMs
+
+# Ubuntu/Debian - VirtualBox desde repositorios oficiales
+ubuntu:apt:virtualbox:Plataforma de virtualización Oracle VirtualBox
+ubuntu:apt:virtualbox-ext-pack:Pack de extensiones para VirtualBox
+ubuntu:apt:vagrant:Herramienta para gestión de entornos de desarrollo virtualizados
+
+debian:apt:virtualbox:Plataforma de virtualización Oracle VirtualBox  
+debian:apt:virtualbox-ext-pack:Pack de extensiones para VirtualBox
+debian:apt:vagrant:Herramienta para gestión de entornos de desarrollo virtualizados
+
+# Fedora - VirtualBox desde repositorios oficiales
+fedora:dnf:VirtualBox:Plataforma de virtualización Oracle VirtualBox
+fedora:dnf:vagrant:Herramienta para gestión de entornos de desarrollo virtualizados
+
+# CentOS/RHEL - Requiere EPEL
+centos:yum:epel-release:Repositorio de paquetes adicionales para Enterprise Linux
+centos:yum:VirtualBox:Plataforma de virtualización Oracle VirtualBox
+centos:yum:vagrant:Herramienta para gestión de entornos de desarrollo virtualizados
+
+# Arch Linux - Desde repositorios oficiales
+arch:pacman:virtualbox:Plataforma de virtualización Oracle VirtualBox
+arch:pacman:virtualbox-host-modules-arch:Módulos del kernel para VirtualBox en Arch
+arch:pacman:vagrant:Herramienta para gestión de entornos de desarrollo virtualizados
+
+# macOS - Homebrew
+macos:brew:virtualbox:Plataforma de virtualización Oracle VirtualBox
+macos:brew:vagrant:Herramienta para gestión de entornos de desarrollo virtualizados

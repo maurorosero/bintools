@@ -147,6 +147,9 @@ cd bintools
 # Instalar herramientas personalizadas
 ./packages.sh --list user
 
+# Instalar herramientas de virtualización (VirtualBox + Vagrant)
+./packages.sh --list vbox
+
 # Instalar todo
 ./packages.sh --list all
 
@@ -261,6 +264,12 @@ El instalador `packages.sh` incluye características avanzadas que lo hacen úni
 - neofetch (info del sistema)
 - bat, exa (herramientas modernas)
 - Spotify
+
+### `vbox` - Virtualización
+
+- VirtualBox (plataforma de virtualización)
+- VirtualBox Extension Pack (extensiones)
+- Vagrant (gestión de entornos virtualizados)
 
 ## 🔧 Utilidades del Sistema Detalladas
 
