@@ -19,6 +19,8 @@ bintools es un conjunto de scripts que automatizan tareas comunes del sistema op
 - 🎯 **Editor con IA**: Instalación y configuración completa de Cursor IDE
 - 🌐 **Herramientas de Red**: Conversión de rutas y configuración DHCP automática
 - 🛡️ **Modo Seguro**: Prueba antes de ejecutar para evitar cambios no deseados
+- 🚀 **Instalador Universal**: Sistema de instalación sin dependencias de Git
+- 🔄 **Gestión de Versiones**: Control completo de versiones con actualizaciones automáticas
 
 ## 🛠️ Herramientas Incluidas
 
@@ -73,8 +75,20 @@ Configura entornos Python de forma profesional.
 
 ## 🚀 Instalación Rápida
 
+### Método 1: Instalador Automático (Recomendado)
+
 ```bash
-# Descargar bintools
+# Instalación rápida en tu sistema
+curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash
+
+# Instalación en directorio personalizado
+curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash -s -- --dir /opt/bintools
+```
+
+### Método 2: Clonado Manual (Para Desarrollo)
+
+```bash
+# Clonar el repositorio
 git clone https://github.com/maurorosero/bintools.git
 cd bintools
 
@@ -199,6 +213,27 @@ El instalador `packages.sh` incluye características avanzadas que lo hacen úni
 | Fedora/CentOS | ✅ Completo | dnf, yum, snap | Actualización automática, instalación de snapd |
 | Arch Linux | ✅ Completo | pacman, yay, snap | Actualización automática, instalación de yay y snapd |
 | macOS | ✅ Completo | brew, snap | Actualización automática, instalación de snapd |
+
+## 🔄 Gestión de Versiones
+
+bintools incluye un sistema completo de gestión de versiones:
+
+```bash
+# Verificar versión instalada
+bintools-manager.sh version
+
+# Actualizar a la última versión
+bintools-manager.sh update
+
+# Instalar versión específica  
+bintools-manager.sh install v1.0.0
+
+# Listar versiones disponibles
+bintools-manager.sh list
+
+# Verificar integridad de la instalación
+bintools-manager.sh check
+```
 
 ## 📋 Listas de Paquetes Disponibles
 
@@ -356,6 +391,13 @@ MIT License - Puedes usar, modificar y distribuir libremente.
 
 - Email: [mauro.rosero@gmail.com](mailto:mauro.rosero@gmail.com)
 - GitHub: [@maurorosero](https://github.com/maurorosero)
+
+## 📚 Documentación
+
+Para información detallada sobre instalación, configuración y desarrollo:
+
+- **[Guía de Instalación](docs/INSTALL.md)** - Instalación completa y gestión de versiones
+- **[Guía de Releases](docs/RELEASE.md)** - Creación y gestión de releases (desarrolladores)
 
 ## 🙏 Agradecimientos
 
