@@ -33,7 +33,7 @@ Herramientas especializadas para resolver problemas comunes y automatizar tareas
 
 ### 📦 Instalador de Paquetes (`packages.sh`)
 
-Instala automáticamente herramientas esenciales según tu sistema operativo.
+Instala automáticamente herramientas esenciales según tu sistema operativo con gestión inteligente de actualizaciones.
 
 **¿Qué puede instalar?**
 
@@ -41,6 +41,14 @@ Instala automáticamente herramientas esenciales según tu sistema operativo.
 - **Desarrollo**: compiladores, Node.js, Visual Studio Code, herramientas de construcción
 - **Productividad**: LibreOffice, navegadores, aplicaciones de comunicación
 - **Personalizadas**: herramientas que tú elijas
+
+**Características avanzadas:**
+
+- ✅ **Actualización automática**: Verifica y actualiza paquetes cuando hay nuevas versiones
+- ✅ **Instalación de gestores**: Instala automáticamente `yay` (AUR) y `snapd`
+- ✅ **Detección inteligente**: Usa el gestor de paquetes correcto para tu sistema
+- ✅ **Verificación previa**: No reinstala paquetes ya actualizados
+- ✅ **Fallback automático**: Cambia a alternativas si el gestor preferido no está disponible
 
 ### 🎯 Gestor de Cursor IDE (`micursor.py`)
 
@@ -110,6 +118,15 @@ chmod +x packages.sh micursor.py
 
 # Instalar todo
 ./packages.sh --list all
+
+# Instalar yay (AUR helper) en Arch Linux
+./packages.sh --install-yay
+
+# Instalar snapd en sistemas compatibles
+./packages.sh --install-snap
+
+# Instalar con información detallada
+./packages.sh --list base --verbose
 ```
 
 ### Instalar Cursor IDE
@@ -132,14 +149,48 @@ python micursor.py --backup-login
 ./pymanager.sh --create mi-proyecto
 ```
 
+## 🚀 Características Avanzadas del Instalador
+
+### Gestión Inteligente de Paquetes
+
+El instalador `packages.sh` incluye características avanzadas que lo hacen único:
+
+#### **Actualización Automática**
+- ✅ Verifica si hay actualizaciones disponibles antes de instalar
+- ✅ Actualiza automáticamente paquetes desactualizados
+- ✅ Omite paquetes que ya están actualizados
+
+#### **Instalación de Gestores de Paquetes**
+```bash
+# Instalar yay (AUR helper) en Arch Linux
+./packages.sh --install-yay
+
+# Instalar snapd en sistemas compatibles
+./packages.sh --install-snap
+```
+
+#### **Detección Inteligente**
+- 🔍 Detecta automáticamente tu sistema operativo
+- 🎯 Usa el gestor de paquetes correcto (apt, dnf, pacman, brew)
+- 🔄 Cambia automáticamente a alternativas si el gestor preferido no está disponible
+
+#### **Modo de Prueba**
+```bash
+# Ver qué se instalaría sin hacer cambios
+./packages.sh --list base --dry-run
+
+# Ver información detallada del proceso
+./packages.sh --list devs --verbose
+```
+
 ## 🖥️ Sistemas Soportados
 
-| Sistema | Estado | Manejador de Paquetes |
-|---------|--------|----------------------|
-| Ubuntu/Debian | ✅ Completo | apt, snap |
-| Fedora/CentOS | ✅ Completo | dnf, yum, snap |
-| Arch Linux | ✅ Completo | pacman, yay, snap |
-| macOS | ✅ Completo | brew, snap |
+| Sistema | Estado | Manejador de Paquetes | Características |
+|---------|--------|----------------------|----------------|
+| Ubuntu/Debian | ✅ Completo | apt, snap | Actualización automática, instalación de snapd |
+| Fedora/CentOS | ✅ Completo | dnf, yum, snap | Actualización automática, instalación de snapd |
+| Arch Linux | ✅ Completo | pacman, yay, snap | Actualización automática, instalación de yay y snapd |
+| macOS | ✅ Completo | brew, snap | Actualización automática, instalación de snapd |
 
 ## 📋 Listas de Paquetes Disponibles
 
