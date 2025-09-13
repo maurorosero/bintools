@@ -29,7 +29,7 @@ Herramientas especializadas para resolver problemas comunes y automatizar tareas
 
 - **`fix_hdmi_audio.sh`**: Soluciona problemas de audio HDMI con PipeWire automáticamente
 - **`videoset.sh`**: Configura resoluciones de pantalla y detecta monitores automáticamente
-- **`nxcloud-backup.sh`**: Gestiona backups y restauración completa de Nextcloud
+- **`nxcloud-backup.sh`**: Gestor completo de backups y configuración de Nextcloud
 - **`hexroute`**: Convierte rutas de red a formato hexadecimal para configuración DHCP
 
 ### 📦 Instalador de Paquetes (`packages.sh`)
@@ -167,8 +167,10 @@ bintools-manager.sh uninstall
 # Configurar resoluciones de pantalla automáticamente
 ./videoset.sh --auto
 
-# Backup completo de Nextcloud
-./nxcloud-backup.sh --backup
+# Gestión completa de Nextcloud
+./nxcloud-backup.sh --backup          # Crear backup de configuración
+./nxcloud-backup.sh --secure          # Configurar sincronización de ~/secure
+./nxcloud-backup.sh --list            # Listar backups disponibles
 
 # Convertir rutas de red a formato hexadecimal
 ./hexroute 172.16.0.0/16 gw 192.168.1.1
@@ -366,18 +368,47 @@ echo "ubuntu:apt:htop:Monitor de procesos" >> configs/mitools.pkg
 
 **Uso**: `./videoset.sh --auto`
 
-### `nxcloud-backup.sh` - Gestor de Nextcloud
+### `nxcloud-backup.sh` - Gestor Completo de Nextcloud
 
-**Problema que resuelve**: Backup y restauración de configuración Nextcloud
+**Problema que resuelve**: Gestión integral de configuración y sincronización de Nextcloud
 
 **¿Qué hace?**
 
-- Crea backups completos de configuración
-- Restaura configuración desde backup
-- Gestiona archivos de configuración de forma segura
-- Soporte para múltiples instancias
+- **🛡️ Backups automáticos**: Respalda toda la configuración de Nextcloud de forma segura
+- **🔄 Restauración completa**: Restaura configuración con un solo comando
+- **🔗 Configuración de sync**: Guía para sincronizar carpeta `~/secure` con servidor
+- **🧹 Limpieza inteligente**: Elimina configuraciones duplicadas automáticamente
+- **📋 Gestión de versiones**: Maneja múltiples backups con timestamps únicos
+- **🌐 Sincronización automática**: Los backups se sincronizan con tu servidor Nextcloud
 
-**Uso**: `./nxcloud-backup.sh --backup`
+**Funcionalidades principales:**
+
+```bash
+# Crear backup de configuración
+./nxcloud-backup.sh --backup
+
+# Listar todos los backups disponibles  
+./nxcloud-backup.sh --list
+
+# Restaurar backup específico (mantiene autenticación)
+./nxcloud-backup.sh --restore backup_name
+
+# Configurar sincronización de carpeta segura
+./nxcloud-backup.sh --secure
+
+# Limpiar entradas duplicadas de configuración
+./nxcloud-backup.sh --clean
+```
+
+**¿Qué incluye el backup?**
+
+- ✅ **Configuración de cuentas**: Información del servidor y usuario
+- ✅ **Carpetas de sincronización**: Todas las carpetas configuradas para sync
+- ✅ **Preferencias del cliente**: Configuraciones personalizadas
+- ✅ **Metadatos de backup**: Información para restauración segura
+- 🔐 **Seguridad**: No incluye contraseñas (requiere re-login tras restauración)
+
+**Ubicación de backups**: `~/secure/nextcloud/` (se sincroniza automáticamente)
 
 ### `hexroute` - Convertidor de Rutas de Red
 
