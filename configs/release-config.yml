@@ -27,7 +27,6 @@ optional_files:
     - README.md
     - LICENSE
     - CHANGELOG.md
-    - install.sh
   
   # Archivos de desarrollo
   development:
