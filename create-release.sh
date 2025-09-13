@@ -179,10 +179,8 @@ EOF
     if command -v gh >/dev/null 2>&1; then
         log "VERBOSE" "Usando GitHub CLI para disparar workflow..."
         
-        if gh api repos/$REPO_OWNER/$REPO_NAME/dispatches \
-            --method POST \
-            -f event_type=create-release \
-            -f client_payload="$payload"; then
+        if echo "$payload" | jq '{event_type: "create-release", client_payload: .}' | \
+            gh api repos/$REPO_OWNER/$REPO_NAME/dispatches --method POST --input -; then
             log "SUCCESS" "Workflow disparado exitosamente"
             log "INFO" "Puedes ver el progreso en: https://github.com/$REPO_OWNER/$REPO_NAME/actions"
         else
