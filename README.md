@@ -72,21 +72,6 @@ Configura entornos Python de forma profesional.
 - Gestiona paquetes Python de forma organizada
 - Configura alias para acceso rápido
 
-### 🚀 Gestión de Releases (Desarrollo)
-
-Herramientas para gestionar releases del proyecto (solo para desarrolladores).
-
-- **`create-release.sh`**: Crea releases automáticamente con tags, paquetes y assets
-- **`delete-release.sh`**: Elimina releases de forma segura con confirmaciones
-- **`release-builder.sh`**: Genera paquetes configurables para distribución
-
-**Características:**
-
-- ✅ **Releases directos**: Usa GitHub CLI para crear releases sin workflows
-- ✅ **Gestión completa**: Crear, eliminar y listar releases
-- ✅ **Configuración flexible**: Define qué archivos incluir por tipo de release
-- ✅ **Seguridad**: Confirmaciones antes de eliminar releases o tags
-
 ## 🚀 Instalación Rápida
 
 ### Método 1: Instalador Automático (Recomendado)
