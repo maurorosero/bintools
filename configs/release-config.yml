@@ -25,13 +25,13 @@ optional_files:
   # Archivos de documentación
   documentation:
     - README.md
-    - INSTALL.md
+    - docs/INSTALL.md
     - LICENSE
   
   # Archivos de desarrollo
   development:
     - .gitignore
-    - RELEASE.md
+    - docs/RELEASE.md
     - create-release.sh
     - release-builder.sh
     - bintools-manager.sh

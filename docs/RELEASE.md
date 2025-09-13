@@ -109,12 +109,12 @@ config_files:
 optional_files:
   documentation:
     - README.md
-    - INSTALL.md
+    - docs/INSTALL.md
     - LICENSE
   
   development:
     - .gitignore
-    - RELEASE.md
+    - docs/RELEASE.md
     - create-release.sh
     - release-builder.sh
     - bintools-manager.sh
