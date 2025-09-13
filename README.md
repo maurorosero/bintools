@@ -195,6 +195,9 @@ bintools-manager.sh uninstall
 # Instalar herramientas de virtualización (VirtualBox + Vagrant)
 ./packages.sh --list vbox
 
+# Instalar herramientas de Nextcloud
+./packages.sh --list cloud
+
 # Instalar todo
 ./packages.sh --list all
 
@@ -317,6 +320,10 @@ El sistema detecta automáticamente todas las listas disponibles en `configs/`. 
 - VirtualBox (plataforma de virtualización)
 - VirtualBox Extension Pack (extensiones)
 - Vagrant (gestión de entornos virtualizados)
+
+### `cloud` - Herramientas de Nextcloud
+
+- Nextcloud Desktop (cliente oficial de escritorio)
 
 ### Crear Listas Personalizadas
 
