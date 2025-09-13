@@ -18,7 +18,7 @@
 
 # Configuración básica
 USER_HOME="$HOME"
-BACKUP_DIR="$USER_HOME/.local/share/nxcloud-backup/backups"
+BACKUP_DIR="$USER_HOME/secure/nextcloud"
 
 # Función para mostrar ayuda
 show_help() {
