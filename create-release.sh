@@ -195,6 +195,64 @@ EOF
     fi
 }
 
+# Función para crear release directamente con GitHub CLI
+create_github_release_direct() {
+    local version="$1"
+    local message="$2"
+    local draft="$3"
+    local prerelease="$4"
+    
+    log "INFO" "Creando release $version directamente..."
+    
+    # Crear el paquete usando release-builder.sh
+    log "INFO" "Generando paquete de release..."
+    local package_path
+    package_path=$(./release-builder.sh \
+        --type user \
+        --output "/tmp/bintools-$version" \
+        --config configs/release-config.yml 2>/dev/null)
+    
+    if [[ ! -f "$package_path" ]]; then
+        log "ERROR" "No se pudo crear el paquete de release"
+        return 1
+    fi
+    
+    log "SUCCESS" "Paquete creado: $package_path"
+    
+    # Copiar el paquete al directorio actual con el nombre correcto
+    local local_package="bintools-$version.tar.gz"
+    cp "$package_path" "$local_package"
+    
+    # Preparar flags para gh release create
+    local gh_flags=()
+    if [[ "$draft" == "true" ]]; then
+        gh_flags+=(--draft)
+    fi
+    if [[ "$prerelease" == "true" ]]; then
+        gh_flags+=(--prerelease)
+    fi
+    
+    # Crear el release con GitHub CLI
+    log "INFO" "Creando release en GitHub..."
+    if gh release create "$version" "$local_package" \
+        --title "bintools $version" \
+        --notes "$message" \
+        "${gh_flags[@]}"; then
+        
+        log "SUCCESS" "Release $version creado exitosamente en GitHub"
+        log "INFO" "URL del release: https://github.com/$REPO_OWNER/$REPO_NAME/releases/tag/$version"
+        
+        # Limpiar archivo temporal
+        rm -f "$local_package"
+        
+        return 0
+    else
+        log "ERROR" "Error creando el release en GitHub"
+        rm -f "$local_package"
+        return 1
+    fi
+}
+
 # Función principal
 main() {
     local version=""
@@ -281,8 +339,8 @@ main() {
         push_changes "$version"
     fi
     
-    # Disparar workflow de GitHub Actions
-    trigger_github_workflow "$version" "$message" "$draft" "$prerelease"
+    # Crear release directamente usando GitHub CLI
+    create_github_release_direct "$version" "$message" "$draft" "$prerelease"
     
     log "SUCCESS" "🎉 Release $version creado exitosamente!"
     log "INFO" "Los usuarios pueden instalar con:"
