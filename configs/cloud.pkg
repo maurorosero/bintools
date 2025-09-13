@@ -1,19 +1,18 @@
 # Herramientas de Nextcloud
 # Formato: OS:Manejador:Paquete:Descripción
 
-# Ubuntu/Debian - Cliente Nextcloud
+# Ubuntu/Debian - Cliente oficial Nextcloud
 ubuntu:apt:nextcloud-desktop:Cliente de escritorio oficial de Nextcloud
 
 debian:apt:nextcloud-desktop:Cliente de escritorio oficial de Nextcloud
 
-# Fedora - Cliente Nextcloud
+# Fedora - Cliente oficial Nextcloud
 fedora:dnf:nextcloud-client:Cliente de escritorio oficial de Nextcloud
 
 # CentOS/RHEL - Desde EPEL
-centos:yum:epel-release:Repositorio de paquetes adicionales para Enterprise Linux
 centos:yum:nextcloud-client:Cliente de escritorio oficial de Nextcloud
 
-# Arch Linux - Cliente Nextcloud
+# Arch Linux - Cliente oficial desde repositorios
 arch:pacman:nextcloud-client:Cliente de escritorio oficial de Nextcloud
 
 # macOS - Homebrew
