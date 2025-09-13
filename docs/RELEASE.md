@@ -1,8 +1,54 @@
 # Guía Completa de Releases de bintools
 
-## 🎯 Sistema de Releases Automatizado
+## 🎯 Sistema de Releases Directo
 
-Este proyecto usa un sistema de releases automatizado que se ejecuta **únicamente** cuando ejecutas el script `create-release.sh` localmente. El workflow de GitHub Actions se dispara automáticamente desde tu máquina y usa un sistema de configuración flexible para definir exactamente qué archivos se incluyen en cada release.
+Este proyecto usa un sistema de releases directo que se ejecuta **completamente** desde tu máquina local usando GitHub CLI. El script `create-release.sh` crea releases directamente en GitHub sin depender de workflows externos, y usa un sistema de configuración flexible para definir exactamente qué archivos se incluyen en cada release.
+
+## 🛠️ Scripts de Gestión de Releases
+
+El proyecto incluye scripts especializados para gestionar el ciclo completo de releases:
+
+### 📝 `create-release.sh` - Crear Releases
+
+**Características:**
+- ✅ Crea releases directamente usando GitHub CLI (sin workflows)
+- ✅ Genera paquetes automáticamente con `release-builder.sh`
+- ✅ Gestiona tags de Git automáticamente
+- ✅ Sube assets de release
+- ✅ Soporte para drafts y prereleases
+
+**Opciones disponibles:**
+- `--version, -v`: Versión del release (requerido)
+- `--message, -m`: Mensaje del release (requerido)
+- `--draft, -d`: Crear como draft
+- `--prerelease, -p`: Marcar como prerelease
+- `--no-tag`: No crear tag de Git
+- `--no-push`: No hacer push automático
+
+### 🗑️ `delete-release.sh` - Eliminar Releases
+
+**Características:**
+- ✅ Elimina releases de GitHub de forma segura
+- ✅ Opción de eliminar también el tag de Git
+- ✅ Confirmación antes de eliminar
+- ✅ Modo force para automatización
+- ✅ Lista releases disponibles
+
+**Opciones disponibles:**
+- `--version, -v`: Versión del release a eliminar (requerido)
+- `--delete-tag, -t`: También eliminar el tag de Git (local y remoto)
+- `--force, -f`: No pedir confirmación
+- `--list, -l`: Listar releases disponibles
+- `--help, -h`: Mostrar ayuda
+
+### ⚙️ `release-builder.sh` - Generar Paquetes
+
+**Características:**
+- ✅ Genera paquetes tar.gz configurables
+- ✅ Tres tipos de release: full, user, minimal
+- ✅ Configuración flexible via YAML
+- ✅ Validación de archivos y directorios
+- ✅ Información detallada del paquete
 
 ## 🚀 Crear un Release
 
@@ -22,9 +68,23 @@ Este proyecto usa un sistema de releases automatizado que se ejecuta **únicamen
 ./create-release.sh -v v1.0.1 -m "Bug fixes" --no-push
 ```
 
-### Método 2: GitHub Actions Automático
+### Método 2: Gestión de Releases
 
-El workflow de GitHub Actions se ejecuta automáticamente cuando usas el script `create-release.sh`. No necesitas hacer nada manualmente en GitHub.
+Ahora también tienes un script para eliminar releases:
+
+```bash
+# Listar releases disponibles
+./delete-release.sh --list
+
+# Eliminar solo el release (mantener tag)
+./delete-release.sh --version v1.0.0
+
+# Eliminar release y tag
+./delete-release.sh --version v1.0.0 --delete-tag
+
+# Eliminar sin confirmación
+./delete-release.sh --version v1.0.0 --delete-tag --force
+```
 
 ### Método 3: Completamente Manual
 
@@ -456,14 +516,45 @@ grep -A 5 "directories:" configs/release-config.yml
 python3 -c "import yaml; yaml.safe_load(open('configs/release-config.yml'))"
 ```
 
+## 📋 Requisitos Técnicos
+
+### Para `create-release.sh` y `delete-release.sh`
+
+**Herramientas requeridas:**
+- ✅ **GitHub CLI (`gh`)**: Para interactuar con GitHub API
+- ✅ **Git**: Para gestión de tags y repositorio
+- ✅ **jq**: Para procesamiento JSON (solo create-release.sh)
+
+**Configuración necesaria:**
+```bash
+# Verificar GitHub CLI
+gh auth status
+
+# Si no está autenticado
+gh auth login
+
+# Verificar permisos
+gh api user
+```
+
+**Permisos del token GitHub CLI:**
+- `repo`: Acceso completo al repositorio
+- `write:packages`: Para subir assets
+- `delete_repo`: Para eliminar releases (solo delete-release.sh)
+
+### Para `release-builder.sh`
+
+**Herramientas requeridas:**
+- ✅ **tar**: Para crear paquetes
+- ✅ **Python 3**: Para validación YAML (opcional)
+
 ## 📞 Soporte
 
 Si tienes problemas con los releases:
 
-1. Verifica que tienes permisos de escritura en el repositorio
-2. Asegúrate de que GitHub CLI esté configurado correctamente
-3. Revisa los logs de GitHub Actions si usas ese método
-4. Verifica la sintaxis YAML del archivo de configuración
-5. Asegúrate de que los archivos/directorios existen
-6. Revisa los patrones de exclusión
-7. Abre un [Issue](https://github.com/maurorosero/bintools/issues)
+1. **Verificar autenticación**: `gh auth status`
+2. **Verificar permisos**: Revisa que tu token tenga los scopes necesarios
+3. **Verificar configuración**: `python3 -c "import yaml; yaml.safe_load(open('configs/release-config.yml'))"`
+4. **Verificar archivos**: Asegúrate de que los archivos/directorios existen
+5. **Revisar patrones**: Verifica los patrones de exclusión en release-config.yml
+6. **Abrir Issue**: [GitHub Issues](https://github.com/maurorosero/bintools/issues)
