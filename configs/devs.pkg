@@ -1,0 +1,58 @@
+# Lista de paquetes para desarrollo
+# Formato: OS:Manejador:Paquete:Descripción
+
+# Ubuntu/Debian
+ubuntu:apt:build-essential:Herramientas esenciales para compilación
+ubuntu:apt:cmake:Herramienta de construcción multiplataforma
+ubuntu:apt:make:Herramienta de construcción
+ubuntu:apt:gcc:Compilador GNU C
+ubuntu:apt:g++:Compilador GNU C++
+ubuntu:apt:nodejs:Runtime de JavaScript
+ubuntu:apt:npm:Gestor de paquetes de Node.js
+ubuntu:apt:python3-dev:Headers de desarrollo de Python
+ubuntu:apt:python3-venv:Módulo de entornos virtuales de Python
+ubuntu:snap:code:Editor de código Visual Studio Code
+
+debian:apt:build-essential:Herramientas esenciales para compilación
+debian:apt:cmake:Herramienta de construcción multiplataforma
+debian:apt:make:Herramienta de construcción
+debian:apt:gcc:Compilador GNU C
+debian:apt:g++:Compilador GNU C++
+debian:apt:nodejs:Runtime de JavaScript
+debian:apt:npm:Gestor de paquetes de Node.js
+debian:apt:python3-dev:Headers de desarrollo de Python
+debian:apt:python3-venv:Módulo de entornos virtuales de Python
+debian:snap:code:Editor de código Visual Studio Code
+
+# Fedora/CentOS
+fedora:dnf:gcc:Compilador GNU C
+fedora:dnf:gcc-c++:Compilador GNU C++
+fedora:dnf:make:Herramienta de construcción
+fedora:dnf:cmake:Herramienta de construcción multiplataforma
+fedora:dnf:nodejs:Runtime de JavaScript
+fedora:dnf:npm:Gestor de paquetes de Node.js
+fedora:dnf:python3-devel:Headers de desarrollo de Python
+fedora:snap:code:Editor de código Visual Studio Code
+
+centos:yum:gcc:Compilador GNU C
+centos:yum:gcc-c++:Compilador GNU C++
+centos:yum:make:Herramienta de construcción
+centos:yum:cmake:Herramienta de construcción multiplataforma
+centos:yum:nodejs:Runtime de JavaScript
+centos:yum:npm:Gestor de paquetes de Node.js
+centos:yum:python3-devel:Headers de desarrollo de Python
+centos:snap:code:Editor de código Visual Studio Code
+
+# Arch Linux
+arch:pacman:base-devel:Herramientas esenciales para compilación
+arch:pacman:cmake:Herramienta de construcción multiplataforma
+arch:pacman:nodejs:Runtime de JavaScript
+arch:pacman:npm:Gestor de paquetes de Node.js
+arch:pacman:python:Headers de desarrollo de Python
+arch:yay:visual-studio-code-bin:Editor de código Visual Studio Code
+
+# macOS
+macos:brew:cmake:Herramienta de construcción multiplataforma
+macos:brew:node:Runtime de JavaScript
+macos:brew:python:Headers de desarrollo de Python
+macos:brew:visual-studio-code:Editor de código Visual Studio Code

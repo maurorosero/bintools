@@ -1,4 +1,33 @@
 #!/bin/bash
+# -*- coding: utf-8 -*-
+# Fix HDMI Audio - Script para corregir el formato de audio HDMI con PipeWire.
+# ----------------------------------------------------------------------------- 
+# Script Name: fix_hdmi_audio.sh
+# Version: 0.1.0
+# Author: Mauro Rosero P. <mauro.rosero@gmail.com>
+# Created: 2025-09-13
+# Updated: 2025-09-13
+
+# -----------------------------------------------------------------------------
+# Copyright (C) 2025 Mauro Rosero Pérez
+# -----------------------------------------------------------------------------
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# This file is managed by template_manager.py.
+# Any changes to this header will be overwritten on the next fix.
+
+# HEADER_END_TAG - DO NOT REMOVE OR MODIFY THIS LINE
 
 # Variables
 RULE_PATH="$HOME/.config/wireplumber/main.lua.d"

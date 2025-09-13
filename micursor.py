@@ -1,8 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Check Heading
-Copyright (C) 2025 MAURO ROSERO PÉREZ
+micursor.py - Un script para ayudar a instalar y desinstalar Cursor AI.
+
+Copyright (C) 2025 Mauro Rosero Pérez
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 Script Name: micursor.py
 Author:      Mauro Rosero P. <mauro.rosero@gmail.com>
@@ -18,6 +32,8 @@ Este script tiene como objetivo automatizar partes del proceso de instalación
 y desinstalación de Cursor AI en sistemas Linux, y proporcionar guía
 para macOS y Windows.
 """
+
+# HEADER_END_TAG - DO NOT REMOVE OR MODIFY THIS LINE
 
 import argparse
 import os

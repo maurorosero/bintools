@@ -1,0 +1,60 @@
+# Lista de paquetes para organización/productividad
+# Formato: OS:Manejador:Paquete:Descripción
+
+# Ubuntu/Debian
+ubuntu:apt:calibre:Gestor de libros electrónicos
+ubuntu:apt:libreoffice:Suite ofimática completa
+ubuntu:apt:thunderbird:Cliente de correo electrónico
+ubuntu:apt:firefox-esr:Navegador web Firefox ESR
+ubuntu:apt:chromium-browser:Navegador web Chromium
+ubuntu:snap:discord:Aplicación de chat y voz
+ubuntu:snap:slack:Aplicación de comunicación empresarial
+ubuntu:snap:notion:Aplicación de notas y productividad
+
+debian:apt:calibre:Gestor de libros electrónicos
+debian:apt:libreoffice:Suite ofimática completa
+debian:apt:thunderbird:Cliente de correo electrónico
+debian:apt:firefox-esr:Navegador web Firefox ESR
+debian:apt:chromium:Navegador web Chromium
+debian:snap:discord:Aplicación de chat y voz
+debian:snap:slack:Aplicación de comunicación empresarial
+debian:snap:notion:Aplicación de notas y productividad
+
+# Fedora/CentOS
+fedora:dnf:calibre:Gestor de libros electrónicos
+fedora:dnf:libreoffice:Suite ofimática completa
+fedora:dnf:thunderbird:Cliente de correo electrónico
+fedora:dnf:firefox:Navegador web Firefox
+fedora:dnf:chromium:Navegador web Chromium
+fedora:snap:discord:Aplicación de chat y voz
+fedora:snap:slack:Aplicación de comunicación empresarial
+fedora:snap:notion:Aplicación de notas y productividad
+
+centos:yum:calibre:Gestor de libros electrónicos
+centos:yum:libreoffice:Suite ofimática completa
+centos:yum:thunderbird:Cliente de correo electrónico
+centos:yum:firefox:Navegador web Firefox
+centos:yum:chromium:Navegador web Chromium
+centos:snap:discord:Aplicación de chat y voz
+centos:snap:slack:Aplicación de comunicación empresarial
+centos:snap:notion:Aplicación de notas y productividad
+
+# Arch Linux
+arch:pacman:calibre:Gestor de libros electrónicos
+arch:pacman:libreoffice-fresh:Suite ofimática completa
+arch:pacman:thunderbird:Cliente de correo electrónico
+arch:pacman:firefox:Navegador web Firefox
+arch:pacman:chromium:Navegador web Chromium
+arch:yay:discord:Aplicación de chat y voz
+arch:yay:slack-desktop:Aplicación de comunicación empresarial
+arch:yay:notion-app:Aplicación de notas y productividad
+
+# macOS
+macos:brew:calibre:Gestor de libros electrónicos
+macos:brew:libreoffice:Suite ofimática completa
+macos:brew:thunderbird:Cliente de correo electrónico
+macos:brew:firefox:Navegador web Firefox
+macos:brew:chromium:Navegador web Chromium
+macos:brew:discord:Aplicación de chat y voz
+macos:brew:slack:Aplicación de comunicación empresarial
+macos:brew:notion:Aplicación de notas y productividad

@@ -1,0 +1,126 @@
+# Lista de paquetes base
+# Formato: OS:Manejador:Paquete:Descripción
+
+# Ubuntu/Debian
+ubuntu:apt:curl:Herramienta para transferir datos desde servidores
+ubuntu:apt:git:Sistema de control de versiones distribuido
+ubuntu:apt:wget:Herramienta para descargar archivos desde la web
+ubuntu:apt:python3:Lenguaje de programación Python 3
+ubuntu:apt:python3-pip:Gestor de paquetes para Python
+ubuntu:apt:jq:Procesador de JSON desde línea de comandos
+ubuntu:apt:yq:Procesador de YAML desde línea de comandos
+ubuntu:apt:gnupg:Implementación de OpenPGP para cifrado
+ubuntu:apt:dialog:Herramientas para crear interfaces de usuario en terminal
+ubuntu:apt:libsecret-tools:Herramientas para manejar secretos del sistema
+ubuntu:apt:coreutils:Utilidades básicas del sistema (incluye tee)
+ubuntu:apt:vim:Editor de texto avanzado
+ubuntu:apt:nano:Editor de texto simple
+ubuntu:apt:unzip:Herramienta para extraer archivos ZIP
+ubuntu:apt:tree:Herramienta para mostrar estructura de directorios
+ubuntu:apt:net-tools:Herramientas de red (netstat, ifconfig, etc.)
+ubuntu:apt:rsync:Herramienta para sincronización de archivos
+ubuntu:snap:gum:Herramienta moderna para crear interfaces elegantes en terminal
+ubuntu:apt:fzf:Fuzzy finder para terminal
+
+debian:apt:curl:Herramienta para transferir datos desde servidores
+debian:apt:git:Sistema de control de versiones distribuido
+debian:apt:wget:Herramienta para descargar archivos desde la web
+debian:apt:python3:Lenguaje de programación Python 3
+debian:apt:python3-pip:Gestor de paquetes para Python
+debian:apt:jq:Procesador de JSON desde línea de comandos
+debian:apt:yq:Procesador de YAML desde línea de comandos
+debian:apt:gnupg:Implementación de OpenPGP para cifrado
+debian:apt:dialog:Herramientas para crear interfaces de usuario en terminal
+debian:apt:libsecret-tools:Herramientas para manejar secretos del sistema
+debian:apt:coreutils:Utilidades básicas del sistema (incluye tee)
+debian:apt:vim:Editor de texto avanzado
+debian:apt:nano:Editor de texto simple
+debian:apt:unzip:Herramienta para extraer archivos ZIP
+debian:apt:tree:Herramienta para mostrar estructura de directorios
+debian:apt:net-tools:Herramientas de red (netstat, ifconfig, etc.)
+debian:apt:rsync:Herramienta para sincronización de archivos
+debian:snap:gum:Herramienta moderna para crear interfaces elegantes en terminal
+debian:apt:fzf:Fuzzy finder para terminal
+
+# Fedora/CentOS
+fedora:dnf:curl:Herramienta para transferir datos desde servidores
+fedora:dnf:git:Sistema de control de versiones distribuido
+fedora:dnf:wget:Herramienta para descargar archivos desde la web
+fedora:dnf:python3:Lenguaje de programación Python 3
+fedora:dnf:python3-pip:Gestor de paquetes para Python
+fedora:dnf:jq:Procesador de JSON desde línea de comandos
+fedora:dnf:yq:Procesador de YAML desde línea de comandos
+fedora:dnf:gnupg:Implementación de OpenPGP para cifrado
+fedora:dnf:dialog:Herramientas para crear interfaces de usuario en terminal
+fedora:dnf:libsecret:Herramientas para manejar secretos del sistema
+fedora:dnf:coreutils:Utilidades básicas del sistema (incluye tee)
+fedora:dnf:vim:Editor de texto avanzado
+fedora:dnf:nano:Editor de texto simple
+fedora:dnf:unzip:Herramienta para extraer archivos ZIP
+fedora:dnf:tree:Herramienta para mostrar estructura de directorios
+fedora:dnf:net-tools:Herramientas de red (netstat, ifconfig, etc.)
+fedora:dnf:rsync:Herramienta para sincronización de archivos
+fedora:snap:gum:Herramienta moderna para crear interfaces elegantes en terminal
+fedora:dnf:fzf:Fuzzy finder para terminal
+
+centos:yum:curl:Herramienta para transferir datos desde servidores
+centos:yum:git:Sistema de control de versiones distribuido
+centos:yum:wget:Herramienta para descargar archivos desde la web
+centos:yum:python3:Lenguaje de programación Python 3
+centos:yum:python3-pip:Gestor de paquetes para Python
+centos:yum:jq:Procesador de JSON desde línea de comandos
+centos:yum:yq:Procesador de YAML desde línea de comandos
+centos:yum:gnupg:Implementación de OpenPGP para cifrado
+centos:yum:dialog:Herramientas para crear interfaces de usuario en terminal
+centos:yum:libsecret:Herramientas para manejar secretos del sistema
+centos:yum:coreutils:Utilidades básicas del sistema (incluye tee)
+centos:yum:vim:Editor de texto avanzado
+centos:yum:nano:Editor de texto simple
+centos:yum:unzip:Herramienta para extraer archivos ZIP
+centos:yum:tree:Herramienta para mostrar estructura de directorios
+centos:yum:net-tools:Herramientas de red (netstat, ifconfig, etc.)
+centos:yum:rsync:Herramienta para sincronización de archivos
+centos:snap:gum:Herramienta moderna para crear interfaces elegantes en terminal
+centos:yum:fzf:Fuzzy finder para terminal
+
+# Arch Linux
+arch:pacman:curl:Herramienta para transferir datos desde servidores
+arch:pacman:git:Sistema de control de versiones distribuido
+arch:pacman:wget:Herramienta para descargar archivos desde la web
+arch:pacman:python3:Lenguaje de programación Python 3
+arch:pacman:python3-pip:Gestor de paquetes para Python
+arch:pacman:jq:Procesador de JSON desde línea de comandos
+arch:pacman:yq:Procesador de YAML desde línea de comandos
+arch:pacman:gnupg:Implementación de OpenPGP para cifrado
+arch:pacman:dialog:Herramientas para crear interfaces de usuario en terminal
+arch:pacman:libsecret:Herramientas para manejar secretos del sistema
+arch:pacman:coreutils:Utilidades básicas del sistema (incluye tee)
+arch:pacman:vim:Editor de texto avanzado
+arch:pacman:nano:Editor de texto simple
+arch:pacman:unzip:Herramienta para extraer archivos ZIP
+arch:pacman:tree:Herramienta para mostrar estructura de directorios
+arch:pacman:net-tools:Herramientas de red (netstat, ifconfig, etc.)
+arch:pacman:rsync:Herramienta para sincronización de archivos
+arch:yay:gum:Herramienta moderna para crear interfaces elegantes en terminal
+arch:pacman:fzf:Fuzzy finder para terminal
+
+# macOS
+macos:brew:curl:Herramienta para transferir datos desde servidores
+macos:brew:git:Sistema de control de versiones distribuido
+macos:brew:wget:Herramienta para descargar archivos desde la web
+macos:brew:python3:Lenguaje de programación Python 3
+macos:brew:python3-pip:Gestor de paquetes para Python
+macos:brew:jq:Procesador de JSON desde línea de comandos
+macos:brew:yq:Procesador de YAML desde línea de comandos
+macos:brew:gnupg:Implementación de OpenPGP para cifrado
+macos:brew:dialog:Herramientas para crear interfaces de usuario en terminal
+macos:brew:libsecret:Herramientas para manejar secretos del sistema
+macos:brew:coreutils:Utilidades básicas del sistema (incluye tee)
+macos:brew:vim:Editor de texto avanzado
+macos:brew:nano:Editor de texto simple
+macos:brew:unzip:Herramienta para extraer archivos ZIP
+macos:brew:tree:Herramienta para mostrar estructura de directorios
+macos:brew:net-tools:Herramientas de red (netstat, ifconfig, etc.)
+macos:brew:rsync:Herramienta para sincronización de archivos
+macos:brew:gum:Herramienta moderna para crear interfaces elegantes en terminal
+macos:brew:fzf:Fuzzy finder para terminal

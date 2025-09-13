@@ -1,0 +1,43 @@
+# Lista de paquetes personalizados del usuario
+# Formato: OS:Manejador:Paquete:Descripción
+# Agregar aquí los paquetes personalizados que desees
+
+# Ubuntu/Debian
+ubuntu:apt:htop:Monitor de procesos interactivo
+ubuntu:apt:neofetch:Información del sistema con estilo
+ubuntu:apt:bat:Clon mejorado de cat con sintaxis highlighting
+ubuntu:apt:exa:Reemplazo moderno para ls
+ubuntu:snap:spotify:Reproductor de música
+
+debian:apt:htop:Monitor de procesos interactivo
+debian:apt:neofetch:Información del sistema con estilo
+debian:apt:bat:Clon mejorado de cat con sintaxis highlighting
+debian:apt:exa:Reemplazo moderno para ls
+debian:snap:spotify:Reproductor de música
+
+# Fedora/CentOS
+fedora:dnf:htop:Monitor de procesos interactivo
+fedora:dnf:neofetch:Información del sistema con estilo
+fedora:dnf:bat:Clon mejorado de cat con sintaxis highlighting
+fedora:dnf:exa:Reemplazo moderno para ls
+fedora:snap:spotify:Reproductor de música
+
+centos:yum:htop:Monitor de procesos interactivo
+centos:yum:neofetch:Información del sistema con estilo
+centos:yum:bat:Clon mejorado de cat con sintaxis highlighting
+centos:yum:exa:Reemplazo moderno para ls
+centos:snap:spotify:Reproductor de música
+
+# Arch Linux
+arch:pacman:htop:Monitor de procesos interactivo
+arch:pacman:neofetch:Información del sistema con estilo
+arch:pacman:bat:Clon mejorado de cat con sintaxis highlighting
+arch:pacman:exa:Reemplazo moderno para ls
+arch:yay:spotify:Aplicación de música Spotify
+
+# macOS
+macos:brew:htop:Monitor de procesos interactivo
+macos:brew:neofetch:Información del sistema con estilo
+macos:brew:bat:Clon mejorado de cat con sintaxis highlighting
+macos:brew:exa:Reemplazo moderno para ls
+macos:brew:spotify:Reproductor de música
