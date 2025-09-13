@@ -64,14 +64,6 @@ Configura entornos Python de forma profesional.
 - Gestiona paquetes Python de forma organizada
 - Configura alias para acceso rápido
 
-### 🔧 Utilidades del Sistema
-
-Herramientas especializadas para resolver problemas comunes y automatizar tareas del sistema.
-
-- **`fix_hdmi_audio.sh`**: Soluciona problemas de audio HDMI con PipeWire automáticamente
-- **`videoset.sh`**: Configura resoluciones de pantalla y detecta monitores automáticamente
-- **`nextcloud-installer.sh`**: Gestiona backups y restauración completa de Nextcloud
-- **`hexroute`**: Convierte rutas de red a formato hexadecimal para configuración DHCP
 
 ## 🚀 Instalación Rápida
 
