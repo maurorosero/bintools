@@ -321,36 +321,100 @@ configure_secure_sync() {
     # Buscar cualquier referencia a la carpeta secure
     local secure_configs=""
     if [[ -r "$config_file" ]]; then
-        secure_configs=$(grep "localPath.*${secure_dir}" "$config_file" 2>/dev/null || true)
+        secure_configs=$(grep "localPath=${secure_dir}/" "$config_file" 2>/dev/null || true)
     fi
     
     if [[ -n "$secure_configs" ]]; then
-        echo "✅ Se encontraron configuraciones relacionadas con ~/secure:"
+        echo "✅ La carpeta ~/secure YA está sincronizada con Nextcloud:"
         echo "$secure_configs" | sed 's/.*localPath=/  ✓ /'
         echo ""
-        echo "📝 NOTA: Verifica en el cliente de Nextcloud que la sincronización esté activa"
-        echo "   Si necesitas agregar más carpetas o configurar ~/secure completo,"
-        echo "   sigue las instrucciones manuales a continuación."
-    else
-        echo "⚠️  No se encontró configuración de sincronización para ~/secure"
+        echo "📝 La sincronización está configurada. Los backups en ~/secure/nextcloud se sincronizarán automáticamente."
+        return 0
+    fi
+    
+    echo "⚠️  La carpeta ~/secure no está sincronizada con Nextcloud"
+    echo ""
+    echo "🤖 CONFIGURACIÓN AUTOMÁTICA"
+    echo "==========================="
+    echo ""
+    echo -n "¿Quieres que configure automáticamente la sincronización de ~/secure? (Y/n): "
+    read -r auto_response
+    
+    if [[ "$auto_response" =~ ^[Nn]$ ]]; then
+        echo ""
+        echo "🔧 CONFIGURACIÓN MANUAL"
+        echo "======================="
+        echo ""
+        echo "Para sincronizar ~/secure con Nextcloud manualmente:"
+        echo ""
+        echo "1. 📱 Abre el cliente de Nextcloud (icono en la bandeja del sistema)"
+        echo "2. ⚙️  Ve a 'Configuración' → 'Sincronización'"
+        echo "3. 📁 Haz clic en 'Agregar carpeta'"
+        echo "4. 🗂️  Carpeta local: $secure_dir"
+        echo "5. 🌐 Carpeta remota: /secure"
+        echo "6. ✅ Confirma para agregar"
+        echo ""
+        return 0
     fi
     
     echo ""
-    echo "🔧 CONFIGURAR SINCRONIZACIÓN MANUAL"
-    echo "==================================="
+    echo "🔧 Configurando sincronización automática..."
+    
+    # Crear backup de la configuración
+    local config_backup="${config_file}.backup.$(date +%Y%m%d_%H%M%S)"
+    echo "💾 Creando backup de configuración: $config_backup"
+    cp "$config_file" "$config_backup"
+    
+    # Encontrar el próximo número de carpeta disponible
+    local next_folder_num=$(grep -oE "0\\\\Folders\\\\[0-9]+" "$config_file" | grep -oE "[0-9]+" | sort -n | tail -1)
+    next_folder_num=$((next_folder_num + 1))
+    
+    echo "📁 Agregando carpeta ~/secure como carpeta #$next_folder_num"
+    
+    # Generar un ID único para el journal (8 caracteres hex)
+    local journal_id=$(openssl rand -hex 6 | cut -c1-12)
+    
+    # Agregar la nueva configuración de carpeta al archivo
+    echo "" >> "$config_file"
+    echo "0\\Folders\\${next_folder_num}\\ignoreHiddenFiles=false" >> "$config_file"
+    echo "0\\Folders\\${next_folder_num}\\journalPath=.sync_${journal_id}.db" >> "$config_file"
+    echo "0\\Folders\\${next_folder_num}\\localPath=${secure_dir}/" >> "$config_file"
+    echo "0\\Folders\\${next_folder_num}\\paused=false" >> "$config_file"
+    echo "0\\Folders\\${next_folder_num}\\targetPath=/secure" >> "$config_file"
+    echo "0\\Folders\\${next_folder_num}\\version=2" >> "$config_file"
+    echo "0\\Folders\\${next_folder_num}\\virtualFilesMode=off" >> "$config_file"
+    
+    echo "✅ Configuración agregada exitosamente!"
     echo ""
-    echo "Para sincronizar ~/secure con Nextcloud:"
+    echo "🔄 Reiniciando cliente Nextcloud para aplicar cambios..."
+    
+    # Cerrar y reiniciar Nextcloud
+    if pgrep -x "nextcloud" > /dev/null; then
+        echo "🛑 Cerrando cliente Nextcloud..."
+        pkill -x "nextcloud" 2>/dev/null || true
+        sleep 2
+    fi
+    
+    echo "🚀 Iniciando cliente Nextcloud..."
+    nohup nextcloud > /dev/null 2>&1 &
+    sleep 1
+    
     echo ""
-    echo "1. 📱 Abre el cliente de Nextcloud (icono en la bandeja del sistema)"
-    echo "2. ⚙️  Ve a 'Configuración' → 'Sincronización'"
-    echo "3. 📁 Haz clic en 'Agregar carpeta'"
-    echo "4. 🗂️  Carpeta local: $secure_dir"
-    echo "5. 🌐 Carpeta remota: /secure"
-    echo "6. ✅ Confirma para agregar"
+    echo "✅ ¡CONFIGURACIÓN COMPLETADA!"
+    echo "=========================="
     echo ""
-    echo "📋 VERIFICACIÓN:"
-    echo "   Ejecuta '$0 --secure' nuevamente para verificar la configuración"
+    echo "📋 Resumen:"
+    echo "  ✓ Carpeta local: $secure_dir/"
+    echo "  ✓ Carpeta remota: /secure"
+    echo "  ✓ Backups en: $secure_dir/nextcloud/"
+    echo "  ✓ Cliente Nextcloud reiniciado"
     echo ""
+    echo "📝 IMPORTANTE:"
+    echo "  • La sincronización puede tardar unos minutos en iniciar"
+    echo "  • Verifica en el cliente Nextcloud que aparezca la carpeta 'secure'"
+    echo "  • Los backups creados se sincronizarán automáticamente"
+    echo ""
+    echo "🔍 Para verificar: ejecuta '$0 --secure' nuevamente"
 }
 
 # Procesamiento de argumentos
