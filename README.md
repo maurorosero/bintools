@@ -24,6 +24,7 @@ bintools es un conjunto de scripts que automatizan la instalación y configuraci
 El corazón de bintools. Instala automáticamente herramientas esenciales según tu sistema operativo.
 
 **¿Qué puede instalar?**
+
 - **Básicas**: curl, git, wget, python, vim, nano, herramientas de red
 - **Desarrollo**: compiladores, Node.js, Visual Studio Code, herramientas de construcción
 - **Productividad**: LibreOffice, navegadores, aplicaciones de comunicación
@@ -34,6 +35,7 @@ El corazón de bintools. Instala automáticamente herramientas esenciales según
 Instala y configura Cursor IDE (editor de código con IA) automáticamente.
 
 **¿Qué hace?**
+
 - Descarga e instala la última versión de Cursor
 - Configura reglas MDC para mejor experiencia
 - Crea backups de tu configuración
@@ -44,6 +46,7 @@ Instala y configura Cursor IDE (editor de código con IA) automáticamente.
 Configura entornos Python de forma profesional.
 
 **¿Qué hace?**
+
 - Instala Python y herramientas necesarias
 - Crea entornos virtuales para proyectos
 - Gestiona paquetes Python de forma organizada
@@ -119,6 +122,7 @@ python micursor.py --backup-login
 ## 📋 Listas de Paquetes Disponibles
 
 ### `base` - Herramientas Esenciales
+
 - curl, git, wget
 - python3, python3-pip
 - vim, nano
@@ -128,6 +132,7 @@ python micursor.py --backup-login
 - gum, fzf (herramientas modernas)
 
 ### `devs` - Desarrollo
+
 - Compiladores (gcc, g++)
 - Herramientas de construcción (make, cmake)
 - Node.js y npm
@@ -135,6 +140,7 @@ python micursor.py --backup-login
 - Headers de desarrollo Python
 
 ### `orgs` - Productividad
+
 - LibreOffice
 - Navegadores (Firefox, Chromium)
 - Thunderbird (correo)
@@ -142,6 +148,7 @@ python micursor.py --backup-login
 - Calibre (libros electrónicos)
 
 ### `user` - Personalizados
+
 - htop (monitor de procesos)
 - neofetch (info del sistema)
 - bat, exa (herramientas modernas)
@@ -150,18 +157,21 @@ python micursor.py --backup-login
 ## 🔧 Opciones Avanzadas
 
 ### Modo de Prueba (Dry-run)
+
 ```bash
 # Ver exactamente qué se instalaría
 ./packages.sh --list base --dry-run
 ```
 
 ### Instalación Detallada
+
 ```bash
 # Ver información detallada del proceso
 ./packages.sh --list devs --verbose
 ```
 
 ### Instalación Múltiple
+
 ```bash
 # Instalar varias listas a la vez
 ./packages.sh --list base,devs,user
@@ -170,20 +180,24 @@ python micursor.py --backup-login
 ## 🐛 Solución de Problemas Comunes
 
 ### "Permisos insuficientes"
+
 ```bash
 # Ejecutar con sudo si es necesario
 sudo ./packages.sh --list base
 ```
 
 ### "OS no soportado"
+
 - Verifica que tu distribución esté en la lista soportada
 - El script detecta automáticamente Ubuntu, Debian, Fedora, CentOS, Arch y macOS
 
 ### "Paquete no encontrado"
+
 - El script intentará automáticamente con snap como alternativa
 - Si snap no está disponible, se mostrará un error claro
 
 ### "Python no encontrado"
+
 ```bash
 # Instalar Python automáticamente
 ./pymanager.sh --install-python
@@ -203,7 +217,8 @@ MIT License - Puedes usar, modificar y distribuir libremente.
 
 ## 👨‍💻 Autor
 
-**Mauro Rosero Pérez**
+### Mauro Rosero Pérez
+
 - Email: [mauro.rosero@gmail.com](mailto:mauro.rosero@gmail.com)
 - GitHub: [@maurorosero](https://github.com/maurorosero)
 
@@ -220,6 +235,7 @@ MIT License - Puedes usar, modificar y distribuir libremente.
 ## 📞 Soporte
 
 Si tienes problemas o sugerencias:
+
 1. Abre un [Issue](https://github.com/maurorosero/bintools/issues)
 2. Contacta al autor por email
 3. Revisa la documentación de las herramientas específicas
