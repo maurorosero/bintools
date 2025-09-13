@@ -232,7 +232,9 @@ El instalador `packages.sh` incluye características avanzadas que lo hacen úni
 
 ## 📋 Listas de Paquetes Disponibles
 
-### `base` - Herramientas Esenciales
+El sistema detecta automáticamente todas las listas disponibles en `configs/`. Actualmente incluye:
+
+### `base` - Paquetes Esenciales del Sistema
 
 - curl, git, wget
 - python3, python3-pip
@@ -242,7 +244,7 @@ El instalador `packages.sh` incluye características avanzadas que lo hacen úni
 - tree, rsync, net-tools
 - gum, fzf (herramientas modernas)
 
-### `devs` - Desarrollo
+### `devs` - Paquetes para Desarrollo
 
 - Compiladores (gcc, g++)
 - Herramientas de construcción (make, cmake)
@@ -250,7 +252,7 @@ El instalador `packages.sh` incluye características avanzadas que lo hacen úni
 - Visual Studio Code
 - Headers de desarrollo Python
 
-### `orgs` - Productividad
+### `orgs` - Paquetes para Organización y Productividad
 
 - LibreOffice
 - Navegadores (Firefox, Chromium)
@@ -258,18 +260,31 @@ El instalador `packages.sh` incluye características avanzadas que lo hacen úni
 - Discord, Slack
 - Calibre (libros electrónicos)
 
-### `user` - Personalizados
+### `user` - Paquetes Personalizados del Usuario
 
 - htop (monitor de procesos)
 - neofetch (info del sistema)
 - bat, exa (herramientas modernas)
 - Spotify
 
-### `vbox` - Virtualización
+### `vbox` - VirtualBox y Vagrant para Virtualización
 
 - VirtualBox (plataforma de virtualización)
 - VirtualBox Extension Pack (extensiones)
 - Vagrant (gestión de entornos virtualizados)
+
+### Crear Listas Personalizadas
+
+Puedes crear tus propias listas agregando archivos `.pkg` en `configs/`:
+
+```bash
+# Crear lista personalizada
+echo "# Mi lista de herramientas" > configs/mitools.pkg
+echo "ubuntu:apt:htop:Monitor de procesos" >> configs/mitools.pkg
+
+# Automáticamente disponible
+./packages.sh --list mitools
+```
 
 ## 🔧 Utilidades del Sistema Detalladas
 
