@@ -336,8 +336,8 @@ git commit -m "FEAT: Add new feature"
 # 1. Crear prerelease
 ./create-release.sh -v v1.1.0-beta -m "Versión beta para testing" --prerelease
 
-# 2. Probar instalación
-curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash -s -- --version v1.1.0-beta
+# 2. Testing interno del paquete antes de release estable
+./release-builder.sh --type user --output /tmp/test-release --config configs/release-config.yml
 
 # 3. Si todo está bien, crear release estable
 ./create-release.sh -v v1.1.0 -m "Versión estable"
@@ -360,15 +360,17 @@ El workflow de GitHub Actions usa automáticamente el sistema de configuración:
 
 ## 🔍 Verificación de Release
 
-### Verificar Instalación
+### Verificar Release en GitHub
 
 ```bash
-# Instalar versión específica
-curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash -s -- --version v1.0.0
+# Verificar que el release fue creado
+curl -s https://api.github.com/repos/maurorosero/bintools/releases/latest | jq '.tag_name'
 
-# Verificar instalación
-bintools-manager.sh version
-bintools-manager.sh check
+# Verificar que los assets están disponibles
+curl -s https://api.github.com/repos/maurorosero/bintools/releases/latest | jq '.assets[].name'
+
+# Verificar que el workflow completó exitosamente
+# Ve a: https://github.com/maurorosero/bintools/actions
 ```
 
 ### Verificar en GitHub
