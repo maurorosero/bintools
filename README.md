@@ -3,28 +3,37 @@
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS-lightgrey.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-Una colección de herramientas esenciales para configurar y mantener sistemas Linux y macOS de forma rápida y eficiente.
+Una colección de herramientas esenciales para instalar paquetes, resolver problemas del sistema y automatizar tareas comunes en Linux y macOS.
 
 ## 🚀 ¿Qué es bintools?
 
-bintools es un conjunto de scripts que automatizan la instalación, configuración y mantenimiento de herramientas esenciales en tu sistema. Desde instalar paquetes hasta resolver problemas de audio HDMI, bintools simplifica las tareas comunes del sistema operativo.
+bintools es un conjunto de scripts que automatizan tareas comunes del sistema operativo. Desde resolver problemas de audio HDMI hasta instalar paquetes masivamente, bintools simplifica el trabajo diario con Linux y macOS.
 
 ## ✨ Características Principales
 
-- 🎯 **Instalación Automática**: Un comando instala múltiples herramientas
+- 🛠️ **Resolución de Problemas**: Solución automática de problemas comunes (audio HDMI, pantallas, backups)
+- 📦 **Instalación Masiva**: Un comando instala múltiples herramientas organizadas por categoría
 - 🖥️ **Multiplataforma**: Funciona en Ubuntu, Debian, Fedora, CentOS, Arch Linux y macOS
-- 🔧 **Configuración Inteligente**: Detecta automáticamente tu sistema y usa el método correcto
-- 📦 **Paquetes Organizados**: Herramientas agrupadas por categoría (básicas, desarrollo, productividad)
-- 🛠️ **Utilidades del Sistema**: Solución automática de problemas comunes (audio, video, backups)
-- 🐍 **Gestión de Python**: Entornos virtuales profesionales con detección automática
+- 🔧 **Detección Automática**: Identifica tu sistema y usa el método correcto automáticamente
+- 🐍 **Gestión de Python**: Entornos virtuales profesionales con configuración automática
 - 🎯 **Editor con IA**: Instalación y configuración completa de Cursor IDE
-- 🛡️ **Seguro**: Modo de prueba para ver qué se instalará antes de hacerlo
+- 🌐 **Herramientas de Red**: Conversión de rutas y configuración DHCP automática
+- 🛡️ **Modo Seguro**: Prueba antes de ejecutar para evitar cambios no deseados
 
 ## 🛠️ Herramientas Incluidas
 
+### 🔧 Herramientas de Sistema
+
+Herramientas especializadas para resolver problemas comunes y automatizar tareas del sistema.
+
+- **`fix_hdmi_audio.sh`**: Soluciona problemas de audio HDMI con PipeWire automáticamente
+- **`videoset.sh`**: Configura resoluciones de pantalla y detecta monitores automáticamente
+- **`nextcloud-installer.sh`**: Gestiona backups y restauración completa de Nextcloud
+- **`hexroute`**: Convierte rutas de red a formato hexadecimal para configuración DHCP
+
 ### 📦 Instalador de Paquetes (`packages.sh`)
 
-El corazón de bintools. Instala automáticamente herramientas esenciales según tu sistema operativo.
+Instala automáticamente herramientas esenciales según tu sistema operativo.
 
 **¿Qué puede instalar?**
 
@@ -79,6 +88,22 @@ chmod +x packages.sh micursor.py
 
 ## 📖 Uso Básico
 
+### Resolver Problemas del Sistema
+
+```bash
+# Solucionar problemas de audio HDMI
+./fix_hdmi_audio.sh
+
+# Configurar resoluciones de pantalla automáticamente
+./videoset.sh --auto
+
+# Backup completo de Nextcloud
+./nextcloud-installer.sh --backup
+
+# Convertir rutas de red a formato hexadecimal
+./hexroute 172.16.0.0/16 gw 192.168.1.1
+```
+
 ### Instalar Herramientas Esenciales
 
 ```bash
@@ -113,22 +138,6 @@ python micursor.py --backup-login
 
 # Crear entorno para un proyecto
 ./pymanager.sh --create mi-proyecto
-```
-
-### Usar Utilidades del Sistema
-
-```bash
-# Solucionar problemas de audio HDMI
-./fix_hdmi_audio.sh
-
-# Configurar resoluciones de pantalla automáticamente
-./videoset.sh --auto
-
-# Backup completo de Nextcloud
-./nextcloud-installer.sh --backup
-
-# Convertir rutas de red a formato hexadecimal
-./hexroute 172.16.0.0/16 gw 192.168.1.1
 ```
 
 ## 🖥️ Sistemas Soportados
