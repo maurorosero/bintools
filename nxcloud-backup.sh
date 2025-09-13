@@ -31,6 +31,7 @@ show_help() {
     echo "  --backup              Crear backup de configuración (por defecto)"
     echo "  --restore NOMBRE      Restaurar backup específico"
     echo "  --list                Listar backups disponibles"
+    echo "  --secure              Configurar sincronización de carpeta ~/secure"
     echo "  --help                Mostrar esta ayuda"
     echo ""
     echo "Ejemplos:"
@@ -38,6 +39,7 @@ show_help() {
     echo "  $0 --backup           # Crear backup automático"
     echo "  $0 --restore backup1  # Restaurar backup específico"
     echo "  $0 --list             # Listar backups disponibles"
+    echo "  $0 --secure           # Configurar sync de ~/secure con Nextcloud"
     echo ""
     echo "Ubicación de backups: $BACKUP_DIR"
 }
@@ -286,6 +288,71 @@ restore_backup() {
     fi
 }
 
+# Función para configurar sincronización de carpeta secure
+configure_secure_sync() {
+    echo "🔒 CONFIGURACIÓN DE SINCRONIZACIÓN SEGURA"
+    echo "========================================"
+    echo ""
+    
+    local secure_dir="$USER_HOME/secure"
+    local config_file="$USER_HOME/.config/Nextcloud/nextcloud.cfg"
+    
+    # Verificar si Nextcloud está instalado y configurado
+    if [[ ! -f "$config_file" ]]; then
+        echo "❌ ERROR: Nextcloud no está configurado"
+        echo "   No se encontró: $config_file"
+        echo "   Primero configura una cuenta de Nextcloud en el cliente de escritorio"
+        return 1
+    fi
+    
+    echo "✅ Cliente Nextcloud encontrado: $config_file"
+    
+    # Verificar si la carpeta secure existe
+    if [[ ! -d "$secure_dir" ]]; then
+        echo "📁 Creando carpeta secure: $secure_dir"
+        mkdir -p "$secure_dir"
+    else
+        echo "✅ Carpeta secure encontrada: $secure_dir"
+    fi
+    
+    # Verificar configuración actual de forma más simple
+    echo "🔍 Verificando configuración de sincronización..."
+    
+    # Buscar cualquier referencia a la carpeta secure
+    local secure_configs=""
+    if [[ -r "$config_file" ]]; then
+        secure_configs=$(grep "localPath.*${secure_dir}" "$config_file" 2>/dev/null || true)
+    fi
+    
+    if [[ -n "$secure_configs" ]]; then
+        echo "✅ Se encontraron configuraciones relacionadas con ~/secure:"
+        echo "$secure_configs" | sed 's/.*localPath=/  ✓ /'
+        echo ""
+        echo "📝 NOTA: Verifica en el cliente de Nextcloud que la sincronización esté activa"
+        echo "   Si necesitas agregar más carpetas o configurar ~/secure completo,"
+        echo "   sigue las instrucciones manuales a continuación."
+    else
+        echo "⚠️  No se encontró configuración de sincronización para ~/secure"
+    fi
+    
+    echo ""
+    echo "🔧 CONFIGURAR SINCRONIZACIÓN MANUAL"
+    echo "==================================="
+    echo ""
+    echo "Para sincronizar ~/secure con Nextcloud:"
+    echo ""
+    echo "1. 📱 Abre el cliente de Nextcloud (icono en la bandeja del sistema)"
+    echo "2. ⚙️  Ve a 'Configuración' → 'Sincronización'"
+    echo "3. 📁 Haz clic en 'Agregar carpeta'"
+    echo "4. 🗂️  Carpeta local: $secure_dir"
+    echo "5. 🌐 Carpeta remota: /secure"
+    echo "6. ✅ Confirma para agregar"
+    echo ""
+    echo "📋 VERIFICACIÓN:"
+    echo "   Ejecuta '$0 --secure' nuevamente para verificar la configuración"
+    echo ""
+}
+
 # Procesamiento de argumentos
 case "${1:-}" in
     --restore)
@@ -298,6 +365,9 @@ case "${1:-}" in
         ;;
     --list)
         list_backups
+        ;;
+    --secure)
+        configure_secure_sync
         ;;
     --help|-h)
         show_help
