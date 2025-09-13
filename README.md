@@ -1,7 +1,7 @@
 # bintools - Herramientas Esenciales del Sistema
 
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS-lightgrey.svg)
-![License](https://img.shields.io/badge/License-MIT-green.svg)
+![License](https://img.shields.io/badge/License-GPL%20v3-blue.svg)
 
 Una colección de herramientas esenciales para instalar paquetes, resolver problemas del sistema y automatizar tareas comunes en Linux y macOS.
 
@@ -497,7 +497,7 @@ curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.s
 
 ## 📝 Licencia
 
-MIT License - Puedes usar, modificar y distribuir libremente.
+GNU General Public License v3.0 - Software libre que puedes usar, modificar y distribuir bajo los términos de la GPL v3.
 
 ## 👨‍💻 Autor
 
