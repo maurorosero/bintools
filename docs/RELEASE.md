@@ -11,6 +11,7 @@ El proyecto incluye scripts especializados para gestionar el ciclo completo de r
 ### 📝 `create-release.sh` - Crear Releases
 
 **Características:**
+
 - ✅ Crea releases directamente usando GitHub CLI (sin workflows)
 - ✅ Genera paquetes automáticamente con `release-builder.sh`
 - ✅ Gestiona tags de Git automáticamente
@@ -18,6 +19,7 @@ El proyecto incluye scripts especializados para gestionar el ciclo completo de r
 - ✅ Soporte para drafts y prereleases
 
 **Opciones disponibles:**
+
 - `--version, -v`: Versión del release (requerido)
 - `--message, -m`: Mensaje del release (requerido)
 - `--draft, -d`: Crear como draft
@@ -28,6 +30,7 @@ El proyecto incluye scripts especializados para gestionar el ciclo completo de r
 ### 🗑️ `delete-release.sh` - Eliminar Releases
 
 **Características:**
+
 - ✅ Elimina releases de GitHub de forma segura
 - ✅ Opción de eliminar también el tag de Git
 - ✅ Confirmación antes de eliminar
@@ -35,6 +38,7 @@ El proyecto incluye scripts especializados para gestionar el ciclo completo de r
 - ✅ Lista releases disponibles
 
 **Opciones disponibles:**
+
 - `--version, -v`: Versión del release a eliminar (requerido)
 - `--delete-tag, -t`: También eliminar el tag de Git (local y remoto)
 - `--force, -f`: No pedir confirmación
@@ -44,6 +48,7 @@ El proyecto incluye scripts especializados para gestionar el ciclo completo de r
 ### ⚙️ `release-builder.sh` - Generar Paquetes
 
 **Características:**
+
 - ✅ Genera paquetes tar.gz configurables
 - ✅ Tres tipos de release: full, user, minimal
 - ✅ Configuración flexible via YAML
@@ -521,11 +526,13 @@ python3 -c "import yaml; yaml.safe_load(open('configs/release-config.yml'))"
 ### Para `create-release.sh` y `delete-release.sh`
 
 **Herramientas requeridas:**
+
 - ✅ **GitHub CLI (`gh`)**: Para interactuar con GitHub API
 - ✅ **Git**: Para gestión de tags y repositorio
 - ✅ **jq**: Para procesamiento JSON (solo create-release.sh)
 
 **Configuración necesaria:**
+
 ```bash
 # Verificar GitHub CLI
 gh auth status
@@ -538,6 +545,7 @@ gh api user
 ```
 
 **Permisos del token GitHub CLI:**
+
 - `repo`: Acceso completo al repositorio
 - `write:packages`: Para subir assets
 - `delete_repo`: Para eliminar releases (solo delete-release.sh)
@@ -545,6 +553,7 @@ gh api user
 ### Para `release-builder.sh`
 
 **Herramientas requeridas:**
+
 - ✅ **tar**: Para crear paquetes
 - ✅ **Python 3**: Para validación YAML (opcional)
 
