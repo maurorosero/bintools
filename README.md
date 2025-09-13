@@ -170,6 +170,7 @@ bintools-manager.sh uninstall
 # Gestión completa de Nextcloud
 ./nxcloud-backup.sh --backup          # Crear backup de configuración
 ./nxcloud-backup.sh --secure          # Configurar sincronización de ~/secure
+./nxcloud-backup.sh --clean-sync      # Limpiar archivos de sync no deseados
 ./nxcloud-backup.sh --list            # Listar backups disponibles
 
 # Convertir rutas de red a formato hexadecimal
@@ -378,6 +379,7 @@ echo "ubuntu:apt:htop:Monitor de procesos" >> configs/mitools.pkg
 - **🔄 Restauración completa**: Restaura configuración con un solo comando
 - **🔗 Configuración de sync**: Guía para sincronizar carpeta `~/secure` con servidor
 - **🧹 Limpieza inteligente**: Elimina configuraciones duplicadas automáticamente
+- **🗑️ Limpieza de archivos sync**: Elimina archivos `.nextcloudsync.log` y `.sync_*.db*` no deseados
 - **📋 Gestión de versiones**: Maneja múltiples backups con timestamps únicos
 - **🌐 Sincronización automática**: Los backups se sincronizan con tu servidor Nextcloud
 
@@ -398,6 +400,9 @@ echo "ubuntu:apt:htop:Monitor de procesos" >> configs/mitools.pkg
 
 # Limpiar entradas duplicadas de configuración
 ./nxcloud-backup.sh --clean
+
+# Limpiar archivos de sincronización no deseados (.nextcloudsync.log, .sync_*.db*)
+./nxcloud-backup.sh --clean-sync
 ```
 
 **¿Qué incluye el backup?**
@@ -409,6 +414,24 @@ echo "ubuntu:apt:htop:Monitor de procesos" >> configs/mitools.pkg
 - 🔐 **Seguridad**: No incluye contraseñas (requiere re-login tras restauración)
 
 **Ubicación de backups**: `~/secure/nextcloud/` (se sincroniza automáticamente)
+
+**🧹 Limpieza de archivos de sincronización:**
+
+Si encuentras archivos como `.nextcloudsync.log` o `.sync_*.db*` en `~/secure/`, úsalos para limpiarlos:
+
+```bash
+# Limpiar archivos de sincronización no deseados
+./nxcloud-backup.sh --clean-sync
+```
+
+**Archivos que se eliminan:**
+
+- `.nextcloudsync.log` - Logs de sincronización de Nextcloud
+- `.sync_*.db*` - Bases de datos de sincronización y archivos WAL
+- `.owncloudsync.log` - Logs de sincronización de OwnCloud
+- `.*.tmp` - Archivos temporales de sincronización
+
+**Nota**: Estos archivos son metadatos de Nextcloud y es seguro eliminarlos.
 
 ### `hexroute` - Convertidor de Rutas de Red
 
