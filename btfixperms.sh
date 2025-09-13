@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# fixperms.sh - Establece permisos correctos y seguros para ambiente de desarrollo
+# btfixperms.sh - Establece permisos correctos y seguros para ambiente de desarrollo
 # Autor: Mauro Rosero Pérez
 # Descripción: Usa configs/release-config.yml para determinar qué archivos necesitan permisos específicos
 
@@ -49,7 +49,7 @@ log() {
 # Función para mostrar ayuda
 show_help() {
     cat << EOF
-fixperms.sh - Establece permisos correctos y seguros para ambiente de desarrollo
+btfixperms.sh - Establece permisos correctos y seguros para ambiente de desarrollo
 
 USO:
     $0 [OPCIONES]
@@ -244,7 +244,7 @@ fix_permissions() {
         fi
     done
     
-    # 10. El propio fixperms.sh debe ser ejecutable
+    # 10. El propio btfixperms.sh debe ser ejecutable
     set_file_permissions "$0" "755" "Script de permisos" || ((errors++))
     
     # Resumen

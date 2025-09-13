@@ -92,10 +92,16 @@ git clone https://github.com/maurorosero/bintools.git
 cd bintools
 
 # Establecer permisos correctos y seguros para desarrollo
-./fixperms.sh
+./btfixperms.sh
 
 # ¡Listo! Ya puedes usar las herramientas para desarrollo
 ```
+
+**Nota para Desarrolladores:**
+
+- Ejecuta `./btfixperms.sh` después de clonar para establecer permisos correctos
+- Vuelve a ejecutarlo si experimentas problemas de permisos
+- El script solo afecta el ambiente de desarrollo, no es necesario para usuarios finales
 
 ## 📖 Uso Básico
 
@@ -363,6 +369,21 @@ sudo ./packages.sh --list base
 ```bash
 # Instalar Python automáticamente
 ./pymanager.sh --install-python
+```
+
+### "Permisos insuficientes en desarrollo"
+
+Si experimentas problemas con permisos de archivos en ambiente de desarrollo:
+
+```bash
+# Establecer permisos correctos para todos los archivos
+./btfixperms.sh
+
+# Ver qué cambios se aplicarían sin ejecutarlos
+./btfixperms.sh --dry-run
+
+# Ver información detallada del proceso
+./btfixperms.sh --verbose
 ```
 
 ## 🤝 Contribuir

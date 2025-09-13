@@ -35,7 +35,7 @@ optional_files:
     - create-release.sh
     - release-builder.sh
     - bintools-manager.sh
-    - fixperms.sh
+    - btfixperms.sh
   
   # Archivos de configuración del proyecto
   project_config:
