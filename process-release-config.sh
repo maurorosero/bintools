@@ -12,7 +12,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # Configuración
-CONFIG_FILE="release-config.yml"
+CONFIG_FILE="configs/release-config.yml"
 TEMP_DIR=""
 RELEASE_TYPE=""
 
@@ -53,7 +53,7 @@ Script para procesar la configuración de release y crear paquetes
 OPCIONES:
     -t, --type TYPE         Tipo de release (full, user, minimal)
     -o, --output DIR        Directorio de salida
-    -c, --config FILE       Archivo de configuración (default: release-config.yml)
+    -c, --config FILE       Archivo de configuración (default: configs/release-config.yml)
     -v, --verbose           Modo verbose
     -h, --help              Mostrar esta ayuda
 

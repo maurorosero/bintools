@@ -26,12 +26,12 @@ optional_files:
   documentation:
     - README.md
     - INSTALL.md
-    - RELEASE.md
+    - LICENSE
   
   # Archivos de desarrollo
   development:
     - .gitignore
-    - LICENSE
+    - RELEASE.md
     - create-release.sh
     - test-release.sh
     - bintools-manager.sh
@@ -39,7 +39,7 @@ optional_files:
   # Archivos de configuración del proyecto
   project_config:
     - .github/workflows/release.yml
-    - release-config.yml
+    - configs/release-config.yml
 
 # Configuración por tipo de release
 release_types:

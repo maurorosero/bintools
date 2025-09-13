@@ -43,7 +43,7 @@ jobs:
           ./process-release-config.sh \
             --type user \
             --output "/tmp/bintools-release/bintools-${VERSION}" \
-            --config release-config.yml \
+            --config configs/release-config.yml \
             --verbose
           
           # Mover el paquete al directorio de trabajo

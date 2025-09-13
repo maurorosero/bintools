@@ -81,7 +81,7 @@ tar -czf bintools-v1.0.0.tar.gz bintools-v1.0.0/
 
 ## 📁 Sistema de Configuración de Archivos
 
-### Archivo de Configuración (`release-config.yml`)
+### Archivo de Configuración (`configs/release-config.yml`)
 
 El sistema usa un archivo de configuración que te permite definir exactamente qué archivos se incluyen en cada tipo de release:
 
@@ -121,7 +121,7 @@ optional_files:
   
   project_config:
     - .github/workflows/release.yml
-    - release-config.yml
+    - configs/release-config.yml
 
 # Configuración por tipo de release
 release_types:
@@ -355,7 +355,7 @@ El workflow de GitHub Actions usa automáticamente el sistema de configuración:
     ./process-release-config.sh \
       --type user \
       --output "/tmp/bintools-release/bintools-${VERSION}" \
-      --config release-config.yml \
+      --config configs/release-config.yml \
       --verbose
 ```
 
@@ -435,7 +435,7 @@ git push origin main
 ls -la archivo.sh
 
 # Verificar la configuración
-grep -A 5 "main_files:" release-config.yml
+grep -A 5 "main_files:" configs/release-config.yml
 ```
 
 ### Error: "Directorio no encontrado"
@@ -445,14 +445,14 @@ grep -A 5 "main_files:" release-config.yml
 ls -la directorio/
 
 # Verificar la configuración
-grep -A 5 "directories:" release-config.yml
+grep -A 5 "directories:" configs/release-config.yml
 ```
 
 ### Error: "Configuración no válida"
 
 ```bash
 # Verificar sintaxis YAML
-python3 -c "import yaml; yaml.safe_load(open('release-config.yml'))"
+python3 -c "import yaml; yaml.safe_load(open('configs/release-config.yml'))"
 ```
 
 ## 📞 Soporte
