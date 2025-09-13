@@ -24,20 +24,20 @@ log() {
     
     case "$level" in
         "INFO")
-            echo -e "${BLUE}[INFO]${NC} $message"
+            echo -e "${BLUE}[INFO]${NC} $message" >&2
             ;;
         "SUCCESS")
-            echo -e "${GREEN}[SUCCESS]${NC} $message"
+            echo -e "${GREEN}[SUCCESS]${NC} $message" >&2
             ;;
         "WARNING")
-            echo -e "${YELLOW}[WARNING]${NC} $message"
+            echo -e "${YELLOW}[WARNING]${NC} $message" >&2
             ;;
         "ERROR")
             echo -e "${RED}[ERROR]${NC} $message" >&2
             ;;
         "VERBOSE")
             if [[ "${VERBOSE:-false}" == "true" ]]; then
-                echo -e "${BLUE}[VERBOSE]${NC} $message"
+                echo -e "${BLUE}[VERBOSE]${NC} $message" >&2
             fi
             ;;
     esac
