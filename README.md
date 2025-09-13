@@ -20,7 +20,6 @@ bintools es un conjunto de scripts que automatizan tareas comunes del sistema op
 - 🌐 **Herramientas de Red**: Conversión de rutas y configuración DHCP automática
 - 🛡️ **Modo Seguro**: Prueba antes de ejecutar para evitar cambios no deseados
 - 🚀 **Instalador Universal**: Sistema de instalación sin dependencias de Git
-- 🔄 **Gestión de Versiones**: Control completo de versiones con actualizaciones automáticas
 
 ## 🛠️ Herramientas Incluidas
 
@@ -213,27 +212,6 @@ El instalador `packages.sh` incluye características avanzadas que lo hacen úni
 | Fedora/CentOS | ✅ Completo | dnf, yum, snap | Actualización automática, instalación de snapd |
 | Arch Linux | ✅ Completo | pacman, yay, snap | Actualización automática, instalación de yay y snapd |
 | macOS | ✅ Completo | brew, snap | Actualización automática, instalación de snapd |
-
-## 🔄 Gestión de Versiones
-
-bintools incluye un sistema completo de gestión de versiones:
-
-```bash
-# Verificar versión instalada
-bintools-manager.sh version
-
-# Actualizar a la última versión
-bintools-manager.sh update
-
-# Instalar versión específica  
-bintools-manager.sh install v1.0.0
-
-# Listar versiones disponibles
-bintools-manager.sh list
-
-# Verificar integridad de la instalación
-bintools-manager.sh check
-```
 
 ## 📋 Listas de Paquetes Disponibles
 
