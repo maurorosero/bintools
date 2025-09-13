@@ -91,10 +91,10 @@ curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.s
 git clone https://github.com/maurorosero/bintools.git
 cd bintools
 
-# Hacer ejecutables los scripts principales
-chmod +x packages.sh micursor.py
+# Establecer permisos correctos y seguros para desarrollo
+./fixperms.sh
 
-# ¡Listo! Ya puedes usar las herramientas
+# ¡Listo! Ya puedes usar las herramientas para desarrollo
 ```
 
 ## 📖 Uso Básico
@@ -301,6 +301,20 @@ El instalador `packages.sh` incluye características avanzadas que lo hacen úni
 - Formato compatible con routers empresariales
 
 **Uso**: `./hexroute 172.16.0.0/16 gw 192.168.1.1`
+
+### `fixperms.sh` - Gestor de Permisos para Desarrollo
+
+**Problema que resuelve**: Permisos incorrectos en archivos del proyecto después de clonar
+
+**¿Qué hace?**
+
+- Establece permisos seguros basándose en `configs/release-config.yml`
+- Scripts ejecutables obtienen permisos 755 (rwxr-xr-x)
+- Archivos de configuración obtienen permisos 644 (rw-r--r--)
+- Detecta y protege archivos sensibles con permisos 600 (rw-------)
+- Soporte para modo de prueba antes de aplicar cambios
+
+**Uso**: `./fixperms.sh --verbose --dry-run`
 
 ## 🔧 Opciones Avanzadas
 
