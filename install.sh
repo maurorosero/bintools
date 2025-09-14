@@ -194,7 +194,8 @@ determine_install_dir() {
         fi
         
         # Si no hay terminal interactivo (ej: curl | bash), usar ~/bin por defecto
-        if [[ ! -t 0 ]]; then
+        # Verificar si stdin y stdout están conectados a un terminal
+        if [[ ! -t 0 ]] || [[ ! -t 1 ]] || [[ "${BASH_SOURCE[0]}" == "/dev/fd/"* ]]; then
             echo "$default_dir"
             return
         fi
@@ -219,7 +220,7 @@ check_bin_directory() {
         if [[ "$DRY_RUN" == "true" ]]; then
             log "INFO" "[DRY-RUN] Detectado directorio ~/bin existente"
             log "INFO" "[DRY-RUN] Se preguntaría: ¿Extender ~/bin con bintools?"
-        elif [[ ! -t 0 ]]; then
+        elif [[ ! -t 0 ]] || [[ ! -t 1 ]] || [[ "${BASH_SOURCE[0]}" == "/dev/fd/"* ]]; then
             log "INFO" "Detectado directorio ~/bin existente"
             log "INFO" "Ejecutando en modo no interactivo, usando ~/bin por defecto"
         else
