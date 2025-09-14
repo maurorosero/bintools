@@ -82,6 +82,7 @@ centos:yum:python3-setuptools:Herramientas de empaquetado Python
 centos:yum:python3-wheel:Soporte para formato wheel de Python
 centos:yum:python3-flake8:Linter de código Python
 centos:yum:python3-pytest:Framework de testing para Python
+centos:yum:python3-tox:Testing en múltiples entornos Python
 centos:yum:Cython:Compilador Python-to-C para optimización
 centos:yum:gh:GitHub CLI - Interfaz de línea de comandos para GitHub
 centos:snap:glab:GitLab CLI - Interfaz de línea de comandos para GitLab
@@ -123,6 +124,10 @@ macos:brew:automake:Herramienta para generar Makefiles
 # NOTA: Herramientas Python adicionales recomendadas (instalar vía pip cuando sea necesario):
 # - poetry: Gestor moderno de dependencias y packaging (pip install poetry)
 # - pyinstaller: Empaquetado de aplicaciones Python (pip install pyinstaller)
+# 
+# Para CentOS/RHEL - Herramientas no disponibles en repos oficiales (usar pip):
+# - python3-black: pip install black
+# - pipx: pip install pipx (o usar python3 -m pip install --user pipx)
 # 
 # Para instalar poetry de forma global:
 # curl -sSL https://install.python-poetry.org | python3 -
