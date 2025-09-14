@@ -237,3 +237,4 @@ macos:brew:dmidecode:Herramienta para mostrar información del hardware del sist
 macos:brew:inxi:Herramienta para mostrar información del sistema
 macos:brew:findutils:Herramientas de búsqueda GNU
 macos:brew:screen:Multiplexor de terminal (útil para monitoreo serial)
+macos:brew:usbutils:Herramientas para trabajar con dispositivos USB (incluye lsusb)
