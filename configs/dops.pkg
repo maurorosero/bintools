@@ -1,0 +1,155 @@
+# Paquetes para DevOps y administración de sistemas
+# Formato: OS:Manejador:Paquete:Descripción
+
+# Ubuntu/Debian
+ubuntu:apt:awscli:CLI para Amazon Web Services
+ubuntu:apt:azure-cli:CLI para Microsoft Azure
+ubuntu:apt:google-cloud-sdk:SDK para Google Cloud Platform
+ubuntu:apt:httpie:Cliente HTTP amigable para CLI
+ubuntu:apt:dnsutils:Herramientas para diagnóstico DNS
+ubuntu:apt:tcpdump:Analizador de paquetes de red
+ubuntu:apt:wireshark:Analizador de protocolos de red (GUI)
+ubuntu:apt:mtr:Combinación de traceroute y ping
+ubuntu:apt:iotop:Monitor de uso de I/O por procesos
+ubuntu:apt:netcat-openbsd:Utilidad de red versátil
+ubuntu:apt:curl:Cliente HTTP de línea de comandos
+ubuntu:apt:wget:Herramienta para descargar archivos desde la web
+ubuntu:apt:rsync:Herramienta para sincronización de archivos
+ubuntu:apt:ssh:Cliente SSH para conexiones seguras
+ubuntu:apt:openssh-server:Servidor SSH
+ubuntu:apt:ansible:Herramienta de automatización de infraestructura
+ubuntu:apt:terraform:Herramienta de infraestructura como código
+ubuntu:apt:kubernetes-cli:Cliente de línea de comandos para Kubernetes
+ubuntu:apt:helm:Gestor de paquetes para Kubernetes
+ubuntu:apt:docker-compose:Compose para Docker (multicontenedor)
+ubuntu:apt:jq:Procesador de JSON desde línea de comandos
+ubuntu:apt:yq:Procesador de YAML desde línea de comandos
+ubuntu:apt:htop:Monitor de procesos interactivo
+ubuntu:apt:nmap:Herramienta de exploración de red y auditoría de seguridad
+
+debian:apt:awscli:CLI para Amazon Web Services
+debian:apt:azure-cli:CLI para Microsoft Azure
+debian:apt:google-cloud-sdk:SDK para Google Cloud Platform
+debian:apt:httpie:Cliente HTTP amigable para CLI
+debian:apt:dnsutils:Herramientas para diagnóstico DNS
+debian:apt:tcpdump:Analizador de paquetes de red
+debian:apt:wireshark:Analizador de protocolos de red (GUI)
+debian:apt:mtr:Combinación de traceroute y ping
+debian:apt:iotop:Monitor de uso de I/O por procesos
+debian:apt:netcat-openbsd:Utilidad de red versátil
+debian:apt:curl:Cliente HTTP de línea de comandos
+debian:apt:wget:Herramienta para descargar archivos desde la web
+debian:apt:rsync:Herramienta para sincronización de archivos
+debian:apt:ssh:Cliente SSH para conexiones seguras
+debian:apt:openssh-server:Servidor SSH
+debian:apt:ansible:Herramienta de automatización de infraestructura
+debian:apt:terraform:Herramienta de infraestructura como código
+debian:apt:kubernetes-cli:Cliente de línea de comandos para Kubernetes
+debian:apt:helm:Gestor de paquetes para Kubernetes
+debian:apt:docker-compose:Compose para Docker (multicontenedor)
+debian:apt:jq:Procesador de JSON desde línea de comandos
+debian:apt:yq:Procesador de YAML desde línea de comandos
+debian:apt:htop:Monitor de procesos interactivo
+debian:apt:nmap:Herramienta de exploración de red y auditoría de seguridad
+
+# Fedora/CentOS
+fedora:dnf:awscli:CLI para Amazon Web Services
+fedora:dnf:azure-cli:CLI para Microsoft Azure
+fedora:dnf:google-cloud-sdk:SDK para Google Cloud Platform
+fedora:dnf:httpie:Cliente HTTP amigable para CLI
+fedora:dnf:bind-utils:Herramientas para diagnóstico DNS
+fedora:dnf:tcpdump:Analizador de paquetes de red
+fedora:dnf:wireshark:Analizador de protocolos de red (GUI)
+fedora:dnf:mtr:Combinación de traceroute y ping
+fedora:dnf:iotop:Monitor de uso de I/O por procesos
+fedora:dnf:nc:Utilidad de red versátil
+fedora:dnf:curl:Cliente HTTP de línea de comandos
+fedora:dnf:wget:Herramienta para descargar archivos desde la web
+fedora:dnf:rsync:Herramienta para sincronización de archivos
+fedora:dnf:openssh-clients:Cliente SSH para conexiones seguras
+fedora:dnf:openssh-server:Servidor SSH
+fedora:dnf:ansible:Herramienta de automatización de infraestructura
+fedora:dnf:terraform:Herramienta de infraestructura como código
+fedora:dnf:kubernetes-client:Cliente de línea de comandos para Kubernetes
+fedora:dnf:helm:Gestor de paquetes para Kubernetes
+fedora:dnf:docker-compose:Compose para Docker (multicontenedor)
+fedora:dnf:jq:Procesador de JSON desde línea de comandos
+fedora:dnf:yq:Procesador de YAML desde línea de comandos
+fedora:dnf:htop:Monitor de procesos interactivo
+fedora:dnf:nmap:Herramienta de exploración de red y auditoría de seguridad
+
+centos:yum:awscli:CLI para Amazon Web Services
+centos:yum:azure-cli:CLI para Microsoft Azure
+centos:yum:google-cloud-sdk:SDK para Google Cloud Platform
+centos:yum:httpie:Cliente HTTP amigable para CLI
+centos:yum:bind-utils:Herramientas para diagnóstico DNS
+centos:yum:tcpdump:Analizador de paquetes de red
+centos:yum:wireshark:Analizador de protocolos de red (GUI)
+centos:yum:mtr:Combinación de traceroute y ping
+centos:yum:iotop:Monitor de uso de I/O por procesos
+centos:yum:nc:Utilidad de red versátil
+centos:yum:curl:Cliente HTTP de línea de comandos
+centos:yum:wget:Herramienta para descargar archivos desde la web
+centos:yum:rsync:Herramienta para sincronización de archivos
+centos:yum:openssh-clients:Cliente SSH para conexiones seguras
+centos:yum:openssh-server:Servidor SSH
+centos:yum:ansible:Herramienta de automatización de infraestructura
+centos:yum:terraform:Herramienta de infraestructura como código
+centos:yum:kubernetes-client:Cliente de línea de comandos para Kubernetes
+centos:yum:helm:Gestor de paquetes para Kubernetes
+centos:yum:docker-compose:Compose para Docker (multicontenedor)
+centos:yum:jq:Procesador de JSON desde línea de comandos
+centos:yum:yq:Procesador de YAML desde línea de comandos
+centos:yum:htop:Monitor de procesos interactivo
+centos:yum:nmap:Herramienta de exploración de red y auditoría de seguridad
+
+# Arch Linux
+arch:pacman:aws-cli:CLI para Amazon Web Services
+arch:pacman:azure-cli:CLI para Microsoft Azure
+arch:pacman:google-cloud-sdk:SDK para Google Cloud Platform
+arch:pacman:httpie:Cliente HTTP amigable para CLI
+arch:pacman:bind-tools:Herramientas para diagnóstico DNS
+arch:pacman:tcpdump:Analizador de paquetes de red
+arch:pacman:wireshark-cli:Analizador de protocolos de red (CLI)
+arch:pacman:wireshark-qt:Analizador de protocolos de red (GUI)
+arch:pacman:mtr:Combinación de traceroute y ping
+arch:pacman:iotop:Monitor de uso de I/O por procesos
+arch:pacman:gnu-netcat:Utilidad de red versátil
+arch:pacman:curl:Cliente HTTP de línea de comandos
+arch:pacman:wget:Herramienta para descargar archivos desde la web
+arch:pacman:rsync:Herramienta para sincronización de archivos
+arch:pacman:openssh:Cliente SSH para conexiones seguras
+arch:pacman:ansible:Herramienta de automatización de infraestructura
+arch:pacman:terraform:Herramienta de infraestructura como código
+arch:pacman:kubectl:Cliente de línea de comandos para Kubernetes
+arch:pacman:helm:Gestor de paquetes para Kubernetes
+arch:pacman:docker-compose:Compose para Docker (multicontenedor)
+arch:pacman:jq:Procesador de JSON desde línea de comandos
+arch:pacman:yq:Procesador de YAML desde línea de comandos
+arch:pacman:htop:Monitor de procesos interactivo
+arch:pacman:nmap:Herramienta de exploración de red y auditoría de seguridad
+
+# macOS
+macos:brew:awscli:CLI para Amazon Web Services
+macos:brew:azure-cli:CLI para Microsoft Azure
+macos:brew:google-cloud-sdk:SDK para Google Cloud Platform
+macos:brew:httpie:Cliente HTTP amigable para CLI
+macos:brew:bind:Herramientas para diagnóstico DNS
+macos:brew:tcpdump:Analizador de paquetes de red
+macos:brew:wireshark:Analizador de protocolos de red (GUI)
+macos:brew:mtr:Combinación de traceroute y ping
+macos:brew:iotop:Monitor de uso de I/O por procesos
+macos:brew:netcat:Utilidad de red versátil
+macos:brew:curl:Cliente HTTP de línea de comandos
+macos:brew:wget:Herramienta para descargar archivos desde la web
+macos:brew:rsync:Herramienta para sincronización de archivos
+macos:brew:openssh:Cliente SSH para conexiones seguras
+macos:brew:ansible:Herramienta de automatización de infraestructura
+macos:brew:terraform:Herramienta de infraestructura como código
+macos:brew:kubernetes-cli:Cliente de línea de comandos para Kubernetes
+macos:brew:helm:Gestor de paquetes para Kubernetes
+macos:brew:docker-compose:Compose para Docker (multicontenedor)
+macos:brew:jq:Procesador de JSON desde línea de comandos
+macos:brew:yq:Procesador de YAML desde línea de comandos
+macos:brew:htop:Monitor de procesos interactivo
+macos:brew:nmap:Herramienta de exploración de red y auditoría de seguridad
