@@ -1,0 +1,23 @@
+# Paquetes de Bitwarden - Gestor de contraseñas seguro
+# Formato: OS:Manejador:Paquete:Descripción
+
+# Ubuntu/Debian
+ubuntu:snap:bitwarden:Gestor de contraseñas seguro
+ubuntu:flatpak:com.bitwarden.desktop:Gestor de contraseñas seguro (Flatpak)
+
+debian:snap:bitwarden:Gestor de contraseñas seguro
+debian:flatpak:com.bitwarden.desktop:Gestor de contraseñas seguro (Flatpak)
+
+# Fedora/CentOS
+fedora:snap:bitwarden:Gestor de contraseñas seguro
+fedora:flatpak:com.bitwarden.desktop:Gestor de contraseñas seguro (Flatpak)
+
+centos:flatpak:com.bitwarden.desktop:Gestor de contraseñas seguro (Flatpak)
+
+# Arch Linux
+arch:snap:bitwarden:Gestor de contraseñas seguro
+arch:yay:bitwarden-bin:Gestor de contraseñas seguro (AUR)
+arch:flatpak:com.bitwarden.desktop:Gestor de contraseñas seguro (Flatpak)
+
+# macOS
+macos:brew:bitwarden:Gestor de contraseñas seguro
