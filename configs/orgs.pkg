@@ -31,6 +31,8 @@ ubuntu:apt:remmina:Escritorio remoto (RDP, VNC, SSH)
 ubuntu:apt:filezilla:Cliente FTP/SFTP para transferencias
 ubuntu:apt:projectlibre:Herramienta de gestión de proyectos open source
 ubuntu:apt:openjdk-11-jre:Runtime Java requerido para ProjectLibre
+ubuntu:apt:openjdk-11-jdk:JDK Java para desarrollo con ProjectLibre
+ubuntu:apt:default-jre:Runtime Java por defecto del sistema
 
 debian:apt:calibre:Gestor de libros electrónicos
 debian:apt:libreoffice:Suite ofimática completa
@@ -61,6 +63,8 @@ debian:apt:remmina:Escritorio remoto (RDP, VNC, SSH)
 debian:apt:filezilla:Cliente FTP/SFTP para transferencias
 debian:apt:projectlibre:Herramienta de gestión de proyectos open source
 debian:apt:openjdk-11-jre:Runtime Java requerido para ProjectLibre
+debian:apt:openjdk-11-jdk:JDK Java para desarrollo con ProjectLibre
+debian:apt:default-jre:Runtime Java por defecto del sistema
 
 # Fedora/CentOS
 fedora:dnf:calibre:Gestor de libros electrónicos
@@ -90,6 +94,8 @@ fedora:dnf:remmina:Escritorio remoto (RDP, VNC, SSH)
 fedora:dnf:filezilla:Cliente FTP/SFTP para transferencias
 fedora:dnf:projectlibre:Herramienta de gestión de proyectos open source
 fedora:dnf:java-11-openjdk:Runtime Java requerido para ProjectLibre
+fedora:dnf:java-11-openjdk-devel:JDK Java para desarrollo con ProjectLibre
+fedora:dnf:java-latest-openjdk:Runtime Java más reciente para ProjectLibre
 
 centos:yum:calibre:Gestor de libros electrónicos
 centos:yum:libreoffice:Suite ofimática completa
@@ -113,6 +119,8 @@ centos:yum:remmina:Escritorio remoto (RDP, VNC, SSH)
 centos:yum:filezilla:Cliente FTP/SFTP para transferencias
 centos:yum:projectlibre:Herramienta de gestión de proyectos open source
 centos:yum:java-11-openjdk:Runtime Java requerido para ProjectLibre
+centos:yum:java-11-openjdk-devel:JDK Java para desarrollo con ProjectLibre
+centos:yum:java-latest-openjdk:Runtime Java más reciente para ProjectLibre
 
 # Arch Linux
 arch:pacman:calibre:Gestor de libros electrónicos
@@ -142,6 +150,8 @@ arch:pacman:remmina:Escritorio remoto (RDP, VNC, SSH)
 arch:pacman:filezilla:Cliente FTP/SFTP para transferencias
 arch:pacman:projectlibre:Herramienta de gestión de proyectos open source
 arch:pacman:jre11-openjdk:Runtime Java requerido para ProjectLibre
+arch:pacman:jdk11-openjdk:JDK Java para desarrollo con ProjectLibre
+arch:pacman:jre-openjdk:Runtime Java más reciente para ProjectLibre
 
 # macOS
 macos:brew:calibre:Gestor de libros electrónicos
@@ -165,3 +175,5 @@ macos:brew:remmina:Escritorio remoto (RDP, VNC, SSH)
 macos:brew:filezilla:Cliente FTP/SFTP para transferencias
 macos:brew:projectlibre:Herramienta de gestión de proyectos open source
 macos:brew:openjdk@11:Runtime Java requerido para ProjectLibre
+macos:brew:openjdk@17:Runtime Java más reciente para ProjectLibre
+macos:brew:openjdk:Runtime Java por defecto para ProjectLibre
