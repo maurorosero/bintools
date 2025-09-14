@@ -9,6 +9,9 @@ ubuntu:apt:gcc:Compilador GNU C
 ubuntu:apt:g++:Compilador GNU C++
 ubuntu:apt:nodejs:Runtime de JavaScript
 ubuntu:apt:npm:Gestor de paquetes de Node.js
+ubuntu:apt:yarnpkg:Gestor de paquetes alternativo para Node.js
+ubuntu:apt:node-typescript:Compilador TypeScript para desarrollo tipado
+ubuntu:apt:eslint:Linter de código JavaScript/TypeScript
 ubuntu:apt:python3-dev:Headers de desarrollo de Python
 ubuntu:apt:python3-venv:Módulo de entornos virtuales de Python
 ubuntu:apt:python3-pip:Gestor de paquetes de Python
@@ -32,6 +35,9 @@ debian:apt:gcc:Compilador GNU C
 debian:apt:g++:Compilador GNU C++
 debian:apt:nodejs:Runtime de JavaScript
 debian:apt:npm:Gestor de paquetes de Node.js
+debian:apt:yarnpkg:Gestor de paquetes alternativo para Node.js
+debian:apt:node-typescript:Compilador TypeScript para desarrollo tipado
+debian:apt:eslint:Linter de código JavaScript/TypeScript
 debian:apt:python3-dev:Headers de desarrollo de Python
 debian:apt:python3-venv:Módulo de entornos virtuales de Python
 debian:apt:python3-pip:Gestor de paquetes de Python
@@ -55,6 +61,8 @@ fedora:dnf:make:Herramienta de construcción
 fedora:dnf:cmake:Herramienta de construcción multiplataforma
 fedora:dnf:nodejs:Runtime de JavaScript
 fedora:dnf:npm:Gestor de paquetes de Node.js
+fedora:dnf:yarnpkg:Gestor de paquetes alternativo para Node.js
+fedora:dnf:typescript:Compilador TypeScript para desarrollo tipado
 fedora:dnf:python3-devel:Headers de desarrollo de Python
 fedora:dnf:python3-pip:Gestor de paquetes de Python
 fedora:dnf:python3-setuptools:Herramientas de empaquetado Python
@@ -94,6 +102,10 @@ arch:pacman:base-devel:Herramientas esenciales para compilación
 arch:pacman:cmake:Herramienta de construcción multiplataforma
 arch:pacman:nodejs:Runtime de JavaScript
 arch:pacman:npm:Gestor de paquetes de Node.js
+arch:pacman:yarn:Gestor de paquetes alternativo para Node.js
+arch:pacman:typescript:Compilador TypeScript para desarrollo tipado
+arch:pacman:eslint:Linter de código JavaScript/TypeScript
+arch:pacman:prettier:Formateador de código JavaScript/TypeScript
 arch:pacman:python:Headers de desarrollo de Python
 arch:pacman:python-pip:Gestor de paquetes de Python
 arch:pacman:python-setuptools:Herramientas de empaquetado Python
@@ -112,6 +124,10 @@ arch:pacman:automake:Herramienta para generar Makefiles
 # macOS
 macos:brew:cmake:Herramienta de construcción multiplataforma
 macos:brew:node:Runtime de JavaScript
+macos:brew:yarn:Gestor de paquetes alternativo para Node.js
+macos:brew:typescript:Compilador TypeScript para desarrollo tipado
+macos:brew:eslint:Linter de código JavaScript/TypeScript
+macos:brew:prettier:Formateador de código JavaScript/TypeScript
 macos:brew:python:Headers de desarrollo de Python
 macos:brew:pipx:Instalador de aplicaciones Python en entornos aislados
 macos:brew:black:Formateador automático de código Python
@@ -121,16 +137,23 @@ macos:brew:glab:GitLab CLI - Interfaz de línea de comandos para GitLab
 macos:brew:autoconf:Herramienta para generar scripts de configuración
 macos:brew:automake:Herramienta para generar Makefiles
 
-# NOTA: Herramientas Python adicionales recomendadas (instalar vía pip cuando sea necesario):
+# NOTA: Herramientas adicionales recomendadas (instalar cuando no estén en repos oficiales):
+
+# PYTHON - Instalar vía pip cuando sea necesario:
 # - poetry: Gestor moderno de dependencias y packaging (pip install poetry)
 # - pyinstaller: Empaquetado de aplicaciones Python (pip install pyinstaller)
 # 
-# Para CentOS/RHEL - Herramientas no disponibles en repos oficiales (usar pip):
+# Para CentOS/RHEL - Herramientas Python no disponibles en repos oficiales:
 # - python3-black: pip install black
 # - pipx: pip install pipx (o usar python3 -m pip install --user pipx)
+
+# NODE.JS/JAVASCRIPT - Instalar vía npm/yarn cuando no estén en repos oficiales:
+# - prettier: npm install -g prettier (CentOS/RHEL, algunas versiones Ubuntu/Debian)
+# - nvm: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+# - eslint: npm install -g eslint (si no está en repos)
 # 
 # Para instalar poetry de forma global:
 # curl -sSL https://install.python-poetry.org | python3 -
 # 
-# Para pyinstaller (mejor en entorno virtual):
-# pip install pyinstaller
+# Para nvm (gestión de versiones Node.js):
+# curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
