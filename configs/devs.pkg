@@ -39,7 +39,7 @@ fedora:dnf:nodejs:Runtime de JavaScript
 fedora:dnf:npm:Gestor de paquetes de Node.js
 fedora:dnf:python3-devel:Headers de desarrollo de Python
 fedora:dnf:gh:GitHub CLI - Interfaz de línea de comandos para GitHub
-fedora:snap:glab:GitLab CLI - Interfaz de línea de comandos para GitLab
+fedora:dnf:glab:GitLab CLI - Interfaz de línea de comandos para GitLab
 fedora:dnf:autoconf:Herramienta para generar scripts de configuración
 fedora:dnf:automake:Herramienta para generar Makefiles
 
