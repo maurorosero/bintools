@@ -11,6 +11,15 @@ ubuntu:apt:nodejs:Runtime de JavaScript
 ubuntu:apt:npm:Gestor de paquetes de Node.js
 ubuntu:apt:python3-dev:Headers de desarrollo de Python
 ubuntu:apt:python3-venv:Módulo de entornos virtuales de Python
+ubuntu:apt:python3-pip:Gestor de paquetes de Python
+ubuntu:apt:python3-setuptools:Herramientas de empaquetado Python
+ubuntu:apt:python3-wheel:Soporte para formato wheel de Python
+ubuntu:apt:python3-flake8:Linter de código Python
+ubuntu:apt:python3-black:Formateador automático de código Python
+ubuntu:apt:python3-pytest:Framework de testing para Python
+ubuntu:apt:cython3:Compilador Python-to-C para optimización
+ubuntu:apt:pipx:Instalador de aplicaciones Python en entornos aislados
+ubuntu:apt:python3-tox:Testing en múltiples entornos Python
 ubuntu:apt:gh:GitHub CLI - Interfaz de línea de comandos para GitHub
 ubuntu:snap:glab:GitLab CLI - Interfaz de línea de comandos para GitLab
 ubuntu:apt:autoconf:Herramienta para generar scripts de configuración
@@ -25,6 +34,15 @@ debian:apt:nodejs:Runtime de JavaScript
 debian:apt:npm:Gestor de paquetes de Node.js
 debian:apt:python3-dev:Headers de desarrollo de Python
 debian:apt:python3-venv:Módulo de entornos virtuales de Python
+debian:apt:python3-pip:Gestor de paquetes de Python
+debian:apt:python3-setuptools:Herramientas de empaquetado Python
+debian:apt:python3-wheel:Soporte para formato wheel de Python
+debian:apt:python3-flake8:Linter de código Python
+debian:apt:python3-black:Formateador automático de código Python
+debian:apt:python3-pytest:Framework de testing para Python
+debian:apt:cython3:Compilador Python-to-C para optimización
+debian:apt:pipx:Instalador de aplicaciones Python en entornos aislados
+debian:apt:python3-tox:Testing en múltiples entornos Python
 debian:apt:gh:GitHub CLI - Interfaz de línea de comandos para GitHub
 debian:apt:glab:GitLab CLI - Interfaz de línea de comandos para GitLab
 debian:apt:autoconf:Herramienta para generar scripts de configuración
@@ -38,6 +56,15 @@ fedora:dnf:cmake:Herramienta de construcción multiplataforma
 fedora:dnf:nodejs:Runtime de JavaScript
 fedora:dnf:npm:Gestor de paquetes de Node.js
 fedora:dnf:python3-devel:Headers de desarrollo de Python
+fedora:dnf:python3-pip:Gestor de paquetes de Python
+fedora:dnf:python3-setuptools:Herramientas de empaquetado Python
+fedora:dnf:python3-wheel:Soporte para formato wheel de Python
+fedora:dnf:python3-flake8:Linter de código Python
+fedora:dnf:python3-black:Formateador automático de código Python
+fedora:dnf:python3-pytest:Framework de testing para Python
+fedora:dnf:python3-Cython:Compilador Python-to-C para optimización
+fedora:dnf:pipx:Instalador de aplicaciones Python en entornos aislados
+fedora:dnf:python3-tox:Testing en múltiples entornos Python
 fedora:dnf:gh:GitHub CLI - Interfaz de línea de comandos para GitHub
 fedora:dnf:glab:GitLab CLI - Interfaz de línea de comandos para GitLab
 fedora:dnf:autoconf:Herramienta para generar scripts de configuración
@@ -50,6 +77,12 @@ centos:yum:cmake:Herramienta de construcción multiplataforma
 centos:yum:nodejs:Runtime de JavaScript
 centos:yum:npm:Gestor de paquetes de Node.js
 centos:yum:python3-devel:Headers de desarrollo de Python
+centos:yum:python3-pip:Gestor de paquetes de Python
+centos:yum:python3-setuptools:Herramientas de empaquetado Python
+centos:yum:python3-wheel:Soporte para formato wheel de Python
+centos:yum:python3-flake8:Linter de código Python
+centos:yum:python3-pytest:Framework de testing para Python
+centos:yum:Cython:Compilador Python-to-C para optimización
 centos:yum:gh:GitHub CLI - Interfaz de línea de comandos para GitHub
 centos:snap:glab:GitLab CLI - Interfaz de línea de comandos para GitLab
 centos:yum:autoconf:Herramienta para generar scripts de configuración
@@ -61,6 +94,15 @@ arch:pacman:cmake:Herramienta de construcción multiplataforma
 arch:pacman:nodejs:Runtime de JavaScript
 arch:pacman:npm:Gestor de paquetes de Node.js
 arch:pacman:python:Headers de desarrollo de Python
+arch:pacman:python-pip:Gestor de paquetes de Python
+arch:pacman:python-setuptools:Herramientas de empaquetado Python
+arch:pacman:python-wheel:Soporte para formato wheel de Python
+arch:pacman:flake8:Linter de código Python
+arch:pacman:python-black:Formateador automático de código Python
+arch:pacman:python-pytest:Framework de testing para Python
+arch:pacman:cython:Compilador Python-to-C para optimización
+arch:pacman:python-pipx:Instalador de aplicaciones Python en entornos aislados
+arch:pacman:python-tox:Testing en múltiples entornos Python
 arch:pacman:github-cli:GitHub CLI - Interfaz de línea de comandos para GitHub
 arch:pacman:glab:GitLab CLI - Interfaz de línea de comandos para GitLab
 arch:pacman:autoconf:Herramienta para generar scripts de configuración
@@ -70,7 +112,20 @@ arch:pacman:automake:Herramienta para generar Makefiles
 macos:brew:cmake:Herramienta de construcción multiplataforma
 macos:brew:node:Runtime de JavaScript
 macos:brew:python:Headers de desarrollo de Python
+macos:brew:pipx:Instalador de aplicaciones Python en entornos aislados
+macos:brew:black:Formateador automático de código Python
+macos:brew:flake8:Linter de código Python
 macos:brew:gh:GitHub CLI - Interfaz de línea de comandos para GitHub
 macos:brew:glab:GitLab CLI - Interfaz de línea de comandos para GitLab
 macos:brew:autoconf:Herramienta para generar scripts de configuración
 macos:brew:automake:Herramienta para generar Makefiles
+
+# NOTA: Herramientas Python adicionales recomendadas (instalar vía pip cuando sea necesario):
+# - poetry: Gestor moderno de dependencias y packaging (pip install poetry)
+# - pyinstaller: Empaquetado de aplicaciones Python (pip install pyinstaller)
+# 
+# Para instalar poetry de forma global:
+# curl -sSL https://install.python-poetry.org | python3 -
+# 
+# Para pyinstaller (mejor en entorno virtual):
+# pip install pyinstaller
