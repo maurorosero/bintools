@@ -23,6 +23,7 @@ ubuntu:apt:python3-pytest:Framework de testing para Python
 ubuntu:apt:cython3:Compilador Python-to-C para optimización
 ubuntu:apt:pipx:Instalador de aplicaciones Python en entornos aislados
 ubuntu:apt:python3-tox:Testing en múltiples entornos Python
+ubuntu:apt:python3-grip:Renderizador de Markdown con estilo GitHub
 ubuntu:apt:gh:GitHub CLI - Interfaz de línea de comandos para GitHub
 ubuntu:snap:glab:GitLab CLI - Interfaz de línea de comandos para GitLab
 ubuntu:apt:autoconf:Herramienta para generar scripts de configuración
@@ -49,6 +50,7 @@ debian:apt:python3-pytest:Framework de testing para Python
 debian:apt:cython3:Compilador Python-to-C para optimización
 debian:apt:pipx:Instalador de aplicaciones Python en entornos aislados
 debian:apt:python3-tox:Testing en múltiples entornos Python
+debian:apt:python3-grip:Renderizador de Markdown con estilo GitHub
 debian:apt:gh:GitHub CLI - Interfaz de línea de comandos para GitHub
 debian:apt:glab:GitLab CLI - Interfaz de línea de comandos para GitLab
 debian:apt:autoconf:Herramienta para generar scripts de configuración
@@ -146,6 +148,9 @@ macos:brew:automake:Herramienta para generar Makefiles
 # Para CentOS/RHEL - Herramientas Python no disponibles en repos oficiales:
 # - python3-black: pip install black
 # - pipx: pip install pipx (o usar python3 -m pip install --user pipx)
+
+# Para Fedora/CentOS/Arch/macOS - Herramientas Python no disponibles en repos oficiales:
+# - python3-grip: pip install grip (renderizador Markdown estilo GitHub)
 
 # NODE.JS/JAVASCRIPT - Instalar vía npm/yarn cuando no estén en repos oficiales:
 # - prettier: npm install -g prettier (CentOS/RHEL, algunas versiones Ubuntu/Debian)
