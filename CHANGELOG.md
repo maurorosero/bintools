@@ -5,6 +5,26 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2025-09-14
+
+### 🔧 Fixed
+
+#### Corrección de Fecha en CHANGELOG
+
+- **Corrección de fecha del release v1.1.1**:
+  - Actualizada fecha de 2025-09-13 a 2025-09-14 en CHANGELOG.md
+  - Regenerado release v1.1.1 con fecha correcta
+  - Mejorada precisión en documentación de releases
+
+### 📚 Documentation
+
+#### Actualización de Documentación
+
+- **Mejoras en documentación de releases**:
+  - Corregida fecha del release v1.1.1 en CHANGELOG.md
+  - Actualizada documentación para reflejar fecha real del release
+  - Mejorada consistencia en fechas de releases
+
 ## [1.1.1] - 2025-09-14
 
 ### ✨ Added
