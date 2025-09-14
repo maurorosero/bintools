@@ -62,7 +62,7 @@ arch:pacman:nodejs:Runtime de JavaScript
 arch:pacman:npm:Gestor de paquetes de Node.js
 arch:pacman:python:Headers de desarrollo de Python
 arch:pacman:github-cli:GitHub CLI - Interfaz de línea de comandos para GitHub
-arch:yay:glab:GitLab CLI - Interfaz de línea de comandos para GitLab
+arch:pacman:glab:GitLab CLI - Interfaz de línea de comandos para GitLab
 arch:pacman:autoconf:Herramienta para generar scripts de configuración
 arch:pacman:automake:Herramienta para generar Makefiles
 
