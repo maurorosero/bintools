@@ -11,6 +11,7 @@ main_files:
   - nxcloud-backup.sh
   - hexroute
   - bintools-manager.sh
+  - git-tokens.py
 
 # Directorios que se incluyen completos
 directories:

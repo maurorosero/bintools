@@ -33,6 +33,45 @@ Herramientas especializadas para resolver problemas comunes y automatizar tareas
 - **`videoset.sh`**: Configura resoluciones de pantalla y detecta monitores automáticamente
 - **`nxcloud-backup.sh`**: Gestor completo de backups y configuración de Nextcloud
 - **`hexroute`**: Convierte rutas de red a formato hexadecimal para configuración DHCP
+- **`git-tokens.py`**: Gestor seguro de tokens de autenticación para servicios Git (GitHub, GitLab, etc.)
+
+### 🔐 Gestor de Tokens Git (`git-tokens.py`)
+
+Gestiona tokens de autenticación de servicios Git de forma segura usando el keyring del sistema.
+
+**¿Qué servicios soporta?**
+
+- **GitHub**: Tokens para API, repositorios privados, GitHub CLI
+- **GitLab**: Tokens para API, CI/CD, repositorios privados
+- **Forgejo**: Tokens para API y repositorios
+- **Gitea**: Tokens para API y repositorios
+- **Bitbucket Cloud**: Tokens para API y repositorios
+- **Bitbucket Server**: Tokens para API y repositorios on-premise
+
+**¿Qué hace?**
+
+- 🔐 **Almacenamiento seguro**: Usa keyring del sistema operativo
+- 🔄 **Encriptación automática**: Tokens encriptados con base64
+- 👤 **Gestión por usuario**: Soporte para múltiples usuarios por servicio
+- 🏷️ **Etiquetado inteligente**: Formato `[servicio]-[modo]-[uso]`
+- 🔍 **Búsqueda fácil**: Lista y recupera tokens por servicio
+- 🗑️ **Eliminación segura**: Borra tokens sin dejar rastros
+
+**Ejemplos de uso:**
+
+```bash
+# Guardar token de GitHub para desarrollo
+./git-tokens.py set github-dev-api --token ghp_xxxxx
+
+# Recuperar token de GitLab para CI/CD
+./git-tokens.py get gitlab-ci-cd
+
+# Listar todos los tokens guardados
+./git-tokens.py list
+
+# Eliminar token específico
+./git-tokens.py delete github-dev-api
+```
 
 ### 📦 Instalador de Paquetes (`packages.sh`)
 
