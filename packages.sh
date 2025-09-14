@@ -4,7 +4,7 @@
 # Compatible con Ubuntu, Debian, Fedora, CentOS, Arch Linux y macOS
 # Autor: Mauro Rosero Pérez
 # Website: https://mauro.rosero.one
-# Versión: 1.0
+# Versión: 1.1.0
 
 set -euo pipefail
 

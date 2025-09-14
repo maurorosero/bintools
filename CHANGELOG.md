@@ -5,6 +5,228 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-01-27
+
+### 🚀 Nueva Versión Mayor - Experiencia de Usuario Mejorada
+
+Versión 1.1.0 introduce funcionalidades avanzadas de detección automática y gestión inteligente de privilegios para una experiencia de instalación completamente optimizada.
+
+### ✨ Added
+
+#### 🖥️ Sistema de Detección Automática de GUI
+
+- **Detección inteligente de ambiente gráfico**: 
+  - Variables de entorno: `DISPLAY`, `WAYLAND_DISPLAY`, `XDG_SESSION_TYPE`
+  - Servidor X corriendo: Comando `xset`
+  - Procesos gráficos: `Xorg`, `Xwayland`, `gnome-session`, `kde`, etc.
+  - macOS: Variable `TERM_PROGRAM`
+
+- **Identificación automática de paquetes GUI**:
+  - Lista completa de paquetes GUI conocidos (navegadores, oficina, multimedia, etc.)
+  - Detección por palabras clave en descripciones
+  - Filtrado inteligente entre paquetes GUI y CLI
+
+- **Filtrado automático de paquetes**:
+  - Sin GUI detectado: Omite automáticamente paquetes GUI
+  - Con GUI detectado: Instala todos los paquetes normalmente
+  - Logging detallado de paquetes filtrados
+
+#### 🔐 Gestión Inteligente de Privilegios Sudo
+
+- **Sesión sudo única**:
+  - Solicita privilegios sudo una sola vez al inicio (`sudo -v`)
+  - Mantiene sesión activa en background automáticamente
+  - Refresco automático cada 60 segundos
+  - Evita múltiples solicitudes de contraseña
+
+- **Función `maintain_sudo()`**:
+  - Verificación de privilegios existentes
+  - Solicitud única de autenticación
+  - Proceso background para mantener sesión
+  - Manejo de errores de autenticación
+
+- **Función `sudo_cmd()`**:
+  - Wrapper para todos los comandos sudo
+  - Usa sesión mantenida automáticamente
+  - Fallback a sudo normal si es necesario
+  - Soporte para modo `--no-sudo`
+
+#### 🎛️ Nuevas Opciones de Línea de Comandos
+
+- **`--headless`**: Instala paquetes GUI incluso sin ambiente gráfico
+- **`--no-sudo`**: Ejecuta sin privilegios sudo (para usuarios root)
+
+#### 📦 Nuevas Listas de Paquetes Especializadas
+
+- **`kube.pkg`**: Toolkit completo para desarrollo local de Kubernetes
+  - Clusters locales: `minikube`, `kind`, `k3d`
+  - CLI mejorado: `kubectl` + extensiones (`kubectl-neat`, `kubectl-tree`)
+  - Interfaz interactiva: `k9s`
+  - Monitoreo y debugging: `stern`
+  - Herramientas de productividad: `kubectx`, `kubens`, `helm`, `kustomize`
+
+- **`wapp.pkg`**: Cliente oficial de WhatsApp para Linux
+  - Cliente oficial: `whatsapp-for-linux` (snap)
+
+- **`pdmn.pkg`**: Toolkit completo para Podman
+  - Motor: `podman`, `podman-compose`
+  - Networking: `slirp4netns`, `uidmap`, `fuse-overlayfs`
+  - Utilidades: `containers-common`, `skopeo`, `buildah`, `crun`
+
+- **`dckr.pkg`**: Toolkit completo para Docker
+  - Engine: `docker-ce`, `docker-ce-cli`, `containerd.io`
+  - Plugins: `docker-compose-plugin`, `docker-buildx-plugin`, `docker-scan-plugin`
+  - Utilidades: `docker-dockerfile`, `docker-compose` (V1 & V2)
+
+- **`dkrc.pkg`**: Docker CLI remoto (sin engine local)
+  - CLI: `docker-ce-cli`, `docker-compose`, plugins
+  - macOS: `docker-machine`, `docker-credential-helper`
+  - Sin engine local: Excluye `docker-ce` y `containerd.io`
+
+- **`ardu.pkg`**: Toolkit completo para desarrollo con Arduino
+  - IDE: `arduino`, `arduino-cli`, `arduino-mk`
+  - AVR tools: `avrdude`, `gcc-avr`, `avr-libc`, `avr-gcc`, `avr-binutils`
+  - Comunicación serial: `picocom`, `minicom`, `cu`, `moserial`, `python3-serial`
+  - IoT platforms: `platformio`
+  - Flashing tools: `stm32flash`, `esptool`
+  - Debugger: `openocd`
+
+- **`dops.pkg`**: Toolkit DevOps optimizado
+  - Cloud CLIs: `awscli`, `azure-cli`, `google-cloud-sdk`
+  - Network analysis: `httpie`, `dnsutils`, `tcpdump`, `mtr`, `netcat`, `nmap`
+  - Automation: `ansible`, `terraform`
+  - Sin duplicados: Paquetes ya en `base.pkg` eliminados
+
+#### 🔧 Mejoras en Listas Existentes
+
+- **`orgs.pkg`**: Suite ofimática completa
+  - LibreOffice completo con idiomas (ES/EN) y ayuda
+  - Herramientas PDF avanzadas: `pdftk`, `ghostscript`, `poppler-utils`
+  - OCR: `tesseract` con idiomas ES/EN
+  - Suite gráfica: `GIMP`, `Inkscape`
+  - Impresión: `cups`, `simple-scan`
+  - Conectividad: `remmina`, `filezilla`
+  - Diagramas: `drawio`
+  - Gestión de proyectos: `ProjectLibre` con Java 11
+
+- **`base.pkg`**: Herramientas esenciales expandidas
+  - Terminal: `screen` (multiplexor)
+  - USB: `usbutils` (incluye `lsusb`)
+  - Markdown: `glow`, `mdcat`
+  - CSV: `csvkit`
+  - Hex: `hexyl`, `xxd`, `hexedit`
+
+- **`devs.pkg`**: Herramientas de desarrollo optimizadas
+  - Base de datos: `sqlite3`
+  - Sin GUI: `sqlitebrowser` eliminado para enfoque CLI
+
+### 🔄 Changed
+
+#### Optimización del Sistema de Instalación
+
+- **Gestión de privilegios mejorada**:
+  - Todas las funciones de instalación actualizadas para usar `sudo_cmd()`
+  - `install_package()`: Usa sesión sudo mantenida
+  - `install_yay()`: Usa `sudo_cmd()` para dependencias
+  - `install_snap()`: Usa `sudo_cmd()` para instalación
+
+- **Gestores de paquetes optimizados**:
+  - `apt`: `sudo_cmd apt install/update`
+  - `dnf`: `sudo_cmd dnf install/update`
+  - `yum`: `sudo_cmd yum install`
+  - `pacman`: `sudo_cmd pacman -S`
+  - `snap`: `sudo_cmd snap install`
+
+#### Limpieza de Duplicados
+
+- **`dops.pkg` optimizado**:
+  - Eliminados paquetes duplicados con `base.pkg`
+  - Removidos: `curl`, `wget`, `rsync`, `jq`, `yq`, `htop`, `iotop`
+  - Removidos: `wireshark`, `docker-compose`, SSH tools
+  - Removidos: `kubernetes-cli`, `helm`
+  - Enfoque específico en DevOps sin duplicados
+
+#### Separación de Responsabilidades
+
+- **Configuración modular**:
+  - `base.pkg`: Herramientas básicas del sistema
+  - `dops.pkg`: DevOps básico (cloud, red, automatización)
+  - `dckr.pkg`: Docker completo
+  - `pdmn.pkg`: Podman completo
+  - `kube.pkg`: Kubernetes local
+
+### 🗑️ Removed
+
+#### Limpieza de Paquetes Duplicados
+
+- **De `dops.pkg`**:
+  - Paquetes ya en `base.pkg`: `curl`, `wget`, `rsync`, `jq`, `yq`, `htop`, `iotop`
+  - Herramientas GUI: `wireshark`
+  - Orquestación: `docker-compose`
+  - SSH: `ssh`, `openssh-clients`, `openssh-server`, `openssh`
+  - Kubernetes: `kubernetes-cli`, `kubectl`, `helm`
+
+- **De `devs.pkg`**:
+  - GUI: `sqlitebrowser` (mantenido enfoque CLI)
+
+### 🔧 Fixed
+
+#### Experiencia de Usuario
+
+- **Instalación sin interrupciones**:
+  - Una sola contraseña para toda la instalación
+  - Sesión sudo mantenida automáticamente
+  - Sin múltiples prompts de contraseña
+
+- **Detección automática mejorada**:
+  - Filtrado inteligente de paquetes GUI
+  - Logging claro de paquetes omitidos
+  - Override flexible con `--headless`
+
+#### Compatibilidad
+
+- **Soporte para contenedores**:
+  - Modo `--no-sudo` para usuarios root
+  - Detección automática de ambiente headless
+  - Instalación optimizada para servidores
+
+### 🛡️ Security
+
+#### Gestión Segura de Privilegios
+
+- **Sesión sudo mantenida**:
+  - Refresco automático cada 60 segundos
+  - Manejo seguro de expiración de sesión
+  - Proceso background aislado
+
+- **Modo sin privilegios**:
+  - Opción `--no-sudo` para casos especiales
+  - Ejecución directa sin prompts
+  - Ideal para contenedores y automatización
+
+### 📋 Requisitos Técnicos
+
+#### Para Usuarios
+
+- **Sistema**: Ubuntu 18.04+, Debian 10+, Fedora 32+, CentOS 8+, Arch Linux, macOS 10.15+
+- **Herramientas**: curl o wget para instalación
+- **Privilegios**: sudo (una sola vez) o usuario root con `--no-sudo`
+
+#### Para Desarrolladores
+
+- **GitHub CLI**: Para gestión de releases (`gh auth login` requerido)
+- **Git**: Para gestión de repositorio y tags
+- **jq**: Para procesamiento JSON en scripts de release
+- **tar**: Para creación de paquetes
+- **Python 3**: Para validación YAML (opcional)
+
+### 🔗 Enlaces
+
+- **Release**: [v1.1.0](https://github.com/maurorosero/bintools/releases/tag/v1.1.0)
+- **Documentación**: [README.md](README.md)
+- **Guía de Desarrollo**: [docs/RELEASE.md](docs/RELEASE.md)
+- **Autor**: [Mauro Rosero Pérez](https://mauro.rosero.one)
+
 ## [1.0.0] - 2025-09-14
 
 ### 🎉 Primera Versión Oficial
