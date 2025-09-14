@@ -1,0 +1,53 @@
+# Paquetes para Docker CLI remoto (sin engine local)
+# Formato: OS:Manejador:Paquete:Descripción
+
+# Ubuntu/Debian
+ubuntu:apt:docker-ce-cli:Cliente de línea de comandos de Docker
+ubuntu:apt:docker-compose:Compose para Docker (multicontenedor)
+ubuntu:apt:docker-compose-plugin:Plugin de Docker Compose V2
+ubuntu:apt:docker-buildx-plugin:Plugin de construcción avanzada de Docker
+ubuntu:apt:docker-scan-plugin:Plugin de escaneo de seguridad de Docker
+ubuntu:apt:docker-dockerfile:Utilidades para Dockerfile
+ubuntu:apt:docker-compose-v2:Compose V2 standalone
+
+debian:apt:docker-ce-cli:Cliente de línea de comandos de Docker
+debian:apt:docker-compose:Compose para Docker (multicontenedor)
+debian:apt:docker-compose-plugin:Plugin de Docker Compose V2
+debian:apt:docker-buildx-plugin:Plugin de construcción avanzada de Docker
+debian:apt:docker-scan-plugin:Plugin de escaneo de seguridad de Docker
+debian:apt:docker-dockerfile:Utilidades para Dockerfile
+debian:apt:docker-compose-v2:Compose V2 standalone
+
+# Fedora/CentOS
+fedora:dnf:docker-cli:Cliente de línea de comandos de Docker
+fedora:dnf:docker-compose:Compose para Docker (multicontenedor)
+fedora:dnf:docker-buildx:Plugin de construcción avanzada de Docker
+fedora:dnf:docker-scan:Plugin de escaneo de seguridad de Docker
+fedora:dnf:docker-dockerfile:Utilidades para Dockerfile
+fedora:dnf:docker-compose-plugin:Plugin de Docker Compose V2
+
+centos:yum:docker-ce-cli:Cliente de línea de comandos de Docker
+centos:yum:docker-compose:Compose para Docker (multicontenedor)
+centos:yum:docker-compose-plugin:Plugin de Docker Compose V2
+centos:yum:docker-buildx-plugin:Plugin de construcción avanzada de Docker
+centos:yum:docker-scan-plugin:Plugin de escaneo de seguridad de Docker
+centos:yum:docker-dockerfile:Utilidades para Dockerfile
+centos:yum:docker-compose-v2:Compose V2 standalone
+
+# Arch Linux
+arch:pacman:docker-cli:Cliente de línea de comandos de Docker
+arch:pacman:docker-compose:Compose para Docker (multicontenedor)
+arch:pacman:docker-buildx:Plugin de construcción avanzada de Docker
+arch:pacman:docker-scan:Plugin de escaneo de seguridad de Docker
+arch:pacman:docker-dockerfile:Utilidades para Dockerfile
+arch:yay:docker-ce-cli:Cliente de línea de comandos de Docker Community Edition
+arch:yay:docker-compose-plugin:Plugin de Docker Compose V2
+
+# macOS
+macos:brew:docker-cli:Cliente de línea de comandos de Docker
+macos:brew:docker-compose:Compose para Docker (multicontenedor)
+macos:brew:docker-buildx:Plugin de construcción avanzada de Docker
+macos:brew:docker-scan:Plugin de escaneo de seguridad de Docker
+macos:brew:docker-dockerfile:Utilidades para Dockerfile
+macos:brew:docker-machine:Herramienta para crear máquinas Docker
+macos:brew:docker-credential-helper:Helper para credenciales de Docker
