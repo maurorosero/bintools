@@ -16,6 +16,7 @@ ubuntu:apt:coreutils:Utilidades básicas del sistema (incluye tee)
 ubuntu:apt:vim:Editor de texto avanzado
 ubuntu:apt:nano:Editor de texto simple
 ubuntu:apt:unzip:Herramienta para extraer archivos ZIP
+ubuntu:apt:p7zip-full:Implementación completa del compresor 7z
 ubuntu:apt:tree:Herramienta para mostrar estructura de directorios
 ubuntu:apt:net-tools:Herramientas de red (netstat, ifconfig, etc.)
 ubuntu:apt:rsync:Herramienta para sincronización de archivos
@@ -51,6 +52,7 @@ debian:apt:coreutils:Utilidades básicas del sistema (incluye tee)
 debian:apt:vim:Editor de texto avanzado
 debian:apt:nano:Editor de texto simple
 debian:apt:unzip:Herramienta para extraer archivos ZIP
+debian:apt:p7zip-full:Implementación completa del compresor 7z
 debian:apt:tree:Herramienta para mostrar estructura de directorios
 debian:apt:net-tools:Herramientas de red (netstat, ifconfig, etc.)
 debian:apt:rsync:Herramienta para sincronización de archivos
@@ -87,6 +89,7 @@ fedora:dnf:coreutils:Utilidades básicas del sistema (incluye tee)
 fedora:dnf:vim:Editor de texto avanzado
 fedora:dnf:nano:Editor de texto simple
 fedora:dnf:unzip:Herramienta para extraer archivos ZIP
+fedora:dnf:p7zip:Implementación completa del compresor 7z
 fedora:dnf:tree:Herramienta para mostrar estructura de directorios
 fedora:dnf:net-tools:Herramientas de red (netstat, ifconfig, etc.)
 fedora:dnf:rsync:Herramienta para sincronización de archivos
@@ -122,6 +125,7 @@ centos:yum:coreutils:Utilidades básicas del sistema (incluye tee)
 centos:yum:vim:Editor de texto avanzado
 centos:yum:nano:Editor de texto simple
 centos:yum:unzip:Herramienta para extraer archivos ZIP
+centos:yum:p7zip:Implementación completa del compresor 7z
 centos:yum:tree:Herramienta para mostrar estructura de directorios
 centos:yum:net-tools:Herramientas de red (netstat, ifconfig, etc.)
 centos:yum:rsync:Herramienta para sincronización de archivos
@@ -158,6 +162,7 @@ arch:pacman:coreutils:Utilidades básicas del sistema (incluye tee)
 arch:pacman:vim:Editor de texto avanzado
 arch:pacman:nano:Editor de texto simple
 arch:pacman:unzip:Herramienta para extraer archivos ZIP
+arch:pacman:p7zip:Implementación completa del compresor 7z
 arch:pacman:tree:Herramienta para mostrar estructura de directorios
 arch:pacman:net-tools:Herramientas de red (netstat, ifconfig, etc.)
 arch:pacman:rsync:Herramienta para sincronización de archivos
@@ -194,6 +199,7 @@ macos:brew:coreutils:Utilidades básicas del sistema (incluye tee)
 macos:brew:vim:Editor de texto avanzado
 macos:brew:nano:Editor de texto simple
 macos:brew:unzip:Herramienta para extraer archivos ZIP
+macos:brew:p7zip:Implementación completa del compresor 7z
 macos:brew:tree:Herramienta para mostrar estructura de directorios
 macos:brew:net-tools:Herramientas de red (netstat, ifconfig, etc.)
 macos:brew:rsync:Herramienta para sincronización de archivos
