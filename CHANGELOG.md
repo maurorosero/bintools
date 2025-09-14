@@ -7,6 +7,14 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ## [Unreleased]
 
+### 🔧 Fixed
+
+#### Documentación
+
+- **Separación de contenido**: Removido contenido de gestión de versiones del README.md hacia docs/RELEASE.md
+- **Enfoque correcto**: README.md ahora 100% enfocado en usuarios finales
+- **Eliminación de bintools-manager.sh**: Referencias de desarrollo removidas del README
+
 ## [1.0.0] - 2025-09-13
 
 ### 🎉 Primera Versión Oficial
