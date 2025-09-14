@@ -23,6 +23,8 @@ VERBOSE=false
 LIST=""
 HEADLESS=false
 GUI_DETECTED=false
+NO_SUDO=false
+SUDO_MAINTAINED=false
 
 # Función para mostrar listas disponibles dinámicamente
 show_available_lists() {
@@ -67,6 +69,7 @@ OPCIONES:
     -d, --dry-run        Solo mostrar qué se instalaría, sin instalar realmente
     -v, --verbose        Mostrar información detallada
     --headless           Instalar paquetes GUI incluso sin ambiente gráfico
+    --no-sudo            Ejecutar sin privilegios sudo (para usuarios root)
     --install-yay        Instalar yay (AUR helper) en Arch Linux
     --install-snap       Instalar snapd en sistemas compatibles
     -h, --help           Mostrar esta ayuda
@@ -79,6 +82,7 @@ EJEMPLOS:
     $0 --list user --verbose         # Instalar con información detallada
     $0 --list orgs --headless        # Instalar paquetes GUI sin ambiente gráfico
     $0 --list all --headless         # Instalar todo incluyendo GUI
+    $0 --list base --no-sudo         # Instalar sin sudo (usuario root)
     $0 --install-yay                 # Instalar yay en Arch Linux
     $0 --install-snap                # Instalar snapd en sistemas compatibles
 
@@ -98,6 +102,14 @@ DETECCIÓN AUTOMÁTICA DE GUI:
     
     Sin ambiente gráfico, los paquetes GUI se omiten automáticamente.
     Use --headless para instalar paquetes GUI sin ambiente gráfico.
+
+GESTIÓN DE PRIVILEGIOS SUDO:
+    El script solicita privilegios sudo una sola vez al inicio y los mantiene
+    durante todo el proceso de instalación:
+    - Solicita sudo al inicio con sudo -v
+    - Mantiene la sesión activa en background
+    - Evita múltiples solicitudes de contraseña
+    - Use --no-sudo para ejecutar sin privilegios (usuario root)
 
 EOF
 }
@@ -128,6 +140,52 @@ log() {
             fi
             ;;
     esac
+}
+
+# Función para mantener sesión sudo
+maintain_sudo() {
+    if [[ "$NO_SUDO" == "true" ]]; then
+        return 0
+    fi
+    
+    # Verificar si ya tenemos privilegios sudo
+    if sudo -n true 2>/dev/null; then
+        log "VERBOSE" "Privilegios sudo ya disponibles"
+        SUDO_MAINTAINED=true
+        return 0
+    fi
+    
+    # Solicitar privilegios sudo una sola vez
+    log "INFO" "Solicitando privilegios sudo para todo el proceso..."
+    if sudo -v; then
+        log "SUCCESS" "Privilegios sudo obtenidos"
+        SUDO_MAINTAINED=true
+        
+        # Mantener la sesión sudo activa en background
+        (
+            while true; do
+                sleep 60
+                sudo -n true 2>/dev/null || break
+            done
+        ) &
+        
+        return 0
+    else
+        log "ERROR" "No se pudieron obtener privilegios sudo"
+        return 1
+    fi
+}
+
+# Función para ejecutar comandos con sudo mantenido
+sudo_cmd() {
+    if [[ "$NO_SUDO" == "true" ]]; then
+        "$@"
+    elif [[ "$SUDO_MAINTAINED" == "true" ]]; then
+        sudo "$@"
+    else
+        log "ERROR" "Sesión sudo no mantenida. Ejecutando: $*"
+        sudo "$@"
+    fi
 }
 
 # Función para detectar ambiente gráfico
@@ -270,7 +328,7 @@ install_yay() {
     log "INFO" "Instalando yay (AUR helper)..."
     
     # Instalar dependencias necesarias
-    if ! sudo pacman -S --noconfirm base-devel git; then
+    if ! sudo_cmd pacman -S --noconfirm base-devel git; then
         log "ERROR" "No se pudieron instalar las dependencias necesarias"
         return 1
     fi
@@ -313,7 +371,7 @@ install_snap() {
     
     case "$os" in
         ubuntu|debian)
-            if sudo apt update && sudo apt install -y snapd; then
+            if sudo_cmd apt update && sudo_cmd apt install -y snapd; then
                 log "SUCCESS" "snapd instalado correctamente"
                 log "INFO" "Reinicia tu sesión para usar snap"
                 return 0
@@ -323,7 +381,7 @@ install_snap() {
             fi
             ;;
         fedora)
-            if sudo dnf install -y snapd; then
+            if sudo_cmd dnf install -y snapd; then
                 log "SUCCESS" "snapd instalado correctamente"
                 log "INFO" "Habilita el socket de snap: sudo systemctl enable --now snapd.socket"
                 return 0
@@ -333,7 +391,7 @@ install_snap() {
             fi
             ;;
         arch)
-            if sudo pacman -S --noconfirm snapd; then
+            if sudo_cmd pacman -S --noconfirm snapd; then
                 log "SUCCESS" "snapd instalado correctamente"
                 log "INFO" "Habilita el socket de snap: sudo systemctl enable --now snapd.socket"
                 return 0
@@ -364,7 +422,7 @@ install_package() {
     
     case "$manager" in
         apt)
-            if ! sudo apt update >/dev/null 2>&1; then
+            if ! sudo_cmd apt update >/dev/null 2>&1; then
                 log "WARNING" "No se pudo actualizar la lista de paquetes"
             fi
             # Verificar si el paquete ya está instalado
@@ -372,7 +430,7 @@ install_package() {
                 # Verificar si hay actualizaciones disponibles
                 if apt list --upgradable 2>/dev/null | grep -q "^$package/"; then
                     log "INFO" "Actualizando $package (hay actualizaciones disponibles)"
-                    if sudo apt install -y "$package"; then
+                    if sudo_cmd apt install -y "$package"; then
                         log "SUCCESS" "Actualizado: $package"
                         return 0
                     fi
@@ -382,7 +440,7 @@ install_package() {
                 fi
             else
                 log "INFO" "Instalando $package (no está instalado)"
-                if sudo apt install -y "$package"; then
+                if sudo_cmd apt install -y "$package"; then
                     log "SUCCESS" "Instalado: $package"
                     return 0
                 fi
@@ -394,7 +452,7 @@ install_package() {
                 # Verificar si hay actualizaciones disponibles
                 if dnf check-update "$package" >/dev/null 2>&1; then
                     log "INFO" "Actualizando $package (hay actualizaciones disponibles)"
-                    if sudo dnf update -y "$package"; then
+                    if sudo_cmd dnf update -y "$package"; then
                         log "SUCCESS" "Actualizado: $package"
                         return 0
                     fi
@@ -404,14 +462,14 @@ install_package() {
                 fi
             else
                 log "INFO" "Instalando $package (no está instalado)"
-                if sudo dnf install -y "$package"; then
+                if sudo_cmd dnf install -y "$package"; then
                     log "SUCCESS" "Instalado: $package"
                     return 0
                 fi
             fi
             ;;
         yum)
-            if sudo yum install -y "$package"; then
+            if sudo_cmd yum install -y "$package"; then
                 log "SUCCESS" "Instalado: $package"
                 return 0
             fi
@@ -422,7 +480,7 @@ install_package() {
                 # Verificar si hay actualizaciones disponibles
                 if pacman -Qu "$package" >/dev/null 2>&1; then
                     log "INFO" "Actualizando $package (hay actualizaciones disponibles)"
-                    if sudo pacman -S --noconfirm "$package"; then
+                    if sudo_cmd pacman -S --noconfirm "$package"; then
                         log "SUCCESS" "Actualizado: $package"
                         return 0
                     fi
@@ -432,7 +490,7 @@ install_package() {
                 fi
             else
                 log "INFO" "Instalando $package (no está instalado)"
-                if sudo pacman -S --noconfirm "$package"; then
+                if sudo_cmd pacman -S --noconfirm "$package"; then
                     log "SUCCESS" "Instalado: $package"
                     return 0
                 fi
@@ -467,7 +525,7 @@ install_package() {
                     # Verificar si hay actualizaciones disponibles
                     if pacman -Qu "$package" >/dev/null 2>&1; then
                         log "INFO" "Actualizando $package (hay actualizaciones disponibles)"
-                        if sudo pacman -S --noconfirm "$package"; then
+                        if sudo_cmd pacman -S --noconfirm "$package"; then
                             log "SUCCESS" "Actualizado: $package (con pacman)"
                             return 0
                         fi
@@ -477,7 +535,7 @@ install_package() {
                     fi
                 else
                     log "INFO" "Instalando $package (no está instalado)"
-                    if sudo pacman -S --noconfirm "$package"; then
+                    if sudo_cmd pacman -S --noconfirm "$package"; then
                         log "SUCCESS" "Instalado: $package (con pacman)"
                         return 0
                     fi
@@ -491,7 +549,7 @@ install_package() {
             fi
             ;;
         snap)
-            if sudo snap install "$package"; then
+            if sudo_cmd snap install "$package"; then
                 log "SUCCESS" "Instalado: $package"
                 return 0
             fi
@@ -595,6 +653,10 @@ main() {
                 HEADLESS=true
                 shift
                 ;;
+            --no-sudo)
+                NO_SUDO=true
+                shift
+                ;;
             --install-yay)
                 install_yay
                 exit $?
@@ -625,6 +687,16 @@ main() {
     # Detectar OS
     local os=$(detect_os)
     log "INFO" "OS detectado: $os"
+    
+    # Mantener sesión sudo si es necesario
+    if [[ "$NO_SUDO" == "false" ]]; then
+        if ! maintain_sudo; then
+            log "ERROR" "No se pudo mantener la sesión sudo"
+            exit 1
+        fi
+    else
+        log "INFO" "Modo sin sudo activado"
+    fi
     
     # Detectar ambiente gráfico
     if detect_gui; then
