@@ -7,18 +7,56 @@ ubuntu:apt:libreoffice:Suite ofimática completa
 ubuntu:apt:thunderbird:Cliente de correo electrónico
 ubuntu:apt:firefox-esr:Navegador web Firefox ESR
 ubuntu:apt:chromium-browser:Navegador web Chromium
-ubuntu:snap:discord:Aplicación de chat y voz
-ubuntu:snap:slack:Aplicación de comunicación empresarial
 ubuntu:snap:notion:Aplicación de notas y productividad
+ubuntu:apt:libreoffice-l10n-es:Paquete de idioma español para LibreOffice
+ubuntu:apt:libreoffice-l10n-en-gb:Paquete de idioma inglés para LibreOffice
+ubuntu:apt:libreoffice-help-es:Ayuda en español para LibreOffice
+ubuntu:apt:libreoffice-help-en-gb:Ayuda en inglés para LibreOffice
+ubuntu:apt:aspell-es:Corrector ortográfico español
+ubuntu:apt:aspell-en:Corrector ortográfico inglés
+ubuntu:apt:hunspell-es:Diccionario hunspell español
+ubuntu:apt:hunspell-en-us:Diccionario hunspell inglés estadounidense
+ubuntu:apt:gimp:Editor de imágenes profesional
+ubuntu:apt:inkscape:Editor de gráficos vectoriales
+ubuntu:apt:pdftk:Manipulación avanzada de PDFs
+ubuntu:apt:ghostscript:Procesamiento de PostScript y PDF
+ubuntu:apt:poppler-utils:Utilidades PDF (pdf2text, pdfinfo)
+ubuntu:apt:tesseract-ocr:OCR para digitalizar documentos
+ubuntu:apt:tesseract-ocr-spa:Idioma español para OCR
+ubuntu:apt:tesseract-ocr-eng:Idioma inglés para OCR
+ubuntu:apt:cups:Sistema de impresión profesional
+ubuntu:apt:simple-scan:Aplicación de escaneo
+ubuntu:snap:drawio:Diagramas y organigramas modernos
+ubuntu:apt:remmina:Escritorio remoto (RDP, VNC, SSH)
+ubuntu:apt:filezilla:Cliente FTP/SFTP para transferencias
 
 debian:apt:calibre:Gestor de libros electrónicos
 debian:apt:libreoffice:Suite ofimática completa
 debian:apt:thunderbird:Cliente de correo electrónico
 debian:apt:firefox-esr:Navegador web Firefox ESR
 debian:apt:chromium:Navegador web Chromium
-debian:snap:discord:Aplicación de chat y voz
-debian:snap:slack:Aplicación de comunicación empresarial
 debian:snap:notion:Aplicación de notas y productividad
+debian:apt:libreoffice-l10n-es:Paquete de idioma español para LibreOffice
+debian:apt:libreoffice-l10n-en-gb:Paquete de idioma inglés para LibreOffice
+debian:apt:libreoffice-help-es:Ayuda en español para LibreOffice
+debian:apt:libreoffice-help-en-gb:Ayuda en inglés para LibreOffice
+debian:apt:aspell-es:Corrector ortográfico español
+debian:apt:aspell-en:Corrector ortográfico inglés
+debian:apt:hunspell-es:Diccionario hunspell español
+debian:apt:hunspell-en-us:Diccionario hunspell inglés estadounidense
+debian:apt:gimp:Editor de imágenes profesional
+debian:apt:inkscape:Editor de gráficos vectoriales
+debian:apt:pdftk:Manipulación avanzada de PDFs
+debian:apt:ghostscript:Procesamiento de PostScript y PDF
+debian:apt:poppler-utils:Utilidades PDF (pdf2text, pdfinfo)
+debian:apt:tesseract-ocr:OCR para digitalizar documentos
+debian:apt:tesseract-ocr-spa:Idioma español para OCR
+debian:apt:tesseract-ocr-eng:Idioma inglés para OCR
+debian:apt:cups:Sistema de impresión profesional
+debian:apt:simple-scan:Aplicación de escaneo
+debian:snap:drawio:Diagramas y organigramas modernos
+debian:apt:remmina:Escritorio remoto (RDP, VNC, SSH)
+debian:apt:filezilla:Cliente FTP/SFTP para transferencias
 
 # Fedora/CentOS
 fedora:dnf:calibre:Gestor de libros electrónicos
@@ -26,18 +64,47 @@ fedora:dnf:libreoffice:Suite ofimática completa
 fedora:dnf:thunderbird:Cliente de correo electrónico
 fedora:dnf:firefox:Navegador web Firefox
 fedora:dnf:chromium:Navegador web Chromium
-fedora:snap:discord:Aplicación de chat y voz
-fedora:snap:slack:Aplicación de comunicación empresarial
 fedora:snap:notion:Aplicación de notas y productividad
+fedora:dnf:libreoffice-langpack-es:Paquete de idioma español para LibreOffice
+fedora:dnf:libreoffice-langpack-en:Paquete de idioma inglés para LibreOffice
+fedora:dnf:aspell-es:Corrector ortográfico español
+fedora:dnf:aspell-en:Corrector ortográfico inglés
+fedora:dnf:hunspell-es:Diccionario hunspell español
+fedora:dnf:hunspell-en-US:Diccionario hunspell inglés estadounidense
+fedora:dnf:gimp:Editor de imágenes profesional
+fedora:dnf:inkscape:Editor de gráficos vectoriales
+fedora:dnf:pdftk:Manipulación avanzada de PDFs
+fedora:dnf:ghostscript:Procesamiento de PostScript y PDF
+fedora:dnf:poppler-utils:Utilidades PDF (pdf2text, pdfinfo)
+fedora:dnf:tesseract:OCR para digitalizar documentos
+fedora:dnf:tesseract-langpack-spa:Idioma español para OCR
+fedora:dnf:tesseract-langpack-eng:Idioma inglés para OCR
+fedora:dnf:cups:Sistema de impresión profesional
+fedora:dnf:simple-scan:Aplicación de escaneo
+fedora:snap:drawio:Diagramas y organigramas modernos
+fedora:dnf:remmina:Escritorio remoto (RDP, VNC, SSH)
+fedora:dnf:filezilla:Cliente FTP/SFTP para transferencias
 
 centos:yum:calibre:Gestor de libros electrónicos
 centos:yum:libreoffice:Suite ofimática completa
 centos:yum:thunderbird:Cliente de correo electrónico
 centos:yum:firefox:Navegador web Firefox
 centos:yum:chromium:Navegador web Chromium
-centos:snap:discord:Aplicación de chat y voz
-centos:snap:slack:Aplicación de comunicación empresarial
 centos:snap:notion:Aplicación de notas y productividad
+centos:yum:aspell-es:Corrector ortográfico español
+centos:yum:aspell-en:Corrector ortográfico inglés
+centos:yum:hunspell-es:Diccionario hunspell español
+centos:yum:hunspell-en-US:Diccionario hunspell inglés estadounidense
+centos:yum:gimp:Editor de imágenes profesional
+centos:yum:inkscape:Editor de gráficos vectoriales
+centos:yum:ghostscript:Procesamiento de PostScript y PDF
+centos:yum:poppler-utils:Utilidades PDF (pdf2text, pdfinfo)
+centos:yum:tesseract:OCR para digitalizar documentos
+centos:yum:cups:Sistema de impresión profesional
+centos:yum:simple-scan:Aplicación de escaneo
+centos:snap:drawio:Diagramas y organigramas modernos
+centos:yum:remmina:Escritorio remoto (RDP, VNC, SSH)
+centos:yum:filezilla:Cliente FTP/SFTP para transferencias
 
 # Arch Linux
 arch:pacman:calibre:Gestor de libros electrónicos
@@ -45,9 +112,26 @@ arch:pacman:libreoffice-fresh:Suite ofimática completa
 arch:pacman:thunderbird:Cliente de correo electrónico
 arch:pacman:firefox:Navegador web Firefox
 arch:pacman:chromium:Navegador web Chromium
-arch:yay:discord:Aplicación de chat y voz
-arch:yay:slack-desktop:Aplicación de comunicación empresarial
 arch:yay:notion-app:Aplicación de notas y productividad
+arch:pacman:libreoffice-fresh-es:Paquete de idioma español para LibreOffice
+arch:pacman:libreoffice-fresh-en-gb:Paquete de idioma inglés para LibreOffice
+arch:pacman:aspell-es:Corrector ortográfico español
+arch:pacman:aspell-en:Corrector ortográfico inglés
+arch:pacman:hunspell-es_es:Diccionario hunspell español
+arch:pacman:hunspell-en_us:Diccionario hunspell inglés estadounidense
+arch:pacman:gimp:Editor de imágenes profesional
+arch:pacman:inkscape:Editor de gráficos vectoriales
+arch:pacman:pdftk:Manipulación avanzada de PDFs
+arch:pacman:ghostscript:Procesamiento de PostScript y PDF
+arch:pacman:poppler:Utilidades PDF (pdf2text, pdfinfo)
+arch:pacman:tesseract:OCR para digitalizar documentos
+arch:pacman:tesseract-data-spa:Idioma español para OCR
+arch:pacman:tesseract-data-eng:Idioma inglés para OCR
+arch:pacman:cups:Sistema de impresión profesional
+arch:pacman:simple-scan:Aplicación de escaneo
+arch:yay:drawio-desktop:Diagramas y organigramas modernos
+arch:pacman:remmina:Escritorio remoto (RDP, VNC, SSH)
+arch:pacman:filezilla:Cliente FTP/SFTP para transferencias
 
 # macOS
 macos:brew:calibre:Gestor de libros electrónicos
@@ -55,6 +139,17 @@ macos:brew:libreoffice:Suite ofimática completa
 macos:brew:thunderbird:Cliente de correo electrónico
 macos:brew:firefox:Navegador web Firefox
 macos:brew:chromium:Navegador web Chromium
-macos:brew:discord:Aplicación de chat y voz
-macos:brew:slack:Aplicación de comunicación empresarial
 macos:brew:notion:Aplicación de notas y productividad
+macos:brew:aspell:Corrector ortográfico (incluye múltiples idiomas)
+macos:brew:hunspell:Diccionarios hunspell (incluye múltiples idiomas)
+macos:brew:gimp:Editor de imágenes profesional
+macos:brew:inkscape:Editor de gráficos vectoriales
+macos:brew:pdftk-java:Manipulación avanzada de PDFs
+macos:brew:ghostscript:Procesamiento de PostScript y PDF
+macos:brew:poppler:Utilidades PDF (pdf2text, pdfinfo)
+macos:brew:tesseract:OCR para digitalizar documentos
+macos:brew:tesseract-lang:Idiomas adicionales para OCR
+macos:brew:simple-scan:Aplicación de escaneo
+macos:brew:drawio:Diagramas y organigramas modernos
+macos:brew:remmina:Escritorio remoto (RDP, VNC, SSH)
+macos:brew:filezilla:Cliente FTP/SFTP para transferencias
