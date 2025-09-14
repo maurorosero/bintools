@@ -129,33 +129,6 @@ cd bintools
 - Vuelve a ejecutarlo si experimentas problemas de permisos
 - El script solo afecta el ambiente de desarrollo, no es necesario para usuarios finales
 
-## 🔧 Gestión de Versiones
-
-Una vez instalado, puedes gestionar `bintools` con el gestor de versiones incluido:
-
-```bash
-# Verificar versión instalada
-bintools-manager.sh version
-
-# Actualizar a la última versión
-bintools-manager.sh update
-
-# Instalar versión específica
-bintools-manager.sh install v1.0.0
-
-# Listar versiones disponibles  
-bintools-manager.sh list
-
-# Verificar integridad de la instalación
-bintools-manager.sh check
-
-# Ver información completa
-bintools-manager.sh info
-
-# Desinstalar completamente
-bintools-manager.sh uninstall
-```
-
 ## 📖 Uso Básico
 
 ### Resolver Problemas del Sistema
@@ -527,21 +500,15 @@ Si experimentas problemas con permisos de archivos en ambiente de desarrollo:
 ### "Versión no encontrada"
 
 ```bash
-# Verificar versiones disponibles
-bintools-manager.sh list
-
-# Instalar versión específica válida
+# Reinstalar con versión específica
 curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash -s -- --version v1.0.0
 ```
 
 ### "Error de instalación"
 
 ```bash
-# Verificar instalación
-bintools-manager.sh check
-
 # Reinstalar completamente
-bintools-manager.sh uninstall
+rm -rf ~/bin/bintools* ~/bintools  # Limpiar instalaciones previas
 curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash
 
 # Instalación con información detallada
