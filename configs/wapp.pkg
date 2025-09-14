@@ -1,0 +1,18 @@
+# Paquetes para clientes de WhatsApp
+# Formato: OS:Manejador:Paquete:Descripción
+
+# Ubuntu/Debian
+ubuntu:snap:whatsapp-for-linux:Cliente oficial de WhatsApp para Linux
+
+debian:snap:whatsapp-for-linux:Cliente oficial de WhatsApp para Linux
+
+# Fedora/CentOS
+fedora:snap:whatsapp-for-linux:Cliente oficial de WhatsApp para Linux
+
+centos:snap:whatsapp-for-linux:Cliente oficial de WhatsApp para Linux
+
+# Arch Linux
+arch:yay:whatsapp-for-linux:Cliente oficial de WhatsApp para Linux
+
+# macOS
+macos:brew:whatsapp-for-linux:Cliente oficial de WhatsApp para Linux
