@@ -9,12 +9,22 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ### 🔧 Fixed
 
-#### Corrección de Archivo bwdn.pkg
+#### Corrección de Soporte de Paquetes para Arch Linux
 
-- **Corrección en configuración de Bitwarden para Arch Linux**:
-  - Cambiado de `arch:pacman:bitwarden` a `arch:yay:bitwarden-bin`
-  - Mejorada compatibilidad con AUR (Arch User Repository)
-  - Corregida instalación de Bitwarden en sistemas Arch Linux
+- **Mejora completa en configuraciones de paquetes para Arch Linux**:
+  - Corregidas configuraciones incorrectas en todos los archivos `.pkg`
+  - Cambiado de paquetes `pacman` a `yay` (AUR) donde corresponde
+  - Bitwarden: `arch:pacman:bitwarden` → `arch:yay:bitwarden-bin`
+  - Docker: usar paquetes oficiales (docker, docker-compose, docker-buildx)
+  - VirtualBox: usar virtualbox y virtualbox-host-dkms oficiales
+  - Kubernetes: usar yay para kubectl-neat y kubectl-tree (AUR)
+  - WhatsApp: usar whatsapp-for-linux-git (AUR)
+  - ProjectLibre: usar yay (AUR)
+  - Arduino: usar arduino-mk-git y stm32flash (AUR)
+  - Google Cloud SDK: usar snap como alternativa
+  - Arduino IDE: usar snap como alternativa completa
+  - Eliminados fallbacks problemáticos con pacman para paquetes de AUR
+  - Mensajes de error claros cuando yay no está instalado
 
 ### 📚 Documentation
 
