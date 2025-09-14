@@ -204,15 +204,15 @@ arch:pacman:nano:Editor de texto simple
 arch:pacman:unzip:Herramienta para extraer archivos ZIP
 arch:pacman:p7zip:Implementación completa del compresor 7z
 arch:pacman:pandoc:Conversor universal de documentos
-arch:pacman:markdown:Implementación original de Markdown
+arch:yay:markdown:Implementación original de Markdown
 arch:pacman:bash-completion:Autocompletado para Bash
 arch:pacman:tree:Herramienta para mostrar estructura de directorios
 arch:pacman:net-tools:Herramientas de red (netstat, ifconfig, etc.)
 arch:pacman:rsync:Herramienta para sincronización de archivos
-arch:yay:gum:Herramienta moderna para crear interfaces elegantes en terminal
+arch:pacman:gum:Herramienta moderna para crear interfaces elegantes en terminal
 arch:pacman:fzf:Fuzzy finder para terminal
 arch:pacman:htop:Monitor de procesos interactivo
-arch:pacman:neofetch:Herramienta de información del sistema
+arch:yay:neofetch:Herramienta de información del sistema
 arch:pacman:lsof:Lista archivos abiertos
 arch:pacman:ncdu:Analizador de uso de disco
 arch:pacman:iotop:Monitor de uso de I/O por procesos

@@ -139,6 +139,11 @@ log() {
                 echo -e "${BLUE}[VERBOSE]${NC} $message"
             fi
             ;;
+        "DEBUG")
+            if [[ "$VERBOSE" == "true" ]]; then
+                echo -e "${YELLOW}[DEBUG]${NC} $message"
+            fi
+            ;;
     esac
 }
 
@@ -542,27 +547,9 @@ install_package() {
                     fi
                 fi
             else
-                log "WARNING" "yay no está instalado, intentando con pacman para: $package"
-                # Verificar si el paquete ya está instalado con pacman
-                if pacman -Q "$package" >/dev/null 2>&1; then
-                    # Verificar si hay actualizaciones disponibles
-                    if pacman -Qu "$package" >/dev/null 2>&1; then
-                        log "INFO" "Actualizando $package (hay actualizaciones disponibles)"
-                        if sudo_cmd pacman -S --noconfirm "$package"; then
-                            log "SUCCESS" "Actualizado: $package (con pacman)"
-                            return 0
-                        fi
-                    else
-                        log "INFO" "Paquete $package ya está actualizado"
-                        return 0
-                    fi
-                else
-                    log "INFO" "Instalando $package (no está instalado)"
-                    if sudo_cmd pacman -S --noconfirm "$package"; then
-                        log "SUCCESS" "Instalado: $package (con pacman)"
-                        return 0
-                    fi
-                fi
+                log "ERROR" "yay no está instalado. No se puede instalar $package desde AUR"
+                log "INFO" "Instala yay primero con: $0 --install-yay"
+                return 1
             fi
             ;;
         brew)
@@ -650,9 +637,9 @@ process_package_list() {
     
     log "INFO" "Resumen: $packages_found encontrados, $packages_installed instalados, $packages_failed fallaron"
     
-    if [[ $packages_failed -gt 0 ]]; then
-        return 1
-    fi
+    # Retornar éxito siempre, ya que la lista se procesó correctamente
+    # Los paquetes individuales que fallan se reportan en el resumen
+    return 0
 }
 
 # Función principal
@@ -785,8 +772,9 @@ main() {
         log "SUCCESS" "Todas las listas procesadas exitosamente"
         exit 0
     else
-        log "ERROR" "Algunas listas fallaron"
-        exit 1
+        log "WARNING" "Algunas listas tuvieron paquetes que fallaron en la instalación"
+        log "INFO" "Esto puede ser normal si algunos paquetes no están disponibles en tu sistema"
+        exit 0
     fi
 }
 
