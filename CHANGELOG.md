@@ -55,6 +55,17 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   - Guía paso a paso para configurar sincronización de carpeta `~/secure`
   - Seguimiento de recomendaciones oficiales de Nextcloud
 
+#### Problema de Entrada Interactiva en install.sh
+
+- **Corrección completa de entrada interactiva**:
+  - Agregada detección robusta de modo no interactivo (curl | bash)
+  - Verificación múltiple: stdin (-t 0), stdout (-t 1) y BASH_SOURCE
+  - Separación completa de lógica de logging de función de decisión
+  - Uso automático de ~/bin por defecto en modo no interactivo
+  - Eliminado problema de cuelgue esperando entrada manual
+  - Corregido output mezclado en instalaciones automáticas
+  - Garantizado funcionamiento perfecto con `curl | bash`
+
 ### 📚 Documentation
 
 #### Actualización del README
