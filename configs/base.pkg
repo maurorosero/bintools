@@ -17,6 +17,8 @@ ubuntu:apt:vim:Editor de texto avanzado
 ubuntu:apt:nano:Editor de texto simple
 ubuntu:apt:unzip:Herramienta para extraer archivos ZIP
 ubuntu:apt:p7zip-full:Implementación completa del compresor 7z
+ubuntu:apt:pandoc:Conversor universal de documentos
+ubuntu:apt:markdown:Implementación original de Markdown
 ubuntu:apt:tree:Herramienta para mostrar estructura de directorios
 ubuntu:apt:net-tools:Herramientas de red (netstat, ifconfig, etc.)
 ubuntu:apt:rsync:Herramienta para sincronización de archivos
@@ -53,6 +55,8 @@ debian:apt:vim:Editor de texto avanzado
 debian:apt:nano:Editor de texto simple
 debian:apt:unzip:Herramienta para extraer archivos ZIP
 debian:apt:p7zip-full:Implementación completa del compresor 7z
+debian:apt:pandoc:Conversor universal de documentos
+debian:apt:markdown:Implementación original de Markdown
 debian:apt:tree:Herramienta para mostrar estructura de directorios
 debian:apt:net-tools:Herramientas de red (netstat, ifconfig, etc.)
 debian:apt:rsync:Herramienta para sincronización de archivos
@@ -90,6 +94,8 @@ fedora:dnf:vim:Editor de texto avanzado
 fedora:dnf:nano:Editor de texto simple
 fedora:dnf:unzip:Herramienta para extraer archivos ZIP
 fedora:dnf:p7zip:Implementación completa del compresor 7z
+fedora:dnf:pandoc:Conversor universal de documentos
+fedora:dnf:markdown:Implementación original de Markdown
 fedora:dnf:tree:Herramienta para mostrar estructura de directorios
 fedora:dnf:net-tools:Herramientas de red (netstat, ifconfig, etc.)
 fedora:dnf:rsync:Herramienta para sincronización de archivos
@@ -126,6 +132,8 @@ centos:yum:vim:Editor de texto avanzado
 centos:yum:nano:Editor de texto simple
 centos:yum:unzip:Herramienta para extraer archivos ZIP
 centos:yum:p7zip:Implementación completa del compresor 7z
+centos:yum:pandoc:Conversor universal de documentos
+centos:yum:markdown:Implementación original de Markdown
 centos:yum:tree:Herramienta para mostrar estructura de directorios
 centos:yum:net-tools:Herramientas de red (netstat, ifconfig, etc.)
 centos:yum:rsync:Herramienta para sincronización de archivos
@@ -163,6 +171,8 @@ arch:pacman:vim:Editor de texto avanzado
 arch:pacman:nano:Editor de texto simple
 arch:pacman:unzip:Herramienta para extraer archivos ZIP
 arch:pacman:p7zip:Implementación completa del compresor 7z
+arch:pacman:pandoc:Conversor universal de documentos
+arch:pacman:markdown:Implementación original de Markdown
 arch:pacman:tree:Herramienta para mostrar estructura de directorios
 arch:pacman:net-tools:Herramientas de red (netstat, ifconfig, etc.)
 arch:pacman:rsync:Herramienta para sincronización de archivos
@@ -200,6 +210,8 @@ macos:brew:vim:Editor de texto avanzado
 macos:brew:nano:Editor de texto simple
 macos:brew:unzip:Herramienta para extraer archivos ZIP
 macos:brew:p7zip:Implementación completa del compresor 7z
+macos:brew:pandoc:Conversor universal de documentos
+macos:brew:markdown:Implementación original de Markdown
 macos:brew:tree:Herramienta para mostrar estructura de directorios
 macos:brew:net-tools:Herramientas de red (netstat, ifconfig, etc.)
 macos:brew:rsync:Herramienta para sincronización de archivos
