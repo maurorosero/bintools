@@ -26,7 +26,7 @@ debian:apt:npm:Gestor de paquetes de Node.js
 debian:apt:python3-dev:Headers de desarrollo de Python
 debian:apt:python3-venv:Módulo de entornos virtuales de Python
 debian:apt:gh:GitHub CLI - Interfaz de línea de comandos para GitHub
-debian:snap:glab:GitLab CLI - Interfaz de línea de comandos para GitLab
+debian:apt:glab:GitLab CLI - Interfaz de línea de comandos para GitLab
 debian:apt:autoconf:Herramienta para generar scripts de configuración
 debian:apt:automake:Herramienta para generar Makefiles
 
