@@ -128,7 +128,7 @@ arch:pacman:libreoffice-fresh:Suite ofimática completa
 arch:pacman:thunderbird:Cliente de correo electrónico
 arch:pacman:firefox:Navegador web Firefox
 arch:pacman:chromium:Navegador web Chromium
-arch:yay:notion-app:Aplicación de notas y productividad
+arch:yay:notion-app-electron:Aplicación de notas y productividad
 arch:pacman:libreoffice-fresh-es:Paquete de idioma español para LibreOffice
 arch:pacman:libreoffice-fresh-en-gb:Paquete de idioma inglés para LibreOffice
 arch:pacman:aspell-es:Corrector ortográfico español
@@ -145,10 +145,10 @@ arch:pacman:tesseract-data-spa:Idioma español para OCR
 arch:pacman:tesseract-data-eng:Idioma inglés para OCR
 arch:pacman:cups:Sistema de impresión profesional
 arch:pacman:simple-scan:Aplicación de escaneo
-arch:yay:drawio-desktop:Diagramas y organigramas modernos
+arch:pacman:drawio-desktop:Diagramas y organigramas modernos
 arch:pacman:remmina:Escritorio remoto (RDP, VNC, SSH)
 arch:pacman:filezilla:Cliente FTP/SFTP para transferencias
-arch:pacman:projectlibre:Herramienta de gestión de proyectos open source
+arch:yay:projectlibre:Herramienta de gestión de proyectos open source
 arch:pacman:jre11-openjdk:Runtime Java requerido para ProjectLibre
 arch:pacman:jdk11-openjdk:JDK Java para desarrollo con ProjectLibre
 arch:pacman:jre-openjdk:Runtime Java más reciente para ProjectLibre

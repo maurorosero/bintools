@@ -66,8 +66,8 @@ arch:pacman:kubectx:Herramienta para cambiar contexto de Kubernetes
 arch:pacman:kubens:Herramienta para cambiar namespace de Kubernetes
 arch:pacman:k9s:Terminal UI para Kubernetes
 arch:pacman:stern:Herramienta para seguir logs de múltiples pods
-arch:pacman:kubectl-neat:Herramienta para limpiar output de kubectl
-arch:pacman:kubectl-tree:Herramienta para visualizar recursos de Kubernetes en árbol
+arch:yay:kubectl-neat:Herramienta para limpiar output de kubectl
+arch:yay:kubectl-tree:Herramienta para visualizar recursos de Kubernetes en árbol
 
 # macOS
 macos:brew:kubectl:Cliente de línea de comandos para Kubernetes

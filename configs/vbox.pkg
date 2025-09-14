@@ -22,8 +22,8 @@ centos:yum:vagrant:Herramienta para gestión de entornos de desarrollo virtualiz
 
 # Arch Linux - Desde repositorios oficiales
 arch:pacman:virtualbox:Plataforma de virtualización Oracle VirtualBox
-arch:pacman:virtualbox-host-modules-arch:Módulos del kernel para VirtualBox en Arch
-arch:pacman:vagrant:Herramienta para gestión de entornos de desarrollo virtualizados
+arch:pacman:virtualbox-host-dkms:Módulos del kernel para VirtualBox (DKMS)
+arch:yay:vagrant:Herramienta para gestión de entornos de desarrollo virtualizados
 
 # macOS - Homebrew
 macos:brew:virtualbox:Plataforma de virtualización Oracle VirtualBox

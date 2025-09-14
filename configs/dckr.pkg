@@ -48,13 +48,7 @@ centos:yum:docker:Motor de contenedores Docker desde repositorios EPEL
 # Arch Linux
 arch:pacman:docker:Motor de contenedores Docker
 arch:pacman:docker-compose:Compose para Docker (multicontenedor)
-arch:pacman:containerd:Runtime de contenedores containerd
 arch:pacman:docker-buildx:Plugin de construcción avanzada de Docker
-arch:pacman:docker-scan:Plugin de escaneo de seguridad de Docker
-arch:pacman:docker-dockerfile:Utilidades para Dockerfile
-arch:yay:docker-ce:Motor de contenedores Docker Community Edition
-arch:yay:docker-ce-cli:Cliente de línea de comandos de Docker
-arch:yay:docker-compose-plugin:Plugin de Docker Compose V2
 
 # macOS
 macos:brew:docker:Motor de contenedores Docker Desktop

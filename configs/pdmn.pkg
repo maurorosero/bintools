@@ -47,7 +47,7 @@ centos:yum:crun:Runtime de contenedores ligero para Podman
 arch:pacman:podman:Motor de contenedores sin demonio
 arch:pacman:podman-compose:Compose para Podman (multicontenedor)
 arch:pacman:slirp4netns:Networking para contenedores rootless
-arch:pacman:uidmap:Herramientas de mapeo de usuarios para rootless
+# arch:pacman:uidmap:Herramientas de mapeo de usuarios para rootless (no disponible en repositorios oficiales)
 arch:pacman:fuse-overlayfs:Sistema de archivos overlay para Podman
 arch:pacman:containers-common:Utilidades comunes para contenedores
 arch:pacman:skopeo:Herramienta para trabajar con imágenes de contenedores

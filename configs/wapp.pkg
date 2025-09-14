@@ -12,7 +12,7 @@ fedora:snap:whatsapp-for-linux:Cliente oficial de WhatsApp para Linux
 centos:snap:whatsapp-for-linux:Cliente oficial de WhatsApp para Linux
 
 # Arch Linux
-arch:yay:whatsapp-for-linux:Cliente oficial de WhatsApp para Linux
+arch:yay:whatsapp-for-linux-git:Cliente oficial de WhatsApp para Linux
 
 # macOS
 macos:brew:whatsapp-for-linux:Cliente oficial de WhatsApp para Linux

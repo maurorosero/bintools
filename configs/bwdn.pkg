@@ -16,7 +16,7 @@ centos:flatpak:com.bitwarden.desktop:Gestor de contraseñas seguro (Flatpak)
 
 # Arch Linux
 arch:snap:bitwarden:Gestor de contraseñas seguro
-arch:yay:bitwarden-bin:Gestor de contraseñas seguro (AUR)
+arch:pacman:bitwarden:Gestor de contraseñas seguro
 arch:flatpak:com.bitwarden.desktop:Gestor de contraseñas seguro (Flatpak)
 
 # macOS

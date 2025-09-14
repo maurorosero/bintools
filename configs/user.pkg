@@ -23,7 +23,7 @@ centos:snap:spotify:Reproductor de música
 # Arch Linux
 arch:pacman:bat:Clon mejorado de cat con sintaxis highlighting
 arch:pacman:exa:Reemplazo moderno para ls
-arch:yay:spotify:Aplicación de música Spotify
+arch:pacman:spotify-launcher:Aplicación de música Spotify
 
 # macOS
 macos:brew:bat:Clon mejorado de cat con sintaxis highlighting

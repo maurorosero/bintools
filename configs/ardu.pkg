@@ -79,14 +79,14 @@ centos:yum:arduino-core:Core libraries para Arduino
 
 # Arch Linux
 arch:pacman:arduino:IDE Arduino
-arch:pacman:arduino-mk:Makefile para compilar proyectos Arduino
+arch:yay:arduino-mk-git:Makefile para compilar proyectos Arduino
 arch:pacman:avrdude:Software para programar microcontroladores Atmel AVR
 arch:pacman:avr-gcc:Compilador GCC para microcontroladores AVR
 arch:pacman:avr-libc:Biblioteca C estándar para AVR
 arch:pacman:picocom:Monitor serial minimalista para comunicación
 arch:pacman:python-pyserial:Módulo Python para comunicación serial
 arch:pacman:platformio:Framework de desarrollo para IoT
-arch:pacman:stm32flash:Herramienta para flashear MCUs STM32
+arch:yay:stm32flash:Herramienta para flashear MCUs STM32
 arch:pacman:esptool:Herramienta para programar chips ESP8266/ESP32
 arch:pacman:openocd:Depurador on-chip para programación y depuración
 arch:pacman:minicom:Monitor serial avanzado para comunicación
@@ -94,7 +94,7 @@ arch:pacman:cu:Herramienta de conexión serial simple
 arch:pacman:moserial:Monitor serial con interfaz gráfica
 arch:pacman:arduino-cli:Cliente de línea de comandos para Arduino
 arch:pacman:avr-binutils:Herramientas binarias para AVR
-arch:pacman:arduino-core:Core libraries para Arduino
+arch:snap:arduino:IDE Arduino completo con librerías
 
 # macOS
 macos:brew:arduino:IDE Arduino

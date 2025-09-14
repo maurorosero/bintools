@@ -35,13 +35,9 @@ centos:yum:docker-dockerfile:Utilidades para Dockerfile
 centos:yum:docker-compose-v2:Compose V2 standalone
 
 # Arch Linux
-arch:pacman:docker-cli:Cliente de línea de comandos de Docker
+arch:pacman:docker:Cliente de línea de comandos de Docker
 arch:pacman:docker-compose:Compose para Docker (multicontenedor)
 arch:pacman:docker-buildx:Plugin de construcción avanzada de Docker
-arch:pacman:docker-scan:Plugin de escaneo de seguridad de Docker
-arch:pacman:docker-dockerfile:Utilidades para Dockerfile
-arch:yay:docker-ce-cli:Cliente de línea de comandos de Docker Community Edition
-arch:yay:docker-compose-plugin:Plugin de Docker Compose V2
 
 # macOS
 macos:brew:docker-cli:Cliente de línea de comandos de Docker

@@ -54,7 +54,7 @@ centos:yum:nmap:Herramienta de exploración de red y auditoría de seguridad
 # Arch Linux
 arch:pacman:aws-cli:CLI para Amazon Web Services
 arch:pacman:azure-cli:CLI para Microsoft Azure
-arch:pacman:google-cloud-sdk:SDK para Google Cloud Platform
+arch:snap:google-cloud-sdk:SDK para Google Cloud Platform
 arch:pacman:httpie:Cliente HTTP amigable para CLI
 arch:pacman:bind-tools:Herramientas para diagnóstico DNS
 arch:pacman:tcpdump:Analizador de paquetes de red
