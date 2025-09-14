@@ -1,0 +1,67 @@
+# Paquetes para Podman, Compose y utilidades relacionadas
+# Formato: OS:Manejador:Paquete:Descripción
+
+# Ubuntu/Debian
+ubuntu:apt:podman:Motor de contenedores sin demonio
+ubuntu:apt:podman-compose:Compose para Podman (multicontenedor)
+ubuntu:apt:python3-pip:Gestor de paquetes Python para podman-compose
+ubuntu:apt:slirp4netns:Networking para contenedores rootless
+ubuntu:apt:uidmap:Herramientas de mapeo de usuarios para rootless
+ubuntu:apt:fuse-overlayfs:Sistema de archivos overlay para Podman
+ubuntu:apt:containers-common:Utilidades comunes para contenedores
+ubuntu:apt:skopeo:Herramienta para trabajar con imágenes de contenedores
+ubuntu:apt:buildah:Herramienta para construir imágenes de contenedores
+ubuntu:apt:crun:Runtime de contenedores ligero para Podman
+
+debian:apt:podman:Motor de contenedores sin demonio
+debian:apt:podman-compose:Compose para Podman (multicontenedor)
+debian:apt:python3-pip:Gestor de paquetes Python para podman-compose
+debian:apt:slirp4netns:Networking para contenedores rootless
+debian:apt:uidmap:Herramientas de mapeo de usuarios para rootless
+debian:apt:fuse-overlayfs:Sistema de archivos overlay para Podman
+debian:apt:containers-common:Utilidades comunes para contenedores
+debian:apt:skopeo:Herramienta para trabajar con imágenes de contenedores
+debian:apt:buildah:Herramienta para construir imágenes de contenedores
+debian:apt:crun:Runtime de contenedores ligero para Podman
+
+# Fedora/CentOS
+fedora:dnf:podman:Motor de contenedores sin demonio
+fedora:dnf:podman-compose:Compose para Podman (multicontenedor)
+fedora:dnf:python3-pip:Gestor de paquetes Python para podman-compose
+fedora:dnf:slirp4netns:Networking para contenedores rootless
+fedora:dnf:uidmap:Herramientas de mapeo de usuarios para rootless
+fedora:dnf:fuse-overlayfs:Sistema de archivos overlay para Podman
+fedora:dnf:containers-common:Utilidades comunes para contenedores
+fedora:dnf:skopeo:Herramienta para trabajar con imágenes de contenedores
+fedora:dnf:buildah:Herramienta para construir imágenes de contenedores
+fedora:dnf:crun:Runtime de contenedores ligero para Podman
+
+centos:yum:podman:Motor de contenedores sin demonio
+centos:yum:podman-compose:Compose para Podman (multicontenedor)
+centos:yum:python3-pip:Gestor de paquetes Python para podman-compose
+centos:yum:slirp4netns:Networking para contenedores rootless
+centos:yum:uidmap:Herramientas de mapeo de usuarios para rootless
+centos:yum:fuse-overlayfs:Sistema de archivos overlay para Podman
+centos:yum:containers-common:Utilidades comunes para contenedores
+centos:yum:skopeo:Herramienta para trabajar con imágenes de contenedores
+centos:yum:buildah:Herramienta para construir imágenes de contenedores
+centos:yum:crun:Runtime de contenedores ligero para Podman
+
+# Arch Linux
+arch:pacman:podman:Motor de contenedores sin demonio
+arch:pacman:podman-compose:Compose para Podman (multicontenedor)
+arch:pacman:python-pip:Gestor de paquetes Python para podman-compose
+arch:pacman:slirp4netns:Networking para contenedores rootless
+arch:pacman:uidmap:Herramientas de mapeo de usuarios para rootless
+arch:pacman:fuse-overlayfs:Sistema de archivos overlay para Podman
+arch:pacman:containers-common:Utilidades comunes para contenedores
+arch:pacman:skopeo:Herramienta para trabajar con imágenes de contenedores
+arch:pacman:buildah:Herramienta para construir imágenes de contenedores
+arch:pacman:crun:Runtime de contenedores ligero para Podman
+
+# macOS
+macos:brew:podman:Motor de contenedores sin demonio
+macos:brew:podman-compose:Compose para Podman (multicontenedor)
+macos:brew:python3:Python 3 para podman-compose
+macos:brew:skopeo:Herramienta para trabajar con imágenes de contenedores
+macos:brew:buildah:Herramienta para construir imágenes de contenedores
