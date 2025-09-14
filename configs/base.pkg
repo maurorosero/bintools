@@ -40,6 +40,7 @@ ubuntu:apt:dmidecode:Herramienta para mostrar información del hardware del sist
 ubuntu:apt:inxi:Herramienta para mostrar información del sistema
 ubuntu:apt:util-linux:Colección de utilidades básicas del sistema
 ubuntu:apt:findutils:Herramientas de búsqueda GNU
+ubuntu:apt:screen:Multiplexor de terminal (útil para monitoreo serial)
 
 debian:apt:curl:Herramienta para transferir datos desde servidores
 debian:apt:git:Sistema de control de versiones distribuido
@@ -79,6 +80,7 @@ debian:apt:dmidecode:Herramienta para mostrar información del hardware del sist
 debian:apt:inxi:Herramienta para mostrar información del sistema
 debian:apt:util-linux:Colección de utilidades básicas del sistema
 debian:apt:findutils:Herramientas de búsqueda GNU
+debian:apt:screen:Multiplexor de terminal (útil para monitoreo serial)
 
 # Fedora/CentOS
 fedora:dnf:curl:Herramienta para transferir datos desde servidores
@@ -119,6 +121,7 @@ fedora:dnf:dmidecode:Herramienta para mostrar información del hardware del sist
 fedora:dnf:inxi:Herramienta para mostrar información del sistema
 fedora:dnf:util-linux:Colección de utilidades básicas del sistema
 fedora:dnf:findutils:Herramientas de búsqueda GNU
+fedora:dnf:screen:Multiplexor de terminal (útil para monitoreo serial)
 
 centos:yum:curl:Herramienta para transferir datos desde servidores
 centos:yum:git:Sistema de control de versiones distribuido
@@ -158,6 +161,7 @@ centos:yum:dmidecode:Herramienta para mostrar información del hardware del sist
 centos:yum:inxi:Herramienta para mostrar información del sistema
 centos:yum:util-linux:Colección de utilidades básicas del sistema
 centos:yum:findutils:Herramientas de búsqueda GNU
+centos:yum:screen:Multiplexor de terminal (útil para monitoreo serial)
 
 # Arch Linux
 arch:pacman:curl:Herramienta para transferir datos desde servidores
@@ -198,6 +202,7 @@ arch:pacman:dmidecode:Herramienta para mostrar información del hardware del sis
 arch:pacman:inxi:Herramienta para mostrar información del sistema
 arch:pacman:util-linux:Colección de utilidades básicas del sistema
 arch:pacman:findutils:Herramientas de búsqueda GNU
+arch:pacman:screen:Multiplexor de terminal (útil para monitoreo serial)
 
 # macOS
 macos:brew:curl:Herramienta para transferir datos desde servidores
@@ -231,3 +236,4 @@ macos:brew:iotop:Monitor de uso de I/O por procesos
 macos:brew:dmidecode:Herramienta para mostrar información del hardware del sistema
 macos:brew:inxi:Herramienta para mostrar información del sistema
 macos:brew:findutils:Herramientas de búsqueda GNU
+macos:brew:screen:Multiplexor de terminal (útil para monitoreo serial)
