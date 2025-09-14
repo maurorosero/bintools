@@ -28,6 +28,8 @@ ubuntu:apt:gh:GitHub CLI - Interfaz de línea de comandos para GitHub
 ubuntu:snap:glab:GitLab CLI - Interfaz de línea de comandos para GitLab
 ubuntu:apt:autoconf:Herramienta para generar scripts de configuración
 ubuntu:apt:automake:Herramienta para generar Makefiles
+ubuntu:apt:sqlite3:Base de datos SQL ligera
+ubuntu:apt:sqlitebrowser:Interfaz gráfica para SQLite
 
 debian:apt:build-essential:Herramientas esenciales para compilación
 debian:apt:cmake:Herramienta de construcción multiplataforma
@@ -55,6 +57,8 @@ debian:apt:gh:GitHub CLI - Interfaz de línea de comandos para GitHub
 debian:apt:glab:GitLab CLI - Interfaz de línea de comandos para GitLab
 debian:apt:autoconf:Herramienta para generar scripts de configuración
 debian:apt:automake:Herramienta para generar Makefiles
+debian:apt:sqlite3:Base de datos SQL ligera
+debian:apt:sqlitebrowser:Interfaz gráfica para SQLite
 
 # Fedora/CentOS
 fedora:dnf:gcc:Compilador GNU C
@@ -79,6 +83,8 @@ fedora:dnf:gh:GitHub CLI - Interfaz de línea de comandos para GitHub
 fedora:dnf:glab:GitLab CLI - Interfaz de línea de comandos para GitLab
 fedora:dnf:autoconf:Herramienta para generar scripts de configuración
 fedora:dnf:automake:Herramienta para generar Makefiles
+fedora:dnf:sqlite:Base de datos SQL ligera
+fedora:dnf:sqlitebrowser:Interfaz gráfica para SQLite
 
 centos:yum:gcc:Compilador GNU C
 centos:yum:gcc-c++:Compilador GNU C++
@@ -98,6 +104,8 @@ centos:yum:gh:GitHub CLI - Interfaz de línea de comandos para GitHub
 centos:snap:glab:GitLab CLI - Interfaz de línea de comandos para GitLab
 centos:yum:autoconf:Herramienta para generar scripts de configuración
 centos:yum:automake:Herramienta para generar Makefiles
+centos:yum:sqlite:Base de datos SQL ligera
+centos:yum:sqlitebrowser:Interfaz gráfica para SQLite
 
 # Arch Linux
 arch:pacman:base-devel:Herramientas esenciales para compilación
@@ -122,6 +130,8 @@ arch:pacman:github-cli:GitHub CLI - Interfaz de línea de comandos para GitHub
 arch:pacman:glab:GitLab CLI - Interfaz de línea de comandos para GitLab
 arch:pacman:autoconf:Herramienta para generar scripts de configuración
 arch:pacman:automake:Herramienta para generar Makefiles
+arch:pacman:sqlite:Base de datos SQL ligera
+arch:pacman:sqlitebrowser:Interfaz gráfica para SQLite
 
 # macOS
 macos:brew:cmake:Herramienta de construcción multiplataforma
@@ -138,6 +148,8 @@ macos:brew:gh:GitHub CLI - Interfaz de línea de comandos para GitHub
 macos:brew:glab:GitLab CLI - Interfaz de línea de comandos para GitLab
 macos:brew:autoconf:Herramienta para generar scripts de configuración
 macos:brew:automake:Herramienta para generar Makefiles
+macos:brew:sqlite3:Base de datos SQL ligera
+macos:brew:sqlitebrowser:Interfaz gráfica para SQLite
 
 # NOTA: Herramientas adicionales recomendadas (instalar cuando no estén en repos oficiales):
 
