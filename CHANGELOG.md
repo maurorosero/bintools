@@ -9,7 +9,7 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ### 🔧 Fixed
 
-#### Documentación
+#### Separación de Documentación
 
 - **Separación de contenido**: Removido contenido de gestión de versiones del README.md hacia docs/RELEASE.md
 - **Enfoque correcto**: README.md ahora 100% enfocado en usuarios finales
@@ -123,7 +123,7 @@ Primera versión estable de bintools con sistema completo de gestión de paquete
 - **Referencias obsoletas**: Removidas menciones a `nextcloud-installer.sh`
 - **Código muerto**: Eliminadas 83 líneas de código no utilizado
 
-### 🔧 Fixed
+### 🔧 Fixed - Estabilidad y Configuración
 
 #### Estabilidad del Sistema
 
