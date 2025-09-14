@@ -188,10 +188,13 @@ determine_install_dir() {
     
     # Si ~/bin ya existe, preguntar
     if [[ -d "$default_dir" ]]; then
-        log "INFO" "Detectado directorio ~/bin existente"
-        
         if [[ "$DRY_RUN" == "true" ]]; then
-            log "INFO" "[DRY-RUN] Se preguntaría: ¿Extender ~/bin con bintools?"
+            echo "$default_dir"
+            return
+        fi
+        
+        # Si no hay terminal interactivo (ej: curl | bash), usar ~/bin por defecto
+        if [[ ! -t 0 ]]; then
             echo "$default_dir"
             return
         fi
@@ -206,6 +209,22 @@ determine_install_dir() {
         fi
     else
         echo "$default_dir"
+    fi
+}
+
+check_bin_directory() {
+    local default_dir="$HOME/bin"
+    
+    if [[ -d "$default_dir" ]]; then
+        if [[ "$DRY_RUN" == "true" ]]; then
+            log "INFO" "[DRY-RUN] Detectado directorio ~/bin existente"
+            log "INFO" "[DRY-RUN] Se preguntaría: ¿Extender ~/bin con bintools?"
+        elif [[ ! -t 0 ]]; then
+            log "INFO" "Detectado directorio ~/bin existente"
+            log "INFO" "Ejecutando en modo no interactivo, usando ~/bin por defecto"
+        else
+            log "INFO" "Detectado directorio ~/bin existente"
+        fi
     fi
 }
 
@@ -332,6 +351,9 @@ main() {
     if ! verify_version "$VERSION"; then
         exit 1
     fi
+    
+    # Verificar directorio ~/bin y mostrar mensajes informativos
+    check_bin_directory
     
     # Determinar directorio de instalación
     local target_dir
