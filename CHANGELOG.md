@@ -80,7 +80,7 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 Versión 1.1.0 introduce funcionalidades avanzadas de detección automática y gestión inteligente de privilegios para una experiencia de instalación completamente optimizada.
 
-### ✨ Added
+### ✨ Nuevas Características
 
 #### 🖥️ Sistema de Detección Automática de GUI
 
@@ -238,7 +238,7 @@ Versión 1.1.0 introduce funcionalidades avanzadas de detección automática y g
 - **De `devs.pkg`**:
   - GUI: `sqlitebrowser` (mantenido enfoque CLI)
 
-### 🔧 Fixed
+### 🔧 Correcciones
 
 #### Experiencia de Usuario
 
@@ -289,7 +289,7 @@ Versión 1.1.0 introduce funcionalidades avanzadas de detección automática y g
 - **tar**: Para creación de paquetes
 - **Python 3**: Para validación YAML (opcional)
 
-### 🔗 Enlaces
+### 🔗 Enlaces de la Versión
 
 - **Release**: [v1.1.0](https://github.com/maurorosero/bintools/releases/tag/v1.1.0)
 - **Documentación**: [README.md](README.md)
