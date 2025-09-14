@@ -71,7 +71,7 @@ OPCIONES:
     --headless           Instalar paquetes GUI incluso sin ambiente gráfico
     --no-sudo            Ejecutar sin privilegios sudo (para usuarios root)
     --install-yay        Instalar yay (AUR helper) en Arch Linux
-    --install-snap       Instalar snapd en sistemas compatibles
+    --install-snap       Instalar snapd en sistemas compatibles (Ubuntu, Debian, Fedora, Arch)
     -h, --help           Mostrar esta ayuda
 
 EJEMPLOS:
@@ -367,6 +367,28 @@ install_snap() {
         return 0
     fi
     
+    # Verificar sistemas incompatibles antes de proceder
+    case "$os" in
+        macos)
+            log "ERROR" "Snap no es compatible con macOS"
+            log "INFO" "Snap está diseñado específicamente para sistemas Linux"
+            log "INFO" "Para macOS, use Homebrew o Mac App Store para instalar aplicaciones"
+            log "INFO" "Ejemplo: brew install bitwarden"
+            return 1
+            ;;
+        centos)
+            log "WARNING" "Snap tiene soporte limitado en CentOS/RHEL"
+            log "INFO" "Puede causar problemas con SELinux y dependencias systemd"
+            log "INFO" "Red Hat no incluye Snap en repositorios oficiales"
+            log "INFO" "Se recomienda usar RPM nativo en lugar de Snap"
+            log "INFO" "Si desea continuar, instale snapd manualmente:"
+            log "INFO" "  sudo yum install epel-release"
+            log "INFO" "  sudo yum install snapd"
+            log "INFO" "  sudo systemctl enable --now snapd.socket"
+            return 1
+            ;;
+    esac
+    
     log "INFO" "Instalando snapd..."
     
     case "$os" in
@@ -402,6 +424,7 @@ install_snap() {
             ;;
         *)
             log "ERROR" "snapd no está disponible para $os"
+            log "INFO" "Sistemas soportados: Ubuntu, Debian, Fedora, Arch Linux"
             return 1
             ;;
     esac
