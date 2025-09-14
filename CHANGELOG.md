@@ -5,6 +5,39 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2025-09-13
+
+### 🔧 Fixed
+
+#### Configuración de Release
+
+- **Inclusión de bintools-manager.sh en todos los releases**:
+  - Movido `bintools-manager.sh` de `optional_files.development` a `main_files`
+  - Asegura que el gestor principal esté disponible en todos los métodos de instalación
+  - Mejora la cobertura de instalación del gestor de versiones
+  - Corrige problema donde `bintools-manager.sh` no se incluía en releases de tipo "user" y "minimal"
+
+#### Funcionalidad --secure en nxcloud-backup.sh
+
+- **Corrección de detección de carpetas disponibles**:
+  - Arreglada lógica de búsqueda de números de carpeta en configuración
+  - Mejorada expresión regular para detectar carpetas ocupadas
+  - Cambio a configuración manual guiada siguiendo mejores prácticas de Nextcloud
+  - Eliminada configuración automática problemática del archivo de configuración
+
+- **Mejora en experiencia de usuario**:
+  - Instrucciones detalladas para configuración manual desde interfaz gráfica
+  - Opción para abrir automáticamente el cliente de Nextcloud
+  - Guía paso a paso para configurar sincronización de carpeta `~/secure`
+  - Seguimiento de recomendaciones oficiales de Nextcloud
+
+### 🔗 Enlaces
+
+- **Release**: [v1.1.1](https://github.com/maurorosero/bintools/releases/tag/v1.1.1)
+- **Documentación**: [README.md](README.md)
+- **Guía de Desarrollo**: [docs/RELEASE.md](docs/RELEASE.md)
+- **Autor**: [Mauro Rosero Pérez](https://mauro.rosero.one)
+
 ## [1.1.0] - 2025-09-14
 
 ### 🚀 Nueva Versión Mayor - Experiencia de Usuario Mejorada
