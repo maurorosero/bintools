@@ -7,7 +7,31 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ## [1.1.1] - 2025-09-13
 
+### ✨ Added
+
+#### Nueva Lista de Paquetes Bitwarden
+
+- **Lista bwdn.pkg para instalación de Bitwarden**:
+  - Gestor de contraseñas seguro y de código abierto
+  - Múltiples métodos de instalación por sistema operativo
+  - Snap para Ubuntu, Debian, Fedora, Arch Linux
+  - Flatpak para todos los sistemas Linux
+  - AUR (yay) para Arch Linux
+  - Homebrew para macOS
+  - CentOS usa solo Flatpak (evita problemas con Snap)
+  - Lista disponible automáticamente en packages.sh --help
+
 ### 🔧 Fixed
+
+#### Compatibilidad de Snap en packages.sh
+
+- **Exclusión de macOS y CentOS de instalación de Snap**:
+  - Agregadas verificaciones de compatibilidad antes de instalar snapd
+  - macOS: Bloqueo completo con explicación detallada sobre incompatibilidad
+  - CentOS: Advertencia con instrucciones manuales y recomendación de usar RPM nativo
+  - Mejorados mensajes de error con explicaciones específicas
+  - Actualizada documentación para reflejar sistemas soportados
+  - Snap solo compatible con Ubuntu, Debian, Fedora y Arch Linux
 
 #### Configuración de Release
 
@@ -30,6 +54,18 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   - Opción para abrir automáticamente el cliente de Nextcloud
   - Guía paso a paso para configurar sincronización de carpeta `~/secure`
   - Seguimiento de recomendaciones oficiales de Nextcloud
+
+### 📚 Documentation
+
+#### Actualización del README
+
+- **Nueva lista bwdn documentada**:
+  - Agregada en sección de instalación de herramientas esenciales
+  - Documentación completa con múltiples métodos de instalación
+  - Tabla de sistemas soportados actualizada (macOS sin Snap)
+  - Nota sobre compatibilidad de Snap por sistema operativo
+  - Corregido error de linting MD032 en listas
+  - Documentadas limitaciones de Snap en CentOS/RHEL y macOS
 
 ### 🔗 Enlaces
 
