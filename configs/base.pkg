@@ -21,6 +21,21 @@ ubuntu:apt:net-tools:Herramientas de red (netstat, ifconfig, etc.)
 ubuntu:apt:rsync:Herramienta para sincronización de archivos
 ubuntu:snap:gum:Herramienta moderna para crear interfaces elegantes en terminal
 ubuntu:apt:fzf:Fuzzy finder para terminal
+ubuntu:apt:htop:Monitor de procesos interactivo
+ubuntu:apt:neofetch:Herramienta de información del sistema
+ubuntu:apt:lsof:Lista archivos abiertos
+ubuntu:apt:ncdu:Analizador de uso de disco
+ubuntu:apt:iotop:Monitor de uso de I/O por procesos
+ubuntu:apt:btrfs-progs:Herramientas para el sistema de archivos Btrfs
+ubuntu:apt:xfsprogs:Herramientas para el sistema de archivos XFS
+ubuntu:apt:dosfstools:Herramientas para el sistema de archivos FAT
+ubuntu:apt:ntfs-3g:Soporte para sistemas de archivos NTFS
+ubuntu:apt:exfat-utils:Herramientas para el sistema de archivos exFAT
+ubuntu:apt:usbutils:Herramientas para trabajar con dispositivos USB
+ubuntu:apt:dmidecode:Herramienta para mostrar información del hardware del sistema
+ubuntu:apt:inxi:Herramienta para mostrar información del sistema
+ubuntu:apt:util-linux:Colección de utilidades básicas del sistema
+ubuntu:apt:findutils:Herramientas de búsqueda GNU
 
 debian:apt:curl:Herramienta para transferir datos desde servidores
 debian:apt:git:Sistema de control de versiones distribuido
@@ -41,6 +56,21 @@ debian:apt:net-tools:Herramientas de red (netstat, ifconfig, etc.)
 debian:apt:rsync:Herramienta para sincronización de archivos
 debian:snap:gum:Herramienta moderna para crear interfaces elegantes en terminal
 debian:apt:fzf:Fuzzy finder para terminal
+debian:apt:htop:Monitor de procesos interactivo
+debian:apt:neofetch:Herramienta de información del sistema
+debian:apt:lsof:Lista archivos abiertos
+debian:apt:ncdu:Analizador de uso de disco
+debian:apt:iotop:Monitor de uso de I/O por procesos
+debian:apt:btrfs-progs:Herramientas para el sistema de archivos Btrfs
+debian:apt:xfsprogs:Herramientas para el sistema de archivos XFS
+debian:apt:dosfstools:Herramientas para el sistema de archivos FAT
+debian:apt:ntfs-3g:Soporte para sistemas de archivos NTFS
+debian:apt:exfat-utils:Herramientas para el sistema de archivos exFAT
+debian:apt:usbutils:Herramientas para trabajar con dispositivos USB
+debian:apt:dmidecode:Herramienta para mostrar información del hardware del sistema
+debian:apt:inxi:Herramienta para mostrar información del sistema
+debian:apt:util-linux:Colección de utilidades básicas del sistema
+debian:apt:findutils:Herramientas de búsqueda GNU
 
 # Fedora/CentOS
 fedora:dnf:curl:Herramienta para transferir datos desde servidores
@@ -62,6 +92,21 @@ fedora:dnf:net-tools:Herramientas de red (netstat, ifconfig, etc.)
 fedora:dnf:rsync:Herramienta para sincronización de archivos
 fedora:snap:gum:Herramienta moderna para crear interfaces elegantes en terminal
 fedora:dnf:fzf:Fuzzy finder para terminal
+fedora:dnf:htop:Monitor de procesos interactivo
+fedora:dnf:neofetch:Herramienta de información del sistema
+fedora:dnf:lsof:Lista archivos abiertos
+fedora:dnf:ncdu:Analizador de uso de disco
+fedora:dnf:iotop:Monitor de uso de I/O por procesos
+fedora:dnf:btrfs-progs:Herramientas para el sistema de archivos Btrfs
+fedora:dnf:xfsprogs:Herramientas para el sistema de archivos XFS
+fedora:dnf:dosfstools:Herramientas para el sistema de archivos FAT
+fedora:dnf:ntfs-3g:Soporte para sistemas de archivos NTFS
+fedora:dnf:exfat-utils:Herramientas para el sistema de archivos exFAT
+fedora:dnf:usbutils:Herramientas para trabajar con dispositivos USB
+fedora:dnf:dmidecode:Herramienta para mostrar información del hardware del sistema
+fedora:dnf:inxi:Herramienta para mostrar información del sistema
+fedora:dnf:util-linux:Colección de utilidades básicas del sistema
+fedora:dnf:findutils:Herramientas de búsqueda GNU
 
 centos:yum:curl:Herramienta para transferir datos desde servidores
 centos:yum:git:Sistema de control de versiones distribuido
@@ -82,6 +127,21 @@ centos:yum:net-tools:Herramientas de red (netstat, ifconfig, etc.)
 centos:yum:rsync:Herramienta para sincronización de archivos
 centos:snap:gum:Herramienta moderna para crear interfaces elegantes en terminal
 centos:yum:fzf:Fuzzy finder para terminal
+centos:yum:htop:Monitor de procesos interactivo
+centos:yum:neofetch:Herramienta de información del sistema
+centos:yum:lsof:Lista archivos abiertos
+centos:yum:ncdu:Analizador de uso de disco
+centos:yum:iotop:Monitor de uso de I/O por procesos
+centos:yum:btrfs-progs:Herramientas para el sistema de archivos Btrfs
+centos:yum:xfsprogs:Herramientas para el sistema de archivos XFS
+centos:yum:dosfstools:Herramientas para el sistema de archivos FAT
+centos:yum:ntfs-3g:Soporte para sistemas de archivos NTFS
+centos:yum:exfat-utils:Herramientas para el sistema de archivos exFAT
+centos:yum:usbutils:Herramientas para trabajar con dispositivos USB
+centos:yum:dmidecode:Herramienta para mostrar información del hardware del sistema
+centos:yum:inxi:Herramienta para mostrar información del sistema
+centos:yum:util-linux:Colección de utilidades básicas del sistema
+centos:yum:findutils:Herramientas de búsqueda GNU
 
 # Arch Linux
 arch:pacman:curl:Herramienta para transferir datos desde servidores
@@ -103,6 +163,21 @@ arch:pacman:net-tools:Herramientas de red (netstat, ifconfig, etc.)
 arch:pacman:rsync:Herramienta para sincronización de archivos
 arch:yay:gum:Herramienta moderna para crear interfaces elegantes en terminal
 arch:pacman:fzf:Fuzzy finder para terminal
+arch:pacman:htop:Monitor de procesos interactivo
+arch:pacman:neofetch:Herramienta de información del sistema
+arch:pacman:lsof:Lista archivos abiertos
+arch:pacman:ncdu:Analizador de uso de disco
+arch:pacman:iotop:Monitor de uso de I/O por procesos
+arch:pacman:btrfs-progs:Herramientas para el sistema de archivos Btrfs
+arch:pacman:xfsprogs:Herramientas para el sistema de archivos XFS
+arch:pacman:dosfstools:Herramientas para el sistema de archivos FAT
+arch:pacman:ntfs-3g:Soporte para sistemas de archivos NTFS
+arch:pacman:exfat-utils:Herramientas para el sistema de archivos exFAT
+arch:pacman:usbutils:Herramientas para trabajar con dispositivos USB
+arch:pacman:dmidecode:Herramienta para mostrar información del hardware del sistema
+arch:pacman:inxi:Herramienta para mostrar información del sistema
+arch:pacman:util-linux:Colección de utilidades básicas del sistema
+arch:pacman:findutils:Herramientas de búsqueda GNU
 
 # macOS
 macos:brew:curl:Herramienta para transferir datos desde servidores
@@ -124,3 +199,11 @@ macos:brew:net-tools:Herramientas de red (netstat, ifconfig, etc.)
 macos:brew:rsync:Herramienta para sincronización de archivos
 macos:brew:gum:Herramienta moderna para crear interfaces elegantes en terminal
 macos:brew:fzf:Fuzzy finder para terminal
+macos:brew:htop:Monitor de procesos interactivo
+macos:brew:neofetch:Herramienta de información del sistema
+macos:brew:lsof:Lista archivos abiertos
+macos:brew:ncdu:Analizador de uso de disco
+macos:brew:iotop:Monitor de uso de I/O por procesos
+macos:brew:dmidecode:Herramienta para mostrar información del hardware del sistema
+macos:brew:inxi:Herramienta para mostrar información del sistema
+macos:brew:findutils:Herramientas de búsqueda GNU
