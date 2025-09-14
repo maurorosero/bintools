@@ -51,7 +51,7 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   - CentOS usa solo Flatpak (evita problemas con Snap)
   - Lista disponible automáticamente en packages.sh --help
 
-### 🔧 Fixed
+### 🔧 Correcciones v1.1.1
 
 #### Compatibilidad de Snap en packages.sh
 
@@ -96,7 +96,7 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   - Corregido output mezclado en instalaciones automáticas
   - Garantizado funcionamiento perfecto con `curl | bash`
 
-### 📚 Documentation
+### 📚 Documentación v1.1.1
 
 #### Actualización del README
 
