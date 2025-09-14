@@ -15,8 +15,6 @@ ubuntu:apt:ssh:Cliente SSH para conexiones seguras
 ubuntu:apt:openssh-server:Servidor SSH
 ubuntu:apt:ansible:Herramienta de automatización de infraestructura
 ubuntu:apt:terraform:Herramienta de infraestructura como código
-ubuntu:apt:kubernetes-cli:Cliente de línea de comandos para Kubernetes
-ubuntu:apt:helm:Gestor de paquetes para Kubernetes
 ubuntu:apt:docker-compose:Compose para Docker (multicontenedor)
 ubuntu:apt:nmap:Herramienta de exploración de red y auditoría de seguridad
 
@@ -33,8 +31,6 @@ debian:apt:ssh:Cliente SSH para conexiones seguras
 debian:apt:openssh-server:Servidor SSH
 debian:apt:ansible:Herramienta de automatización de infraestructura
 debian:apt:terraform:Herramienta de infraestructura como código
-debian:apt:kubernetes-cli:Cliente de línea de comandos para Kubernetes
-debian:apt:helm:Gestor de paquetes para Kubernetes
 debian:apt:docker-compose:Compose para Docker (multicontenedor)
 debian:apt:nmap:Herramienta de exploración de red y auditoría de seguridad
 
@@ -52,8 +48,6 @@ fedora:dnf:openssh-clients:Cliente SSH para conexiones seguras
 fedora:dnf:openssh-server:Servidor SSH
 fedora:dnf:ansible:Herramienta de automatización de infraestructura
 fedora:dnf:terraform:Herramienta de infraestructura como código
-fedora:dnf:kubernetes-client:Cliente de línea de comandos para Kubernetes
-fedora:dnf:helm:Gestor de paquetes para Kubernetes
 fedora:dnf:docker-compose:Compose para Docker (multicontenedor)
 fedora:dnf:nmap:Herramienta de exploración de red y auditoría de seguridad
 
@@ -70,8 +64,6 @@ centos:yum:openssh-clients:Cliente SSH para conexiones seguras
 centos:yum:openssh-server:Servidor SSH
 centos:yum:ansible:Herramienta de automatización de infraestructura
 centos:yum:terraform:Herramienta de infraestructura como código
-centos:yum:kubernetes-client:Cliente de línea de comandos para Kubernetes
-centos:yum:helm:Gestor de paquetes para Kubernetes
 centos:yum:docker-compose:Compose para Docker (multicontenedor)
 centos:yum:nmap:Herramienta de exploración de red y auditoría de seguridad
 
@@ -89,8 +81,6 @@ arch:pacman:gnu-netcat:Utilidad de red versátil
 arch:pacman:openssh:Cliente SSH para conexiones seguras
 arch:pacman:ansible:Herramienta de automatización de infraestructura
 arch:pacman:terraform:Herramienta de infraestructura como código
-arch:pacman:kubectl:Cliente de línea de comandos para Kubernetes
-arch:pacman:helm:Gestor de paquetes para Kubernetes
 arch:pacman:docker-compose:Compose para Docker (multicontenedor)
 arch:pacman:nmap:Herramienta de exploración de red y auditoría de seguridad
 
@@ -107,7 +97,5 @@ macos:brew:netcat:Utilidad de red versátil
 macos:brew:openssh:Cliente SSH para conexiones seguras
 macos:brew:ansible:Herramienta de automatización de infraestructura
 macos:brew:terraform:Herramienta de infraestructura como código
-macos:brew:kubernetes-cli:Cliente de línea de comandos para Kubernetes
-macos:brew:helm:Gestor de paquetes para Kubernetes
 macos:brew:docker-compose:Compose para Docker (multicontenedor)
 macos:brew:nmap:Herramienta de exploración de red y auditoría de seguridad
