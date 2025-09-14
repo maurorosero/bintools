@@ -95,7 +95,7 @@ Primera versión estable de bintools con sistema completo de gestión de paquete
 
 ### 🔄 Changed
 
-#### Sistema de Releases
+#### Migración del Sistema de Releases
 
 - **Migración a GitHub CLI**: Reemplazado sistema de GitHub Actions por enfoque directo
 - **Mejora de confiabilidad**: Eliminadas dependencias de workflows externos
@@ -123,6 +123,9 @@ Primera versión estable de bintools con sistema completo de gestión de paquete
 - **Captura de output**: Mejorada captura de rutas de paquetes en workflows
 - **Formato de documentación**: Corregidos todos los errores de markdown linting
 - **Referencias de configuración**: Actualizadas todas las referencias a archivos renombrados
+- **Configuración YAML anidada**: Corregido `release-builder.sh` para procesar correctamente `optional_files.documentation`
+- **Inclusión de documentación**: Los paquetes de release ahora incluyen correctamente README.md, LICENSE, y CHANGELOG.md
+- **Parsing YAML mejorado**: Soporte para claves anidadas en la función `read_config()`
 
 ### 🛡️ Security
 
