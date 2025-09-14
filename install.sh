@@ -221,8 +221,8 @@ check_bin_directory() {
             log "INFO" "[DRY-RUN] Detectado directorio ~/bin existente"
             log "INFO" "[DRY-RUN] Se preguntaría: ¿Extender ~/bin con bintools?"
         elif [[ ! -t 0 ]] || [[ ! -t 1 ]] || [[ "${BASH_SOURCE[0]}" == "/dev/fd/"* ]]; then
-            log "INFO" "Detectado directorio ~/bin existente"
-            log "INFO" "Ejecutando en modo no interactivo, usando ~/bin por defecto"
+            # En modo no interactivo, no imprimir mensajes para evitar interferencia
+            return 0
         else
             log "INFO" "Detectado directorio ~/bin existente"
         fi
