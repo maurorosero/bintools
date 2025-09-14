@@ -5,17 +5,7 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### 🔧 Fixed
-
-#### Separación de Documentación
-
-- **Separación de contenido**: Removido contenido de gestión de versiones del README.md hacia docs/RELEASE.md
-- **Enfoque correcto**: README.md ahora 100% enfocado en usuarios finales
-- **Eliminación de bintools-manager.sh**: Referencias de desarrollo removidas del README
-
-## [1.0.0] - 2025-09-13
+## [1.0.0] - 2025-09-14
 
 ### 🎉 Primera Versión Oficial
 
@@ -125,6 +115,12 @@ Primera versión estable de bintools con sistema completo de gestión de paquete
 
 ### 🔧 Fixed - Estabilidad y Configuración
 
+#### Separación de Documentación
+
+- **Separación de contenido**: Removido contenido de gestión de versiones del README.md hacia docs/RELEASE.md
+- **Enfoque correcto**: README.md ahora 100% enfocado en usuarios finales
+- **Eliminación de bintools-manager.sh**: Referencias de desarrollo removidas del README
+
 #### Estabilidad del Sistema
 
 - **Logs separados**: stderr/stdout correctamente separados en scripts de release
@@ -165,5 +161,4 @@ Primera versión estable de bintools con sistema completo de gestión de paquete
 - **Guía de Desarrollo**: [docs/RELEASE.md](docs/RELEASE.md)
 - **Autor**: [Mauro Rosero Pérez](https://mauro.rosero.one)
 
-[unreleased]: https://github.com/maurorosero/bintools/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/maurorosero/bintools/releases/tag/v1.0.0
