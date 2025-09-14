@@ -44,6 +44,9 @@ ubuntu:apt:screen:Multiplexor de terminal (útil para monitoreo serial)
 ubuntu:apt:glow:Renderizador de markdown en terminal
 ubuntu:apt:mdcat:Renderizador de markdown para la terminal
 ubuntu:apt:csvkit:Suite de utilidades para trabajar con CSV
+ubuntu:apt:hexyl:Visor de archivos hexadecimal moderno y colorido
+ubuntu:apt:xxd:Herramienta para crear volcados hexadecimales
+ubuntu:apt:hexedit:Editor hexadecimal para archivos binarios
 
 debian:apt:curl:Herramienta para transferir datos desde servidores
 debian:apt:git:Sistema de control de versiones distribuido
@@ -87,6 +90,9 @@ debian:apt:screen:Multiplexor de terminal (útil para monitoreo serial)
 debian:apt:glow:Renderizador de markdown en terminal
 debian:apt:mdcat:Renderizador de markdown para la terminal
 debian:apt:csvkit:Suite de utilidades para trabajar con CSV
+debian:apt:hexyl:Visor de archivos hexadecimal moderno y colorido
+debian:apt:xxd:Herramienta para crear volcados hexadecimales
+debian:apt:hexedit:Editor hexadecimal para archivos binarios
 
 # Fedora/CentOS
 fedora:dnf:curl:Herramienta para transferir datos desde servidores
@@ -131,6 +137,9 @@ fedora:dnf:screen:Multiplexor de terminal (útil para monitoreo serial)
 fedora:dnf:glow:Renderizador de markdown en terminal
 fedora:dnf:mdcat:Renderizador de markdown para la terminal
 fedora:dnf:csvkit:Suite de utilidades para trabajar con CSV
+fedora:dnf:hexyl:Visor de archivos hexadecimal moderno y colorido
+fedora:dnf:xxd:Herramienta para crear volcados hexadecimales
+fedora:dnf:hexedit:Editor hexadecimal para archivos binarios
 
 centos:yum:curl:Herramienta para transferir datos desde servidores
 centos:yum:git:Sistema de control de versiones distribuido
@@ -174,6 +183,9 @@ centos:yum:screen:Multiplexor de terminal (útil para monitoreo serial)
 centos:yum:glow:Renderizador de markdown en terminal
 centos:yum:mdcat:Renderizador de markdown para la terminal
 centos:yum:csvkit:Suite de utilidades para trabajar con CSV
+centos:yum:hexyl:Visor de archivos hexadecimal moderno y colorido
+centos:yum:xxd:Herramienta para crear volcados hexadecimales
+centos:yum:hexedit:Editor hexadecimal para archivos binarios
 
 # Arch Linux
 arch:pacman:curl:Herramienta para transferir datos desde servidores
@@ -218,6 +230,9 @@ arch:pacman:screen:Multiplexor de terminal (útil para monitoreo serial)
 arch:pacman:glow:Renderizador de markdown en terminal
 arch:pacman:mdcat:Renderizador de markdown para la terminal
 arch:pacman:csvkit:Suite de utilidades para trabajar con CSV
+arch:pacman:hexyl:Visor de archivos hexadecimal moderno y colorido
+arch:pacman:xxd:Herramienta para crear volcados hexadecimales
+arch:pacman:hexedit:Editor hexadecimal para archivos binarios
 
 # macOS
 macos:brew:curl:Herramienta para transferir datos desde servidores
@@ -256,3 +271,6 @@ macos:brew:usbutils:Herramientas para trabajar con dispositivos USB (incluye lsu
 macos:brew:glow:Renderizador de markdown en terminal
 macos:brew:mdcat:Renderizador de markdown para la terminal
 macos:brew:csvkit:Suite de utilidades para trabajar con CSV
+macos:brew:hexyl:Visor de archivos hexadecimal moderno y colorido
+macos:brew:xxd:Herramienta para crear volcados hexadecimales
+macos:brew:hexedit:Editor hexadecimal para archivos binarios
