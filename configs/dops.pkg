@@ -8,14 +8,10 @@ ubuntu:apt:google-cloud-sdk:SDK para Google Cloud Platform
 ubuntu:apt:httpie:Cliente HTTP amigable para CLI
 ubuntu:apt:dnsutils:Herramientas para diagnóstico DNS
 ubuntu:apt:tcpdump:Analizador de paquetes de red
-ubuntu:apt:wireshark:Analizador de protocolos de red (GUI)
 ubuntu:apt:mtr:Combinación de traceroute y ping
 ubuntu:apt:netcat-openbsd:Utilidad de red versátil
-ubuntu:apt:ssh:Cliente SSH para conexiones seguras
-ubuntu:apt:openssh-server:Servidor SSH
 ubuntu:apt:ansible:Herramienta de automatización de infraestructura
 ubuntu:apt:terraform:Herramienta de infraestructura como código
-ubuntu:apt:docker-compose:Compose para Docker (multicontenedor)
 ubuntu:apt:nmap:Herramienta de exploración de red y auditoría de seguridad
 
 debian:apt:awscli:CLI para Amazon Web Services
@@ -24,14 +20,10 @@ debian:apt:google-cloud-sdk:SDK para Google Cloud Platform
 debian:apt:httpie:Cliente HTTP amigable para CLI
 debian:apt:dnsutils:Herramientas para diagnóstico DNS
 debian:apt:tcpdump:Analizador de paquetes de red
-debian:apt:wireshark:Analizador de protocolos de red (GUI)
 debian:apt:mtr:Combinación de traceroute y ping
 debian:apt:netcat-openbsd:Utilidad de red versátil
-debian:apt:ssh:Cliente SSH para conexiones seguras
-debian:apt:openssh-server:Servidor SSH
 debian:apt:ansible:Herramienta de automatización de infraestructura
 debian:apt:terraform:Herramienta de infraestructura como código
-debian:apt:docker-compose:Compose para Docker (multicontenedor)
 debian:apt:nmap:Herramienta de exploración de red y auditoría de seguridad
 
 # Fedora/CentOS
@@ -41,14 +33,10 @@ fedora:dnf:google-cloud-sdk:SDK para Google Cloud Platform
 fedora:dnf:httpie:Cliente HTTP amigable para CLI
 fedora:dnf:bind-utils:Herramientas para diagnóstico DNS
 fedora:dnf:tcpdump:Analizador de paquetes de red
-fedora:dnf:wireshark:Analizador de protocolos de red (GUI)
 fedora:dnf:mtr:Combinación de traceroute y ping
 fedora:dnf:nc:Utilidad de red versátil
-fedora:dnf:openssh-clients:Cliente SSH para conexiones seguras
-fedora:dnf:openssh-server:Servidor SSH
 fedora:dnf:ansible:Herramienta de automatización de infraestructura
 fedora:dnf:terraform:Herramienta de infraestructura como código
-fedora:dnf:docker-compose:Compose para Docker (multicontenedor)
 fedora:dnf:nmap:Herramienta de exploración de red y auditoría de seguridad
 
 centos:yum:awscli:CLI para Amazon Web Services
@@ -57,14 +45,10 @@ centos:yum:google-cloud-sdk:SDK para Google Cloud Platform
 centos:yum:httpie:Cliente HTTP amigable para CLI
 centos:yum:bind-utils:Herramientas para diagnóstico DNS
 centos:yum:tcpdump:Analizador de paquetes de red
-centos:yum:wireshark:Analizador de protocolos de red (GUI)
 centos:yum:mtr:Combinación de traceroute y ping
 centos:yum:nc:Utilidad de red versátil
-centos:yum:openssh-clients:Cliente SSH para conexiones seguras
-centos:yum:openssh-server:Servidor SSH
 centos:yum:ansible:Herramienta de automatización de infraestructura
 centos:yum:terraform:Herramienta de infraestructura como código
-centos:yum:docker-compose:Compose para Docker (multicontenedor)
 centos:yum:nmap:Herramienta de exploración de red y auditoría de seguridad
 
 # Arch Linux
@@ -74,14 +58,10 @@ arch:pacman:google-cloud-sdk:SDK para Google Cloud Platform
 arch:pacman:httpie:Cliente HTTP amigable para CLI
 arch:pacman:bind-tools:Herramientas para diagnóstico DNS
 arch:pacman:tcpdump:Analizador de paquetes de red
-arch:pacman:wireshark-cli:Analizador de protocolos de red (CLI)
-arch:pacman:wireshark-qt:Analizador de protocolos de red (GUI)
 arch:pacman:mtr:Combinación de traceroute y ping
 arch:pacman:gnu-netcat:Utilidad de red versátil
-arch:pacman:openssh:Cliente SSH para conexiones seguras
 arch:pacman:ansible:Herramienta de automatización de infraestructura
 arch:pacman:terraform:Herramienta de infraestructura como código
-arch:pacman:docker-compose:Compose para Docker (multicontenedor)
 arch:pacman:nmap:Herramienta de exploración de red y auditoría de seguridad
 
 # macOS
@@ -91,11 +71,8 @@ macos:brew:google-cloud-sdk:SDK para Google Cloud Platform
 macos:brew:httpie:Cliente HTTP amigable para CLI
 macos:brew:bind:Herramientas para diagnóstico DNS
 macos:brew:tcpdump:Analizador de paquetes de red
-macos:brew:wireshark:Analizador de protocolos de red (GUI)
 macos:brew:mtr:Combinación de traceroute y ping
 macos:brew:netcat:Utilidad de red versátil
-macos:brew:openssh:Cliente SSH para conexiones seguras
 macos:brew:ansible:Herramienta de automatización de infraestructura
 macos:brew:terraform:Herramienta de infraestructura como código
-macos:brew:docker-compose:Compose para Docker (multicontenedor)
 macos:brew:nmap:Herramienta de exploración de red y auditoría de seguridad
