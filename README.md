@@ -199,6 +199,9 @@ cd bintools
 # Instalar herramientas de Nextcloud
 ./packages.sh --list cloud
 
+# Instalar Bitwarden (gestor de contraseñas)
+./packages.sh --list bwdn
+
 # Instalar todo
 ./packages.sh --list all
 
@@ -270,9 +273,15 @@ El instalador `packages.sh` incluye características avanzadas que lo hacen úni
 # Instalar yay (AUR helper) en Arch Linux
 ./packages.sh --install-yay
 
-# Instalar snapd en sistemas compatibles
+# Instalar snapd en sistemas compatibles (Ubuntu, Debian, Fedora, Arch)
 ./packages.sh --install-snap
 ```
+
+**Nota sobre compatibilidad de Snap:**
+
+- ✅ **Soportado**: Ubuntu, Debian, Fedora, Arch Linux
+- ❌ **No compatible**: macOS (usa Homebrew en su lugar)
+- ⚠️ **Limitado**: CentOS/RHEL (se recomienda usar RPM nativo)
 
 #### **Detección Inteligente**
 
@@ -297,7 +306,7 @@ El instalador `packages.sh` incluye características avanzadas que lo hacen úni
 | Ubuntu/Debian | ✅ Completo | apt, snap | Actualización automática, instalación de snapd |
 | Fedora/CentOS | ✅ Completo | dnf, yum, snap | Actualización automática, instalación de snapd |
 | Arch Linux | ✅ Completo | pacman, yay, snap | Actualización automática, instalación de yay y snapd |
-| macOS | ✅ Completo | brew, snap | Actualización automática, instalación de snapd |
+| macOS | ✅ Completo | brew | Actualización automática (Snap no compatible) |
 
 ## 📋 Listas de Paquetes Disponibles
 
@@ -345,6 +354,16 @@ El sistema detecta automáticamente todas las listas disponibles en `configs/`. 
 ### `cloud` - Herramientas de Nextcloud
 
 - Nextcloud Desktop (cliente oficial de escritorio)
+
+### `bwdn` - Bitwarden (Gestor de Contraseñas)
+
+- Bitwarden Desktop (cliente oficial)
+- Múltiples métodos de instalación por sistema:
+  - Snap para Ubuntu, Debian, Fedora, Arch Linux
+  - Flatpak para todos los sistemas Linux
+  - AUR (yay) para Arch Linux
+  - Homebrew para macOS
+- Gestor de contraseñas seguro y de código abierto
 
 ### Crear Listas Personalizadas
 
