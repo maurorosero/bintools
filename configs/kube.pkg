@@ -1,0 +1,84 @@
+# Paquetes para desarrollo local de Kubernetes
+# Formato: OS:Manejador:Paquete:Descripción
+
+# Ubuntu/Debian
+ubuntu:apt:kubectl:Cliente de línea de comandos para Kubernetes
+ubuntu:apt:minikube:Herramienta para ejecutar Kubernetes localmente
+ubuntu:apt:kind:Herramienta para ejecutar clusters de Kubernetes en Docker
+ubuntu:apt:k3d:Herramienta para ejecutar clusters de Kubernetes ligeros
+ubuntu:apt:helm:Gestor de paquetes para Kubernetes
+ubuntu:apt:kustomize:Herramienta para personalizar configuraciones de Kubernetes
+ubuntu:apt:kubectx:Herramienta para cambiar contexto de Kubernetes
+ubuntu:apt:kubens:Herramienta para cambiar namespace de Kubernetes
+ubuntu:apt:k9s:Terminal UI para Kubernetes
+ubuntu:apt:stern:Herramienta para seguir logs de múltiples pods
+ubuntu:apt:kubectl-neat:Herramienta para limpiar output de kubectl
+ubuntu:apt:kubectl-tree:Herramienta para visualizar recursos de Kubernetes en árbol
+
+debian:apt:kubectl:Cliente de línea de comandos para Kubernetes
+debian:apt:minikube:Herramienta para ejecutar Kubernetes localmente
+debian:apt:kind:Herramienta para ejecutar clusters de Kubernetes en Docker
+debian:apt:k3d:Herramienta para ejecutar clusters de Kubernetes ligeros
+debian:apt:helm:Gestor de paquetes para Kubernetes
+debian:apt:kustomize:Herramienta para personalizar configuraciones de Kubernetes
+debian:apt:kubectx:Herramienta para cambiar contexto de Kubernetes
+debian:apt:kubens:Herramienta para cambiar namespace de Kubernetes
+debian:apt:k9s:Terminal UI para Kubernetes
+debian:apt:stern:Herramienta para seguir logs de múltiples pods
+debian:apt:kubectl-neat:Herramienta para limpiar output de kubectl
+debian:apt:kubectl-tree:Herramienta para visualizar recursos de Kubernetes en árbol
+
+# Fedora/CentOS
+fedora:dnf:kubectl:Cliente de línea de comandos para Kubernetes
+fedora:dnf:minikube:Herramienta para ejecutar Kubernetes localmente
+fedora:dnf:kind:Herramienta para ejecutar clusters de Kubernetes en Docker
+fedora:dnf:k3d:Herramienta para ejecutar clusters de Kubernetes ligeros
+fedora:dnf:helm:Gestor de paquetes para Kubernetes
+fedora:dnf:kustomize:Herramienta para personalizar configuraciones de Kubernetes
+fedora:dnf:kubectx:Herramienta para cambiar contexto de Kubernetes
+fedora:dnf:kubens:Herramienta para cambiar namespace de Kubernetes
+fedora:dnf:k9s:Terminal UI para Kubernetes
+fedora:dnf:stern:Herramienta para seguir logs de múltiples pods
+fedora:dnf:kubectl-neat:Herramienta para limpiar output de kubectl
+fedora:dnf:kubectl-tree:Herramienta para visualizar recursos de Kubernetes en árbol
+
+centos:yum:kubectl:Cliente de línea de comandos para Kubernetes
+centos:yum:minikube:Herramienta para ejecutar Kubernetes localmente
+centos:yum:kind:Herramienta para ejecutar clusters de Kubernetes en Docker
+centos:yum:k3d:Herramienta para ejecutar clusters de Kubernetes ligeros
+centos:yum:helm:Gestor de paquetes para Kubernetes
+centos:yum:kustomize:Herramienta para personalizar configuraciones de Kubernetes
+centos:yum:kubectx:Herramienta para cambiar contexto de Kubernetes
+centos:yum:kubens:Herramienta para cambiar namespace de Kubernetes
+centos:yum:k9s:Terminal UI para Kubernetes
+centos:yum:stern:Herramienta para seguir logs de múltiples pods
+centos:yum:kubectl-neat:Herramienta para limpiar output de kubectl
+centos:yum:kubectl-tree:Herramienta para visualizar recursos de Kubernetes en árbol
+
+# Arch Linux
+arch:pacman:kubectl:Cliente de línea de comandos para Kubernetes
+arch:pacman:minikube:Herramienta para ejecutar Kubernetes localmente
+arch:pacman:kind:Herramienta para ejecutar clusters de Kubernetes en Docker
+arch:pacman:k3d:Herramienta para ejecutar clusters de Kubernetes ligeros
+arch:pacman:helm:Gestor de paquetes para Kubernetes
+arch:pacman:kustomize:Herramienta para personalizar configuraciones de Kubernetes
+arch:pacman:kubectx:Herramienta para cambiar contexto de Kubernetes
+arch:pacman:kubens:Herramienta para cambiar namespace de Kubernetes
+arch:pacman:k9s:Terminal UI para Kubernetes
+arch:pacman:stern:Herramienta para seguir logs de múltiples pods
+arch:pacman:kubectl-neat:Herramienta para limpiar output de kubectl
+arch:pacman:kubectl-tree:Herramienta para visualizar recursos de Kubernetes en árbol
+
+# macOS
+macos:brew:kubectl:Cliente de línea de comandos para Kubernetes
+macos:brew:minikube:Herramienta para ejecutar Kubernetes localmente
+macos:brew:kind:Herramienta para ejecutar clusters de Kubernetes en Docker
+macos:brew:k3d:Herramienta para ejecutar clusters de Kubernetes ligeros
+macos:brew:helm:Gestor de paquetes para Kubernetes
+macos:brew:kustomize:Herramienta para personalizar configuraciones de Kubernetes
+macos:brew:kubectx:Herramienta para cambiar contexto de Kubernetes
+macos:brew:kubens:Herramienta para cambiar namespace de Kubernetes
+macos:brew:k9s:Terminal UI para Kubernetes
+macos:brew:stern:Herramienta para seguir logs de múltiples pods
+macos:brew:kubectl-neat:Herramienta para limpiar output de kubectl
+macos:brew:kubectl-tree:Herramienta para visualizar recursos de Kubernetes en árbol
