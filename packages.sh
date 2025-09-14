@@ -21,6 +21,8 @@ CONFIG_DIR="$SCRIPT_DIR/configs"
 DRY_RUN=false
 VERBOSE=false
 LIST=""
+HEADLESS=false
+GUI_DETECTED=false
 
 # Función para mostrar listas disponibles dinámicamente
 show_available_lists() {
@@ -64,6 +66,7 @@ OPCIONES:
     -l, --list LISTA     Lista de paquetes a instalar ($available_lists)
     -d, --dry-run        Solo mostrar qué se instalaría, sin instalar realmente
     -v, --verbose        Mostrar información detallada
+    --headless           Instalar paquetes GUI incluso sin ambiente gráfico
     --install-yay        Instalar yay (AUR helper) en Arch Linux
     --install-snap       Instalar snapd en sistemas compatibles
     -h, --help           Mostrar esta ayuda
@@ -74,6 +77,8 @@ EJEMPLOS:
     $0 --list vbox                   # Instalar VirtualBox y Vagrant
     $0 --list all --dry-run          # Ver qué se instalaría
     $0 --list user --verbose         # Instalar con información detallada
+    $0 --list orgs --headless        # Instalar paquetes GUI sin ambiente gráfico
+    $0 --list all --headless         # Instalar todo incluyendo GUI
     $0 --install-yay                 # Instalar yay en Arch Linux
     $0 --install-snap                # Instalar snapd en sistemas compatibles
 
@@ -83,6 +88,16 @@ $(show_available_lists)
 FORMATO DE ARCHIVOS:
     Los archivos de configuración están en configs/ con formato:
     OS:Manejador:Paquete:Descripción
+
+DETECCIÓN AUTOMÁTICA DE GUI:
+    El script detecta automáticamente si hay ambiente gráfico disponible:
+    - Variables de entorno: DISPLAY, WAYLAND_DISPLAY, XDG_SESSION_TYPE
+    - Servidor X corriendo: xset
+    - Procesos gráficos: Xorg, Xwayland, gnome-session, kde, etc.
+    - macOS: TERM_PROGRAM
+    
+    Sin ambiente gráfico, los paquetes GUI se omiten automáticamente.
+    Use --headless para instalar paquetes GUI sin ambiente gráfico.
 
 EOF
 }
@@ -113,6 +128,87 @@ log() {
             fi
             ;;
     esac
+}
+
+# Función para detectar ambiente gráfico
+detect_gui() {
+    # Verificar variables de entorno comunes
+    if [[ -n "${DISPLAY:-}" ]] || [[ -n "${WAYLAND_DISPLAY:-}" ]] || [[ -n "${XDG_SESSION_TYPE:-}" ]]; then
+        return 0  # GUI detectado
+    fi
+    
+    # Verificar si hay servidor X corriendo
+    if command -v xset >/dev/null 2>&1 && xset q >/dev/null 2>&1; then
+        return 0  # GUI detectado
+    fi
+    
+    # Verificar si estamos en macOS con GUI
+    if [[ "$OSTYPE" == "darwin"* ]] && [[ -n "${TERM_PROGRAM:-}" ]]; then
+        return 0  # GUI detectado en macOS
+    fi
+    
+    # Verificar si hay procesos gráficos corriendo
+    if pgrep -x "Xorg\|Xwayland\|gnome-session\|kde\|xfce\|mate\|lxde\|i3\|sway" >/dev/null 2>&1; then
+        return 0  # GUI detectado
+    fi
+    
+    return 1  # No GUI detectado
+}
+
+# Función para identificar si un paquete es GUI
+is_gui_package() {
+    local package="$1"
+    local description="$2"
+    
+    # Lista de paquetes GUI conocidos
+    local gui_packages=(
+        "firefox" "chromium" "chrome" "brave" "vivaldi" "opera"
+        "libreoffice" "libreoffice-writer" "libreoffice-calc" "libreoffice-impress"
+        "gimp" "inkscape" "blender" "krita" "darktable"
+        "vlc" "mpv" "totem" "parole"
+        "thunderbird" "evolution" "geary"
+        "filezilla" "remmina" "vinagre"
+        "simple-scan" "xsane"
+        "drawio" "draw.io"
+        "projectlibre" "project-libre"
+        "whatsapp-for-linux" "whatsapp"
+        "discord" "slack" "telegram"
+        "wireshark" "wireshark-qt" "wireshark-gtk"
+        "k9s" "k9s-gui"
+        "docker-desktop" "docker-desktop-data"
+        "virtualbox" "vmware" "qemu-system"
+        "steam" "lutris" "heroic"
+        "notion" "obsidian" "joplin"
+        "calibre" "calibre-gui"
+        "audacity" "ardour" "lmms"
+        "code" "vscode" "atom" "sublime-text"
+        "android-studio" "intellij-idea" "pycharm"
+        "eclipse" "netbeans"
+        "mysql-workbench" "pgadmin" "dbeaver"
+        "postman" "insomnia"
+        "figma" "sketch"
+        "zoom" "teams" "webex"
+        "spotify" "spotify-client"
+        "spotify" "spotify-client"
+    )
+    
+    # Verificar si el paquete está en la lista
+    for gui_pkg in "${gui_packages[@]}"; do
+        if [[ "$package" == *"$gui_pkg"* ]] || [[ "$gui_pkg" == *"$package"* ]]; then
+            return 0  # Es paquete GUI
+        fi
+    done
+    
+    # Verificar por palabras clave en la descripción
+    local gui_keywords=("GUI" "interfaz gráfica" "escritorio" "ventana" "aplicación" "cliente" "editor" "visor" "reproductor" "navegador" "oficina" "diseño" "imagen" "video" "audio" "juego" "chat" "mensajería" "correo" "escritorio" "terminal" "IDE" "editor" "desarrollo" "diseño" "multimedia")
+    
+    for keyword in "${gui_keywords[@]}"; do
+        if [[ "$description" == *"$keyword"* ]]; then
+            return 0  # Es paquete GUI
+        fi
+    done
+    
+    return 1  # No es paquete GUI
 }
 
 # Función para detectar el OS
@@ -439,7 +535,19 @@ process_package_list() {
         if [[ "$line_os" == "$os" ]]; then
             packages_found=$((packages_found + 1))
             
-            log "VERBOSE" "Procesando: $package ($manager)"
+            # Verificar si es paquete GUI y si debemos filtrarlo
+            if is_gui_package "$package" "$description"; then
+                if [[ "$HEADLESS" == "true" ]]; then
+                    log "VERBOSE" "Instalando paquete GUI (modo headless): $package ($manager)"
+                elif [[ "$GUI_DETECTED" == "false" ]]; then
+                    log "VERBOSE" "Saltando paquete GUI (sin ambiente gráfico): $package ($manager)"
+                    continue
+                else
+                    log "VERBOSE" "Procesando paquete GUI: $package ($manager)"
+                fi
+            else
+                log "VERBOSE" "Procesando: $package ($manager)"
+            fi
             
             if install_package "$manager" "$package" "$description"; then
                 packages_installed=$((packages_installed + 1))
@@ -483,6 +591,10 @@ main() {
                 VERBOSE=true
                 shift
                 ;;
+            --headless)
+                HEADLESS=true
+                shift
+                ;;
             --install-yay)
                 install_yay
                 exit $?
@@ -513,6 +625,22 @@ main() {
     # Detectar OS
     local os=$(detect_os)
     log "INFO" "OS detectado: $os"
+    
+    # Detectar ambiente gráfico
+    if detect_gui; then
+        GUI_DETECTED=true
+        log "INFO" "Ambiente gráfico detectado"
+    else
+        GUI_DETECTED=false
+        log "INFO" "Sin ambiente gráfico detectado (modo headless)"
+    fi
+    
+    # Mostrar información sobre filtrado de paquetes GUI
+    if [[ "$GUI_DETECTED" == "false" ]] && [[ "$HEADLESS" == "false" ]]; then
+        log "INFO" "Los paquetes GUI serán omitidos. Use --headless para instalarlos de todos modos."
+    elif [[ "$HEADLESS" == "true" ]]; then
+        log "INFO" "Modo headless activado: instalando todos los paquetes incluyendo GUI"
+    fi
     
     if [[ "$os" == "unknown" ]]; then
         log "ERROR" "OS no soportado"
