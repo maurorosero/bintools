@@ -7,6 +7,7 @@ ubuntu:apt:git:Sistema de control de versiones distribuido
 ubuntu:apt:wget:Herramienta para descargar archivos desde la web
 ubuntu:apt:python3:Lenguaje de programación Python 3
 ubuntu:apt:python3-pip:Gestor de paquetes para Python
+ubuntu:apt:python3-keyring:Librería para almacenamiento seguro de credenciales
 ubuntu:apt:jq:Procesador de JSON desde línea de comandos
 ubuntu:apt:yq:Procesador de YAML desde línea de comandos
 ubuntu:apt:gnupg:Implementación de OpenPGP para cifrado
@@ -53,6 +54,7 @@ debian:apt:git:Sistema de control de versiones distribuido
 debian:apt:wget:Herramienta para descargar archivos desde la web
 debian:apt:python3:Lenguaje de programación Python 3
 debian:apt:python3-pip:Gestor de paquetes para Python
+debian:apt:python3-keyring:Librería para almacenamiento seguro de credenciales
 debian:apt:jq:Procesador de JSON desde línea de comandos
 debian:apt:yq:Procesador de YAML desde línea de comandos
 debian:apt:gnupg:Implementación de OpenPGP para cifrado
@@ -100,6 +102,7 @@ fedora:dnf:git:Sistema de control de versiones distribuido
 fedora:dnf:wget:Herramienta para descargar archivos desde la web
 fedora:dnf:python3:Lenguaje de programación Python 3
 fedora:dnf:python3-pip:Gestor de paquetes para Python
+fedora:dnf:python3-keyring:Librería para almacenamiento seguro de credenciales
 fedora:dnf:jq:Procesador de JSON desde línea de comandos
 fedora:dnf:yq:Procesador de YAML desde línea de comandos
 fedora:dnf:gnupg:Implementación de OpenPGP para cifrado
@@ -146,6 +149,7 @@ centos:yum:git:Sistema de control de versiones distribuido
 centos:yum:wget:Herramienta para descargar archivos desde la web
 centos:yum:python3:Lenguaje de programación Python 3
 centos:yum:python3-pip:Gestor de paquetes para Python
+centos:yum:python3-keyring:Librería para almacenamiento seguro de credenciales
 centos:yum:jq:Procesador de JSON desde línea de comandos
 centos:yum:yq:Procesador de YAML desde línea de comandos
 centos:yum:gnupg:Implementación de OpenPGP para cifrado
@@ -193,6 +197,7 @@ arch:pacman:git:Sistema de control de versiones distribuido
 arch:pacman:wget:Herramienta para descargar archivos desde la web
 arch:pacman:python3:Lenguaje de programación Python 3
 arch:pacman:python-pip:Gestor de paquetes para Python
+arch:pacman:python-keyring:Librería para almacenamiento seguro de credenciales
 arch:pacman:jq:Procesador de JSON desde línea de comandos
 arch:pacman:yq:Procesador de YAML desde línea de comandos
 arch:pacman:gnupg:Implementación de OpenPGP para cifrado
@@ -240,6 +245,7 @@ macos:brew:git:Sistema de control de versiones distribuido
 macos:brew:wget:Herramienta para descargar archivos desde la web
 macos:brew:python3:Lenguaje de programación Python 3
 macos:brew:python3-pip:Gestor de paquetes para Python
+macos:brew:keyring:Librería para almacenamiento seguro de credenciales
 macos:brew:jq:Procesador de JSON desde línea de comandos
 macos:brew:yq:Procesador de YAML desde línea de comandos
 macos:brew:gnupg:Implementación de OpenPGP para cifrado
