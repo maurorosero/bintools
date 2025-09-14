@@ -1,0 +1,116 @@
+# Paquetes para desarrollo con Arduino y microcontroladores
+# Formato: OS:Manejador:Paquete:Descripción
+
+# Ubuntu/Debian
+ubuntu:apt:arduino:IDE Arduino
+ubuntu:apt:arduino-mk:Makefile para compilar proyectos Arduino
+ubuntu:apt:avrdude:Software para programar microcontroladores Atmel AVR
+ubuntu:apt:gcc-avr:Compilador GCC para microcontroladores AVR
+ubuntu:apt:avr-libc:Biblioteca C estándar para AVR
+ubuntu:apt:picocom:Monitor serial minimalista para comunicación
+ubuntu:apt:python3-serial:Módulo Python para comunicación serial
+ubuntu:apt:platformio:Framework de desarrollo para IoT
+ubuntu:apt:stm32flash:Herramienta para flashear MCUs STM32
+ubuntu:apt:esptool:Herramienta para programar chips ESP8266/ESP32
+ubuntu:apt:openocd:Depurador on-chip para programación y depuración
+ubuntu:apt:minicom:Monitor serial avanzado para comunicación
+ubuntu:apt:cu:Herramienta de conexión serial simple
+ubuntu:apt:moserial:Monitor serial con interfaz gráfica
+ubuntu:apt:arduino-cli:Cliente de línea de comandos para Arduino
+ubuntu:apt:avr-gcc:Compilador GCC alternativo para AVR
+ubuntu:apt:avr-binutils:Herramientas binarias para AVR
+ubuntu:apt:arduino-core:Core libraries para Arduino
+
+debian:apt:arduino:IDE Arduino
+debian:apt:arduino-mk:Makefile para compilar proyectos Arduino
+debian:apt:avrdude:Software para programar microcontroladores Atmel AVR
+debian:apt:gcc-avr:Compilador GCC para microcontroladores AVR
+debian:apt:avr-libc:Biblioteca C estándar para AVR
+debian:apt:picocom:Monitor serial minimalista para comunicación
+debian:apt:python3-serial:Módulo Python para comunicación serial
+debian:apt:platformio:Framework de desarrollo para IoT
+debian:apt:stm32flash:Herramienta para flashear MCUs STM32
+debian:apt:esptool:Herramienta para programar chips ESP8266/ESP32
+debian:apt:openocd:Depurador on-chip para programación y depuración
+debian:apt:minicom:Monitor serial avanzado para comunicación
+debian:apt:cu:Herramienta de conexión serial simple
+debian:apt:moserial:Monitor serial con interfaz gráfica
+debian:apt:arduino-cli:Cliente de línea de comandos para Arduino
+debian:apt:avr-gcc:Compilador GCC alternativo para AVR
+debian:apt:avr-binutils:Herramientas binarias para AVR
+debian:apt:arduino-core:Core libraries para Arduino
+
+# Fedora/CentOS
+fedora:dnf:arduino:IDE Arduino
+fedora:dnf:arduino-mk:Makefile para compilar proyectos Arduino
+fedora:dnf:avrdude:Software para programar microcontroladores Atmel AVR
+fedora:dnf:avr-gcc:Compilador GCC para microcontroladores AVR
+fedora:dnf:avr-libc:Biblioteca C estándar para AVR
+fedora:dnf:picocom:Monitor serial minimalista para comunicación
+fedora:dnf:python3-pyserial:Módulo Python para comunicación serial
+fedora:dnf:platformio:Framework de desarrollo para IoT
+fedora:dnf:stm32flash:Herramienta para flashear MCUs STM32
+fedora:dnf:esptool:Herramienta para programar chips ESP8266/ESP32
+fedora:dnf:openocd:Depurador on-chip para programación y depuración
+fedora:dnf:minicom:Monitor serial avanzado para comunicación
+fedora:dnf:cu:Herramienta de conexión serial simple
+fedora:dnf:moserial:Monitor serial con interfaz gráfica
+fedora:dnf:arduino-cli:Cliente de línea de comandos para Arduino
+fedora:dnf:avr-binutils:Herramientas binarias para AVR
+fedora:dnf:arduino-core:Core libraries para Arduino
+
+centos:yum:arduino:IDE Arduino
+centos:yum:arduino-mk:Makefile para compilar proyectos Arduino
+centos:yum:avrdude:Software para programar microcontroladores Atmel AVR
+centos:yum:avr-gcc:Compilador GCC para microcontroladores AVR
+centos:yum:avr-libc:Biblioteca C estándar para AVR
+centos:yum:picocom:Monitor serial minimalista para comunicación
+centos:yum:python3-pyserial:Módulo Python para comunicación serial
+centos:yum:platformio:Framework de desarrollo para IoT
+centos:yum:stm32flash:Herramienta para flashear MCUs STM32
+centos:yum:esptool:Herramienta para programar chips ESP8266/ESP32
+centos:yum:openocd:Depurador on-chip para programación y depuración
+centos:yum:minicom:Monitor serial avanzado para comunicación
+centos:yum:cu:Herramienta de conexión serial simple
+centos:yum:moserial:Monitor serial con interfaz gráfica
+centos:yum:arduino-cli:Cliente de línea de comandos para Arduino
+centos:yum:avr-binutils:Herramientas binarias para AVR
+centos:yum:arduino-core:Core libraries para Arduino
+
+# Arch Linux
+arch:pacman:arduino:IDE Arduino
+arch:pacman:arduino-mk:Makefile para compilar proyectos Arduino
+arch:pacman:avrdude:Software para programar microcontroladores Atmel AVR
+arch:pacman:avr-gcc:Compilador GCC para microcontroladores AVR
+arch:pacman:avr-libc:Biblioteca C estándar para AVR
+arch:pacman:picocom:Monitor serial minimalista para comunicación
+arch:pacman:python-pyserial:Módulo Python para comunicación serial
+arch:pacman:platformio:Framework de desarrollo para IoT
+arch:pacman:stm32flash:Herramienta para flashear MCUs STM32
+arch:pacman:esptool:Herramienta para programar chips ESP8266/ESP32
+arch:pacman:openocd:Depurador on-chip para programación y depuración
+arch:pacman:minicom:Monitor serial avanzado para comunicación
+arch:pacman:cu:Herramienta de conexión serial simple
+arch:pacman:moserial:Monitor serial con interfaz gráfica
+arch:pacman:arduino-cli:Cliente de línea de comandos para Arduino
+arch:pacman:avr-binutils:Herramientas binarias para AVR
+arch:pacman:arduino-core:Core libraries para Arduino
+
+# macOS
+macos:brew:arduino:IDE Arduino
+macos:brew:arduino-mk:Makefile para compilar proyectos Arduino
+macos:brew:avrdude:Software para programar microcontroladores Atmel AVR
+macos:brew:avr-gcc:Compilador GCC para microcontroladores AVR
+macos:brew:avr-libc:Biblioteca C estándar para AVR
+macos:brew:picocom:Monitor serial minimalista para comunicación
+macos:brew:pyserial:Módulo Python para comunicación serial
+macos:brew:platformio:Framework de desarrollo para IoT
+macos:brew:stm32flash:Herramienta para flashear MCUs STM32
+macos:brew:esptool:Herramienta para programar chips ESP8266/ESP32
+macos:brew:openocd:Depurador on-chip para programación y depuración
+macos:brew:minicom:Monitor serial avanzado para comunicación
+macos:brew:cu:Herramienta de conexión serial simple
+macos:brew:moserial:Monitor serial con interfaz gráfica
+macos:brew:arduino-cli:Cliente de línea de comandos para Arduino
+macos:brew:avr-binutils:Herramientas binarias para AVR
+macos:brew:arduino-core:Core libraries para Arduino
