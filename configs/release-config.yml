@@ -10,6 +10,7 @@ main_files:
   - videoset.sh
   - nxcloud-backup.sh
   - hexroute
+  - bintools-manager.sh
 
 # Directorios que se incluyen completos
 directories:
@@ -35,7 +36,6 @@ optional_files:
     - create-release.sh
     - delete-release.sh
     - release-builder.sh
-    - bintools-manager.sh
     - btfixperms.sh
   
   # Archivos de configuración del proyecto
