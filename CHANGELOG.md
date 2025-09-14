@@ -9,21 +9,21 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ### 🔧 Fixed
 
-#### Corrección de Fecha en CHANGELOG
+#### Corrección de Archivo bwdn.pkg
 
-- **Corrección de fecha del release v1.1.1**:
-  - Actualizada fecha de 2025-09-13 a 2025-09-14 en CHANGELOG.md
-  - Regenerado release v1.1.1 con fecha correcta
-  - Mejorada precisión en documentación de releases
+- **Corrección en configuración de Bitwarden para Arch Linux**:
+  - Cambiado de `arch:pacman:bitwarden` a `arch:yay:bitwarden-bin`
+  - Mejorada compatibilidad con AUR (Arch User Repository)
+  - Corregida instalación de Bitwarden en sistemas Arch Linux
 
 ### 📚 Documentation
 
-#### Actualización de Documentación
+#### Mejoras en Documentación
 
-- **Mejoras en documentación de releases**:
+- **Actualización de documentación de releases**:
+  - Mejorada precisión en fechas de releases
   - Corregida fecha del release v1.1.1 en CHANGELOG.md
-  - Actualizada documentación para reflejar fecha real del release
-  - Mejorada consistencia en fechas de releases
+  - Mejorada consistencia en documentación de cambios
 
 ## [1.1.1] - 2025-09-14
 
