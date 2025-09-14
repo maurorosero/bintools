@@ -15,7 +15,7 @@ Versión 1.1.0 introduce funcionalidades avanzadas de detección automática y g
 
 #### 🖥️ Sistema de Detección Automática de GUI
 
-- **Detección inteligente de ambiente gráfico**: 
+- **Detección inteligente de ambiente gráfico**:
   - Variables de entorno: `DISPLAY`, `WAYLAND_DISPLAY`, `XDG_SESSION_TYPE`
   - Servidor X corriendo: Comando `xset`
   - Procesos gráficos: `Xorg`, `Xwayland`, `gnome-session`, `kde`, etc.
@@ -206,13 +206,13 @@ Versión 1.1.0 introduce funcionalidades avanzadas de detección automática y g
 
 ### 📋 Requisitos Técnicos
 
-#### Para Usuarios
+#### Para Usuarios - v1.1.0
 
 - **Sistema**: Ubuntu 18.04+, Debian 10+, Fedora 32+, CentOS 8+, Arch Linux, macOS 10.15+
 - **Herramientas**: curl o wget para instalación
 - **Privilegios**: sudo (una sola vez) o usuario root con `--no-sudo`
 
-#### Para Desarrolladores
+#### Para Desarrolladores - v1.1.0
 
 - **GitHub CLI**: Para gestión de releases (`gh auth login` requerido)
 - **Git**: Para gestión de repositorio y tags
@@ -233,7 +233,7 @@ Versión 1.1.0 introduce funcionalidades avanzadas de detección automática y g
 
 Primera versión estable de bintools con sistema completo de gestión de paquetes multi-plataforma y herramientas de sistema.
 
-### ✨ Added
+### ✨ Added - Primera Versión
 
 #### 🚀 Sistema de Gestión de Releases
 
@@ -313,7 +313,7 @@ Primera versión estable de bintools con sistema completo de gestión de paquete
 - **`install.sh`**: Instalador universal descargable vía curl/wget
 - **`bintools-manager.sh`**: Gestor de versiones para actualizaciones automáticas
 
-### 🔄 Changed
+### 🔄 Changed - Primera Versión
 
 #### Migración del Sistema de Releases
 
@@ -327,7 +327,7 @@ Primera versión estable de bintools con sistema completo de gestión de paquete
 - **Mejora de rendimiento**: Optimización en la detección de sistemas operativos
 - **Fallback inteligente**: Mejor manejo de errores con snap como respaldo
 
-### 🗑️ Removed
+### 🗑️ Removed - Primera Versión
 
 #### Limpieza de Código
 
@@ -335,7 +335,7 @@ Primera versión estable de bintools con sistema completo de gestión de paquete
 - **Referencias obsoletas**: Removidas menciones a `nextcloud-installer.sh`
 - **Código muerto**: Eliminadas 83 líneas de código no utilizado
 
-### 🔧 Fixed - Estabilidad y Configuración
+### 🔧 Fixed - Primera Versión
 
 #### Separación de Documentación
 
@@ -353,7 +353,7 @@ Primera versión estable de bintools con sistema completo de gestión de paquete
 - **Inclusión de documentación**: Los paquetes de release ahora incluyen correctamente README.md, LICENSE, y CHANGELOG.md
 - **Parsing YAML mejorado**: Soporte para claves anidadas en la función `read_config()`
 
-### 🛡️ Security
+### 🛡️ Security - Primera Versión
 
 #### Gestión Segura
 
@@ -361,14 +361,14 @@ Primera versión estable de bintools con sistema completo de gestión de paquete
 - **Validación de archivos**: Verificación de existencia antes de procesamiento
 - **Permisos de desarrollo**: Script dedicado para manejo seguro de permisos
 
-### 📋 Requisitos Técnicos
+### 📋 Requisitos Técnicos - Primera Versión
 
-#### Para Usuarios
+#### Para Usuarios - Primera Versión
 
 - **Sistema**: Ubuntu 18.04+, Debian 10+, Fedora 32+, CentOS 8+, Arch Linux, macOS 10.15+
 - **Herramientas**: curl o wget para instalación
 
-#### Para Desarrolladores
+#### Para Desarrolladores - Primera Versión
 
 - **GitHub CLI**: Para gestión de releases (`gh auth login` requerido)
 - **Git**: Para gestión de repositorio y tags
@@ -376,7 +376,7 @@ Primera versión estable de bintools con sistema completo de gestión de paquete
 - **tar**: Para creación de paquetes
 - **Python 3**: Para validación YAML (opcional)
 
-### 🔗 Enlaces
+### 🔗 Enlaces - Primera Versión
 
 - **Release**: [v1.0.0](https://github.com/maurorosero/bintools/releases/tag/v1.0.0)
 - **Documentación**: [README.md](README.md)

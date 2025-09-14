@@ -15,6 +15,8 @@ bintools es un conjunto de scripts que automatizan tareas comunes del sistema op
 - 📦 **Instalación Masiva**: Un comando instala múltiples herramientas organizadas por categoría
 - 🖥️ **Multiplataforma**: Funciona en Ubuntu, Debian, Fedora, CentOS, Arch Linux y macOS
 - 🔧 **Detección Automática**: Identifica tu sistema y usa el método correcto automáticamente
+- 🖥️ **Detección de GUI**: Filtrado automático de paquetes GUI en servidores headless
+- 🔐 **Sudo Inteligente**: Una sola contraseña para toda la instalación
 - 🐍 **Gestión de Python**: Entornos virtuales profesionales con configuración automática
 - 🎯 **Editor con IA**: Instalación y configuración completa de Cursor IDE
 - 🌐 **Herramientas de Red**: Conversión de rutas y configuración DHCP automática
@@ -41,12 +43,17 @@ Instala automáticamente herramientas esenciales según tu sistema operativo con
 - **Básicas**: curl, git, wget, python, vim, nano, herramientas de red
 - **Desarrollo**: compiladores, Node.js, Visual Studio Code, herramientas de construcción
 - **Productividad**: LibreOffice, navegadores, aplicaciones de comunicación
+- **DevOps**: AWS CLI, Azure CLI, Terraform, Ansible, herramientas de red
+- **Contenedores**: Docker completo, Podman, Kubernetes local
+- **Arduino**: IDE, herramientas AVR, comunicación serial, IoT
 - **Personalizadas**: herramientas que tú elijas
 
 **Características avanzadas:**
 
 - ✅ **Instalación de gestores**: Instala automáticamente `yay` (AUR) y `snapd`
 - ✅ **Detección inteligente**: Usa el gestor de paquetes correcto para tu sistema
+- ✅ **Detección de GUI**: Filtra automáticamente paquetes GUI en servidores headless
+- ✅ **Sudo inteligente**: Una sola contraseña para toda la instalación
 - ✅ **Modo de prueba**: Verifica qué se instalaría antes de ejecutar
 - ✅ **Fallback automático**: Usa snap como alternativa si el gestor preferido no está disponible
 
@@ -96,7 +103,7 @@ curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.s
 
 ```bash
 # Instalación con opciones específicas
-curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash -s -- --version v1.0.0 --dir /opt/bintools
+curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash -s -- --version v1.1.0 --dir /opt/bintools
 
 # Ver qué haría sin instalar
 curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash -s -- --dry-run --verbose
@@ -104,7 +111,7 @@ curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.s
 
 | Opción | Descripción | Ejemplo |
 |--------|-------------|---------|
-| `--version` | Versión específica a instalar | `--version v1.0.0` |
+| `--version` | Versión específica a instalar | `--version v1.1.0` |
 | `--dir` | Directorio de instalación personalizado | `--dir /opt/bintools` |
 | `--extend-bin` | Extender directorio ~/bin existente | `--extend-bin` |
 | `--dry-run` | Solo mostrar qué se haría | `--dry-run` |
@@ -165,6 +172,24 @@ cd bintools
 # Instalar herramientas de organización
 ./packages.sh --list orgs
 
+# Instalar herramientas DevOps
+./packages.sh --list dops
+
+# Instalar Docker completo
+./packages.sh --list dckr
+
+# Instalar Podman completo
+./packages.sh --list pdmn
+
+# Instalar Kubernetes local
+./packages.sh --list kube
+
+# Instalar Arduino y microcontroladores
+./packages.sh --list ardu
+
+# Instalar WhatsApp oficial
+./packages.sh --list wapp
+
 # Instalar herramientas personalizadas
 ./packages.sh --list user
 
@@ -176,6 +201,12 @@ cd bintools
 
 # Instalar todo
 ./packages.sh --list all
+
+# Instalar paquetes GUI sin ambiente gráfico (servidores)
+./packages.sh --list orgs --headless
+
+# Instalar sin sudo (usuarios root)
+./packages.sh --list base --no-sudo
 
 # Instalar yay (AUR helper) en Arch Linux
 ./packages.sh --install-yay
@@ -212,6 +243,20 @@ python micursor.py --backup-login
 ### Gestión Inteligente de Paquetes
 
 El instalador `packages.sh` incluye características avanzadas que lo hacen único:
+
+#### **Detección Automática de GUI**
+
+- 🖥️ Detecta automáticamente si hay ambiente gráfico disponible
+- 🚫 Omite paquetes GUI en servidores headless automáticamente
+- ✅ Instala todos los paquetes cuando hay GUI detectado
+- 🎛️ Override con `--headless` para forzar instalación GUI
+
+#### **Sudo Inteligente**
+
+- 🔐 Solicita privilegios sudo una sola vez al inicio
+- ⚡ Mantiene sesión activa durante toda la instalación
+- 🔄 Refresco automático cada 60 segundos
+- 🚫 Modo `--no-sudo` para usuarios root
 
 #### **Modo de Prueba**
 
@@ -454,6 +499,20 @@ Si encuentras archivos como `.nextcloudsync.log` o `.sync_*.db*` en `~/secure/`,
 ```bash
 # Instalar varias listas a la vez
 ./packages.sh --list base,devs,orgs
+```
+
+### Instalación Headless (Servidores)
+
+```bash
+# Instalar paquetes GUI sin ambiente gráfico
+./packages.sh --list orgs --headless
+```
+
+### Instalación Sin Sudo (Root)
+
+```bash
+# Instalar sin privilegios sudo
+./packages.sh --list base --no-sudo
 ```
 
 ## 🐛 Solución de Problemas Comunes
