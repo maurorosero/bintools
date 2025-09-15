@@ -1,0 +1,16 @@
+# Paquetes de Gum - Herramientas modernas para terminal
+# Formato: OS:Manejador:Paquete:Descripción
+
+# Ubuntu/Debian
+ubuntu:apt:gum:Herramienta moderna para crear interfaces elegantes en terminal
+debian:apt:gum:Herramienta moderna para crear interfaces elegantes en terminal
+
+# Fedora/CentOS
+fedora:dnf:gum:Herramienta moderna para crear interfaces elegantes en terminal
+centos:yum:gum:Herramienta moderna para crear interfaces elegantes en terminal
+
+# Arch Linux
+arch:pacman:gum:Herramienta moderna para crear interfaces elegantes en terminal
+
+# macOS
+macos:brew:gum:Herramienta moderna para crear interfaces elegantes en terminal

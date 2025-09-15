@@ -24,7 +24,6 @@ ubuntu:apt:bash-completion:Autocompletado para Bash
 ubuntu:apt:tree:Herramienta para mostrar estructura de directorios
 ubuntu:apt:net-tools:Herramientas de red (netstat, ifconfig, etc.)
 ubuntu:apt:rsync:Herramienta para sincronización de archivos
-ubuntu:snap:gum:Herramienta moderna para crear interfaces elegantes en terminal
 ubuntu:apt:fzf:Fuzzy finder para terminal
 ubuntu:apt:htop:Monitor de procesos interactivo
 ubuntu:apt:neofetch:Herramienta de información del sistema
@@ -71,7 +70,6 @@ debian:apt:bash-completion:Autocompletado para Bash
 debian:apt:tree:Herramienta para mostrar estructura de directorios
 debian:apt:net-tools:Herramientas de red (netstat, ifconfig, etc.)
 debian:apt:rsync:Herramienta para sincronización de archivos
-debian:snap:gum:Herramienta moderna para crear interfaces elegantes en terminal
 debian:apt:fzf:Fuzzy finder para terminal
 debian:apt:htop:Monitor de procesos interactivo
 debian:apt:neofetch:Herramienta de información del sistema
@@ -119,7 +117,6 @@ fedora:dnf:bash-completion:Autocompletado para Bash
 fedora:dnf:tree:Herramienta para mostrar estructura de directorios
 fedora:dnf:net-tools:Herramientas de red (netstat, ifconfig, etc.)
 fedora:dnf:rsync:Herramienta para sincronización de archivos
-fedora:snap:gum:Herramienta moderna para crear interfaces elegantes en terminal
 fedora:dnf:fzf:Fuzzy finder para terminal
 fedora:dnf:htop:Monitor de procesos interactivo
 fedora:dnf:neofetch:Herramienta de información del sistema
@@ -166,7 +163,6 @@ centos:yum:bash-completion:Autocompletado para Bash
 centos:yum:tree:Herramienta para mostrar estructura de directorios
 centos:yum:net-tools:Herramientas de red (netstat, ifconfig, etc.)
 centos:yum:rsync:Herramienta para sincronización de archivos
-centos:snap:gum:Herramienta moderna para crear interfaces elegantes en terminal
 centos:yum:fzf:Fuzzy finder para terminal
 centos:yum:htop:Monitor de procesos interactivo
 centos:yum:neofetch:Herramienta de información del sistema
@@ -214,7 +210,6 @@ arch:pacman:bash-completion:Autocompletado para Bash
 arch:pacman:tree:Herramienta para mostrar estructura de directorios
 arch:pacman:net-tools:Herramientas de red (netstat, ifconfig, etc.)
 arch:pacman:rsync:Herramienta para sincronización de archivos
-arch:pacman:gum:Herramienta moderna para crear interfaces elegantes en terminal
 arch:pacman:fzf:Fuzzy finder para terminal
 arch:pacman:htop:Monitor de procesos interactivo
 arch:yay:neofetch:Herramienta de información del sistema
@@ -262,7 +257,6 @@ macos:brew:bash-completion:Autocompletado para Bash
 macos:brew:tree:Herramienta para mostrar estructura de directorios
 macos:brew:net-tools:Herramientas de red (netstat, ifconfig, etc.)
 macos:brew:rsync:Herramienta para sincronización de archivos
-macos:brew:gum:Herramienta moderna para crear interfaces elegantes en terminal
 macos:brew:fzf:Fuzzy finder para terminal
 macos:brew:htop:Monitor de procesos interactivo
 macos:brew:neofetch:Herramienta de información del sistema
