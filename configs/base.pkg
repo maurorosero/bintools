@@ -34,7 +34,7 @@ ubuntu:apt:btrfs-progs:Herramientas para el sistema de archivos Btrfs
 ubuntu:apt:xfsprogs:Herramientas para el sistema de archivos XFS
 ubuntu:apt:dosfstools:Herramientas para el sistema de archivos FAT
 ubuntu:apt:ntfs-3g:Soporte para sistemas de archivos NTFS
-ubuntu:apt:exfat-utils:Herramientas para el sistema de archivos exFAT
+ubuntu:apt:exfatprogs:Herramientas para el sistema de archivos exFAT
 ubuntu:apt:usbutils:Herramientas para trabajar con dispositivos USB
 ubuntu:apt:dmidecode:Herramienta para mostrar información del hardware del sistema
 ubuntu:apt:inxi:Herramienta para mostrar información del sistema
@@ -42,7 +42,7 @@ ubuntu:apt:util-linux:Colección de utilidades básicas del sistema
 ubuntu:apt:findutils:Herramientas de búsqueda GNU
 ubuntu:apt:screen:Multiplexor de terminal (útil para monitoreo serial)
 ubuntu:apt:glow:Renderizador de markdown en terminal
-ubuntu:apt:mdcat:Renderizador de markdown para la terminal
+#ubuntu:apt:mdcat:Renderizador de markdown para la terminal
 ubuntu:apt:csvkit:Suite de utilidades para trabajar con CSV
 ubuntu:apt:hexyl:Visor de archivos hexadecimal moderno y colorido
 ubuntu:apt:xxd:Herramienta para crear volcados hexadecimales
@@ -80,7 +80,7 @@ debian:apt:btrfs-progs:Herramientas para el sistema de archivos Btrfs
 debian:apt:xfsprogs:Herramientas para el sistema de archivos XFS
 debian:apt:dosfstools:Herramientas para el sistema de archivos FAT
 debian:apt:ntfs-3g:Soporte para sistemas de archivos NTFS
-debian:apt:exfat-utils:Herramientas para el sistema de archivos exFAT
+debian:apt:exfatprogs:Herramientas para el sistema de archivos exFAT
 debian:apt:usbutils:Herramientas para trabajar con dispositivos USB
 debian:apt:dmidecode:Herramienta para mostrar información del hardware del sistema
 debian:apt:inxi:Herramienta para mostrar información del sistema
@@ -88,7 +88,7 @@ debian:apt:util-linux:Colección de utilidades básicas del sistema
 debian:apt:findutils:Herramientas de búsqueda GNU
 debian:apt:screen:Multiplexor de terminal (útil para monitoreo serial)
 debian:apt:glow:Renderizador de markdown en terminal
-debian:apt:mdcat:Renderizador de markdown para la terminal
+#debian:apt:mdcat:Renderizador de markdown para la terminal
 debian:apt:csvkit:Suite de utilidades para trabajar con CSV
 debian:apt:hexyl:Visor de archivos hexadecimal moderno y colorido
 debian:apt:xxd:Herramienta para crear volcados hexadecimales

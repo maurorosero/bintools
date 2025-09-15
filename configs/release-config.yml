@@ -12,10 +12,12 @@ main_files:
   - hexroute
   - bintools-manager.sh
   - git-tokens.py
+  - repo-install.sh
 
 # Directorios que se incluyen completos
 directories:
   - configs
+  - repos
 
 # Archivos de configuración del proyecto
 config_files:

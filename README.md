@@ -94,7 +94,7 @@ Instala automáticamente herramientas esenciales según tu sistema operativo con
 - ✅ **Detección de GUI**: Filtra automáticamente paquetes GUI en servidores headless
 - ✅ **Sudo inteligente**: Una sola contraseña para toda la instalación
 - ✅ **Modo de prueba**: Verifica qué se instalaría antes de ejecutar
-- ✅ **Fallback automático**: Usa snap como alternativa si el gestor preferido no está disponible
+- ✅ **Gestión de repositorios**: Sistema OS-específico para configurar repositorios externos
 
 ### 🎯 Gestor de Cursor IDE (`micursor.py`)
 
@@ -117,6 +117,34 @@ Configura entornos Python de forma profesional.
 - Crea entornos virtuales para proyectos
 - Gestiona paquetes Python de forma organizada
 - Configura alias para acceso rápido
+
+### 🏗️ Gestor de Repositorios OS-específicos (`repo-install.sh`)
+
+Configura repositorios externos específicos para cada sistema operativo.
+
+**¿Qué hace?**
+
+- Lista scripts de configuración disponibles para tu OS
+- Ejecuta scripts de configuración de repositorios automáticamente
+- Soporte para múltiples sistemas operativos
+- Configuración segura de repositorios externos
+
+**Ejemplos de uso:**
+
+```bash
+# Listar scripts de configuración disponibles
+./repo-install.sh --list
+
+# Configurar repositorio Charm (para herramientas como gum)
+./repo-install.sh --configure base-charm-repo
+```
+
+**Scripts disponibles por OS:**
+
+- **Ubuntu/Debian**: `base-charm-repo.sh` (configura repositorio Charm)
+- **Fedora/CentOS**: `base-charm-repo.sh` (configura repositorio Charm)
+- **Arch Linux**: (vacío - usa AUR)
+- **macOS**: (vacío - usa Homebrew)
 
 ## 🚀 Instalación Rápida
 
@@ -241,6 +269,9 @@ cd bintools
 # Instalar Bitwarden (gestor de contraseñas)
 ./packages.sh --list bwdn
 
+# Instalar Gum (herramientas modernas para terminal)
+./packages.sh --list gums
+
 # Instalar todo
 ./packages.sh --list all
 
@@ -278,6 +309,19 @@ python micursor.py --backup-login
 
 # Crear entorno para un proyecto
 ./pymanager.sh --create mi-proyecto
+```
+
+### Configurar Repositorios OS-específicos
+
+```bash
+# Listar scripts de configuración disponibles para tu OS
+./repo-install.sh --list
+
+# Configurar repositorio Charm (para herramientas como gum)
+./repo-install.sh --configure base-charm-repo
+
+# Ver ayuda del gestor de repositorios
+./repo-install.sh --help
 ```
 
 ## 🚀 Características Avanzadas del Instalador
@@ -321,6 +365,23 @@ El instalador `packages.sh` incluye características avanzadas que lo hacen úni
 - ✅ **Soportado**: Ubuntu, Debian, Fedora, Arch Linux
 - ❌ **No compatible**: macOS (usa Homebrew en su lugar)
 - ⚠️ **Limitado**: CentOS/RHEL (se recomienda usar RPM nativo)
+
+#### **Gestión de Repositorios OS-específicos**
+
+```bash
+# Listar scripts de configuración disponibles
+./repo-install.sh --list
+
+# Configurar repositorio específico
+./repo-install.sh --configure script-name
+```
+
+**Características:**
+
+- 🎯 **Detección automática de OS**: Identifica tu sistema y muestra scripts relevantes
+- 🔧 **Configuración segura**: Scripts validados para cada sistema operativo
+- 📦 **Repositorios externos**: Configura repositorios como Charm para herramientas modernas
+- 🛡️ **Validación**: Verifica que el script existe antes de ejecutarlo
 
 #### **Detección Inteligente**
 
@@ -403,6 +464,16 @@ El sistema detecta automáticamente todas las listas disponibles en `configs/`. 
   - AUR (yay) para Arch Linux
   - Homebrew para macOS
 - Gestor de contraseñas seguro y de código abierto
+
+### `gums` - Gum (Herramientas Modernas para Terminal)
+
+- Gum (herramienta moderna para crear interfaces elegantes en terminal)
+- Instalación nativa por sistema operativo:
+  - apt para Ubuntu/Debian
+  - dnf/yum para Fedora/CentOS
+  - pacman para Arch Linux
+  - brew para macOS
+- Herramienta para crear interfaces de usuario elegantes en terminal
 
 ### Crear Listas Personalizadas
 

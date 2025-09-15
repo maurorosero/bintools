@@ -307,14 +307,6 @@ detect_os() {
     fi
 }
 
-# Función para verificar si snap está disponible
-check_snap() {
-    if command -v snap >/dev/null 2>&1; then
-        return 0
-    else
-        return 1
-    fi
-}
 
 # Función para instalar yay en Arch Linux
 install_yay() {
@@ -367,7 +359,7 @@ install_yay() {
 install_snap() {
     local os=$(detect_os)
     
-    if check_snap; then
+    if command -v snap >/dev/null 2>&1; then
         log "INFO" "snap ya está instalado"
         return 0
     fi
@@ -620,17 +612,7 @@ process_package_list() {
             if install_package "$manager" "$package" "$description"; then
                 packages_installed=$((packages_installed + 1))
             else
-                # Intentar con snap como fallback si está disponible
-                if check_snap; then
-                    log "INFO" "Intentando con snap como fallback para: $package"
-                    if install_package "snap" "$package" "$description"; then
-                        packages_installed=$((packages_installed + 1))
-                    else
-                        packages_failed=$((packages_failed + 1))
-                    fi
-                else
-                    packages_failed=$((packages_failed + 1))
-                fi
+                packages_failed=$((packages_failed + 1))
             fi
         fi
     done < "$package_file"
@@ -729,12 +711,6 @@ main() {
         exit 1
     fi
     
-    # Verificar si snap está disponible
-    if check_snap; then
-        log "VERBOSE" "Snap está disponible como fallback"
-    else
-        log "VERBOSE" "Snap no está disponible"
-    fi
     
     # Procesar listas
     local lists
