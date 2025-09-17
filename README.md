@@ -34,6 +34,8 @@ Herramientas especializadas para resolver problemas comunes y automatizar tareas
 - **`nxcloud-backup.sh`**: Gestor completo de backups y configuración de Nextcloud
 - **`hexroute`**: Convierte rutas de red a formato hexadecimal para configuración DHCP
 - **`git-tokens.py`**: Gestor seguro de tokens de autenticación para servicios Git (GitHub, GitLab, etc.)
+- **`bw-send.sh`**: Envía archivos o texto de forma segura usando Bitwarden CLI
+- **`bw-ghpersonal.sh`**: Obtiene automáticamente el token de GitHub personal desde Bitwarden
 
 ### 🔐 Gestor de Tokens Git (`git-tokens.py`)
 
@@ -71,7 +73,89 @@ Gestiona tokens de autenticación de servicios Git de forma segura usando el key
 
 # Eliminar token específico
 ./git-tokens.py delete github-dev-api
+
+# Obtener token en formato raw (solo el token, sin texto adicional)
+./git-tokens.py get github-personal --raw
 ```
+
+### 🔐 Scripts de Bitwarden CLI
+
+Herramientas para integrar Bitwarden CLI con otras aplicaciones y automatizar tareas de gestión de contraseñas.
+
+#### `bw-send.sh` - Envío Seguro de Archivos y Texto
+
+Envía archivos o texto de forma segura usando Bitwarden CLI con URLs temporales y configuración de expiración.
+
+**¿Qué hace?**
+
+- 📁 **Envía archivos**: Sube archivos individuales o múltiples archivos
+- 📝 **Envía texto**: Comparte texto directamente desde línea de comandos
+- ⏰ **Expiración configurable**: Establece cuándo expira el enlace (por defecto: 2 días)
+- 🔒 **Contraseña opcional**: Protege el enlace con contraseña
+- 🔢 **Límite de accesos**: Controla cuántas veces se puede acceder al enlace
+- 📋 **Notas**: Agrega notas descriptivas al envío
+- 🖥️ **Salida por consola**: Muestra la URL de acceso directamente
+
+**Ejemplos de uso:**
+
+```bash
+# Enviar texto simple
+./bw-send.sh --text "Información confidencial"
+
+# Enviar archivo con expiración personalizada
+./bw-send.sh --file documento.pdf --expiration 7
+
+# Enviar múltiples archivos con contraseña
+./bw-send.sh --file archivo1.txt archivo2.pdf --password "miPassword123"
+
+# Enviar con límite de accesos y notas
+./bw-send.sh --text "Token de API" --max-access 3 --notes "Token para proyecto X"
+```
+
+**Opciones disponibles:**
+
+| Opción | Descripción | Ejemplo |
+|--------|-------------|---------|
+| `--text` | Texto a enviar | `--text "Mi mensaje"` |
+| `--file` | Archivo(s) a enviar | `--file doc.pdf` |
+| `--expiration` | Días hasta expiración | `--expiration 7` |
+| `--password` | Contraseña para proteger | `--password "secret"` |
+| `--max-access` | Máximo número de accesos | `--max-access 5` |
+| `--notes` | Notas descriptivas | `--notes "Para proyecto X"` |
+| `--console` | Salida por consola (por defecto) | `--console` |
+
+#### `bw-ghpersonal.sh` - Obtención Automática de Token GitHub
+
+Obtiene automáticamente el token de GitHub personal desde Bitwarden y lo guarda en `git-tokens.py`.
+
+**¿Qué hace?**
+
+- 🔍 **Búsqueda automática**: Busca el token de GitHub en Bitwarden usando el usuario actual
+- 👤 **Usuario dinámico**: Reemplaza automáticamente "MROSERO" por tu usuario actual en mayúsculas
+- 🔄 **Integración completa**: Usa pipe para pasar el token directamente a `git-tokens.py`
+- ✅ **Verificación**: Confirma que el token se guardó correctamente
+
+**Uso:**
+
+```bash
+# Obtener y guardar token de GitHub personal automáticamente
+./bw-ghpersonal.sh
+```
+
+**¿Cómo funciona?**
+
+1. Obtiene tu usuario actual del sistema (`whoami`)
+2. Convierte el usuario a mayúsculas (ej: `mrosero` → `MROSERO`)
+3. Busca en Bitwarden el campo `"MROSERO FULL TOKEN"` en el item "GITHUB"
+4. Extrae el token usando `grep` y `sed`
+5. Pasa el token a `git-tokens.py set github-personal --token -`
+6. Confirma que se guardó exitosamente
+
+**Requisitos:**
+
+- Bitwarden CLI (`bw`) instalado y configurado
+- Item "GITHUB" en Bitwarden con campo `"[TU_USUARIO] FULL TOKEN"`
+- `git-tokens.py` disponible en el mismo directorio
 
 ### 📦 Instalador de Paquetes (`packages.sh`)
 
@@ -222,6 +306,12 @@ cd bintools
 
 # Convertir rutas de red a formato hexadecimal
 ./hexroute 172.16.0.0/16 gw 192.168.1.1
+
+# Enviar archivo de forma segura con Bitwarden
+./bw-send.sh --file documento.pdf --expiration 7
+
+# Obtener token de GitHub desde Bitwarden automáticamente
+./bw-ghpersonal.sh
 ```
 
 ### Instalar Herramientas Esenciales
@@ -457,13 +547,14 @@ El sistema detecta automáticamente todas las listas disponibles en `configs/`. 
 
 ### `bwdn` - Bitwarden (Gestor de Contraseñas)
 
-- Bitwarden Desktop (cliente oficial)
+- **Bitwarden Desktop**: Cliente oficial de escritorio
+- **Bitwarden CLI (`bw`)**: Interfaz de línea de comandos para automatización
 - Múltiples métodos de instalación por sistema:
-  - Snap para Ubuntu, Debian, Fedora, Arch Linux
-  - Flatpak para todos los sistemas Linux
-  - AUR (yay) para Arch Linux
-  - Homebrew para macOS
+  - Snap para Ubuntu, Debian, Fedora, Arch Linux (Desktop + CLI)
+  - AUR (yay) para Arch Linux (Desktop)
+  - Homebrew para macOS (Desktop)
 - Gestor de contraseñas seguro y de código abierto
+- CLI permite integración con scripts y automatización
 
 ### `gums` - Gum (Herramientas Modernas para Terminal)
 
