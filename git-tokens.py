@@ -29,6 +29,7 @@ import os
 import subprocess
 import base64
 import signal
+import getpass
 
 # --- Instalar keyring si no está disponible ---
 try:
@@ -197,6 +198,23 @@ def build_service_name(service, mode, usage, encrypt_method):
     else:
         return f"{service}-{mode}-{usage}-{encrypt_method}"
 
+def read_token_from_stdin():
+    """Lee un token desde stdin (pipe)."""
+    try:
+        import sys
+        token = sys.stdin.read().strip()
+        if not token:
+            print("Error: No se recibió ningún token desde stdin")
+            sys.exit(1)
+        return token
+    except KeyboardInterrupt:
+        print(f"\n\n🛑 Operación cancelada por el usuario")
+        print("📝 No se realizaron cambios en el keyring.")
+        sys.exit(0)
+    except Exception as e:
+        print(f"Error leyendo desde stdin: {e}")
+        sys.exit(1)
+
 def prompt_token():
     import getpass
     try:
@@ -209,6 +227,16 @@ def prompt_token():
         print(f"\n\n🛑 Entrada terminada inesperadamente")
         print("📝 No se realizaron cambios en el keyring.")
         sys.exit(0)
+
+def is_base64_encoded(token):
+    """Detecta si un token ya está encriptado en base64."""
+    try:
+        # Intentar decodificar y luego volver a codificar para verificar
+        decoded = base64.b64decode(token.encode("utf-8"))
+        reencoded = base64.b64encode(decoded).decode("utf-8")
+        return reencoded == token
+    except Exception:
+        return False
 
 def encrypt_token(token, method="b64"):
     if method == "b64":
@@ -251,14 +279,6 @@ def delete_token(service_name, username):
         print(f"✓ Token eliminado para {SERVICE_LABELS[service]} {MODE_LABELS[mode]} ({usage}) [{username}]")
     except keyring.errors.PasswordDeleteError:
         print(f"No se encontró token para {SERVICE_LABELS[service]} {MODE_LABELS[mode]} ({usage}) [{username}]")
-
-def list_services():
-    print("Servicios soportados y formatos válidos:")
-    print("  github: solo modo 'c' (cloud). Ejemplo: github-c-personal o github-personal")
-    print("  gitea: solo modo 'o' (onpremise). Ejemplo: gitea-o-personal o gitea-personal")
-    print("  gitlab, forgejo, bitbucket: ambos modos 'c' (cloud) y 'o' (onpremise). Ejemplo: gitlab-c-work, forgejo-o-empresaX")
-    print("  El campo 'uso' es un identificador libre, por ejemplo: personal, work, empresaX, etc.")
-    print("Ejemplo de nombre de servicio generado: gitlab-c-personal")
 
 def print_version():
     """Imprime la versión, autor y fecha de última modificación extraídos del header del archivo."""
@@ -308,15 +328,40 @@ def command_set(args):
         service_name = args.service_name
         username = args.username or get_system_user()  # Usuario del SO por defecto
         token = args.token
-    service, mode, usage = parse_service_name(service_name)
+    
+    # Manejar el token proporcionado
     if token is None:
         token = prompt_token()
-    token_enc = encrypt_token(token, method)
+        token_enc = encrypt_token(token, method)
+    elif token == "-":
+        # Leer token desde stdin (pipe)
+        token = read_token_from_stdin()
+        if is_base64_encoded(token):
+            # Decodificar el token base64 para obtener el token original
+            token_decoded = base64.b64decode(token.encode("utf-8")).decode("utf-8")
+            token_enc = encrypt_token(token_decoded, method)
+            print(f"✓ Token leído desde stdin (base64), decodificado y re-encriptado")
+        else:
+            token_enc = encrypt_token(token, method)
+            print(f"✓ Token leído desde stdin y encriptado en base64")
+    else:
+        # Token proporcionado directamente
+        if is_base64_encoded(token):
+            # Decodificar el token base64 para obtener el token original
+            token_decoded = base64.b64decode(token.encode("utf-8")).decode("utf-8")
+            token_enc = encrypt_token(token_decoded, method)
+            print(f"✓ Detectado token encriptado en base64, decodificado y re-encriptado")
+        else:
+            token_enc = encrypt_token(token, method)
+            print(f"✓ Token encriptado en base64")
+    
+    service, mode, usage = parse_service_name(service_name)
     keyring.set_password(build_service_name(service, mode, usage, method), username, token_enc)
     print(f"✓ Token guardado para {SERVICE_LABELS[service]} {MODE_LABELS[mode]} ({usage}) [{username}] (método: {method})")
 
 def command_get(args):
     method = "b64" if getattr(args, "b64", True) else None
+    raw_output = getattr(args, "raw", False)
     if not args.service_name:
         service_name, username, _ = interactive_prompt("get")
     else:
@@ -326,9 +371,13 @@ def command_get(args):
     token_enc = keyring.get_password(build_service_name(service, mode, usage, method), username)
     if token_enc:
         token = decrypt_token(token_enc, method)
-        print(f"Token para {SERVICE_LABELS[service]} {MODE_LABELS[mode]} ({usage}) [{username}]:\n{token}")
+        if raw_output:
+            print(token)
+        else:
+            print(f"Token para {SERVICE_LABELS[service]} {MODE_LABELS[mode]} ({usage}) [{username}]:\n{token}")
     else:
-        print(f"No se encontró token para {SERVICE_LABELS[service]} {MODE_LABELS[mode]} ({usage}) [{username}]")
+        if not raw_output:
+            print(f"No se encontró token para {SERVICE_LABELS[service]} {MODE_LABELS[mode]} ({usage}) [{username}]")
 
 def command_delete(args):
     method = "b64" if getattr(args, "b64", True) else None
@@ -351,11 +400,70 @@ def command_list_services(args=None):
     print("  gitlab, forgejo, bitbucket: ambos modos 'c' (cloud) y 'o' (onpremise). Ejemplo: gitlab-c-work, forgejo-o-empresaX")
     print("  El campo 'uso' es un identificador libre, por ejemplo: personal, work, empresaX, etc.")
     print("Ejemplo de nombre de servicio generado: gitlab-c-personal")
-    print("\nEjemplo de uso con base64 (por defecto):")
-    print("  git-tokens.py set github-personal              # Usuario del SO automático")
-    print("  git-tokens.py set github-personal otrouser     # Usuario específico")
-    print("  git-tokens.py get github-personal              # Usuario del SO automático")
-    print("  git-tokens.py get github-personal otrouser     # Usuario específico")
+    print("\nEjemplos de uso:")
+    print("  git-tokens.py set github-personal              # Guardar token (se pedirá por consola)")
+    print("  git-tokens.py set github-personal otrouser     # Guardar token para usuario específico")
+    print("  git-tokens.py set github-personal --token 'ghp_xxx'  # Guardar token específico")
+    print("  git-tokens.py set github-personal --token 'Z2hwX3h4eA=='  # Guardar token ya encriptado en base64")
+    print("  echo 'ghp_xxx' | git-tokens.py set github-personal --token -  # Guardar token desde pipe")
+    print("  git-tokens.py get github-personal              # Obtener token")
+    print("  git-tokens.py get github-personal otrouser     # Obtener token de usuario específico")
+
+def command_list(args):
+    """Lista todos los tokens guardados para un usuario específico."""
+    username = args.username if args.username else getpass.getuser()
+    
+    print(f"🔍 Buscando tokens guardados para usuario: {username}")
+    print("=" * 60)
+    
+    found_tokens = []
+    
+    # Generar todas las combinaciones posibles de servicios y modos
+    for service in GIT_SERVICES:
+        if service in ONLY_CLOUD:
+            modes = ["c"]
+        elif service in ONLY_ONPREM:
+            modes = ["o"]
+        else:
+            modes = ["c", "o"]
+        
+        for mode in modes:
+            # Probar diferentes nombres de uso comunes
+            usage_options = ["personal", "work", "main", "default"]
+            
+            for usage in usage_options:
+                service_name = build_service_name(service, mode, usage, "b64")
+                try:
+                    token = keyring.get_password(service_name, username)
+                    if token:
+                        found_tokens.append({
+                            'service': service,
+                            'mode': mode,
+                            'usage': usage,
+                            'service_name': service_name,
+                            'token_preview': token[:8] + "..." if len(token) > 8 else token
+                        })
+                except Exception:
+                    continue
+    
+    if found_tokens:
+        print(f"✅ Encontrados {len(found_tokens)} token(s):")
+        print()
+        
+        for i, token_info in enumerate(found_tokens, 1):
+            service_label = SERVICE_LABELS[token_info['service']]
+            mode_label = MODE_LABELS[token_info['mode']]
+            
+            print(f"{i:2d}. {service_label} ({mode_label}) - {token_info['usage']}")
+            print(f"    Servicio: {token_info['service_name']}")
+            print(f"    Token: {token_info['token_preview']}")
+            print()
+    else:
+        print("❌ No se encontraron tokens guardados")
+        print()
+        print("💡 Para guardar un token, usa:")
+        print("   git-tokens.py set github-personal")
+        print("   git-tokens.py set gitlab-c-work")
 
 def main():
     # Configurar manejadores de señales para salidas elegantes
@@ -363,11 +471,9 @@ def main():
 
     try:
         version, author = get_header_metadata()
-        epilog = "\n\nEjemplo de uso con base64 (por defecto):\n  git-tokens.py set github-personal              # Usuario del SO automático\n  git-tokens.py set github-personal otrouser     # Usuario específico\n  git-tokens.py get github-personal              # Usuario del SO automático"
         parser = argparse.ArgumentParser(
             description="Gestor de tokens de autenticación para servicios Git usando keyring.",
-            add_help=False,
-            epilog=epilog
+            add_help=False
         )
         parser.add_argument(
             "-h", "--help",
@@ -389,7 +495,7 @@ def main():
         set_opt_group = parser_set.add_argument_group("argumentos opcionales")
         set_pos_group.add_argument("service_name", nargs="?", help="Nombre de servicio en formato '[service]-[modo]-[uso]' o '[service]-[uso]'")
         set_pos_group.add_argument("username", nargs="?", help="Usuario o identificador para el servicio (opcional, default: usuario del SO)")
-        set_opt_group.add_argument("--token", help="Token de acceso (si no se especifica, se pedirá por consola)")
+        set_opt_group.add_argument("--token", help="Token de acceso (normal, ya encriptado en base64, o '-' para leer desde stdin). Si no se especifica, se pedirá por consola)")
         set_opt_group.add_argument("--b64", action="store_true", default=True, help="Encriptar el token usando base64 (por defecto)")
         parser_set.add_argument(
             "-h", "--help",
@@ -401,9 +507,11 @@ def main():
         # get
         parser_get = subparsers.add_parser("get", help="Obtener un token guardado", add_help=False)
         get_pos_group = parser_get.add_argument_group("argumentos posicionales")
+        get_opt_group = parser_get.add_argument_group("argumentos opcionales")
         get_pos_group.add_argument("service_name", nargs="?", help="Nombre de servicio en formato '[service]-[modo]-[uso]' o '[service]-[uso]'")
         get_pos_group.add_argument("username", nargs="?", help="Usuario o identificador para el servicio (opcional, default: usuario del SO)")
-        get_pos_group.add_argument("--b64", action="store_true", default=True, help="Desencriptar el token usando base64 (por defecto)")
+        get_opt_group.add_argument("--b64", action="store_true", default=True, help="Desencriptar el token usando base64 (por defecto)")
+        get_opt_group.add_argument("--raw", action="store_true", help="Mostrar solo el token sin texto adicional")
         parser_get.add_argument(
             "-h", "--help",
             action="help",
@@ -424,8 +532,19 @@ def main():
         )
 
         # list
-        parser_list = subparsers.add_parser("list-services", help="Listar los servicios soportados y estructura de nombre", add_help=False)
+        parser_list = subparsers.add_parser("list", help="Listar todos los tokens guardados para un usuario", add_help=False)
+        list_pos_group = parser_list.add_argument_group("argumentos posicionales")
+        list_pos_group.add_argument("username", nargs="?", help="Usuario para buscar tokens (opcional, default: usuario del SO)")
         parser_list.add_argument(
+            "-h", "--help",
+            action="help",
+            default=argparse.SUPPRESS,
+            help="Muestra este mensaje de ayuda y sale"
+        )
+
+        # list-services
+        parser_list_services = subparsers.add_parser("list-services", help="Listar los servicios soportados y estructura de nombre", add_help=False)
+        parser_list_services.add_argument(
             "-h", "--help",
             action="help",
             default=argparse.SUPPRESS,
@@ -448,6 +567,8 @@ def main():
             command_get(args)
         elif args.command == "delete":
             command_delete(args)
+        elif args.command == "list":
+            command_list(args)
         elif args.command == "list-services":
             command_list_services(args)
         else:

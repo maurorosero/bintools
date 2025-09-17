@@ -3,21 +3,19 @@
 
 # Ubuntu/Debian
 ubuntu:snap:bitwarden:Gestor de contraseñas seguro
-ubuntu:flatpak:com.bitwarden.desktop:Gestor de contraseñas seguro (Flatpak)
+ubuntu:snap:bw:Bitwarden CLI (interfaz de línea de comandos)
 
 debian:snap:bitwarden:Gestor de contraseñas seguro
-debian:flatpak:com.bitwarden.desktop:Gestor de contraseñas seguro (Flatpak)
+debian:snap:bw:Bitwarden CLI (interfaz de línea de comandos)
 
 # Fedora/CentOS
 fedora:snap:bitwarden:Gestor de contraseñas seguro
-fedora:flatpak:com.bitwarden.desktop:Gestor de contraseñas seguro (Flatpak)
-
-centos:flatpak:com.bitwarden.desktop:Gestor de contraseñas seguro (Flatpak)
+fedora:snap:bw:Bitwarden CLI (interfaz de línea de comandos)
 
 # Arch Linux
 arch:snap:bitwarden:Gestor de contraseñas seguro
+arch:snap:bw:Bitwarden CLI (interfaz de línea de comandos)
 arch:yay:bitwarden-bin:Gestor de contraseñas seguro (AUR)
-arch:flatpak:com.bitwarden.desktop:Gestor de contraseñas seguro (Flatpak)
 
 # macOS
 macos:brew:bitwarden:Gestor de contraseñas seguro

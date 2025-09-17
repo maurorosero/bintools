@@ -445,8 +445,8 @@ install_package() {
             if ! sudo_cmd apt update >/dev/null 2>&1; then
                 log "WARNING" "No se pudo actualizar la lista de paquetes"
             fi
-            # Verificar si el paquete ya está instalado
-            if dpkg -l "$package" >/dev/null 2>&1; then
+            # Verificar si el paquete ya está instalado (estado 'ii' = instalado correctamente)
+            if dpkg -l "$package" 2>/dev/null | grep -q "^ii.*$package"; then
                 # Verificar si hay actualizaciones disponibles
                 if apt list --upgradable 2>/dev/null | grep -q "^$package/"; then
                     log "INFO" "Actualizando $package (hay actualizaciones disponibles)"
@@ -489,9 +489,16 @@ install_package() {
             fi
             ;;
         yum)
-            if sudo_cmd yum install -y "$package"; then
-                log "SUCCESS" "Instalado: $package"
+            # Verificar si el paquete ya está instalado
+            if rpm -q "$package" >/dev/null 2>&1; then
+                log "INFO" "Paquete $package ya está instalado"
                 return 0
+            else
+                log "INFO" "Instalando $package (no está instalado)"
+                if sudo_cmd yum install -y "$package"; then
+                    log "SUCCESS" "Instalado: $package"
+                    return 0
+                fi
             fi
             ;;
         pacman)
@@ -545,15 +552,47 @@ install_package() {
             fi
             ;;
         brew)
-            if brew install "$package"; then
-                log "SUCCESS" "Instalado: $package"
+            # Verificar si el paquete ya está instalado
+            if brew list "$package" >/dev/null 2>&1; then
+                log "INFO" "Paquete $package ya está instalado"
                 return 0
+            else
+                log "INFO" "Instalando $package (no está instalado)"
+                if brew install "$package"; then
+                    log "SUCCESS" "Instalado: $package"
+                    return 0
+                fi
             fi
             ;;
         snap)
-            if sudo_cmd snap install "$package"; then
-                log "SUCCESS" "Instalado: $package"
+            # Verificar si el paquete ya está instalado
+            if snap list "$package" >/dev/null 2>&1; then
+                log "INFO" "Paquete $package ya está instalado"
                 return 0
+            else
+                log "INFO" "Instalando $package (no está instalado)"
+                if sudo_cmd snap install "$package"; then
+                    log "SUCCESS" "Instalado: $package"
+                    return 0
+                fi
+            fi
+            ;;
+        flatpak)
+            # Verificar si flatpak está instalado
+            if ! command -v flatpak >/dev/null 2>&1; then
+                log "ERROR" "flatpak no está instalado. Instálalo primero con: sudo apt install flatpak"
+                return 1
+            fi
+            # Verificar si el paquete ya está instalado
+            if flatpak list | grep -q "$package"; then
+                log "INFO" "Paquete $package ya está instalado"
+                return 0
+            else
+                log "INFO" "Instalando $package (no está instalado)"
+                if sudo_cmd flatpak install -y flathub "$package"; then
+                    log "SUCCESS" "Instalado: $package"
+                    return 0
+                fi
             fi
             ;;
         *)
