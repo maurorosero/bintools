@@ -1,5 +1,11 @@
 # Configuración de archivos para releases de bintools
 # Autor: Mauro Rosero Pérez
+#
+# Herramientas de gestión de secretos incluidas:
+# - bw-send.sh: Envío seguro de archivos y texto mediante Bitwarden Send
+# - bw-ghpersonal.sh: Obtención automática de tokens GitHub desde Bitwarden
+# - git-tokens.py: Gestión de tokens Git usando keyring del sistema
+# - docs/secrets.md: Documentación completa sobre gestión segura de secretos
 
 # Archivos principales que se incluyen en todos los releases
 main_files:
@@ -12,12 +18,15 @@ main_files:
   - hexroute
   - bintools-manager.sh
   - git-tokens.py
+  - bw-send.sh
+  - bw-ghpersonal.sh
   - repo-install.sh
 
 # Directorios que se incluyen completos
 directories:
   - configs
   - repos
+  - docs
 
 # Archivos de configuración del proyecto
 config_files:
@@ -31,6 +40,13 @@ optional_files:
     - README.md
     - LICENSE
     - CHANGELOG.md
+    - docs/secrets.md
+  
+  # Herramientas de gestión de secretos
+  secrets_tools:
+    - bw-send.sh
+    - bw-ghpersonal.sh
+    - git-tokens.py
   
   # Archivos de desarrollo
   development:
@@ -54,6 +70,7 @@ release_types:
     include_config: true
     include_optional:
       - documentation
+      - secrets_tools
       - development
       - project_config
   
@@ -64,13 +81,15 @@ release_types:
     include_config: true
     include_optional:
       - documentation
+      - secrets_tools
   
   # Release mínimo (solo archivos principales)
   minimal:
     include_main: true
     include_directories: true
     include_config: true
-    include_optional: []
+    include_optional:
+      - secrets_tools
 
 # Configuración por defecto
 default_release_type: "user"
