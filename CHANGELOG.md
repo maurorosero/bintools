@@ -5,6 +5,102 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2025-01-27
+
+### ✨ Added
+
+#### 🔐 Herramientas de Gestión de Secretos
+
+- **`bw-send.sh`**: Envío seguro de archivos y texto mediante Bitwarden Send
+  - Soporte para envío de archivos y texto plano
+  - Configuración de expiración personalizable (1, 7, 30 días, etc.)
+  - Protección con contraseña opcional
+  - Límite de accesos configurable
+  - Notas adicionales para contexto
+  - Integración completa con Bitwarden CLI
+
+- **`bw-ghpersonal.sh`**: Obtención automática de tokens GitHub desde Bitwarden
+  - Recuperación automática de tokens GitHub desde Bitwarden
+  - Integración con `git-tokens.py` para almacenamiento seguro
+  - Configuración automática de credenciales Git
+  - Soporte para múltiples cuentas GitHub
+  - Autenticación transparente para operaciones Git
+
+- **`git-tokens.py`**: Gestión avanzada de tokens Git usando keyring del sistema
+  - Soporte para múltiples servicios Git: GitHub, GitLab, Gitea, Forgejo, Bitbucket
+  - Modos cloud y on-premise para servicios compatibles
+  - Almacenamiento seguro usando keyring del sistema operativo
+  - Gestión de tokens por uso (personal, work, empresa, etc.)
+  - Comandos: `set`, `get`, `list`, `delete`, `services`
+  - Integración con `bw-ghpersonal.sh` para flujo automatizado
+
+#### 📚 Documentación Completa de Gestión de Secretos
+
+- **`docs/secrets.md`**: Documentación exhaustiva sobre gestión segura de secretos
+  - Introducción a la importancia de la gestión segura de contraseñas
+  - Guía completa de Vaultwarden (alternativa open-source a Bitwarden)
+  - Comparación detallada entre Bitwarden y Vaultwarden
+  - Información sobre servidor público `vault.vaultwarden.net`
+  - Mejores prácticas para desarrolladores y equipos DevOps
+  - Gestión de 2FA mediante Bitwarden CLI
+  - Importancia de la gestión CLI para equipos de desarrollo
+  - Cómo `bintools` contribuye al manejo seguro de contraseñas
+  - Ejemplos prácticos y casos de uso reales
+
+### 🔄 Changed
+
+#### 📦 Configuración de Releases Actualizada
+
+- **`configs/release-config.yml`**: Actualización completa para incluir herramientas de secretos
+  - Agregadas herramientas de secrets a archivos principales:
+    - `bw-send.sh`: Envío seguro de archivos y texto
+    - `bw-ghpersonal.sh`: Obtención automática de tokens GitHub
+    - `git-tokens.py`: Gestión de tokens Git usando keyring
+  - Incluido directorio `docs/` para documentación completa
+  - Nueva sección `secrets_tools` en archivos opcionales
+  - Asegurado que herramientas de secrets estén disponibles en todos los tipos de release:
+    - **full**: Incluye documentación y herramientas de secrets
+    - **user**: Incluye documentación y herramientas de secrets  
+    - **minimal**: Incluye herramientas de secrets
+  - Agregada `docs/secrets.md` a archivos de documentación
+  - Comentarios explicativos sobre las herramientas de gestión de secretos
+
+### 🛡️ Security
+
+#### Gestión Segura de Credenciales
+
+- **Almacenamiento seguro**: Todas las herramientas usan keyring del sistema operativo
+- **Integración con Bitwarden**: Flujo automatizado para recuperación de credenciales
+- **Envío seguro**: `bw-send.sh` permite compartir información sensible de forma segura
+- **Gestión de tokens**: `git-tokens.py` maneja tokens de autenticación de forma segura
+- **Documentación de seguridad**: Guía completa sobre mejores prácticas de seguridad
+
+### 📋 Requisitos Técnicos
+
+#### Para Usuarios - v1.1.3
+
+- **Sistema**: Ubuntu 18.04+, Debian 10+, Fedora 32+, CentOS 8+, Arch Linux, macOS 10.15+
+- **Herramientas**: curl o wget para instalación
+- **Bitwarden CLI**: Para funcionalidades de `bw-send.sh` y `bw-ghpersonal.sh`
+- **Python 3**: Para `git-tokens.py` (incluye keyring)
+- **Privilegios**: sudo (una sola vez) o usuario root con `--no-sudo`
+
+#### Para Desarrolladores - v1.1.3
+
+- **GitHub CLI**: Para gestión de releases (`gh auth login` requerido)
+- **Git**: Para gestión de repositorio y tags
+- **jq**: Para procesamiento JSON en scripts de release
+- **tar**: Para creación de paquetes
+- **Python 3**: Para validación YAML y herramientas de secrets
+
+### 🔗 Enlaces
+
+- **Release**: [v1.1.3](https://github.com/maurorosero/bintools/releases/tag/v1.1.3)
+- **Documentación**: [README.md](README.md)
+- **Gestión de Secretos**: [docs/secrets.md](docs/secrets.md)
+- **Guía de Desarrollo**: [docs/RELEASE.md](docs/RELEASE.md)
+- **Autor**: [Mauro Rosero Pérez](https://mauro.rosero.one)
+
 ## [1.1.2] - 2025-09-14
 
 ### 🔧 Fixed
