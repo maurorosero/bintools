@@ -69,12 +69,14 @@ Es un servidor público de Vaultwarden mantenido por la comunidad, que ofrece un
 ### Consideraciones Importantes
 
 **Limitaciones:**
+
 - **Dependencia Externa**: Tus datos están en un servidor que no controlas
 - **Sin Garantías**: No hay SLA (Service Level Agreement) oficial
 - **Capacidad Limitada**: Puede tener restricciones de almacenamiento o usuarios
 - **Disponibilidad**: Depende de la disponibilidad del servidor comunitario
 
 **Recomendaciones de Uso:**
+
 - Ideal para usuarios individuales que quieren probar Vaultwarden
 - Adecuado para uso personal y no crítico
 - Considera migrar a tu propio servidor si necesitas mayor control
@@ -83,6 +85,7 @@ Es un servidor público de Vaultwarden mantenido por la comunidad, que ofrece un
 ### Configuración en Clientes
 
 Antes de poder configurar tu cliente de Bitwarden, primero debes ir a `https://vault.vaultwarden.net` y crear una cuenta nueva. Una vez creada la cuenta, configura tu cliente de Bitwarden con:
+
 - **URL del Servidor**: `https://vault.vaultwarden.net`
 - **Email y Contraseña**: Usa las credenciales que registraste en el servidor público
 
@@ -95,6 +98,7 @@ En el desarrollo de software y operaciones de DevOps, la gestión segura de secr
 ### Riesgos de una Gestión Inadecuada
 
 **Exposición de Credenciales:**
+
 - Hardcoding de contraseñas en el código fuente
 - Almacenamiento de secretos en repositorios públicos
 - Compartir credenciales por canales inseguros
@@ -126,12 +130,14 @@ En el desarrollo de software y operaciones de DevOps, la gestión segura de secr
 ### Herramientas Recomendadas
 
 **Para Gestión de Secretos:**
+
 - **HashiCorp Vault**: Solución enterprise para gestión de secretos
 - **AWS Secrets Manager**: Servicio gestionado de AWS
 - **Azure Key Vault**: Servicio de Microsoft Azure
 - **Google Secret Manager**: Servicio de Google Cloud
 
 **Para Desarrollo:**
+
 - **dotenv**: Variables de entorno para desarrollo local
 - **SOPS**: Cifrado de archivos de configuración
 - **Ansible Vault**: Gestión de secretos en Ansible
@@ -146,6 +152,7 @@ La gestión mediante línea de comandos (CLI) es fundamental en entornos DevOps 
 #### **Automatización y Escalabilidad**
 
 **Scripts y Automatización:**
+
 - **CI/CD Pipelines**: Los pipelines de integración continua requieren comandos automatizados
 - **Despliegues Automáticos**: La gestión de secretos debe integrarse en procesos automatizados
 - **Escalabilidad**: Los equipos grandes necesitan herramientas que funcionen sin intervención manual
@@ -154,6 +161,7 @@ La gestión mediante línea de comandos (CLI) es fundamental en entornos DevOps 
 #### **Integración con Herramientas DevOps**
 
 **Compatibilidad Universal:**
+
 - **Contenedores**: Docker, Kubernetes, Podman requieren gestión CLI
 - **Orquestadores**: Ansible, Terraform, Chef se integran mejor con CLI
 - **Monitoreo**: Prometheus, Grafana, ELK Stack funcionan principalmente por CLI
@@ -162,6 +170,7 @@ La gestión mediante línea de comandos (CLI) es fundamental en entornos DevOps 
 #### **Eficiencia Operativa**
 
 **Velocidad y Precisión:**
+
 - **Sin Interfaces Gráficas**: Los servidores headless requieren herramientas CLI
 - **Acceso Remoto**: SSH y conexiones remotas funcionan mejor con CLI
 - **Menor Latencia**: Comandos directos son más rápidos que interfaces web
@@ -170,6 +179,7 @@ La gestión mediante línea de comandos (CLI) es fundamental en entornos DevOps 
 #### **Seguridad y Auditoría**
 
 **Trazabilidad Completa:**
+
 - **Logs Detallados**: Todos los comandos quedan registrados en historial
 - **Auditoría**: Fácil seguimiento de quién hizo qué y cuándo
 - **Seguridad**: Menos superficie de ataque que interfaces web
@@ -178,6 +188,7 @@ La gestión mediante línea de comandos (CLI) es fundamental en entornos DevOps 
 #### **Flexibilidad y Personalización**
 
 **Adaptabilidad:**
+
 - **Scripts Personalizados**: Creación de herramientas específicas para cada equipo
 - **Integración Custom**: Conexión con herramientas internas de la empresa
 - **Configuración Avanzada**: Parámetros específicos para cada entorno
@@ -214,6 +225,7 @@ packages.sh --list bwdn
 ```
 
 **Características:**
+
 - **Instalación Multiplataforma**: Ubuntu, Debian, Fedora, CentOS, Arch Linux, macOS
 - **Múltiples Métodos**: Snap, AUR, Homebrew según el sistema
 - **CLI Incluido**: Instala automáticamente `bw` (Bitwarden CLI)
@@ -226,6 +238,7 @@ packages.sh --list bwdn
 Herramienta para compartir información sensible de forma segura usando Bitwarden Send:
 
 **Funcionalidades:**
+
 - **Envío de Archivos**: Sube archivos individuales o múltiples archivos
 - **Envío de Texto**: Comparte texto directamente desde línea de comandos
 - **Expiración Configurable**: Establece cuándo expira el enlace (por defecto: 2 días)
@@ -250,12 +263,14 @@ bw-send.sh --file config.json --password "secret123" --max-access 3
 Automatiza la obtención de tokens de GitHub desde Bitwarden:
 
 **Funcionalidades:**
+
 - **Búsqueda Automática**: Busca el token en Bitwarden usando el usuario actual
 - **Usuario Dinámico**: Reemplaza automáticamente el nombre de usuario
 - **Integración Completa**: Guarda el token en el keyring de la computadora automáticamente
 - **Verificación**: Confirma que el token se guardó correctamente
 
 **Uso:**
+
 ```bash
 # Obtener y guardar token de GitHub automáticamente
 bw-ghpersonal.sh
@@ -266,6 +281,7 @@ bw-ghpersonal.sh
 Bitwarden CLI (`bw`) proporciona funcionalidades avanzadas para gestionar autenticación de dos factores (2FA) de forma automatizada:
 
 **Configuración Inicial:**
+
 ```bash
 # Configurar Bitwarden CLI con API key (recomendado para automatización)
 bw config server https://vault.vaultwarden.net
