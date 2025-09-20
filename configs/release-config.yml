@@ -6,6 +6,11 @@
 # - bw-ghpersonal.sh: Obtención automática de tokens GitHub desde Bitwarden
 # - git-tokens.py: Gestión de tokens Git usando keyring del sistema
 # - docs/secrets.md: Documentación completa sobre gestión segura de secretos
+#
+# Herramientas de desarrollo incluidas:
+# - odevs-install.sh: Instalador automático de odoodevs (entorno de desarrollo Odoo)
+# - docs/odoodevs.md: Documentación completa de odoodevs
+# - docs/cursor-sync-guide.md: Guía para sincronizar contexto de Cursor con Nextcloud
 
 # Archivos principales que se incluyen en todos los releases
 main_files:
@@ -21,6 +26,7 @@ main_files:
   - bw-send.sh
   - bw-ghpersonal.sh
   - repo-install.sh
+  - odevs-install.sh
 
 # Directorios que se incluyen completos
 directories:
@@ -41,6 +47,8 @@ optional_files:
     - LICENSE
     - CHANGELOG.md
     - docs/secrets.md
+    - docs/odoodevs.md
+    - docs/cursor-sync-guide.md
   
   # Herramientas de gestión de secretos
   secrets_tools:

@@ -36,6 +36,7 @@ Herramientas especializadas para resolver problemas comunes y automatizar tareas
 - **`git-tokens.py`**: Gestor seguro de tokens de autenticación para servicios Git (GitHub, GitLab, etc.)
 - **`bw-send.sh`**: Envía archivos o texto de forma segura usando Bitwarden CLI
 - **`bw-ghpersonal.sh`**: Obtiene automáticamente el token de GitHub personal desde Bitwarden
+- **`odevs-install.sh`**: Instalador automático de odoodevs con múltiples opciones de configuración
 
 ### 🔐 Gestor de Tokens Git (`git-tokens.py`)
 
@@ -156,6 +157,42 @@ Obtiene automáticamente el token de GitHub personal desde Bitwarden y lo guarda
 - Bitwarden CLI (`bw`) instalado y configurado
 - Item "GITHUB" en Bitwarden con campo `"[TU_USUARIO] FULL TOKEN"`
 - `git-tokens.py` disponible en el mismo directorio
+
+### 🚀 Instalador de OdooDevs (`odevs-install.sh`)
+
+Instalador automático de odoodevs, un entorno de desarrollo completo para Odoo con múltiples opciones de configuración.
+
+**¿Qué es odoodevs?**
+
+odoodevs es un entorno de desarrollo profesional para Odoo que incluye herramientas, configuraciones y scripts optimizados para el desarrollo eficiente de aplicaciones Odoo. Proporciona un setup completo con Docker, herramientas de debugging, y configuraciones predefinidas.
+
+Para mayor información, consulta la [documentación completa de odoodevs](docs/odoodevs.md).
+
+**Características:**
+
+- 🛠️ **Instalación automática**: Setup completo con un solo comando
+- 🔄 **Múltiples tipos**: Soporte para desarrolladores, usuarios y versiones específicas
+- 🔐 **Protocolos flexibles**: HTTPS y SSH para clonado del repositorio
+- 📁 **Workspace personalizable**: Directorio de trabajo configurable
+- ✅ **Validación completa**: Verificación de dependencias y conexiones
+
+**Ejemplos de uso:**
+
+```bash
+# Instalación para desarrolladores
+./odevs-install.sh --type devs
+
+# Instalación última versión
+./odevs-install.sh --type latest
+
+# Instalación versión específica
+./odevs-install.sh --type version --version v1.0.0
+
+# Con workspace personalizado
+./odevs-install.sh --type devs --workspace mi-odoo
+```
+
+Para información completa, consulta la [documentación detallada](docs/odoodevs.md).
 
 ### 📦 Instalador de Paquetes (`packages.sh`)
 
