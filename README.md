@@ -111,7 +111,7 @@ Wrapper desarrollado para extender las capacidades de envío seguro de Bitwarden
 
 **¿Qué es bw-send.sh?**
 
-`bw-send.sh` es un script wrapper que extiende la funcionalidad nativa de `bw send` para permitir el envío seguro de secretos a través de múltiples canales de comunicación, no solo URLs temporales.
+`bw-send.sh` es un script wrapper que extiende la funcionalidad nativa de `bw send` para permitir el envío seguro de secretos a través de múltiples canales de comunicación, no solo vía texto en consola.
 
 **¿Qué hace?**
 
