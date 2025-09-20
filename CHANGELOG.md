@@ -204,6 +204,13 @@ Versión 1.2.0 introduce una expansión significativa de la documentación del p
   - Estructura de changelog reorganizada y consistente
   - Todas las fechas actualizadas y verificadas
 
+- **Configuración de releases actualizada**:
+  - `configs/release-config.yml` actualizado con nuevos archivos de documentación
+  - Agregadas guías: developers.md, documentation-guide.md, testing-guide.md
+  - Agregadas guías de herramientas: packages.md, pymanager.md, repo.md, bw-send.md
+  - Agregado `pritunl-vpn.py` a archivos principales
+  - Comentarios descriptivos actualizados para todas las nuevas guías
+
 ### 📋 Requisitos Técnicos
 
 #### Para Usuarios - v1.2.0
