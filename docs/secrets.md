@@ -1,5 +1,7 @@
 # Gestión Segura de Secretos y Contraseñas
 
+> **📖 [← Volver al README principal](../README.md)**
+
 ## Introducción
 
 En el mundo digital actual, la gestión segura de secretos y contraseñas es fundamental para proteger nuestra información personal y empresarial. Los ataques cibernéticos están en constante evolución, y las contraseñas débiles o reutilizadas representan uno de los vectores de ataque más comunes.

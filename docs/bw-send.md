@@ -1,5 +1,7 @@
 # bw-send.sh - Guía Completa de Envío Seguro Extendido
 
+> **📖 [← Volver al README principal](../README.md)**
+
 ## Descripción
 
 **bw-send.sh** es un script wrapper desarrollado para extender las capacidades de envío seguro de Bitwarden CLI, proporcionando múltiples canales de distribución para secretos y archivos sensibles. No se limita solo a URLs temporales, sino que permite el envío directo a través de Telegram, email, WhatsApp (en desarrollo) y otros canales.

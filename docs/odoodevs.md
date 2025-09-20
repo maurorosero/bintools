@@ -1,5 +1,7 @@
 # OdooDevs - Entorno de Desarrollo para Odoo
 
+> **📖 [← Volver al README principal](../README.md)**
+
 ## Descripción
 
 **OdooDevs** es un entorno de desarrollo profesional para Odoo que proporciona herramientas, configuraciones y scripts optimizados para el desarrollo eficiente de aplicaciones Odoo. Incluye un setup completo con Docker, herramientas de debugging, configuraciones predefinidas y automatización de tareas comunes.

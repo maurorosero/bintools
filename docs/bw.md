@@ -1,5 +1,7 @@
 # Bitwarden CLI - Guía Completa
 
+> **📖 [← Volver al README principal](../README.md)**
+
 ## Descripción
 
 **Bitwarden CLI** es la interfaz de línea de comandos de Bitwarden, un gestor de contraseñas de código abierto y gratuito. Permite automatizar tareas de gestión de contraseñas, tokens y datos sensibles desde scripts y aplicaciones.

@@ -1,5 +1,7 @@
 # Guía Completa de Releases de bintools
 
+> **📖 [← Volver al README principal](../README.md)**
+
 ## 🎯 Sistema de Releases Directo
 
 Este proyecto usa un sistema de releases directo que se ejecuta **completamente** desde tu máquina local usando GitHub CLI. El script `create-release.sh` crea releases directamente en GitHub sin depender de workflows externos, y usa un sistema de configuración flexible para definir exactamente qué archivos se incluyen en cada release.

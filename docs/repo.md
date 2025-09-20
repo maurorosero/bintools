@@ -1,5 +1,7 @@
 # Guía Completa de Usuario - repo-install.sh
 
+> **📖 [← Volver al README principal](../README.md)**
+
 ## 📖 Introducción
 
 `repo-install.sh` es un gestor de repositorios OS-específicos que automatiza la configuración de repositorios externos según tu sistema operativo. Está diseñado para facilitar la instalación de herramientas que no están disponibles en los repositorios oficiales por defecto.

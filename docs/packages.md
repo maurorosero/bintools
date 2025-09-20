@@ -1,5 +1,7 @@
 # Guía Completa de Usuario - packages.sh
 
+> **📖 [← Volver al README principal](../README.md)**
+
 ## 📖 Introducción
 
 `packages.sh` es un instalador masivo de paquetes multiplataforma que automatiza la instalación de herramientas esenciales según tu sistema operativo. Está diseñado para ser inteligente, eficiente y fácil de usar.

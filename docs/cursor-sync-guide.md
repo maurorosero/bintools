@@ -1,5 +1,7 @@
 # Guía: Sincronizar Contexto de Cursor con Nextcloud
 
+> **📖 [← Volver al README principal](../README.md)**
+
 ## Descripción
 
 Esta guía te permite sincronizar automáticamente el contexto de IA y configuraciones de Cursor entre múltiples equipos usando Nextcloud.
