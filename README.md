@@ -478,6 +478,24 @@ Para contribuir con documentación al proyecto:
 - Convenciones de estructura y navegación
 - Checklist de calidad y revisión
 
+### 🧪 Testing
+
+Para contribuir con testing al proyecto:
+
+- **Testing funcional**: Verificar que cada herramienta funciona correctamente en diferentes sistemas
+- **Testing de integración**: Validar que las herramientas trabajan juntas sin conflictos
+- **Testing de regresión**: Asegurar que nuevos cambios no rompan funcionalidad existente
+- **Testing multiplataforma**: Probar en Ubuntu, Debian, Fedora, CentOS, Arch Linux, macOS
+- **Testing de casos edge**: Validar situaciones límite y casos especiales
+
+**📖 Guía completa de testing**: Consulta la [guía de testing ágil](docs/testing-guide.md) que incluye:
+
+- Metodologías ágiles de testing (TDD, BDD, ATDD)
+- Proceso de testing continuo e iterativo
+- Herramientas y entornos de testing
+- Estrategias de testing multiplataforma
+- Reportes y documentación de resultados
+
 ## 📝 Licencia
 
 GNU General Public License v3.0 - Software libre que puedes usar, modificar y distribuir bajo los términos de la GPL v3.
