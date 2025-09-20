@@ -25,18 +25,135 @@ bintools es un conjunto de scripts que automatizan tareas comunes del sistema op
 
 ## 🛠️ Herramientas Incluidas
 
-### 🔧 Herramientas de Sistema
+### 📋 Herramientas
 
-Herramientas especializadas para resolver problemas comunes y automatizar tareas del sistema.
-
+- **`packages.sh`**: Instalador masivo de paquetes organizados por categoría
 - **`fix_hdmi_audio.sh`**: Soluciona problemas de audio HDMI con PipeWire automáticamente
 - **`videoset.sh`**: Configura resoluciones de pantalla y detecta monitores automáticamente
 - **`nxcloud-backup.sh`**: Gestor completo de backups y configuración de Nextcloud
 - **`hexroute`**: Convierte rutas de red a formato hexadecimal para configuración DHCP
-- **`git-tokens.py`**: Gestor seguro de tokens de autenticación para servicios Git (GitHub, GitLab, etc.)
-- **`bw-send.sh`**: Envía archivos o texto de forma segura usando Bitwarden CLI
-- **`bw-ghpersonal.sh`**: Obtiene automáticamente el token de GitHub personal desde Bitwarden
-- **`odevs-install.sh`**: Instalador automático de odoodevs con múltiples opciones de configuración
+- **`git-tokens.py`**: Gestor seguro de tokens de autenticación para servicios Git
+- **`bw-send.sh`**: Envío seguro extendido con múltiples canales de distribución
+- **`bw-ghpersonal.sh`**: Obtención automática de token GitHub desde Bitwarden
+- **`odevs-install.sh`**: Instalador automático de odoodevs con múltiples opciones
+- **`micursor.py`**: Gestor de Cursor IDE con configuración automática
+- **`pymanager.sh`**: Configuración profesional de entornos Python
+- **`repo-install.sh`**: Gestor de repositorios OS-específicos
+- **`bintools-manager.sh`**: Gestor principal de bintools
+- **`btfixperms.sh`**: Gestor de permisos para desarrollo
+
+### 📚 Documentación
+
+- **`docs/secrets.md`**: Guía completa de gestión segura de secretos
+- **`docs/bw.md`**: Documentación completa de Bitwarden CLI
+- **`docs/bw-send.md`**: Guía completa de bw-send.sh (envío seguro extendido)
+- **`docs/odoodevs.md`**: Documentación completa de odoodevs
+- **`docs/cursor-sync-guide.md`**: Guía para sincronizar contexto de Cursor con Nextcloud
+- **`docs/RELEASE.md`**: Guía de releases para desarrolladores
+
+## 📖 Descripción de Herramientas
+
+### 📦 Instalador de Paquetes (`packages.sh`)
+
+Instala automáticamente herramientas esenciales según tu sistema operativo con gestión inteligente de actualizaciones.
+
+**¿Qué puede instalar?**
+
+- **Básicas**: curl, git, wget, python, vim, nano, herramientas de red
+- **Desarrollo**: compiladores, Node.js, Visual Studio Code, herramientas de construcción
+- **Productividad**: LibreOffice, navegadores, aplicaciones de comunicación
+- **DevOps**: AWS CLI, Azure CLI, Terraform, Ansible, herramientas de red
+- **Contenedores**: Docker completo, Podman, Kubernetes local
+- **Arduino**: IDE, herramientas AVR, comunicación serial, IoT
+- **Personalizadas**: herramientas que tú elijas
+
+**Características avanzadas:**
+
+- ✅ **Instalación de gestores**: Instala automáticamente `yay` (AUR) y `snapd`
+- ✅ **Detección inteligente**: Usa el gestor de paquetes correcto para tu sistema
+- ✅ **Detección de GUI**: Filtra automáticamente paquetes GUI en servidores headless
+- ✅ **Sudo inteligente**: Una sola contraseña para toda la instalación
+- ✅ **Modo de prueba**: Verifica qué se instalaría antes de ejecutar
+- ✅ **Gestión de repositorios**: Sistema OS-específico para configurar repositorios externos
+
+### 🔧 Herramientas de Sistema
+
+#### `fix_hdmi_audio.sh` - Solucionador de Audio HDMI
+
+**Problema que resuelve**: Audio HDMI que no funciona en Linux con PipeWire
+
+**¿Qué hace?**
+
+- Detecta automáticamente dispositivos HDMI
+- Configura PipeWire para usar el dispositivo correcto
+- Reinicia servicios de audio automáticamente
+- Funciona con múltiples monitores y tarjetas de audio
+
+**Uso**: `./fix_hdmi_audio.sh`
+
+#### `videoset.sh` - Configurador de Pantalla
+
+**Problema que resuelve**: Resoluciones incorrectas o monitores no detectados
+
+**¿Qué hace?**
+
+- Detecta automáticamente todos los monitores conectados
+- Lista resoluciones disponibles
+- Configura la resolución óptima automáticamente
+- Soporte para múltiples monitores
+
+**Uso**: `./videoset.sh --auto`
+
+#### `nxcloud-backup.sh` - Gestor Completo de Nextcloud
+
+**Problema que resuelve**: Gestión integral de configuración y sincronización de Nextcloud
+
+**¿Qué hace?**
+
+- **🛡️ Backups automáticos**: Respalda toda la configuración de Nextcloud de forma segura
+- **🔄 Restauración completa**: Restaura configuración con un solo comando
+- **🔗 Configuración de sync**: Guía para sincronizar carpeta `~/secure` con servidor
+- **🧹 Limpieza inteligente**: Elimina configuraciones duplicadas automáticamente
+- **🗑️ Limpieza de archivos sync**: Elimina archivos `.nextcloudsync.log` y `.sync_*.db*` no deseados
+- **📋 Gestión de versiones**: Maneja múltiples backups con timestamps únicos
+- **🌐 Sincronización automática**: Los backups se sincronizan con tu servidor Nextcloud
+
+**Funcionalidades principales:**
+
+```bash
+# Crear backup de configuración
+./nxcloud-backup.sh --backup
+
+# Listar todos los backups disponibles  
+./nxcloud-backup.sh --list
+
+# Restaurar backup específico (mantiene autenticación)
+./nxcloud-backup.sh --restore backup_name
+
+# Configurar sincronización de carpeta segura
+./nxcloud-backup.sh --secure
+
+# Limpiar entradas duplicadas de configuración
+./nxcloud-backup.sh --clean
+
+# Limpiar archivos de sincronización no deseados (.nextcloudsync.log, .sync_*.db*)
+./nxcloud-backup.sh --clean-sync
+```
+
+#### `hexroute` - Convertidor de Rutas de Red
+
+**Problema que resuelve**: Configuración de rutas de red en formato hexadecimal para DHCP
+
+**¿Qué hace?**
+
+- Convierte rutas CIDR a formato hexadecimal
+- Genera configuración DHCP automáticamente
+- Soporte para múltiples gateways
+- Formato compatible con routers empresariales
+
+**Uso**: `./hexroute 172.16.0.0/16 gw 192.168.1.1`
+
+### 🔐 Gestión de Secretos
 
 ### 🔐 Gestor de Tokens Git (`git-tokens.py`)
 
@@ -167,7 +284,9 @@ Obtiene automáticamente el token de GitHub personal desde Bitwarden y lo guarda
 - Bitwarden CLI (`bw`) instalado y configurado (`packages.sh --list bwdn`)
 - Item llamado exactamente "GITHUB" en Bitwarden/Vaultwarden con campo `"[TU_USUARIO] FULL TOKEN"`
 
-### 🚀 Instalador de OdooDevs (`odevs-install.sh`)
+### 🚀 Herramientas de Desarrollo
+
+#### `odevs-install.sh` - Instalador de OdooDevs
 
 Instalador automático de odoodevs, un entorno de desarrollo profesional para Odoo con herramientas, configuraciones y scripts optimizados. Incluye setup completo con Docker, herramientas de debugging y configuraciones predefinidas.
 
@@ -198,79 +317,6 @@ Para mayor información, consulta la [documentación completa de odoodevs](docs/
 ```
 
 Para información completa, consulta la [documentación detallada](docs/odoodevs.md).
-
-### 📦 Instalador de Paquetes (`packages.sh`)
-
-Instala automáticamente herramientas esenciales según tu sistema operativo con gestión inteligente de actualizaciones.
-
-**¿Qué puede instalar?**
-
-- **Básicas**: curl, git, wget, python, vim, nano, herramientas de red
-- **Desarrollo**: compiladores, Node.js, Visual Studio Code, herramientas de construcción
-- **Productividad**: LibreOffice, navegadores, aplicaciones de comunicación
-- **DevOps**: AWS CLI, Azure CLI, Terraform, Ansible, herramientas de red
-- **Contenedores**: Docker completo, Podman, Kubernetes local
-- **Arduino**: IDE, herramientas AVR, comunicación serial, IoT
-- **Personalizadas**: herramientas que tú elijas
-
-**Características avanzadas:**
-
-- ✅ **Instalación de gestores**: Instala automáticamente `yay` (AUR) y `snapd`
-- ✅ **Detección inteligente**: Usa el gestor de paquetes correcto para tu sistema
-- ✅ **Detección de GUI**: Filtra automáticamente paquetes GUI en servidores headless
-- ✅ **Sudo inteligente**: Una sola contraseña para toda la instalación
-- ✅ **Modo de prueba**: Verifica qué se instalaría antes de ejecutar
-- ✅ **Gestión de repositorios**: Sistema OS-específico para configurar repositorios externos
-
-### 🎯 Gestor de Cursor IDE (`micursor.py`)
-
-Instala y configura Cursor IDE (editor de código con IA) automáticamente.
-
-**¿Qué hace?**
-
-- Descarga e instala la última versión de Cursor
-- Configura reglas MDC para mejor experiencia
-- Crea backups de tu configuración
-- Funciona en Linux, macOS y Windows
-
-### 🐍 Gestor de Python (`pymanager.sh`)
-
-Configura entornos Python de forma profesional.
-
-**¿Qué hace?**
-
-- Instala Python y herramientas necesarias
-- Crea entornos virtuales para proyectos
-- Gestiona paquetes Python de forma organizada
-- Configura alias para acceso rápido
-
-### 🏗️ Gestor de Repositorios OS-específicos (`repo-install.sh`)
-
-Configura repositorios externos específicos para cada sistema operativo.
-
-**¿Qué hace?**
-
-- Lista scripts de configuración disponibles para tu OS
-- Ejecuta scripts de configuración de repositorios automáticamente
-- Soporte para múltiples sistemas operativos
-- Configuración segura de repositorios externos
-
-**Ejemplos de uso:**
-
-```bash
-# Listar scripts de configuración disponibles
-./repo-install.sh --list
-
-# Configurar repositorio Charm (para herramientas como gum)
-./repo-install.sh --configure base-charm-repo
-```
-
-**Scripts disponibles por OS:**
-
-- **Ubuntu/Debian**: `base-charm-repo.sh` (configura repositorio Charm)
-- **Fedora/CentOS**: `base-charm-repo.sh` (configura repositorio Charm)
-- **Arch Linux**: (vacío - usa AUR)
-- **macOS**: (vacío - usa Homebrew)
 
 ## 🚀 Instalación Rápida
 
