@@ -6,7 +6,7 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.0] - 2025-01-27
+## [1.2.0] - 2025-09-20
 
 ### 🚀 Nueva Versión Mayor - Documentación y Testing Ágil
 
@@ -214,7 +214,7 @@ Versión 1.2.0 introduce una expansión significativa de la documentación del p
 - **OdooDevs**: [docs/odoodevs.md](docs/odoodevs.md)
 - **Autores**: [Mauro Rosero Pérez](https://mauro.rosero.one) y [Cursor IDE](https://cursor.sh)
 
-## [1.1.3] - 2025-01-27
+## [1.1.2] - 2025-09-14
 
 ### ✨ Added
 
@@ -284,34 +284,6 @@ Versión 1.2.0 introduce una expansión significativa de la documentación del p
 - **Gestión de tokens**: `git-tokens.py` maneja tokens de autenticación de forma segura
 - **Documentación de seguridad**: Guía completa sobre mejores prácticas de seguridad
 
-### 📋 Requisitos Técnicos
-
-#### Para Usuarios - v1.1.3
-
-- **Sistema**: Ubuntu 18.04+, Debian 10+, Fedora 32+, CentOS 8+, Arch Linux, macOS 10.15+
-- **Herramientas**: curl o wget para instalación
-- **Bitwarden CLI**: Para funcionalidades de `bw-send.sh` y `bw-ghpersonal.sh`
-- **Python 3**: Para `git-tokens.py` (incluye keyring)
-- **Privilegios**: sudo (una sola vez) o usuario root con `--no-sudo`
-
-#### Para Desarrolladores - v1.1.3
-
-- **GitHub CLI**: Para gestión de releases (`gh auth login` requerido)
-- **Git**: Para gestión de repositorio y tags
-- **jq**: Para procesamiento JSON en scripts de release
-- **tar**: Para creación de paquetes
-- **Python 3**: Para validación YAML y herramientas de secrets
-
-### 🔗 Enlaces
-
-- **Release**: [v1.1.3](https://github.com/maurorosero/bintools/releases/tag/v1.1.3)
-- **Documentación**: [README.md](README.md)
-- **Gestión de Secretos**: [docs/secrets.md](docs/secrets.md)
-- **Guía de Desarrollo**: [docs/RELEASE.md](docs/RELEASE.md)
-- **Autor**: [Mauro Rosero Pérez](https://mauro.rosero.one)
-
-## [1.1.2] - 2025-09-14
-
 ### 🔧 Fixed
 
 #### Corrección de Soporte de Paquetes para Arch Linux
@@ -339,6 +311,32 @@ Versión 1.2.0 introduce una expansión significativa de la documentación del p
   - Mejorada precisión en fechas de releases
   - Corregida fecha del release v1.1.1 en CHANGELOG.md
   - Mejorada consistencia en documentación de cambios
+
+### 📋 Requisitos Técnicos
+
+#### Para Usuarios - v1.1.2
+
+- **Sistema**: Ubuntu 18.04+, Debian 10+, Fedora 32+, CentOS 8+, Arch Linux, macOS 10.15+
+- **Herramientas**: curl o wget para instalación
+- **Bitwarden CLI**: Para funcionalidades de `bw-send.sh` y `bw-ghpersonal.sh`
+- **Python 3**: Para `git-tokens.py` (incluye keyring)
+- **Privilegios**: sudo (una sola vez) o usuario root con `--no-sudo`
+
+#### Para Desarrolladores - v1.1.2
+
+- **GitHub CLI**: Para gestión de releases (`gh auth login` requerido)
+- **Git**: Para gestión de repositorio y tags
+- **jq**: Para procesamiento JSON en scripts de release
+- **tar**: Para creación de paquetes
+- **Python 3**: Para validación YAML y herramientas de secrets
+
+### 🔗 Enlaces
+
+- **Release**: [v1.1.2](https://github.com/maurorosero/bintools/releases/tag/v1.1.2)
+- **Documentación**: [README.md](README.md)
+- **Gestión de Secretos**: [docs/secrets.md](docs/secrets.md)
+- **Guía de Desarrollo**: [docs/RELEASE.md](docs/RELEASE.md)
+- **Autor**: [Mauro Rosero Pérez](https://mauro.rosero.one)
 
 ## [1.1.1] - 2025-09-14
 
