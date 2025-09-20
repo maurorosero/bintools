@@ -375,6 +375,7 @@ Gestiona tokens de GitHub con Bitwarden, incluyendo obtención, almacenamiento y
 **¿Cómo funciona?**
 
 **`--get` (Obtención de Token):**
+
 1. Sincroniza con Bitwarden automáticamente (`bw sync`)
 2. Obtiene tu usuario actual del sistema (`whoami`) en mayúsculas
 3. Busca en Bitwarden el campo `"[TU_USUARIO] FULL TOKEN"` en el item "GITHUB"
@@ -382,6 +383,7 @@ Gestiona tokens de GitHub con Bitwarden, incluyendo obtención, almacenamiento y
 5. Guarda el token en `git-tokens.py set github-personal --token -`
 
 **`--login` (Autenticación GitHub CLI):**
+
 1. Obtiene el token guardado usando `git-tokens.py get github-personal --raw`
 2. Autentica GitHub CLI automáticamente con `gh auth login --with-token`
 
