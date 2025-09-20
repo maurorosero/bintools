@@ -60,24 +60,20 @@ Gestiona tokens de autenticación de servicios Git de forma segura usando el key
 - 🔍 **Búsqueda fácil**: Lista y recupera tokens por servicio
 - 🗑️ **Eliminación segura**: Borra tokens sin dejar rastros
 
-**Ejemplos de uso:**
+**Uso básico:**
 
 ```bash
-# Guardar token de GitHub para desarrollo
+# Ver ayuda completa
+./git-tokens.py --help
+
+# Guardar token
 ./git-tokens.py set github-dev-api --token ghp_xxxxx
 
-# Recuperar token de GitLab para CI/CD
-./git-tokens.py get gitlab-ci-cd
-
-# Listar todos los tokens guardados
-./git-tokens.py list
-
-# Eliminar token específico
-./git-tokens.py delete github-dev-api
-
-# Obtener token en formato raw (solo el token, sin texto adicional)
-./git-tokens.py get github-personal --raw
+# Recuperar token
+./git-tokens.py get github-dev-api
 ```
+
+Para información completa, ejemplos detallados y mejores prácticas, consulta la [documentación completa de gestión de secretos](docs/secrets.md).
 
 ### 🔐 Scripts de Bitwarden CLI
 
