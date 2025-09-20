@@ -76,6 +76,8 @@ Instala automáticamente herramientas esenciales según tu sistema operativo con
 - ✅ **Modo de prueba**: Verifica qué se instalaría antes de ejecutar
 - ✅ **Gestión de repositorios**: Sistema OS-específico para configurar repositorios externos
 
+**📖 Documentación completa**: Para información detallada sobre instalación, uso, listas disponibles y configuración de repositorios, consulta la [guía completa de packages.sh](docs/packages.md).
+
 ### 🔧 Herramientas de Sistema
 
 #### `fix_hdmi_audio.sh` - Solucionador de Audio HDMI
