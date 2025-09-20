@@ -192,8 +192,11 @@ Versión 1.2.0 introduce una expansión significativa de la documentación del p
   - Referencias relativas en lugar de listas absolutas de comandos
   - Ejemplos del help actualizados para usar nombre del comando (`bintools-manager`) en lugar de `$0`
   - Verificación dinámica de permisos de ejecución usando `find` en lugar de listas hardcodeadas
+  - Verificación dinámica de archivos principales usando `release-config.yml` en lugar de lista hardcodeada
+  - Extracción automática de archivos principales desde configuración YAML
   - Información de comandos disponibles ahora referencia al README.md
   - Mejor experiencia de usuario con ejemplos más claros y consistentes
+  - Sistema de verificación completamente dinámico y mantenible
 
 #### 📝 Correcciones del Changelog
 
