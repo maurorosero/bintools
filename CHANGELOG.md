@@ -5,6 +5,166 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-01-27
+
+### 🚀 Nueva Versión Mayor - Documentación y Testing Ágil
+
+Versión 1.2.0 introduce una expansión significativa de la documentación del proyecto, incluyendo guías completas para desarrolladores, documentación y testing ágil, además de reconocimiento especial a las tecnologías de IA que han acelerado el desarrollo.
+
+### ✨ Added
+
+#### 📚 Documentación Completa para Desarrolladores
+
+- **`docs/developers.md`**: Guía exhaustiva para desarrolladores
+  - Instalación y configuración del entorno de desarrollo
+  - Estructura completa del proyecto con explicaciones detalladas
+  - Convenciones de código para scripts Bash y Python
+  - Proceso de desarrollo con flujo de trabajo Git
+  - Convenciones de commits usando Conventional Commits
+  - Guía completa de releases y sistema de versionado
+  - Integración de contenido de RELEASE.md en guía unificada
+  - Scripts de gestión de releases: create-release.sh, delete-release.sh, release-builder.sh
+  - Sistema de configuración de archivos con release-config.yml
+  - Tipos de release: full, user, minimal
+  - Flujos de trabajo recomendados para releases
+  - Solución de problemas comunes en desarrollo
+  - Proporciona guía completa para nuevos contribuidores de código
+
+#### 📖 Guía de Contribución de Documentación
+
+- **`docs/documentation-guide.md`**: Guía completa para contribuir con documentación
+  - Estilo y formato estándar del proyecto
+  - Proceso paso a paso para crear/mejorar documentación
+  - Convenciones de estructura y navegación
+  - Checklist de calidad y revisión
+  - Tipos de contribuciones: guías de herramientas, tutoriales, troubleshooting, mejoras del README, traducciones
+  - Proceso de contribución en 4 fases: identificación, desarrollo, integración, pull request
+  - Herramientas útiles para validación y desarrollo
+  - Prioridades de contribución: alta y media prioridad
+  - Mantiene consistencia con filosofía del proyecto de documentación concisa
+
+#### 🧪 Guía de Testing Ágil
+
+- **`docs/testing-guide.md`**: Guía completa de testing ágil
+  - Metodologías ágiles: TDD, BDD, ATDD con explicaciones concisas
+  - Proceso de testing continuo e iterativo
+  - Estrategias de testing por niveles: unitario, integración, sistema
+  - Testing multiplataforma específico para todos los SO soportados
+  - Herramientas y entornos: máquinas virtuales, contenedores Docker, entornos cloud
+  - Proceso de testing ágil en 5 fases: planificación, preparación, ejecución, análisis, seguimiento
+  - Formato de reporte de testing estándar
+  - Criterios de calidad para cobertura y calidad del testing
+  - Solución de problemas comunes y herramientas de testing automatizado
+  - Integra metodologías modernas con estrategias específicas para bintools
+
+#### 🔗 Sincronización de Cursor IDE
+
+- **`docs/cursor-sync-guide.md`**: Guía para sincronizar contexto de IA de Cursor
+  - Configuración de sincronización usando Nextcloud
+  - Script de sincronización automatizada
+  - Automatización con cron e inotify
+  - Verificación y solución de problemas
+  - Respaldos automáticos y restauración
+  - Optimización de archivos grandes (state.vscdb)
+
+#### 🚀 Instalador de OdooDevs
+
+- **`odevs-install.sh`**: Instalador automático de odoodevs
+  - Soporte para tres tipos de instalación: devs, latest, version
+  - Protocolos HTTPS y SSH configurables
+  - Workspace personalizable (workdevs por defecto)
+  - Integración completa con Docker
+  - Pre-requisitos: base, devs, dckr packages
+  - Documentación completa en `docs/odoodevs.md`
+
+### 🔄 Changed
+
+#### 📖 Reestructuración Completa del README
+
+- **Sección "Contribuir" expandida**:
+  - Nueva subsección "💻 Código" con tipos de contribución claros
+  - Nueva subsección "📚 Documentación" con proceso de contribución
+  - Nueva subsección "🧪 Testing" con metodologías ágiles
+  - Referencias a guías completas en docs/
+
+- **Sección "Instalación" mejorada**:
+  - Pre-requisitos del sistema claramente definidos
+  - Métodos de instalación con lógica de directorio explicada
+  - Opciones avanzadas del instalador documentadas
+  - Verificación y actualización con bintools-manager.sh
+
+- **Pre-requisitos agregados**:
+  - Todos los scripts ahora tienen pre-requisitos explícitos
+  - Referencias a packages.sh para instalación de dependencias
+  - Docker y herramientas específicas documentadas
+
+#### 👨‍💻 Reconocimiento de Autores
+
+- **Cursor IDE como coautor**:
+  - Agregado como coautor oficial del proyecto
+  - Información de contacto y descripción incluida
+  - Reconocimiento del impacto en el desarrollo mediante vibe coding
+
+#### 🙏 Agradecimientos Especiales
+
+- **Agradecimiento especial a Cursor IDE**:
+  - Reconocimiento de la plataforma y motores de IA
+  - Destacar la aceleración del desarrollo mediante vibe coding
+  - Enfatizar la colaboración sinérgica entre humano e IA
+  - Agregar equipos de desarrollo de Cursor IDE a la lista de agradecimientos
+
+#### 🗑️ Limpieza de Estructura
+
+- **Sección Documentación eliminada**:
+  - Removida sección redundante del nivel principal
+  - Mantenidas referencias en sección Contribuir
+  - README más limpio y enfocado
+
+### 🔧 Fixed
+
+#### 📝 Correcciones de Linting
+
+- **Errores de markdown corregidos**:
+  - Líneas en blanco alrededor de listas y títulos
+  - Múltiples líneas en blanco consecutivas
+  - Formato consistente en toda la documentación
+  - Enlaces bidireccionales funcionando correctamente
+
+#### 🔗 Enlaces y Navegación
+
+- **Enlaces de retorno agregados**:
+  - Todos los documentos en docs/ tienen enlace de retorno al README
+  - Navegación bidireccional mejorada
+  - Consistencia en formato de enlaces
+
+### 📋 Requisitos Técnicos
+
+#### Para Usuarios - v1.2.0
+
+- **Sistema**: Ubuntu, Debian, Fedora, CentOS, Arch Linux, macOS
+- **Herramientas**: curl o wget para instalación
+- **Pre-requisitos**: Definidos por script específico
+- **Documentación**: Acceso completo a guías especializadas
+
+#### Para Desarrolladores - v1.2.0
+
+- **GitHub CLI**: Para gestión de releases
+- **Git**: Para control de versiones
+- **jq**: Para procesamiento JSON
+- **Python 3**: Para herramientas Python
+- **Docker**: Para odoodevs (opcional)
+
+### 🔗 Enlaces
+
+- **Release**: [v1.2.0](https://github.com/maurorosero/bintools/releases/tag/v1.2.0)
+- **Documentación**: [README.md](README.md)
+- **Guía de Desarrolladores**: [docs/developers.md](docs/developers.md)
+- **Guía de Documentación**: [docs/documentation-guide.md](docs/documentation-guide.md)
+- **Guía de Testing**: [docs/testing-guide.md](docs/testing-guide.md)
+- **Sincronización Cursor**: [docs/cursor-sync-guide.md](docs/cursor-sync-guide.md)
+- **OdooDevs**: [docs/odoodevs.md](docs/odoodevs.md)
+- **Autores**: [Mauro Rosero Pérez](https://mauro.rosero.one) y [Cursor IDE](https://cursor.sh)
+
 ## [1.1.3] - 2025-01-27
 
 ### ✨ Added
