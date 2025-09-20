@@ -320,6 +320,27 @@ Para mayor información, consulta la [documentación completa de odoodevs](docs/
 
 Para información completa, consulta la [documentación detallada](docs/odoodevs.md).
 
+#### `pymanager.sh` - Gestor de Entornos Python
+
+Gestor completo de entornos virtuales Python con instalación automática, creación de entornos y gestión de dependencias. Simplifica el desarrollo Python con herramientas modernas y configuración automática.
+
+Para mayor información, consulta la [documentación completa de pymanager](docs/pymanager.md).
+
+**Pre-requisitos:**
+
+- Python 3.6+ instalado en el sistema
+- pip (gestor de paquetes Python)
+- Herramientas base del sistema (`packages.sh --list base`)
+
+**Características:**
+
+- 🐍 **Instalación automática de Python**: Detecta e instala versiones requeridas
+- 🌐 **Gestión de entornos virtuales**: Creación, activación y gestión automática
+- 📦 **Gestión de dependencias**: Instalación y actualización de paquetes
+- 🔧 **Configuración automática**: Setup completo de entorno de desarrollo
+- ✅ **Multiplataforma**: Compatible con Linux, macOS y Windows
+- 🛠️ **Integración con herramientas**: Compatible con pip, poetry, pipenv
+
 ## 🤝 Contribuir
 
 ¿Tienes una herramienta que te gustaría agregar? ¡Es fácil!
