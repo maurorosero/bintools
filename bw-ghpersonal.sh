@@ -26,18 +26,18 @@ fi
 
 # Verificar que el campo del token existe
 echo "🔍 Verificando que el campo '${CURRENT_USER} FULL ACCESS TOKEN' existe..."
-if ! bw get item "GITHUB" | grep -q "\"${CURRENT_USER} FULL ACCESS TOKEN\""; then
+if ! bw get item "GITHUB" | jq -e ".fields[] | select(.name == \"${CURRENT_USER} FULL ACCESS TOKEN\")" >/dev/null 2>&1; then
     echo "❌ Error: No se encontró el campo '${CURRENT_USER} FULL ACCESS TOKEN' en el item GITHUB."
     echo "💡 Campos disponibles en el item GITHUB:"
     bw get item "GITHUB" | jq -r '.fields[] | .name' 2>/dev/null || echo "   (No se pudieron obtener los nombres de campos)"
     exit 1
 fi
 
-# Obtener el token desde Bitwarden y guardarlo en git-tokens.py
-echo "🔑 Extrayendo token de GitHub..."
-TOKEN=$(bw get item "GITHUB" | grep -o "\"${CURRENT_USER} FULL ACCESS TOKEN\",\"value\":\"[^\"]*\"" | sed "s/.*\"value\":\"\([^\"]*\)\".*/\1/")
+# Obtener el token completo desde Bitwarden usando jq
+echo "🔑 Extrayendo token completo de GitHub..."
+TOKEN=$(bw get item "GITHUB" | jq -r ".fields[] | select(.name == \"${CURRENT_USER} FULL ACCESS TOKEN\") | .value")
 
-if [ -z "$TOKEN" ]; then
+if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
     echo "❌ Error: No se pudo extraer el token del campo '${CURRENT_USER} FULL ACCESS TOKEN'."
     echo "💡 Verifica que el campo contiene un token válido."
     exit 1
