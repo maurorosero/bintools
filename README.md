@@ -155,7 +155,7 @@ Obtiene automáticamente el token de GitHub personal desde Bitwarden y lo guarda
 **¿Cómo funciona?**
 
 1. Obtiene tu usuario actual del sistema (`whoami`)
-2. Convierte el usuario a mayúsculas (ej: `[TU_USUARIO]` → `[TU_USUARIO]`)
+2. Convierte el usuario a mayúsculas (ej: `[TU_USUARIO]` → `[TU_USUARIO EN MAYÚSCULA]`)
 3. Busca en Bitwarden el campo `"[TU_USUARIO] FULL TOKEN"` en el item "GITHUB"
 4. Extrae el token usando `grep` y `sed`
 5. Pasa el token a `git-tokens.py set github-personal --token -`
