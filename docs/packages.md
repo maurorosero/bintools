@@ -219,23 +219,31 @@ Algunos paquetes requieren repositorios externos que no están configurados por 
 
 ### ⚠️ Importante: Repositorio de Charm para gum
 
-**Para instalar `gum`** (herramienta moderna de línea de comandos), **debes configurar primero el repositorio de Charm**:
+**Para instalar `gum`** (herramienta moderna de línea de comandos), **algunos sistemas requieren configuración previa de repositorios**:
+
+**Sistemas que requieren configuración de repositorio Charm:**
+
+- Ubuntu/Debian: Requiere repositorio de Charm
+- CentOS/RHEL: Requiere repositorio de Charm
+
+**Sistemas que NO requieren configuración (disponible en repositorios oficiales):**
+
+- Fedora: Disponible en repositorios oficiales
+- Arch Linux: Disponible en repositorios oficiales
+- macOS: Disponible via Homebrew
 
 ```bash
+# Para sistemas que requieren configuración previa:
 # 1. Configurar repositorio de Charm
 ./repo-install.sh --configure base-charm-repo
 
-# 2. Luego instalar paquetes que dependen del repositorio
+# 2. Instalar gum
+./packages.sh --list gums
+
+# Para sistemas con repositorios oficiales:
+# Instalar directamente
 ./packages.sh --list gums
 ```
-
-**Sistemas que requieren configuración previa:**
-
-- Ubuntu/Debian: Requiere repositorio de Charm
-- Fedora: Requiere repositorio de Charm  
-- CentOS/RHEL: Requiere repositorio de Charm
-- Arch Linux: No requiere (usa AUR)
-- macOS: No requiere (usa Homebrew)
 
 ### Flujo de Trabajo Completo
 
@@ -268,7 +276,7 @@ Para información detallada sobre gestión de repositorios, consulta la [guía c
 | **GUI en servidor** | Usar `--headless` para forzar |
 | **yay no instalado** | Ejecutar `--install-yay` primero |
 | **snapd no disponible** | Verificar compatibilidad del sistema |
-| **gum no se instala** | Configurar repositorio: `./repo-install.sh --configure base-charm-repo` |
+| **gum no se instala** | En Ubuntu/Debian/CentOS: `./repo-install.sh --configure base-charm-repo` |
 
 ### Logs y Debugging
 

@@ -85,10 +85,14 @@ arch, manjaro, macos
 **Descripción**: Configura el repositorio oficial de Charm para instalar `gum` y otras herramientas modernas de línea de comandos.
 
 **Sistemas Soportados**:
-- Ubuntu
-- Debian  
-- Fedora
-- CentOS/RHEL
+- Ubuntu (requiere repositorio Charm)
+- Debian (requiere repositorio Charm)
+- Fedora (disponible en repositorios oficiales)
+- CentOS/RHEL (requiere repositorio Charm)
+
+**Sistemas que NO requieren este script**:
+- Arch Linux (disponible en repositorios oficiales)
+- macOS (disponible via Homebrew)
 
 **¿Qué hace?**
 - Descarga y configura la clave GPG de Charm
@@ -113,10 +117,7 @@ sudo apt install gum
 
 ```bash
 
-# Configurar repositorio
-./repo-install.sh --configure base-charm-repo
-
-# Instalar gum
+# gum está disponible en repositorios oficiales, no requiere configuración
 sudo dnf install gum
 ```bash
 
@@ -143,13 +144,13 @@ repos/
 ├── debian/
 │   └── base-charm-repo.sh
 ├── fedora/
-│   └── base-charm-repo.sh
+│   └── base-charm-repo.sh (instala desde repositorios oficiales)
 ├── centos/
 │   └── base-charm-repo.sh
 ├── arch/
-│   └── (vacío - usa AUR)
+│   └── (vacío - gum disponible en repositorios oficiales)
 └── macos/
-    └── (vacío - usa Homebrew)
+    └── (vacío - gum disponible via Homebrew)
 ```bash
 
 

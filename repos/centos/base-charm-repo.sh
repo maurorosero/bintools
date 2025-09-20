@@ -6,21 +6,45 @@ set -e
 
 echo "🔧 Configurando repositorio de Charm para CentOS..."
 
-# Crear directorio de keyrings si no existe
-echo "📁 Creando directorio de keyrings..."
-sudo mkdir -p /etc/apt/keyrings
+# Verificar si gum ya está instalado
+if command -v gum >/dev/null 2>&1; then
+    echo "✅ gum ya está instalado"
+    gum --version
+    exit 0
+fi
+
+# Crear directorio para repositorios
+echo "📁 Creando directorio para repositorios..."
+sudo mkdir -p /etc/yum.repos.d
 
 # Descargar y configurar clave GPG
 echo "🔑 Descargando y configurando clave GPG..."
-curl -fsSL https://repo.charm.sh/apt/gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/charm.gpg
+sudo rpm --import https://repo.charm.sh/yum/gpg.key
 
-# Agregar repositorio a sources.list
-echo "📝 Agregando repositorio a sources.list..."
-echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | sudo tee /etc/apt/sources.list.d/charm.list
+# Crear archivo de repositorio
+echo "📝 Creando archivo de repositorio..."
+sudo tee /etc/yum.repos.d/charm.repo > /dev/null <<EOF
+[charm]
+name=Charm
+baseurl=https://repo.charm.sh/yum/
+enabled=1
+gpgcheck=1
+gpgkey=https://repo.charm.sh/yum/gpg.key
+EOF
 
-# Actualizar lista de paquetes
-echo "🔄 Actualizando lista de paquetes..."
-sudo apt update
+# Actualizar caché de paquetes
+echo "🔄 Actualizando caché de paquetes..."
+sudo dnf makecache
 
-echo "✅ Repositorio de Charm configurado exitosamente!"
-echo "📦 Ahora puedes instalar gum con: sudo apt install gum"
+# Instalar gum
+echo "📦 Instalando gum..."
+sudo dnf install -y gum
+
+# Verificar instalación
+if command -v gum >/dev/null 2>&1; then
+    echo "✅ Repositorio de Charm configurado y gum instalado exitosamente!"
+    gum --version
+else
+    echo "❌ Error instalando gum"
+    exit 1
+fi

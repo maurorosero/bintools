@@ -1,26 +1,27 @@
 #!/bin/bash
-# Script para configurar el repositorio de Charm en Fedora
-# Permite instalar gum desde repositorio oficial
+# Script para instalar gum en Fedora
+# gum está disponible en repositorios oficiales de Fedora
 
 set -e
 
-echo "🔧 Configurando repositorio de Charm para Fedora..."
+echo "🔧 Instalando gum en Fedora..."
 
-# Crear directorio de keyrings si no existe
-echo "📁 Creando directorio de keyrings..."
-sudo mkdir -p /etc/apt/keyrings
+# Verificar si gum ya está instalado
+if command -v gum >/dev/null 2>&1; then
+    echo "✅ gum ya está instalado"
+    gum --version
+    exit 0
+fi
 
-# Descargar y configurar clave GPG
-echo "🔑 Descargando y configurando clave GPG..."
-curl -fsSL https://repo.charm.sh/apt/gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/charm.gpg
+# Instalar gum desde repositorios oficiales
+echo "📦 Instalando gum desde repositorios oficiales..."
+sudo dnf install -y gum
 
-# Agregar repositorio a sources.list
-echo "📝 Agregando repositorio a sources.list..."
-echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | sudo tee /etc/apt/sources.list.d/charm.list
-
-# Actualizar lista de paquetes
-echo "🔄 Actualizando lista de paquetes..."
-sudo apt update
-
-echo "✅ Repositorio de Charm configurado exitosamente!"
-echo "📦 Ahora puedes instalar gum con: sudo apt install gum"
+# Verificar instalación
+if command -v gum >/dev/null 2>&1; then
+    echo "✅ gum instalado exitosamente!"
+    gum --version
+else
+    echo "❌ Error instalando gum"
+    exit 1
+fi
