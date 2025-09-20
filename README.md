@@ -461,23 +461,6 @@ Para contribuir con código al proyecto:
 - Guía de releases y versionado
 - Mejores prácticas para contribuciones
 
-### 📚 Documentación
-
-Para contribuir con documentación al proyecto:
-
-- **Guías de herramientas**: Crear o mejorar documentación específica para herramientas
-- **Tutoriales y ejemplos**: Agregar casos de uso prácticos y ejemplos funcionales
-- **Solución de problemas**: Expandir troubleshooting y problemas comunes
-- **Mejoras del README**: Mejorar estructura, navegación y claridad
-- **Traducciones**: Documentación en otros idiomas
-
-**📖 Guía completa para documentación**: Consulta la [guía de contribución de documentación](docs/documentation-guide.md) que incluye:
-
-- Estilo y formato estándar del proyecto
-- Proceso paso a paso para crear/mejorar documentación
-- Convenciones de estructura y navegación
-- Checklist de calidad y revisión
-
 ### 🧪 Testing
 
 Para contribuir con testing al proyecto:
@@ -500,13 +483,19 @@ Para contribuir con testing al proyecto:
 
 GNU General Public License v3.0 - Software libre que puedes usar, modificar y distribuir bajo los términos de la GPL v3.
 
-## 👨‍💻 Autor
+## 👨‍💻 Autores
 
 ### Mauro Rosero Pérez
 
 - Website: [mauro.rosero.one](https://mauro.rosero.one)
 - Email: [mauro.rosero@gmail.com](mailto:mauro.rosero@gmail.com)
 - GitHub: [@maurorosero](https://github.com/maurorosero)
+
+### Cursor IDE
+
+- Website: [cursor.sh](https://cursor.sh)
+- Plataforma de desarrollo con IA integrada
+- Co-autor en el desarrollo de este proyecto mediante vibe coding
 
 ## 📚 Documentación
 
@@ -516,9 +505,18 @@ Para información detallada sobre desarrollo:
 
 ## 🙏 Agradecimientos
 
+### 🚀 Agradecimiento Especial
+
+Un agradecimiento muy especial a la **plataforma Cursor IDE** y a todos los **motores de inteligencia artificial** involucrados que han hecho posible el desarrollo de este proyecto mediante **vibe coding** con guía y auditoría humana en fracciones del tiempo que me tomaría desarrollar tradicionalmente.
+
+La integración perfecta entre inteligencia artificial y desarrollo humano ha revolucionado la forma en que construimos software, permitiendo una colaboración sinérgica que acelera la innovación y mejora la calidad del código.
+
+### 🌟 Comunidad y Herramientas
+
 - Comunidad de desarrolladores de Linux y macOS
 - Mantenedores de los repositorios de paquetes
 - Desarrolladores de las herramientas incluidas
+- Equipos de desarrollo de Cursor IDE y tecnologías de IA
 
 ---
 
