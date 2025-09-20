@@ -169,11 +169,7 @@ Obtiene automáticamente el token de GitHub personal desde Bitwarden y lo guarda
 
 ### 🚀 Instalador de OdooDevs (`odevs-install.sh`)
 
-Instalador automático de odoodevs, un entorno de desarrollo completo para Odoo con múltiples opciones de configuración.
-
-**¿Qué es odoodevs?**
-
-odoodevs es un entorno de desarrollo profesional para Odoo que incluye herramientas, configuraciones y scripts optimizados para el desarrollo eficiente de aplicaciones Odoo. Proporciona un setup completo con Docker, herramientas de debugging, y configuraciones predefinidas.
+Instalador automático de odoodevs, un entorno de desarrollo profesional para Odoo con herramientas, configuraciones y scripts optimizados. Incluye setup completo con Docker, herramientas de debugging y configuraciones predefinidas.
 
 Para mayor información, consulta la [documentación completa de odoodevs](docs/odoodevs.md).
 
