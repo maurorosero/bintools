@@ -444,11 +444,22 @@ Para mayor información, consulta la [documentación completa de pymanager](docs
 
 ## 🤝 Contribuir
 
-¿Tienes una herramienta que te gustaría agregar? ¡Es fácil!
+### 💻 Código
 
-1. Fork el proyecto
-2. Agrega tu herramienta al archivo correspondiente en `configs/`
-3. Haz un Pull Request
+Para contribuir con código al proyecto:
+
+- **Nuevas herramientas**: Agregar scripts útiles y funcionalidades
+- **Mejoras**: Optimizaciones y nuevas funcionalidades para herramientas existentes
+- **Corrección de bugs**: Fixes y mejoras de estabilidad
+- **Documentación técnica**: Comentarios en código y documentación de herramientas
+
+**📖 Guía completa para desarrolladores**: Consulta la [documentación para desarrolladores](docs/developers.md) que incluye:
+
+- Instalación y configuración del entorno de desarrollo
+- Estructura del proyecto y convenciones de código
+- Proceso de desarrollo y testing
+- Guía de releases y versionado
+- Mejores prácticas para contribuciones
 
 ## 📝 Licencia
 
