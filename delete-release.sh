@@ -53,6 +53,7 @@ DESCRIPCIÓN:
 OPCIONES:
     -v, --version VERSION    Versión del release a eliminar (requerido)
     -t, --delete-tag         También eliminar el tag de Git (local y remoto)
+    --tag-only               Solo eliminar el tag de Git, no el release
     -f, --force             No pedir confirmación
     -l, --list              Listar releases disponibles
     -h, --help              Mostrar esta ayuda
@@ -67,12 +68,16 @@ EJEMPLOS:
     # Eliminar release y tag
     $0 --version v1.0.0 --delete-tag
 
+    # Eliminar solo el tag (mantener release)
+    $0 --version v1.0.0 --tag-only
+
     # Eliminar sin confirmación
     $0 --version v1.0.0 --delete-tag --force
 
 NOTAS:
     - Por defecto solo elimina el release de GitHub, no el tag de Git
     - Usa --delete-tag para eliminar también el tag local y remoto
+    - Usa --tag-only para eliminar solo el tag, no el release
     - Usa --force para saltar confirmaciones (útil para scripts)
     - Requiere GitHub CLI (gh) instalado y autenticado
 
@@ -241,6 +246,7 @@ delete_git_tag() {
 main() {
     local version=""
     local delete_tag=false
+    local tag_only=false
     local force=false
     local list_only=false
     
@@ -253,6 +259,10 @@ main() {
                 ;;
             -t|--delete-tag)
                 delete_tag=true
+                shift
+                ;;
+            --tag-only)
+                tag_only=true
                 shift
                 ;;
             -f|--force)
@@ -288,6 +298,13 @@ main() {
         exit 1
     fi
     
+    # Validar opciones mutuamente excluyentes
+    if [[ "$delete_tag" == "true" && "$tag_only" == "true" ]]; then
+        log "ERROR" "Las opciones --delete-tag y --tag-only son mutuamente excluyentes"
+        show_help
+        exit 1
+    fi
+    
     # Verificar que GitHub CLI esté instalado
     if ! command -v gh >/dev/null 2>&1; then
         log "ERROR" "GitHub CLI no está instalado"
@@ -302,29 +319,44 @@ main() {
         exit 1
     fi
     
-    log "INFO" "Iniciando eliminación de release $version..."
-    
-    # Eliminar release de GitHub
-    if ! delete_github_release "$version" "$force"; then
-        exit 1
-    fi
-    
-    # Eliminar tag de Git si se solicita
-    if [[ "$delete_tag" == "true" ]]; then
+    # Determinar qué acción realizar
+    if [[ "$tag_only" == "true" ]]; then
+        log "INFO" "Iniciando eliminación de tag $version (mantener release)..."
+        
+        # Solo eliminar tag de Git
         if ! delete_git_tag "$version" "$force"; then
-            log "WARNING" "Release eliminado pero hubo problemas con el tag"
+            log "ERROR" "Error eliminando el tag $version"
             exit 1
         fi
+        
+        log "SUCCESS" "🎉 Tag $version eliminado exitosamente!"
+        log "INFO" "Tag eliminado, release conservado en GitHub"
+        
     else
-        log "INFO" "Tag $version conservado (usa --delete-tag para eliminarlo)"
-    fi
-    
-    log "SUCCESS" "🎉 Release $version eliminado exitosamente!"
-    
-    if [[ "$delete_tag" == "true" ]]; then
-        log "INFO" "Release y tag eliminados completamente"
-    else
-        log "INFO" "Solo release eliminado, tag conservado"
+        log "INFO" "Iniciando eliminación de release $version..."
+        
+        # Eliminar release de GitHub
+        if ! delete_github_release "$version" "$force"; then
+            exit 1
+        fi
+        
+        # Eliminar tag de Git si se solicita
+        if [[ "$delete_tag" == "true" ]]; then
+            if ! delete_git_tag "$version" "$force"; then
+                log "WARNING" "Release eliminado pero hubo problemas con el tag"
+                exit 1
+            fi
+        else
+            log "INFO" "Tag $version conservado (usa --delete-tag para eliminarlo)"
+        fi
+        
+        log "SUCCESS" "🎉 Release $version eliminado exitosamente!"
+        
+        if [[ "$delete_tag" == "true" ]]; then
+            log "INFO" "Release y tag eliminados completamente"
+        else
+            log "INFO" "Solo release eliminado, tag conservado"
+        fi
     fi
 }
 
