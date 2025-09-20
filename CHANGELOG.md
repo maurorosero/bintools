@@ -198,6 +198,11 @@ Versión 1.2.0 introduce una expansión significativa de la documentación del p
   - Sistema de verificación completamente dinámico y mantenible
   - Mejor experiencia de usuario con ejemplos más claros y consistentes
 
+- **`install.sh` mejorado**:
+  - Eliminación completa de listas hardcodeadas de comandos disponibles
+  - Mensajes de instalación más limpios y dinámicos
+  - Consistencia con el resto del proyecto sin referencias hardcodeadas
+
 #### 📝 Correcciones del Changelog
 
 - **Reorganización y corrección de fechas**:
