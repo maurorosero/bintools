@@ -163,9 +163,9 @@ Obtiene automáticamente el token de GitHub personal desde Bitwarden y lo guarda
 
 **Requisitos:**
 
-- Bitwarden CLI (`bw`) instalado y configurado
+- Tener instalado bintools (contiene `git-tokens.py`) e instalados los pre-requisitos (`packages.sh --list base`)
+- Bitwarden CLI (`bw`) instalado y configurado (`packages.sh --list bwdn`)
 - Item llamado exactamente "GITHUB" en Bitwarden/Vaultwarden con campo `"[TU_USUARIO] FULL TOKEN"`
-- `git-tokens.py` disponible en el mismo directorio
 
 ### 🚀 Instalador de OdooDevs (`odevs-install.sh`)
 
