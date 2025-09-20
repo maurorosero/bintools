@@ -106,13 +106,13 @@ Para verificar la instalación y actualizar bintools, usa el gestor integrado:
 
 ```bash
 # Verificar instalación y estado
-./bintools-manager.sh --status
+bintools-manager.sh --status
 
 # Actualizar bintools a la última versión
-./bintools-manager.sh --update
+bintools-manager.sh --update
 
 # Ver ayuda completa del gestor
-./bintools-manager.sh --help
+bintools-manager.sh --help
 ```
 
 ## 📖 Descripción de Herramientas
