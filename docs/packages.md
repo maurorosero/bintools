@@ -61,10 +61,9 @@
 # Método 1: Descarga directa
 curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/packages.sh | bash -s -- --list base
 
-# Método 2: Con bintools
-git clone https://github.com/maurorosero/bintools.git
-cd bintools
-./packages.sh --list base
+# Método 2: Con bintools instalado
+curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash
+packages.sh --list base
 ```
 
 ### Sintaxis y Opciones
