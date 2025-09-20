@@ -497,7 +497,6 @@ GNU General Public License v3.0 - Software libre que puedes usar, modificar y di
 - Plataforma de desarrollo con IA integrada
 - Co-autor en el desarrollo de este proyecto mediante vibe coding
 
-
 ## 🙏 Agradecimientos
 
 ### 🚀 Agradecimiento Especial
@@ -522,6 +521,6 @@ La integración perfecta entre inteligencia artificial y desarrollo humano ha re
 Si tienes problemas o sugerencias:
 
 1. Abre un [Issue](https://github.com/maurorosero/bintools/issues)
-2. Visita [mauro.rosero.one](https://mauro.rosero.one) para más información
+2. Visita [mauro.rosero.one](https://mauro.rosero.one) para más información acerca de mí, mi hoja de vida y mis proyectos.
 3. Contacta al autor por email
 4. Revisa la documentación de las herramientas específicas
