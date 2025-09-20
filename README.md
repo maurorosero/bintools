@@ -320,67 +320,6 @@ Para mayor información, consulta la [documentación completa de odoodevs](docs/
 
 Para información completa, consulta la [documentación detallada](docs/odoodevs.md).
 
-## 📖 Uso Básico
-
-### Resolver Problemas del Sistema
-
-```bash
-# Solucionar problemas de audio HDMI
-./fix_hdmi_audio.sh
-
-# Configurar resoluciones de pantalla automáticamente
-./videoset.sh --auto
-
-# Gestión completa de Nextcloud
-./nxcloud-backup.sh --backup          # Crear backup de configuración
-./nxcloud-backup.sh --secure          # Configurar sincronización de ~/secure
-./nxcloud-backup.sh --clean-sync      # Limpiar archivos de sync no deseados
-./nxcloud-backup.sh --list            # Listar backups disponibles
-
-# Convertir rutas de red a formato hexadecimal
-./hexroute 172.16.0.0/16 gw 192.168.1.1
-
-# Enviar archivo de forma segura con Bitwarden
-./bw-send.sh --file documento.pdf --expiration 7
-
-# Obtener token de GitHub desde Bitwarden automáticamente
-./bw-ghpersonal.sh
-```
-
-
-### Instalar Cursor IDE
-
-```bash
-# Instalar Cursor IDE
-python micursor.py --install
-
-# Crear backup de configuración
-python micursor.py --backup-login
-```
-
-### Configurar Python
-
-```bash
-# Instalar Python completo
-./pymanager.sh --install-python
-
-# Crear entorno para un proyecto
-./pymanager.sh --create mi-proyecto
-```
-
-### Configurar Repositorios OS-específicos
-
-```bash
-# Listar scripts de configuración disponibles para tu OS
-./repo-install.sh --list
-
-# Configurar repositorio Charm (para herramientas como gum)
-./repo-install.sh --configure base-charm-repo
-
-# Ver ayuda del gestor de repositorios
-./repo-install.sh --help
-```
-
 ## 🚀 Características Avanzadas del Instalador
 
 ### Gestión Inteligente de Paquetes
