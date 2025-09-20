@@ -186,6 +186,24 @@ Versión 1.2.0 introduce una expansión significativa de la documentación del p
   - Archivos de diagnóstico temporales eliminados
   - Mantenimiento de estructura de proyecto limpia
 
+#### 🛠️ Mejoras en Gestión de Versiones
+
+- **`bintools-manager.sh` mejorado**:
+  - Referencias relativas en lugar de listas absolutas de comandos
+  - Ejemplos del help actualizados para usar nombre del comando (`bintools-manager`) en lugar de `$0`
+  - Verificación dinámica de permisos de ejecución usando `find` en lugar de listas hardcodeadas
+  - Información de comandos disponibles ahora referencia al README.md
+  - Mejor experiencia de usuario con ejemplos más claros y consistentes
+
+#### 📝 Correcciones del Changelog
+
+- **Reorganización y corrección de fechas**:
+  - Fecha de v1.2.0 corregida de `2025-01-27` a `2025-09-20`
+  - Eliminada versión inexistente v1.1.3 del changelog
+  - Contenido de herramientas de gestión de secretos movido correctamente a v1.1.2
+  - Estructura de changelog reorganizada y consistente
+  - Todas las fechas actualizadas y verificadas
+
 ### 📋 Requisitos Técnicos
 
 #### Para Usuarios - v1.2.0
