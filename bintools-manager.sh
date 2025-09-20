@@ -207,18 +207,38 @@ check_installation() {
         local version
         version=$(cat "$install_dir/VERSION")
         
-        # Verificar archivos principales
-        local required_files=("packages.sh" "micursor.py" "pymanager.sh" "VERSION")
-        local missing_files=()
-        
-        for file in "${required_files[@]}"; do
-            if [[ -f "$install_dir/$file" ]]; then
-                log "SUCCESS" "✓ $file"
+        # Verificar archivos principales usando release-config.yml
+        if [[ -f "$install_dir/configs/release-config.yml" ]]; then
+            log "INFO" "Verificando archivos principales usando release-config.yml..."
+            
+            # Extraer archivos principales del YAML
+            local main_files
+            main_files=$(grep -A 20 "^main_files:" "$install_dir/configs/release-config.yml" | \
+                        grep "^\s*-\s" | \
+                        sed 's/^\s*-\s*//' | \
+                        head -20)
+            
+            local missing_files=()
+            while IFS= read -r file; do
+                if [[ -n "$file" ]]; then
+                    if [[ -f "$install_dir/$file" ]]; then
+                        log "SUCCESS" "✓ $file"
+                    else
+                        missing_files+=("$file")
+                        log "ERROR" "✗ $file (faltante)"
+                    fi
+                fi
+            done <<< "$main_files"
+            
+            if [[ ${#missing_files[@]} -eq 0 ]]; then
+                log "SUCCESS" "Todos los archivos principales verificados"
             else
-                missing_files+=("$file")
-                log "ERROR" "✗ $file (faltante)"
+                log "ERROR" "Faltan archivos principales: ${missing_files[*]}"
+                return 1
             fi
-        done
+        else
+            log "WARNING" "No se encontró release-config.yml, saltando verificación de archivos"
+        fi
         
         # Verificar directorio de configuraciones
         if [[ -d "$install_dir/configs" ]]; then
@@ -239,13 +259,8 @@ check_installation() {
             log "WARNING" "⚠ $filename (no ejecutable)"
         done
         
-        if [[ ${#missing_files[@]} -eq 0 ]]; then
-            log "SUCCESS" "Instalación verificada correctamente"
-            log "INFO" "Versión: $version"
-        else
-            log "ERROR" "Instalación incompleta o corrupta"
-            return 1
-        fi
+        log "SUCCESS" "Instalación verificada correctamente"
+        log "INFO" "Versión: $version"
         
     else
         log "ERROR" "${PROJECT_NAME} no está instalado"
