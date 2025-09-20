@@ -100,46 +100,19 @@ curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.s
 | `--dry-run` | Solo mostrar qué se haría | `--dry-run` |
 | `--verbose` | Mostrar información detallada | `--verbose` |
 
-#### Método 2: Clonado Manual (Para Desarrollo)
+### Verificación y Actualización
+
+Para verificar la instalación y actualizar bintools, usa el gestor integrado:
 
 ```bash
-# Clonar el repositorio
-git clone https://github.com/maurorosero/bintools.git
-cd bintools
+# Verificar instalación y estado
+./bintools-manager.sh --status
 
-# Establecer permisos correctos y seguros para desarrollo
-./btfixperms.sh
+# Actualizar bintools a la última versión
+./bintools-manager.sh --update
 
-# ¡Listo! Ya puedes usar las herramientas para desarrollo
-```
-
-**Nota para Desarrolladores:**
-
-- Ejecuta `./btfixperms.sh` después de clonar para establecer permisos correctos
-- Vuelve a ejecutarlo si experimentas problemas de permisos
-- El script solo afecta el ambiente de desarrollo, no es necesario para usuarios finales
-
-### Verificación de Instalación
-
-```bash
-# Verificar que bintools está instalado
-packages.sh --version
-
-# Verificar que las herramientas están en el PATH
-which packages.sh
-
-# Listar herramientas disponibles
-ls ~/bin/bintools*  # O el directorio donde instalaste
-```
-
-### Actualización
-
-```bash
-# Actualizar a la última versión
-curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash
-
-# O si ya tienes bintools instalado
-bintools-update  # Si está disponible
+# Ver ayuda completa del gestor
+./bintools-manager.sh --help
 ```
 
 ## 📖 Descripción de Herramientas
