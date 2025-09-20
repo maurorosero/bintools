@@ -108,6 +108,7 @@ Para usuarios que necesitan una versión específica:
 ```
 
 **Requisitos para SSH:**
+
 - Clave SSH configurada en GitHub
 - Conexión SSH verificada
 
@@ -145,7 +146,7 @@ odevs-manager
 
 ### Estructura del Proyecto
 
-```
+```text
 workdevs/                    # Directorio principal (o el que especifiques)
 ├── bin/                     # Comandos ejecutables
 ├── config/                  # Configuraciones
@@ -349,19 +350,27 @@ docker-compose up -d
 Si quieres contribuir al proyecto odoodevs:
 
 1. **Fork el repositorio**
+
 2. **Clona tu fork**:
+
    ```bash
    git clone git@github.com:tu-usuario/odoodevs.git
    ```
+
 3. **Crea una rama**:
+
    ```bash
    git checkout -b mi-feature
    ```
+
 4. **Haz tus cambios** y commits
+
 5. **Push a tu fork**:
+
    ```bash
    git push origin mi-feature
    ```
+
 6. **Crea un Pull Request**
 
 ### Reportar Problemas
@@ -411,4 +420,6 @@ Para obtener ayuda:
 
 ---
 
-*Documentación actualizada para OdooDevs v1.0.0*
+## Créditos
+
+Documentación actualizada para OdooDevs v1.0.0
