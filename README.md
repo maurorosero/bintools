@@ -79,6 +79,32 @@ Para información completa, ejemplos detallados y mejores prácticas, consulta l
 
 Herramientas para integrar Bitwarden CLI con otras aplicaciones y automatizar tareas de gestión de contraseñas.
 
+**¿Qué es Bitwarden?**
+
+Bitwarden es un gestor de contraseñas de código abierto y gratuito que permite almacenar, sincronizar y gestionar credenciales de forma segura. Incluye una interfaz de línea de comandos (CLI) que permite automatizar tareas de gestión de contraseñas y tokens desde scripts y aplicaciones.
+
+**¿Para qué sirve?**
+
+- 🔐 **Gestión segura de contraseñas**: Almacena credenciales encriptadas
+- 🔄 **Sincronización multiplataforma**: Acceso desde cualquier dispositivo
+- 🛠️ **Automatización**: CLI para integrar con scripts y aplicaciones
+- 📤 **Envío seguro**: Compartir archivos y texto de forma temporal y segura
+- 🔑 **Gestión de tokens**: Almacenar y recuperar tokens de API automáticamente
+
+**Instalación de Bitwarden CLI:**
+
+```bash
+# Instalar Bitwarden CLI automáticamente
+./packages.sh --list bwdn
+
+# Esto instalará:
+# - Bitwarden Desktop (cliente oficial)
+# - Bitwarden CLI (bw) para automatización
+# - Configuración básica del entorno
+```
+
+Para información completa sobre configuración, uso avanzado y mejores prácticas, consulta la [documentación completa de Bitwarden CLI](docs/bw.md) y la [guía de gestión de secretos](docs/secrets.md).
+
 #### `bw-send.sh` - Envío Seguro de Archivos y Texto
 
 Envía archivos o texto de forma segura usando Bitwarden CLI con URLs temporales y configuración de expiración.
