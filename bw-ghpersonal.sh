@@ -26,7 +26,7 @@ EJEMPLOS:
     # Autenticar GitHub CLI con token guardado
     $0 --login
 
-    # Ejecutar sin opciones (equivale a --get)
+    # Mostrar ayuda (comportamiento por defecto)
     $0
 
 NOTAS:
@@ -100,8 +100,9 @@ main() {
             exit 0
             ;;
         "")
-            # Sin argumentos, ejecutar --get por defecto
-            get_token
+            # Sin argumentos, mostrar ayuda por defecto
+            show_help
+            exit 0
             ;;
         *)
             echo "❌ Error: Opción desconocida '$1'"
