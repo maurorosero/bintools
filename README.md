@@ -84,6 +84,11 @@ Instala automáticamente herramientas esenciales según tu sistema operativo con
 
 **Problema que resuelve**: Audio HDMI que no funciona en Linux con PipeWire
 
+**Pre-requisitos:**
+
+- Sistema Linux con PipeWire instalado
+- Permisos para reiniciar servicios de audio
+
 **¿Qué hace?**
 
 - Detecta automáticamente dispositivos HDMI
@@ -97,6 +102,11 @@ Instala automáticamente herramientas esenciales según tu sistema operativo con
 
 **Problema que resuelve**: Resoluciones incorrectas o monitores no detectados
 
+**Pre-requisitos:**
+
+- Sistema Linux con X11 o Wayland
+- Herramientas base del sistema (`packages.sh --list base`)
+
 **¿Qué hace?**
 
 - Detecta automáticamente todos los monitores conectados
@@ -109,6 +119,11 @@ Instala automáticamente herramientas esenciales según tu sistema operativo con
 #### `nxcloud-backup.sh` - Gestor Completo de Nextcloud
 
 **Problema que resuelve**: Gestión integral de configuración y sincronización de Nextcloud
+
+**Pre-requisitos:**
+
+- Nextcloud Desktop instalado y configurado
+- Herramientas base del sistema (`packages.sh --list base`)
 
 **¿Qué hace?**
 
@@ -146,6 +161,11 @@ Instala automáticamente herramientas esenciales según tu sistema operativo con
 
 **Problema que resuelve**: Configuración de rutas de red en formato hexadecimal para DHCP
 
+**Pre-requisitos:**
+
+- Herramientas base del sistema (`packages.sh --list base`)
+- Conocimientos básicos de redes y DHCP
+
 **¿Qué hace?**
 
 - Convierte rutas CIDR a formato hexadecimal
@@ -160,6 +180,11 @@ Instala automáticamente herramientas esenciales según tu sistema operativo con
 ### 🔐 Gestor de Tokens Git (`git-tokens.py`)
 
 Gestiona tokens de autenticación de servicios Git de forma segura usando el keyring del sistema.
+
+**Pre-requisitos:**
+
+- Python 3.6+ instalado en el sistema
+- Herramientas base del sistema (`packages.sh --list base`)
 
 **¿Qué servicios soporta?**
 
@@ -228,6 +253,11 @@ Para información completa sobre configuración, uso avanzado y mejores práctic
 
 Wrapper que extiende la funcionalidad de `bw send` para permitir el envío seguro de secretos a través de múltiples canales de comunicación (Telegram, email, WhatsApp), no solo vía texto en consola.
 
+**Pre-requisitos:**
+
+- Bitwarden CLI (`bw`) instalado y configurado (`packages.sh --list bwdn`)
+- Herramientas base del sistema (`packages.sh --list base`)
+
 **¿Qué hace?**
 
 - 📁 **Envía archivos**: Sube archivos individuales o múltiples archivos
@@ -293,6 +323,12 @@ Obtiene automáticamente el token de GitHub personal desde Bitwarden y lo guarda
 Instalador automático de odoodevs, un entorno de desarrollo profesional para Odoo con herramientas, configuraciones y scripts optimizados. Incluye setup completo con Docker, herramientas de debugging y configuraciones predefinidas.
 
 Para mayor información, consulta la [documentación completa de odoodevs](docs/odoodevs.md).
+
+**Pre-requisitos:**
+
+- Herramientas base del sistema (`packages.sh --list base`)
+- Herramientas de desarrollo (`packages.sh --list devs`)
+- Docker instalado y configurado (`packages.sh --list dckr`)
 
 **Características:**
 
