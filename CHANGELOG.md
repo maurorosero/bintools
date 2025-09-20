@@ -137,6 +137,54 @@ Versión 1.2.0 introduce una expansión significativa de la documentación del p
   - Navegación bidireccional mejorada
   - Consistencia en formato de enlaces
 
+#### 🛠️ Mejoras en Herramientas de Gestión
+
+- **`delete-release.sh` mejorado**:
+  - Nueva opción `--tag-only` para eliminar solo tags sin afectar releases
+  - Validación de opciones mutuamente excluyentes (--delete-tag y --tag-only)
+  - Mensajes informativos mejorados para distinguir entre acciones
+  - Útil para casos donde solo el tag está causando problemas
+  - Mantiene compatibilidad con funcionalidad existente
+
+#### 🔐 Mejoras en Gestión de Tokens GitHub
+
+- **`bw-ghpersonal.sh` completamente refactorizado**:
+  - Nueva función `--get`: Obtiene token desde Bitwarden y lo guarda en git-tokens.py
+  - Nueva función `--login`: Autentica GitHub CLI con token guardado usando `gh auth login --with-token`
+  - Nueva función `--help`: Muestra ayuda completa (comportamiento por defecto)
+  - Sincronización automática con Bitwarden (`bw sync`) para datos actualizados
+  - Detección mejorada de errores de contraseña maestra y campos faltantes
+  - Uso de `jq` para extracción robusta de tokens completos
+  - Validaciones mejoradas para existencia de campos y tokens
+  - Comportamiento por defecto seguro (mostrar ayuda en lugar de ejecutar automáticamente)
+  - Separación clara de funcionalidades en funciones modulares
+  - Mejor experiencia de usuario con opciones explícitas
+
+#### 📚 Actualización de Documentación
+
+- **README.md actualizado**:
+  - Descripción actualizada de `bw-ghpersonal.sh`: "Gestión completa de tokens GitHub"
+  - Funcionalidades documentadas: `--get`, `--login`, `--help`
+  - Ejemplos de uso actualizados con opciones específicas
+  - Requisitos actualizados (incluyendo GitHub CLI)
+
+- **`docs/secrets.md` actualizado**:
+  - Sección `bw-ghpersonal.sh` completamente actualizada
+  - Funcionalidades detalladas con todas las opciones
+  - Ejemplos de uso con opciones específicas
+  - Configuración actualizada en sección de desarrolladores
+
+- **`docs/documentation-guide.md` corregido**:
+  - Error de linting MD047 corregido (nueva línea al final del archivo)
+  - Estructura verificada y coherente
+
+#### 🧹 Limpieza de Archivos
+
+- **Archivos temporales eliminados**:
+  - `docs/packages.md.backup` eliminado
+  - Archivos de diagnóstico temporales eliminados
+  - Mantenimiento de estructura de proyecto limpia
+
 ### 📋 Requisitos Técnicos
 
 #### Para Usuarios - v1.2.0
