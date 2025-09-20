@@ -22,6 +22,7 @@
 - **Python 3.6+** instalado en el sistema
 - **pip** (gestor de paquetes Python)
 - **Herramientas base del sistema** (`packages.sh --list base`)
+- **Herramientas de desarrollo** (`packages.sh --list devs`)
 
 ### Verificación de Requisitos
 
@@ -34,6 +35,9 @@ pip3 --version
 
 # Instalar herramientas base si es necesario
 packages.sh --list base
+
+# Instalar herramientas de desarrollo si es necesario
+packages.sh --list devs
 ```
 
 ### Instalación de Python

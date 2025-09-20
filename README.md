@@ -331,6 +331,7 @@ Para mayor información, consulta la [documentación completa de pymanager](docs
 - Python 3.6+ instalado en el sistema
 - pip (gestor de paquetes Python)
 - Herramientas base del sistema (`packages.sh --list base`)
+- Herramientas de desarrollo (`packages.sh --list devs`)
 
 **Características:**
 
