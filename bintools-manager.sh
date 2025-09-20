@@ -190,7 +190,7 @@ show_info() {
         
         echo ""
         echo "Comandos disponibles:"
-        echo "  packages, micursor, pymanager, fix_hdmi_audio, videoset, nextcloud-installer, hexroute"
+        echo "  Consulta el README.md para la lista completa de herramientas disponibles"
         
     else
         log "ERROR" "${PROJECT_NAME} no está instalado"
@@ -228,15 +228,15 @@ check_installation() {
         fi
         
         # Verificar permisos de ejecución
-        local executable_files=("packages.sh" "micursor.py" "pymanager.sh" "fix_hdmi_audio.sh" "videoset.sh" "nextcloud-installer.sh" "hexroute")
-        for file in "${executable_files[@]}"; do
-            if [[ -f "$install_dir/$file" ]]; then
-                if [[ -x "$install_dir/$file" ]]; then
-                    log "SUCCESS" "✓ $file (ejecutable)"
-                else
-                    log "WARNING" "⚠ $file (no ejecutable)"
-                fi
-            fi
+        log "INFO" "Verificando permisos de ejecución..."
+        find "$install_dir" -maxdepth 1 -type f \( -name "*.sh" -o -name "*.py" \) -executable | while read -r file; do
+            filename=$(basename "$file")
+            log "SUCCESS" "✓ $filename (ejecutable)"
+        done
+        
+        find "$install_dir" -maxdepth 1 -type f \( -name "*.sh" -o -name "*.py" \) ! -executable | while read -r file; do
+            filename=$(basename "$file")
+            log "WARNING" "⚠ $filename (no ejecutable)"
         done
         
         if [[ ${#missing_files[@]} -eq 0 ]]; then
