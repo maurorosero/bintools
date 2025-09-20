@@ -156,7 +156,7 @@ Obtiene automáticamente el token de GitHub personal desde Bitwarden y lo guarda
 
 1. Obtiene tu usuario actual del sistema (`whoami`)
 2. Convierte el usuario a mayúsculas (ej: `[TU_USUARIO]` → `[TU_USUARIO EN MAYÚSCULA]`)
-3. Busca en Bitwarden el campo `"[TU_USUARIO] FULL TOKEN"` en el item "GITHUB"
+3. Busca en Bitwarden el campo `"[TU_USUARIO] FULL TOKEN"` en el item "GITHUB" (el elemento en tu vault debe llamarse exactamente "GITHUB")
 4. Extrae el token usando `grep` y `sed`
 5. Pasa el token a `git-tokens.py set github-personal --token -`
 6. Confirma que se guardó exitosamente
@@ -164,7 +164,7 @@ Obtiene automáticamente el token de GitHub personal desde Bitwarden y lo guarda
 **Requisitos:**
 
 - Bitwarden CLI (`bw`) instalado y configurado
-- Item "GITHUB" en Bitwarden con campo `"[TU_USUARIO] FULL TOKEN"`
+- Item llamado exactamente "GITHUB" en Bitwarden/Vaultwarden con campo `"[TU_USUARIO] FULL TOKEN"`
 - `git-tokens.py` disponible en el mismo directorio
 
 ### 🚀 Instalador de OdooDevs (`odevs-install.sh`)
