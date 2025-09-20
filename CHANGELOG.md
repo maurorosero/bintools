@@ -194,9 +194,9 @@ Versión 1.2.0 introduce una expansión significativa de la documentación del p
   - Verificación dinámica de permisos de ejecución usando `find` en lugar de listas hardcodeadas
   - Verificación dinámica de archivos principales usando `release-config.yml` en lugar de lista hardcodeada
   - Extracción automática de archivos principales desde configuración YAML
-  - Información de comandos disponibles ahora referencia al README.md
-  - Mejor experiencia de usuario con ejemplos más claros y consistentes
+  - Eliminación completa de listas hardcodeadas en función `info`
   - Sistema de verificación completamente dinámico y mantenible
+  - Mejor experiencia de usuario con ejemplos más claros y consistentes
 
 #### 📝 Correcciones del Changelog
 
@@ -212,6 +212,7 @@ Versión 1.2.0 introduce una expansión significativa de la documentación del p
   - Agregadas guías: developers.md, documentation-guide.md, testing-guide.md
   - Agregadas guías de herramientas: packages.md, pymanager.md, repo.md, bw-send.md
   - Agregado `pritunl-vpn.py` a archivos principales
+  - Simplificación eliminando archivos de `docs/` redundantes (ya incluidos en directories)
   - Comentarios descriptivos actualizados para todas las nuevas guías
 
 ### 📋 Requisitos Técnicos
