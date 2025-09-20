@@ -461,6 +461,23 @@ Para contribuir con código al proyecto:
 - Guía de releases y versionado
 - Mejores prácticas para contribuciones
 
+### 📚 Documentación
+
+Para contribuir con documentación al proyecto:
+
+- **Guías de herramientas**: Crear o mejorar documentación específica para herramientas
+- **Tutoriales y ejemplos**: Agregar casos de uso prácticos y ejemplos funcionales
+- **Solución de problemas**: Expandir troubleshooting y problemas comunes
+- **Mejoras del README**: Mejorar estructura, navegación y claridad
+- **Traducciones**: Documentación en otros idiomas
+
+**📖 Guía completa para documentación**: Consulta la [guía de contribución de documentación](docs/documentation-guide.md) que incluye:
+
+- Estilo y formato estándar del proyecto
+- Proceso paso a paso para crear/mejorar documentación
+- Convenciones de estructura y navegación
+- Checklist de calidad y revisión
+
 ## 📝 Licencia
 
 GNU General Public License v3.0 - Software libre que puedes usar, modificar y distribuir bajo los términos de la GPL v3.
