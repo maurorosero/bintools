@@ -382,7 +382,6 @@ main() {
     
     # Mensaje final
     log "SUCCESS" "🎉 ${PROJECT_NAME} instalado exitosamente en $target_dir"
-    log "INFO" "Comandos disponibles: packages, micursor, pymanager, fix_hdmi_audio, videoset, nextcloud-installer, hexroute"
     
     if [[ "$target_dir" == "$HOME/bin" ]]; then
         log "INFO" "Los comandos están disponibles globalmente"
