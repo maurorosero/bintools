@@ -51,6 +51,97 @@ bintools es un conjunto de scripts que automatizan tareas comunes del sistema op
 - **`docs/cursor-sync-guide.md`**: Guía para sincronizar contexto de Cursor con Nextcloud
 - **`docs/RELEASE.md`**: Guía de releases para desarrolladores
 
+## 🚀 Instalación
+
+### Pre-requisitos del Sistema
+
+Para instalar y usar bintools, necesitas:
+
+- **Sistema operativo compatible**: Ubuntu, Debian, Fedora, CentOS, Arch Linux, macOS
+- **Acceso a internet**: Para descargar herramientas y paquetes
+- **Permisos de administrador**: Para instalar paquetes del sistema
+- **Shell compatible**: Bash o Zsh
+
+### Métodos de Instalación
+
+#### Método 1: Instalación Automática (Recomendado)
+
+```bash
+# Instalación rápida en tu sistema
+curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash
+
+# Instalación en directorio personalizado
+curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash -s -- --dir /opt/bintools
+```
+
+**Lógica de Directorio de Instalación:**
+
+- **Por defecto**: `~/bin` (`$HOME/bin`)
+- **Si `~/bin` existe**: Pregunta si extender ese directorio o usar `~/bintools`
+- **Si `~/bin` no existe**: Se crea `~/bin` automáticamente
+- **Directorio personalizado**: Usa `--dir /ruta/personalizada`
+- **PATH automático**: Se agrega automáticamente a tu PATH en `~/.bashrc` o `~/.zshrc`
+
+**Opciones Avanzadas del Instalador:**
+
+```bash
+# Instalación con opciones específicas
+curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash -s -- --version v1.1.0 --dir /opt/bintools
+
+# Ver qué haría sin instalar
+curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash -s -- --dry-run --verbose
+```
+
+| Opción | Descripción | Ejemplo |
+|--------|-------------|---------|
+| `--version` | Versión específica a instalar | `--version v1.1.0` |
+| `--dir` | Directorio de instalación personalizado | `--dir /opt/bintools` |
+| `--extend-bin` | Extender directorio ~/bin existente | `--extend-bin` |
+| `--dry-run` | Solo mostrar qué se haría | `--dry-run` |
+| `--verbose` | Mostrar información detallada | `--verbose` |
+
+#### Método 2: Clonado Manual (Para Desarrollo)
+
+```bash
+# Clonar el repositorio
+git clone https://github.com/maurorosero/bintools.git
+cd bintools
+
+# Establecer permisos correctos y seguros para desarrollo
+./btfixperms.sh
+
+# ¡Listo! Ya puedes usar las herramientas para desarrollo
+```
+
+**Nota para Desarrolladores:**
+
+- Ejecuta `./btfixperms.sh` después de clonar para establecer permisos correctos
+- Vuelve a ejecutarlo si experimentas problemas de permisos
+- El script solo afecta el ambiente de desarrollo, no es necesario para usuarios finales
+
+### Verificación de Instalación
+
+```bash
+# Verificar que bintools está instalado
+packages.sh --version
+
+# Verificar que las herramientas están en el PATH
+which packages.sh
+
+# Listar herramientas disponibles
+ls ~/bin/bintools*  # O el directorio donde instalaste
+```
+
+### Actualización
+
+```bash
+# Actualizar a la última versión
+curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash
+
+# O si ya tienes bintools instalado
+bintools-update  # Si está disponible
+```
+
 ## 📖 Descripción de Herramientas
 
 ### 📦 Instalador de Paquetes (`packages.sh`)
