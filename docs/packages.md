@@ -55,14 +55,25 @@
 
 ## 🚀 Instalación y Uso
 
-### Instalación Rápida
+### Instalación Rápida (Sin instalar bintools)
 
 ```bash
-# Método 1: Descarga directa
+# Ejemplo: Instalar herramientas básicas del sistema (curl, git, vim, etc.)
 curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/packages.sh | bash -s -- --list base
 
-# Método 2: Con bintools instalado
+# Otros ejemplos de listas disponibles:
+curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/packages.sh | bash -s -- --list devs    # Herramientas de desarrollo
+curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/packages.sh | bash -s -- --list dckr    # Docker completo
+curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/packages.sh | bash -s -- --list bwdn    # Bitwarden CLI
+```
+
+### Instalación Completa (Con bintools)
+
+```bash
+# Instalar bintools completo primero
 curl -fsSL https://raw.githubusercontent.com/maurorosero/bintools/main/install.sh | bash
+
+# Luego usar packages.sh globalmente (ejemplo: herramientas básicas)
 packages.sh --list base
 ```
 
