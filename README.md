@@ -497,11 +497,6 @@ GNU General Public License v3.0 - Software libre que puedes usar, modificar y di
 - Plataforma de desarrollo con IA integrada
 - Co-autor en el desarrollo de este proyecto mediante vibe coding
 
-## 📚 Documentación
-
-Para información detallada sobre desarrollo:
-
-- **[Guía de Releases](docs/RELEASE.md)** - Creación y gestión de releases (desarrolladores)
 
 ## 🙏 Agradecimientos
 
