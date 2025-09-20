@@ -11,6 +11,13 @@
 # - odevs-install.sh: Instalador automático de odoodevs (entorno de desarrollo Odoo)
 # - docs/odoodevs.md: Documentación completa de odoodevs
 # - docs/cursor-sync-guide.md: Guía para sincronizar contexto de Cursor con Nextcloud
+# - docs/developers.md: Guía completa para desarrolladores
+# - docs/documentation-guide.md: Guía para contribuir con documentación
+# - docs/testing-guide.md: Guía de testing ágil
+# - docs/packages.md: Guía completa de packages.sh
+# - docs/pymanager.md: Guía completa de pymanager.sh
+# - docs/repo.md: Guía completa de repo-install.sh
+# - docs/bw-send.md: Guía completa de bw-send.sh
 
 # Archivos principales que se incluyen en todos los releases
 main_files:
@@ -27,6 +34,7 @@ main_files:
   - bw-ghpersonal.sh
   - repo-install.sh
   - odevs-install.sh
+  - pritunl-vpn.py
 
 # Directorios que se incluyen completos
 directories:
@@ -49,6 +57,13 @@ optional_files:
     - docs/secrets.md
     - docs/odoodevs.md
     - docs/cursor-sync-guide.md
+    - docs/developers.md
+    - docs/documentation-guide.md
+    - docs/testing-guide.md
+    - docs/packages.md
+    - docs/pymanager.md
+    - docs/repo.md
+    - docs/bw-send.md
   
   # Herramientas de gestión de secretos
   secrets_tools:
