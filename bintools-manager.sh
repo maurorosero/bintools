@@ -36,13 +36,13 @@ COMANDOS:
     check              Verificar integridad de la instalación
 
 EJEMPLOS:
-    $0 install v1.0.0          # Instalar versión específica
-    $0 update                  # Actualizar a última versión
-    $0 version                 # Ver versión instalada
-    $0 list                    # Ver versiones disponibles
-    $0 uninstall               # Desinstalar completamente
-    $0 info                    # Información de instalación
-    $0 check                   # Verificar instalación
+    bintools-manager install v1.0.0    # Instalar versión específica
+    bintools-manager update             # Actualizar a última versión
+    bintools-manager version            # Ver versión instalada
+    bintools-manager list               # Ver versiones disponibles
+    bintools-manager uninstall          # Desinstalar completamente
+    bintools-manager info               # Información de instalación
+    bintools-manager check              # Verificar instalación
 
 OPCIONES:
     -h, --help         Mostrar esta ayuda
