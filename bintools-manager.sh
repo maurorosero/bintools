@@ -188,9 +188,6 @@ show_info() {
             done
         fi
         
-        echo ""
-        echo "Comandos disponibles:"
-        echo "  Consulta el README.md para la lista completa de herramientas disponibles"
         
     else
         log "ERROR" "${PROJECT_NAME} no está instalado"
