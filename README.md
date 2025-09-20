@@ -105,9 +105,13 @@ Bitwarden es un gestor de contraseñas de código abierto y gratuito que permite
 
 Para información completa sobre configuración, uso avanzado y mejores prácticas, consulta la [documentación completa de Bitwarden CLI](docs/bw.md) y la [guía de gestión de secretos](docs/secrets.md).
 
-#### `bw-send.sh` - Envío Seguro de Archivos y Texto
+#### `bw-send.sh` - Envío Seguro Extendido
 
-Envía archivos o texto de forma segura usando Bitwarden CLI con URLs temporales y configuración de expiración.
+Wrapper desarrollado para extender las capacidades de envío seguro de Bitwarden CLI, proporcionando múltiples canales de distribución para secretos y archivos sensibles.
+
+**¿Qué es bw-send.sh?**
+
+`bw-send.sh` es un script wrapper que extiende la funcionalidad nativa de `bw send` para permitir el envío seguro de secretos a través de múltiples canales de comunicación, no solo URLs temporales.
 
 **¿Qué hace?**
 
@@ -117,35 +121,22 @@ Envía archivos o texto de forma segura usando Bitwarden CLI con URLs temporales
 - 🔒 **Contraseña opcional**: Protege el enlace con contraseña
 - 🔢 **Límite de accesos**: Controla cuántas veces se puede acceder al enlace
 - 📋 **Notas**: Agrega notas descriptivas al envío
-- 🖥️ **Salida por consola**: Muestra la URL de acceso directamente
+- 📱 **Múltiples canales**: Telegram, email, WhatsApp (en desarrollo)
 
-**Ejemplos de uso:**
+**Uso básico:**
 
 ```bash
+# Ver ayuda completa
+./bw-send.sh --help
+
 # Enviar texto simple
 ./bw-send.sh --text "Información confidencial"
 
-# Enviar archivo con expiración personalizada
-./bw-send.sh --file documento.pdf --expiration 7
-
-# Enviar múltiples archivos con contraseña
-./bw-send.sh --file archivo1.txt archivo2.pdf --password "miPassword123"
-
-# Enviar con límite de accesos y notas
-./bw-send.sh --text "Token de API" --max-access 3 --notes "Token para proyecto X"
+# Enviar archivo
+./bw-send.sh --file documento.pdf
 ```
 
-**Opciones disponibles:**
-
-| Opción | Descripción | Ejemplo |
-|--------|-------------|---------|
-| `--text` | Texto a enviar | `--text "Mi mensaje"` |
-| `--file` | Archivo(s) a enviar | `--file doc.pdf` |
-| `--expiration` | Días hasta expiración | `--expiration 7` |
-| `--password` | Contraseña para proteger | `--password "secret"` |
-| `--max-access` | Máximo número de accesos | `--max-access 5` |
-| `--notes` | Notas descriptivas | `--notes "Para proyecto X"` |
-| `--console` | Salida por consola (por defecto) | `--console` |
+Para información completa sobre todas las opciones, canales de envío y ejemplos detallados, consulta la [documentación completa de bw-send](docs/bw-send.md) y la [guía de gestión de secretos](docs/secrets.md).
 
 #### `bw-ghpersonal.sh` - Obtención Automática de Token GitHub
 
