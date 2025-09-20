@@ -193,6 +193,60 @@ GUI, interfaz gráfica, escritorio, ventana, aplicación, cliente, editor, visor
 # No compatible: macOS, CentOS/RHEL
 ```
 
+## 📦 Gestión de Repositorios Adicionales
+
+### Configurar Repositorios Externos
+
+Algunos paquetes requieren repositorios externos que no están configurados por defecto en tu sistema. Para estos casos, usa `repo-install.sh`:
+
+```bash
+# Listar scripts de repositorio disponibles
+./repo-install.sh --list
+
+# Configurar repositorio específico
+./repo-install.sh --configure base-charm-repo
+```
+
+### ⚠️ Importante: Repositorio de Charm para gum
+
+**Para instalar `gum`** (herramienta moderna de línea de comandos), **debes configurar primero el repositorio de Charm**:
+
+```bash
+# 1. Configurar repositorio de Charm
+./repo-install.sh --configure base-charm-repo
+
+# 2. Luego instalar paquetes que dependen del repositorio
+./packages.sh --list gums
+```
+
+**Sistemas que requieren configuración previa:**
+
+- Ubuntu/Debian: Requiere repositorio de Charm
+- Fedora: Requiere repositorio de Charm  
+- CentOS/RHEL: Requiere repositorio de Charm
+- Arch Linux: No requiere (usa AUR)
+- macOS: No requiere (usa Homebrew)
+
+### Flujo de Trabajo Completo
+
+```bash
+# Configurar repositorios necesarios
+./repo-install.sh --configure base-charm-repo
+
+# Instalar paquetes básicos
+./packages.sh --list base
+
+# Instalar paquetes que dependen de repositorios externos
+./packages.sh --list gums
+
+# Instalar todo (incluyendo paquetes con dependencias externas)
+./packages.sh --list all
+```
+
+### Documentación Completa
+
+Para información detallada sobre gestión de repositorios, consulta la [guía completa de repo-install.sh](repo.md).
+
 ## 🚨 Solución de Problemas
 
 ### Problemas Comunes
@@ -204,6 +258,7 @@ GUI, interfaz gráfica, escritorio, ventana, aplicación, cliente, editor, visor
 | **GUI en servidor** | Usar `--headless` para forzar |
 | **yay no instalado** | Ejecutar `--install-yay` primero |
 | **snapd no disponible** | Verificar compatibilidad del sistema |
+| **gum no se instala** | Configurar repositorio: `./repo-install.sh --configure base-charm-repo` |
 
 ### Logs y Debugging
 
