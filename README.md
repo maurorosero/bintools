@@ -34,7 +34,7 @@ bintools es un conjunto de scripts que automatizan tareas comunes del sistema op
 - **`hexroute`**: Convierte rutas de red a formato hexadecimal para configuración DHCP
 - **`git-tokens.py`**: Gestor seguro de tokens de autenticación para servicios Git
 - **`bw-send.sh`**: Envío seguro extendido con múltiples canales de distribución
-- **`bw-ghpersonal.sh`**: Obtención automática de token GitHub desde Bitwarden
+- **`bw-ghpersonal.sh`**: Gestión completa de tokens GitHub con Bitwarden y autenticación CLI
 - **`odevs-install.sh`**: Instalador automático de odoodevs con múltiples opciones
 - **`micursor.py`**: Gestor de Cursor IDE con configuración automática
 - **`pymanager.sh`**: Configuración profesional de entornos Python
@@ -347,37 +347,49 @@ Wrapper que extiende la funcionalidad de `bw send` para permitir el envío segur
 
 Para información completa sobre todas las opciones, canales de envío y ejemplos detallados, consulta la [documentación completa de bw-send](docs/bw-send.md) y la [guía de gestión de secretos](docs/secrets.md).
 
-#### `bw-ghpersonal.sh` - Obtención Automática de Token GitHub
+#### `bw-ghpersonal.sh` - Gestión Completa de Tokens GitHub
 
-Obtiene automáticamente el token de GitHub personal desde Bitwarden y lo guarda en `git-tokens.py`.
+Gestiona tokens de GitHub con Bitwarden, incluyendo obtención, almacenamiento y autenticación automática con GitHub CLI.
 
-**¿Qué hace?**
+**Funcionalidades:**
 
-- 🔍 **Búsqueda automática**: Busca el token de GitHub en Bitwarden usando el usuario actual
+- 🔍 **`--get`**: Obtiene token desde Bitwarden y lo guarda en git-tokens.py
+- 🔐 **`--login`**: Autentica GitHub CLI con el token guardado
+- 📖 **`--help`**: Muestra ayuda completa (comportamiento por defecto)
 - 👤 **Usuario dinámico**: Reemplaza automáticamente "[TU_USUARIO]" por tu usuario actual en mayúsculas
-- 🔄 **Integración completa**: Usa pipe para pasar el token directamente a `git-tokens.py`
-- ✅ **Verificación**: Confirma que el token se guardó correctamente
+- 🔄 **Integración completa**: Sincronización automática con Bitwarden
 
 **Uso:**
 
 ```bash
-# Obtener y guardar token de GitHub personal automáticamente
+# Mostrar opciones disponibles
 ./bw-ghpersonal.sh
+
+# Obtener token desde Bitwarden y guardarlo
+./bw-ghpersonal.sh --get
+
+# Autenticar GitHub CLI con token guardado
+./bw-ghpersonal.sh --login
 ```
 
 **¿Cómo funciona?**
 
-1. Obtiene tu usuario actual del sistema (`whoami`)
-2. Convierte el usuario a mayúsculas (ej: `[TU_USUARIO]` → `[TU_USUARIO EN MAYÚSCULA]`)
-3. Busca en Bitwarden el campo `"[TU_USUARIO] FULL TOKEN"` en el item "GITHUB" (el elemento en tu vault debe llamarse exactamente "GITHUB")
+**`--get` (Obtención de Token):**
+1. Sincroniza con Bitwarden automáticamente (`bw sync`)
+2. Obtiene tu usuario actual del sistema (`whoami`) en mayúsculas
+3. Busca en Bitwarden el campo `"[TU_USUARIO] FULL TOKEN"` en el item "GITHUB"
 4. Extrae el token usando `grep` y `sed`
-5. Pasa el token a `git-tokens.py set github-personal --token -`
-6. Confirma que se guardó exitosamente
+5. Guarda el token en `git-tokens.py set github-personal --token -`
+
+**`--login` (Autenticación GitHub CLI):**
+1. Obtiene el token guardado usando `git-tokens.py get github-personal --raw`
+2. Autentica GitHub CLI automáticamente con `gh auth login --with-token`
 
 **Requisitos:**
 
 - Tener instalado bintools (contiene `git-tokens.py`) e instalados los pre-requisitos (`packages.sh --list base`)
 - Bitwarden CLI (`bw`) instalado y configurado (`packages.sh --list bwdn`)
+- GitHub CLI (`gh`) instalado para la función `--login`
 - Item llamado exactamente "GITHUB" en Bitwarden/Vaultwarden con campo `"[TU_USUARIO] FULL TOKEN"`
 
 ### 🚀 Herramientas de Desarrollo

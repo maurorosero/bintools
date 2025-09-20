@@ -290,22 +290,32 @@ bw-send.sh --file documento.pdf --expiration 7
 bw-send.sh --file config.json --password "secret123" --max-access 3
 ```
 
-##### `bw-ghpersonal.sh` - Obtención Automática de Tokens GitHub
+##### `bw-ghpersonal.sh` - Gestión Completa de Tokens GitHub
 
-Automatiza la obtención de tokens de GitHub desde Bitwarden:
+Gestiona tokens de GitHub con Bitwarden, incluyendo obtención, almacenamiento y autenticación automática con GitHub CLI:
 
 **Funcionalidades:**
 
+- **`--get`**: Obtiene token desde Bitwarden y lo guarda en git-tokens.py
+- **`--login`**: Autentica GitHub CLI con el token guardado
+- **`--help`**: Muestra ayuda completa (comportamiento por defecto)
 - **Búsqueda Automática**: Busca el token en Bitwarden usando el usuario actual
-- **Usuario Dinámico**: Reemplaza automáticamente el nombre de usuario
+- **Usuario Dinámico**: Reemplaza automáticamente el nombre de usuario en mayúsculas
+- **Sincronización Automática**: Actualiza datos de Bitwarden antes de obtener el token
 - **Integración Completa**: Guarda el token en el keyring de la computadora automáticamente
 - **Verificación**: Confirma que el token se guardó correctamente
 
 **Uso:**
 
 ```bash
-# Obtener y guardar token de GitHub automáticamente
-bw-ghpersonal.sh
+# Mostrar opciones disponibles
+./bw-ghpersonal.sh
+
+# Obtener token desde Bitwarden y guardarlo
+./bw-ghpersonal.sh --get
+
+# Autenticar GitHub CLI con token guardado
+./bw-ghpersonal.sh --login
 ```
 
 #### Manejo de 2FA mediante Bitwarden CLI
@@ -507,7 +517,7 @@ git-tokens.py list-services
 ```bash
 # Configurar entorno completo de seguridad
 packages.sh --list bwdn          # Instalar Bitwarden
-bw-ghpersonal.sh                 # Configurar token GitHub
+bw-ghpersonal.sh --get           # Configurar token GitHub
 git-tokens.py set gitlab-c-dev --token 'glpat_xxxxx'  # Configurar GitLab
 ```
 
