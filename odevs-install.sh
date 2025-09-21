@@ -14,7 +14,8 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuración por defecto
-DEFAULT_WORKSPACE="workdevs"
+DEFAULT_WORKSPACE_DEVS="odoodevs"  # Para modo developers (clonación)
+DEFAULT_WORKSPACE_INSTALL="odoo"   # Para modo install (latest/version)
 DEFAULT_PROTOCOL="https"
 ODOO_REPO="https://github.com/opentech-solutions/odoodevs.git"
 ODOO_REPO_SSH="git@github.com:opentech-solutions/odoodevs.git"
@@ -29,7 +30,7 @@ Script de instalación de odoodevs
 OPCIONES:
     -t, --type TYPE        Tipo de instalación (devs|latest|version) [requerido]
     -v, --version VER      Versión específica (solo para type=version)
-    -w, --workspace DIR    Directorio de trabajo [default: $DEFAULT_WORKSPACE]
+    -w, --workspace DIR    Directorio de trabajo [default: odoodevs para devs, odoo para install]
     -p, --protocol PROTO   Protocolo git (https|ssh) [default: $DEFAULT_PROTOCOL]
     -h, --help            Mostrar esta ayuda
 
@@ -133,21 +134,9 @@ install_devs() {
     
     if [ $? -eq 0 ]; then
         log "Repositorio clonado exitosamente"
-        log_info "Cambiando al directorio: $WORKSPACE"
-        cd "$WORKSPACE"
-        
-        # Ejecutar script de instalación si existe
-        if [ -f "install.sh" ]; then
-            log "Ejecutando script de instalación..."
-            chmod +x install.sh
-            ./install.sh
-        else
-            log_info "No se encontró script de instalación automática"
-            log_info "Sigue las instrucciones en el README del repositorio"
-        fi
-        
-        log "Instalación para desarrolladores completada"
-        log_info "Directorio: $(pwd)"
+        log_info "Directorio: $(pwd)/$WORKSPACE"
+        log_info "Para instalar odoodevs, ejecuta manualmente:"
+        log_info "  cd $WORKSPACE && ./install.sh"
     else
         log_error "Error al clonar el repositorio"
         exit 1
@@ -233,7 +222,7 @@ show_summary() {
 # Parseo de argumentos
 TYPE=""
 VERSION=""
-WORKSPACE="$DEFAULT_WORKSPACE"
+WORKSPACE=""  # Se establecerá según el tipo
 PROTOCOL="$DEFAULT_PROTOCOL"
 
 while [[ $# -gt 0 ]]; do
@@ -285,6 +274,15 @@ if [[ ! "$PROTOCOL" =~ ^(https|ssh)$ ]]; then
     log_error "Protocolo inválido: $PROTOCOL"
     log "Protocolos válidos: https, ssh"
     exit 1
+fi
+
+# Establecer workspace por defecto según el tipo
+if [ -z "$WORKSPACE" ]; then
+    if [ "$TYPE" = "devs" ]; then
+        WORKSPACE="$DEFAULT_WORKSPACE_DEVS"
+    else
+        WORKSPACE="$DEFAULT_WORKSPACE_INSTALL"
+    fi
 fi
 
 # Banner de inicio
