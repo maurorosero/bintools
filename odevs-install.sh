@@ -20,6 +20,12 @@ DEFAULT_PROTOCOL="https"
 ODOO_REPO="https://github.com/opentech-solutions/odoodevs.git"
 ODOO_REPO_SSH="git@github.com:opentech-solutions/odoodevs.git"
 
+# Información del repositorio odoodevs
+ODOO_REPO_OWNER="opentech-solutions"
+ODOO_REPO_NAME="odoodevs"
+ODOO_GITHUB_API="https://api.github.com/repos/${ODOO_REPO_OWNER}/${ODOO_REPO_NAME}"
+ODOO_RELEASE_URL="https://github.com/${ODOO_REPO_OWNER}/${ODOO_REPO_NAME}/releases/download"
+
 # Función para mostrar ayuda
 show_help() {
     cat << EOF
@@ -102,6 +108,101 @@ check_ssh_connection() {
     fi
 }
 
+# Función para obtener la última versión de odoodevs
+get_latest_odoo_version() {
+    local latest_version
+    if latest_version=$(curl -s "${ODOO_GITHUB_API}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'); then
+        echo "$latest_version"
+    else
+        return 1
+    fi
+}
+
+# Función para verificar si una versión de odoodevs existe
+verify_odoo_version() {
+    local version="$1"
+    
+    log_info "Verificando existencia de versión: $version"
+    
+    if [[ "$version" == "latest" ]]; then
+        # Para latest, verificar que podemos obtener la última versión
+        if get_latest_odoo_version > /dev/null 2>&1; then
+            return 0
+        else
+            log_error "No se puede obtener la última versión"
+            return 1
+        fi
+    fi
+    
+    if curl -s "${ODOO_GITHUB_API}/releases/tags/${version}" | grep -q '"tag_name"'; then
+        log_info "Versión $version verificada"
+        return 0
+    else
+        log_error "Versión $version no encontrada"
+        return 1
+    fi
+}
+
+# Función para descargar release de odoodevs
+download_odoo_release() {
+    local version="$1"
+    local target_dir="$2"
+    
+    # Resolver versión si es "latest"
+    if [[ "$version" == "latest" ]]; then
+        log_info "Obteniendo última versión desde GitHub API..."
+        version=$(get_latest_odoo_version)
+        if [ $? -ne 0 ]; then
+            log_error "No se pudo obtener la última versión de odoodevs"
+            exit 1
+        fi
+        log_info "Última versión encontrada: $version"
+    fi
+    
+    log_info "Descargando odoodevs $version..."
+    
+    # URL de descarga del release
+    local download_url="${ODOO_RELEASE_URL}/${version}/odoodevs-${version}.tar.gz"
+    local temp_file="/tmp/odoodevs-${version}.tar.gz"
+    
+    log_info "URL de descarga: $download_url"
+    
+    # Descargar archivo
+    if curl -fsSL "$download_url" -o "$temp_file"; then
+        log "Descarga completada"
+    else
+        log_error "Error descargando versión $version"
+        log_error "URL: $download_url"
+        exit 1
+    fi
+    
+    # Verificar integridad del archivo
+    if [[ ! -f "$temp_file" ]] || [[ ! -s "$temp_file" ]]; then
+        log_error "Archivo descargado está vacío o corrupto"
+        exit 1
+    fi
+    
+    # Crear directorio de destino
+    mkdir -p "$target_dir"
+    
+    # Extraer archivo
+    log_info "Extrayendo archivo a $target_dir..."
+    if tar -xzf "$temp_file" -C "$target_dir" --strip-components=1; then
+        log "Extracción completada"
+    else
+        log_error "Error extrayendo archivo"
+        exit 1
+    fi
+    
+    # Limpiar archivo temporal
+    rm -f "$temp_file"
+    
+    # Hacer ejecutables los scripts
+    log_info "Configurando permisos de ejecución..."
+    chmod +x "$target_dir"/*.sh 2>/dev/null || true
+    chmod +x "$target_dir"/*.py 2>/dev/null || true
+}
+
 # Función para instalar tipo devs
 install_devs() {
     log "Instalando odoodevs para desarrolladores..."
@@ -147,17 +248,15 @@ install_devs() {
 install_latest() {
     log "Instalando última versión de odoodevs..."
     
-    log_info "Descargando e instalando con script oficial..."
-    
-    # Usar el script oficial de instalación
-    curl -fsSL https://raw.githubusercontent.com/opentech-solutions/odoodevs/main/install.sh | bash
-    
-    if [ $? -eq 0 ]; then
-        log "Instalación de última versión completada"
-    else
-        log_error "Error en la instalación"
+    # Verificar versión
+    if ! verify_odoo_version "latest"; then
         exit 1
     fi
+    
+    # Descargar e instalar release
+    download_odoo_release "latest" "$WORKSPACE"
+    
+    log "Instalación de última versión completada"
 }
 
 # Función para instalar versión específica
@@ -170,17 +269,15 @@ install_version() {
     
     log "Instalando versión específica: $VERSION"
     
-    log_info "Descargando e instalando versión $VERSION..."
-    
-    # Usar el script oficial con versión específica
-    curl -fsSL https://raw.githubusercontent.com/opentech-solutions/odoodevs/main/install.sh | bash -s -- --version "$VERSION"
-    
-    if [ $? -eq 0 ]; then
-        log "Instalación de versión $VERSION completada"
-    else
-        log_error "Error en la instalación de versión $VERSION"
+    # Verificar versión
+    if ! verify_odoo_version "$VERSION"; then
         exit 1
     fi
+    
+    # Descargar e instalar release
+    download_odoo_release "$VERSION" "$WORKSPACE"
+    
+    log "Instalación de versión $VERSION completada"
 }
 
 # Función principal de instalación

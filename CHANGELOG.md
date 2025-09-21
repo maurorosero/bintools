@@ -6,6 +6,30 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2025-09-21
+
+### 🐛 Fixed
+
+#### 🔧 Mejoras en odevs-install.sh
+
+- **Corrección de duplicación de workspace**: El modo `--type devs` ya no ejecuta automáticamente el `install.sh` interno, evitando la creación de directorios duplicados
+- **Workspace dinámico por defecto**: 
+  - `--type devs`: workspace por defecto = `odoodevs`
+  - `--type latest`/`version`: workspace por defecto = `odoo`
+- **Corrección del error 404**: Implementación de descarga de releases desde GitHub API en lugar de URLs rotas
+  - `--type latest`: Descarga la última versión desde GitHub releases
+  - `--type version`: Descarga versiones específicas desde GitHub releases
+- **Lógica de releases mejorada**: Sistema robusto de descarga y extracción de releases de odoodevs
+
+### ✨ Added
+
+#### 🚀 Nuevas Funcionalidades en odevs-install.sh
+
+- **Verificación de versiones**: Sistema de verificación de existencia de versiones antes de descarga
+- **Descarga desde releases**: Implementación completa de descarga desde GitHub releases
+- **Manejo de errores mejorado**: Verificación de integridad de archivos descargados
+- **Limpieza automática**: Eliminación automática de archivos temporales
+
 ## [1.2.0] - 2025-09-20
 
 ### 🚀 Nueva Versión Mayor - Documentación y Testing Ágil
