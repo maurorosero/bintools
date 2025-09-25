@@ -239,6 +239,40 @@ Instala automáticamente herramientas esenciales según tu sistema operativo con
 
 **Uso**: `./hexroute 172.16.0.0/16 gw 192.168.1.1`
 
+#### `fix-locale.sh` - Corrección de Locales
+
+**Problema que resuelve**: Errores de configuración de locale en sistemas Debian/Ubuntu
+
+**Pre-requisitos:**
+
+- Herramientas base del sistema (`packages.sh --list base`)
+- Permisos sudo (para correcciones)
+- Paquete `locales` (se instala automáticamente)
+
+**¿Qué hace?**
+
+- Detecta y corrige problemas de configuración de locale
+- Genera locales comunes automáticamente
+- Configura variables de entorno correctamente
+- Funciona tanto local como remotamente via SSH
+- Resuelve errores como "Can't set locale" y "Setting locale failed"
+
+**Uso:**
+
+```bash
+# Verificar configuración actual
+./fix-locale.sh --check
+
+# Corregir configuración
+./fix-locale.sh --fix
+
+# Ejecutar todas las correcciones
+./fix-locale.sh --all
+
+# Uso remoto
+./fix-locale.sh --remote user@server --fix
+```
+
 ### 🔐 Gestión de Secretos
 
 ### 🔐 Gestor de Tokens Git (`git-tokens.py`)

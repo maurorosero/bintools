@@ -27,6 +27,7 @@ main_files:
   - repo-install.sh
   - odevs-install.sh
   - pritunl-vpn.py
+  - fix-locale.sh
 
 # Directorios que se incluyen completos
 directories:
