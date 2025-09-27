@@ -233,6 +233,23 @@ def download_pritunl_gpg_key():
         print_error(f"Error al descargar la clave GPG de Pritunl: {e}")
         return None
 
+def extract_gpg_fingerprint(gpg_key):
+    """Extrae el fingerprint de una clave GPG."""
+    import re
+    
+    # Buscar el fingerprint en la clave GPG
+    # El fingerprint está en la línea que contiene "pub" seguido del fingerprint
+    lines = gpg_key.split('\n')
+    for line in lines:
+        if line.startswith('pub ') or '7AE645C0F8D293C55D931D9B4C6F9333B5845AC5' in line:
+            # Buscar el fingerprint en la línea
+            fingerprint_match = re.search(r'[A-F0-9]{40}', line)
+            if fingerprint_match:
+                return fingerprint_match.group(0)
+    
+    # Si no se encuentra en las líneas, usar el fingerprint conocido de Pritunl
+    return "7AE645C0F8D293C55D931D9B4C6F9333B5845AC5"
+
 def load_signature_key():
     """Carga la clave GPG de firma desde el archivo de configuración o la descarga automáticamente."""
     global PRITUNL_SIGN
@@ -475,19 +492,26 @@ def _install_arch(gpg_key):
     print_info("Instalando Pritunl Client para Arch Linux...")
     pacman_conf = Path("/etc/pacman.conf")
     repo_entry = "\n[pritunl]\nServer = https://repo.pritunl.com/stable/pacman\n"
+    
+    # Extraer el fingerprint de la clave GPG
+    fingerprint = extract_gpg_fingerprint(gpg_key)
+    print_info(f"Usando fingerprint GPG: {fingerprint}")
+    
     try:
         content = run_command(["sudo", "cat", str(pacman_conf)], capture_output=True, status_message="Verificando pacman.conf").stdout
         if "[pritunl]" not in content:
              run_command(["sudo", "tee", "-a", str(pacman_conf)], input=repo_entry, status_message="Añadiendo repositorio Pritunl a pacman.conf")
         else: print_info("Repositorio [pritunl] ya existe.")
 
-        run_command(["sudo", "pacman-key", "--keyserver", "hkp://keyserver.ubuntu.com", "-r", gpg_key], status_message="Importando clave GPG")
-        run_command(["sudo", "pacman-key", "--lsign-key", gpg_key], status_message="Firmando clave GPG localmente")
+        run_command(["sudo", "pacman-key", "--keyserver", "hkp://keyserver.ubuntu.com", "-r", fingerprint], status_message="Importando clave GPG")
+        run_command(["sudo", "pacman-key", "--lsign-key", fingerprint], status_message="Firmando clave GPG localmente")
         run_command(["sudo", "pacman", "-Sy", "--noconfirm"], status_message="Sincronizando bases de datos (pacman -Sy)")
         run_command(["sudo", "pacman", "-S", "--noconfirm", "pritunl-client-electron"], status_message="Instalando pritunl-client-electron (pacman -S)")
         print_success("Cliente Pritunl instalado (Arch Linux).")
         return True
-    except Exception as e: return False
+    except Exception as e: 
+        print_error(f"Error en instalación de Arch Linux: {e}")
+        return False
 
 def _install_macos(gpg_key):
     """Instala en macOS con barra de progreso para descarga."""
