@@ -374,23 +374,50 @@ def check_if_client_installed(os_info):
     installed = False
 
     if system == "Linux":
-        # Intentar con los gestores de paquetes comunes
-        pkg_name = "pritunl-client-electron" # El paquete principal
+        # Lista de posibles nombres de paquetes a verificar
+        pkg_names = ["pritunl-client-electron", "pritunl-client", "pritunl"]
+        
         try:
             if command_exists("dpkg"): # Debian/Ubuntu
-                result = run_command(["dpkg-query", "-W", "-f='${Status}'", pkg_name], check=False, capture_output=True)
-                installed = "install ok installed" in result.stdout
+                for pkg_name in pkg_names:
+                    result = run_command(["dpkg-query", "-W", "-f='${Status}'", pkg_name], check=False, capture_output=True)
+                    if "install ok installed" in result.stdout:
+                        installed = True
+                        print_info(f"Paquete encontrado: {pkg_name}")
+                        break
             elif command_exists("rpm"): # RHEL/Fedora/etc.
-                result = run_command(["rpm", "-q", pkg_name], check=False, capture_output=True)
-                installed = result.returncode == 0
+                for pkg_name in pkg_names:
+                    result = run_command(["rpm", "-q", pkg_name], check=False, capture_output=True)
+                    if result.returncode == 0:
+                        installed = True
+                        print_info(f"Paquete encontrado: {pkg_name}")
+                        break
             elif command_exists("pacman"): # Arch
-                 result = run_command(["pacman", "-Q", pkg_name], check=False, capture_output=True)
-                 installed = result.returncode == 0
-            elif command_exists(pkg_name): # Último recurso
-                 print_warning("Gestor de paquetes no detectado claramente, usando 'command_exists'.")
-                 installed = True
+                for pkg_name in pkg_names:
+                    result = run_command(["pacman", "-Q", pkg_name], check=False, capture_output=True)
+                    if result.returncode == 0:
+                        installed = True
+                        print_info(f"Paquete encontrado: {pkg_name}")
+                        break
+                # También verificar con yay si está disponible
+                if not installed and command_exists("yay"):
+                    for pkg_name in pkg_names:
+                        result = run_command(["yay", "-Q", pkg_name], check=False, capture_output=True)
+                        if result.returncode == 0:
+                            installed = True
+                            print_info(f"Paquete encontrado en AUR: {pkg_name}")
+                            break
+            
+            # Verificar si el ejecutable existe
+            if not installed:
+                for cmd_name in ["pritunl", "pritunl-client"]:
+                    if command_exists(cmd_name):
+                        installed = True
+                        print_info(f"Ejecutable encontrado: {cmd_name}")
+                        break
+                        
         except Exception as e:
-            log.debug(f"Error al verificar el paquete {pkg_name}: {e}")
+            log.debug(f"Error al verificar paquetes Pritunl: {e}")
             installed = False # Asumir no instalado si hay error
 
     elif system == "Darwin":
@@ -530,8 +557,26 @@ def _install_arch(gpg_key):
             # Clonar el paquete AUR
             run_command(["git", "clone", "https://aur.archlinux.org/pritunl-client.git", f"{temp_dir}/pritunl-client"], status_message="Clonando pritunl-client desde AUR")
             
+            # Verificar que el directorio se clonó correctamente
+            if not os.path.exists(f"{temp_dir}/pritunl-client"):
+                raise Exception("No se pudo clonar el repositorio AUR")
+            
             # Compilar e instalar usando makepkg
-            run_command(["cd", f"{temp_dir}/pritunl-client", "&&", "makepkg", "-si", "--noconfirm", "--nocheck"], shell=True, status_message="Compilando e instalando pritunl-client")
+            print_info("Compilando e instalando pritunl-client...")
+            result = run_command(["cd", f"{temp_dir}/pritunl-client", "&&", "makepkg", "-si", "--noconfirm", "--nocheck"], shell=True, status_message="Compilando e instalando pritunl-client", capture_output=True)
+            
+            if result.returncode != 0:
+                print_error(f"makepkg falló con código {result.returncode}")
+                print_error(f"Salida: {result.stdout}")
+                print_error(f"Error: {result.stderr}")
+                raise Exception(f"makepkg falló: {result.stderr}")
+            
+            # Verificar que realmente se instaló
+            print_info("Verificando instalación...")
+            verify_result = run_command(["pacman", "-Q", "pritunl-client"], check=False, capture_output=True)
+            if verify_result.returncode != 0:
+                print_error("La instalación no fue exitosa - paquete no encontrado")
+                raise Exception("Verificación de instalación falló")
             
             print_success("Cliente Pritunl instalado (Arch Linux via AUR con makepkg).")
             return True
