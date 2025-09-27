@@ -74,8 +74,8 @@ PRITUNL_SIGN = "" # Clave GPG global
 def show_banner():
     """Muestra un banner estilizado sin recuadros."""
     banner_content = (
-        f"[bold cyan]{APP_NAME}[/bold cyan]\\n\\n"
-        f"Versión: [yellow]{APP_VERSION}[/yellow]\\n"
+        f"[bold cyan]{APP_NAME}[/bold cyan]\n\n"
+        f"Versión: [yellow]{APP_VERSION}[/yellow]\n"
         f"Por: [green]{APP_AUTHOR}[/green]"
     )
     console.print(Align.center(banner_content))
@@ -85,8 +85,8 @@ def show_banner():
 def show_banner_simple():
     """Muestra un banner simple para cuando no hay dependencias completas."""
     banner_content = (
-        f"{APP_NAME}\\n"
-        f"Versión: {APP_VERSION}\\n"
+        f"{APP_NAME}\n"
+        f"Versión: {APP_VERSION}\n"
         f"Por: {APP_AUTHOR}"
     )
     console.print(Align.center(banner_content))
