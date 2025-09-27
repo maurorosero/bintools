@@ -685,7 +685,7 @@ def install_client_os(os_info, gpg_key):
         elif distro in ["almalinux", "rhel", "rocky", "oracle"]:
             if version and version.startswith("9"): install_func = _install_rhel9
             else: print_error(f"Versión de {os_info.get('pretty_name', distro)} no compatible ({version}). Se requiere v9.")
-        elif distro == "arch":
+        elif distro in ["arch", "manjaro"]:
             install_func = _install_arch
         else:
             print_error(f"Distribución Linux no reconocida o no compatible: {os_info.get('pretty_name', distro)}")
