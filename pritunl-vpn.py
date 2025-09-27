@@ -488,8 +488,46 @@ gpgkey=https://raw.githubusercontent.com/pritunl/pgp/master/pritunl_repo_pub.asc
     except Exception as e: return False
 
 def _install_arch(gpg_key):
-    """Instala en Arch Linux con spinners."""
+    """Instala en Arch Linux usando yay (AUR) como alternativa más confiable."""
     print_info("Instalando Pritunl Client para Arch Linux...")
+    
+    # Verificar si yay está disponible
+    if not command_exists("yay"):
+        print_info("yay no está disponible. Instalando yay primero...")
+        try:
+            # Instalar yay
+            run_command(["sudo", "pacman", "-S", "--noconfirm", "base-devel", "git"], status_message="Instalando dependencias para yay")
+            
+            # Clonar y compilar yay
+            temp_dir = f"/tmp/yay_{os.getpid()}"
+            run_command(["git", "clone", "https://aur.archlinux.org/yay.git", temp_dir], status_message="Clonando yay desde AUR")
+            
+            # Compilar y instalar yay
+            run_command(["cd", temp_dir, "&&", "makepkg", "-si", "--noconfirm"], shell=True, status_message="Compilando e instalando yay")
+            
+            # Limpiar
+            run_command(["rm", "-rf", temp_dir], status_message="Limpiando archivos temporales de yay")
+            
+            print_success("yay instalado correctamente")
+        except Exception as yay_error:
+            print_warning(f"No se pudo instalar yay: {yay_error}")
+            print_info("Intentando instalación desde repositorio oficial...")
+            return _install_arch_official(gpg_key)
+    
+    # Instalar desde AUR usando yay
+    try:
+        print_info("Instalando pritunl-client desde AUR...")
+        run_command(["yay", "-S", "--noconfirm", "pritunl-client"], status_message="Instalando pritunl-client desde AUR")
+        print_success("Cliente Pritunl instalado (Arch Linux via AUR).")
+        return True
+    except Exception as aur_error:
+        print_warning(f"Instalación desde AUR falló: {aur_error}")
+        print_info("Intentando instalación desde repositorio oficial...")
+        return _install_arch_official(gpg_key)
+
+def _install_arch_official(gpg_key):
+    """Instala desde el repositorio oficial de Pritunl."""
+    print_info("Instalando desde repositorio oficial de Pritunl...")
     pacman_conf = Path("/etc/pacman.conf")
     repo_entry = "\n[pritunl]\nServer = https://repo.pritunl.com/stable/pacman\n"
     
@@ -524,28 +562,16 @@ def _install_arch(gpg_key):
             if os.path.exists(temp_key_file):
                 os.unlink(temp_key_file)
         
+        # Limpiar caché completamente antes de sincronizar
+        print_info("Limpiando caché de pacman completamente...")
+        run_command(["sudo", "pacman", "-Scc", "--noconfirm"], status_message="Limpiando caché de pacman", check=False)
+        
         run_command(["sudo", "pacman", "-Sy", "--noconfirm"], status_message="Sincronizando bases de datos (pacman -Sy)")
         
-        # Limpiar caché de pacman para evitar paquetes dañados
-        print_info("Limpiando caché de pacman para evitar paquetes dañados...")
-        run_command(["sudo", "pacman", "-Sc", "--noconfirm"], status_message="Limpiando caché de pacman", check=False)
-        
-        # Reintentar instalación después de limpiar caché
-        try:
-            run_command(["sudo", "pacman", "-S", "--noconfirm", "pritunl-client-electron"], status_message="Instalando pritunl-client-electron (pacman -S)")
-            print_success("Cliente Pritunl instalado (Arch Linux).")
-            return True
-        except Exception as install_error:
-            print_warning(f"Primera instalación falló: {install_error}")
-            print_info("Reintentando instalación con caché limpia...")
-            
-            # Limpiar específicamente el paquete problemático
-            run_command(["sudo", "pacman", "-Scc", "--noconfirm"], status_message="Limpiando completamente caché de pacman", check=False)
-            
-            # Reintentar instalación
-            run_command(["sudo", "pacman", "-S", "--noconfirm", "pritunl-client-electron"], status_message="Reinstalando pritunl-client-electron")
-            print_success("Cliente Pritunl instalado (Arch Linux).")
-            return True
+        # Instalar el paquete
+        run_command(["sudo", "pacman", "-S", "--noconfirm", "pritunl-client-electron"], status_message="Instalando pritunl-client-electron")
+        print_success("Cliente Pritunl instalado (Arch Linux - repositorio oficial).")
+        return True
     except Exception as e: 
         print_error(f"Error en instalación de Arch Linux: {e}")
         return False
