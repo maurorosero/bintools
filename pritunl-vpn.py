@@ -518,24 +518,40 @@ def _install_arch(gpg_key):
     print_info("Limpiando caché de pacman completamente...")
     run_command(["sudo", "pacman", "-Scc", "--noconfirm"], status_message="Limpiando caché de pacman", check=False)
     
-    # Instalar desde AUR usando yay con opciones para evitar problemas de firma
+    # Intentar instalación directa desde AUR usando makepkg
     try:
-        print_info("Instalando pritunl-client desde AUR...")
-        # Usar --mflags para desactivar verificación de firma si es necesario
-        run_command(["yay", "-S", "--noconfirm", "--mflags", "--nocheck", "pritunl-client"], status_message="Instalando pritunl-client desde AUR")
-        print_success("Cliente Pritunl instalado (Arch Linux via AUR).")
-        return True
-    except Exception as aur_error:
-        print_warning(f"Instalación desde AUR con --nocheck falló: {aur_error}")
+        print_info("Instalando pritunl-client desde AUR usando makepkg...")
         
-        # Intentar con otro paquete de AUR
+        # Crear directorio temporal
+        temp_dir = f"/tmp/pritunl_aur_{os.getpid()}"
+        run_command(["mkdir", "-p", temp_dir], status_message="Creando directorio temporal")
+        
         try:
-            print_info("Intentando con pritunl-client-electron desde AUR...")
-            run_command(["yay", "-S", "--noconfirm", "--mflags", "--nocheck", "pritunl-client-electron"], status_message="Instalando pritunl-client-electron desde AUR")
+            # Clonar el paquete AUR
+            run_command(["git", "clone", "https://aur.archlinux.org/pritunl-client.git", f"{temp_dir}/pritunl-client"], status_message="Clonando pritunl-client desde AUR")
+            
+            # Compilar e instalar usando makepkg
+            run_command(["cd", f"{temp_dir}/pritunl-client", "&&", "makepkg", "-si", "--noconfirm", "--nocheck"], shell=True, status_message="Compilando e instalando pritunl-client")
+            
+            print_success("Cliente Pritunl instalado (Arch Linux via AUR con makepkg).")
+            return True
+            
+        finally:
+            # Limpiar directorio temporal
+            run_command(["rm", "-rf", temp_dir], status_message="Limpiando archivos temporales", check=False)
+            
+    except Exception as makepkg_error:
+        print_warning(f"Instalación con makepkg falló: {makepkg_error}")
+        
+        # Intentar con yay como usuario normal (sin sudo)
+        try:
+            print_info("Intentando instalación con yay como usuario normal...")
+            # Ejecutar yay sin sudo
+            run_command(["yay", "-S", "--noconfirm", "pritunl-client"], status_message="Instalando pritunl-client desde AUR (usuario normal)", sudo=False)
             print_success("Cliente Pritunl instalado (Arch Linux via AUR).")
             return True
-        except Exception as aur_error2:
-            print_warning(f"Instalación desde AUR falló: {aur_error2}")
+        except Exception as yay_error:
+            print_warning(f"Instalación con yay falló: {yay_error}")
             print_info("Intentando instalación desde repositorio oficial...")
             return _install_arch_official(gpg_key)
 
