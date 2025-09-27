@@ -568,23 +568,38 @@ def _install_arch(gpg_key):
             # Cambiar permisos del directorio para el usuario actual
             run_command(["sudo", "chown", "-R", f"{os.getenv('USER')}:{os.getenv('USER')}", f"{temp_dir}/pritunl-client"], status_message="Configurando permisos del directorio", check=False)
             
-            # Compilar usando makepkg como usuario normal
+            # Compilar usando makepkg como usuario normal con logging detallado
             print_info("Compilando pritunl-client...")
             build_result = run_command(["cd", f"{temp_dir}/pritunl-client", "&&", "makepkg", "-s", "--noconfirm", "--nocheck", "--noprepare", "--skipinteg"], shell=True, status_message="Compilando pritunl-client", sudo=False, capture_output=True)
             
+            # Mostrar salida completa para debugging
+            print_info(f"Salida de makepkg: {build_result.stdout}")
+            if build_result.stderr:
+                print_error(f"Errores de makepkg: {build_result.stderr}")
+            
             if build_result.returncode != 0:
                 print_error(f"makepkg falló con código {build_result.returncode}")
-                print_error(f"Salida: {build_result.stdout}")
-                print_error(f"Error: {build_result.stderr}")
+                print_error(f"Salida completa: {build_result.stdout}")
+                print_error(f"Error completo: {build_result.stderr}")
                 raise Exception(f"makepkg falló: {build_result.stderr}")
             
             # Buscar el archivo .pkg.tar.zst generado
             pkg_files = []
-            for file in os.listdir(f"{temp_dir}/pritunl-client"):
-                if file.endswith('.pkg.tar.zst'):
-                    pkg_files.append(file)
+            try:
+                for file in os.listdir(f"{temp_dir}/pritunl-client"):
+                    if file.endswith('.pkg.tar.zst'):
+                        pkg_files.append(file)
+                        print_info(f"Paquete encontrado: {file}")
+            except Exception as e:
+                print_error(f"Error listando archivos: {e}")
             
             if not pkg_files:
+                print_error("Listando todos los archivos en el directorio:")
+                try:
+                    for file in os.listdir(f"{temp_dir}/pritunl-client"):
+                        print_info(f"Archivo encontrado: {file}")
+                except Exception as e:
+                    print_error(f"Error listando archivos: {e}")
                 raise Exception("No se generó el paquete .pkg.tar.zst")
             
             pkg_file = pkg_files[0]
@@ -615,6 +630,16 @@ def _install_arch(gpg_key):
             
     except Exception as makepkg_error:
         print_warning(f"Instalación con makepkg falló: {makepkg_error}")
+        
+        # Intentar con paru si está disponible (alternativa a yay)
+        if command_exists("paru"):
+            try:
+                print_info("Intentando instalación con paru como usuario normal...")
+                run_command(["paru", "-S", "--noconfirm", "pritunl-client"], status_message="Instalando pritunl-client desde AUR (paru)", sudo=False)
+                print_success("Cliente Pritunl instalado (Arch Linux via AUR con paru).")
+                return True
+            except Exception as paru_error:
+                print_warning(f"Instalación con paru falló: {paru_error}")
         
         # Intentar con yay como usuario normal (sin sudo)
         try:
@@ -708,42 +733,95 @@ def _install_arch_direct_download():
     """Instalación directa descargando el paquete desde URL."""
     print_info("Intentando instalación directa descargando paquete...")
     
+    # Lista de URLs alternativas para intentar
+    package_urls = [
+        "https://repo.pritunl.com/stable/pacman/pritunl-client-electron-1.3.4392.66-1-x86_64.pkg.tar.zst",
+        "https://github.com/pritunl/pritunl-client-electron/releases/download/1.3.4392.66/pritunl-client-electron-1.3.4392.66-1-x86_64.pkg.tar.zst"
+    ]
+    
+    for i, package_url in enumerate(package_urls):
+        try:
+            print_info(f"Intentando descarga desde URL {i+1}/{len(package_urls)}...")
+            temp_pkg = f"/tmp/pritunl-client-electron_{os.getpid()}_{i}.pkg.tar.zst"
+            
+            # Descargar el paquete
+            response = requests.get(package_url, timeout=120)
+            response.raise_for_status()
+            
+            with open(temp_pkg, 'wb') as f:
+                f.write(response.content)
+            
+            print_info("Instalando paquete descargado...")
+            # Crear configuración temporal para instalar sin verificación
+            temp_conf = "/tmp/pacman_install.conf"
+            with open(temp_conf, 'w') as f:
+                f.write("[options]\n")
+                f.write("SigLevel = Never\n")
+                f.write("LocalFileSigLevel = Never\n")
+            
+            try:
+                # Instalar el paquete descargado sin verificación
+                run_command(["sudo", "pacman", "-U", "--noconfirm", "--config", temp_conf, temp_pkg], status_message="Instalando paquete descargado")
+                
+                # Limpiar archivos temporales
+                os.unlink(temp_pkg)
+                os.unlink(temp_conf)
+                
+                print_success("Cliente Pritunl instalado (Arch Linux - descarga directa).")
+                return True
+                
+            except Exception as install_error:
+                print_warning(f"Instalación desde URL {i+1} falló: {install_error}")
+                # Limpiar archivos en caso de error
+                if os.path.exists(temp_pkg):
+                    os.unlink(temp_pkg)
+                if os.path.exists(temp_conf):
+                    os.unlink(temp_conf)
+                continue
+                
+        except Exception as download_error:
+            print_warning(f"Descarga desde URL {i+1} falló: {download_error}")
+            continue
+    
+    # Si todas las URLs fallaron, intentar AppImage como último recurso
+    print_info("Todas las descargas fallaron. Intentando instalación desde AppImage...")
+    return _install_arch_appimage()
+
+def _install_arch_appimage():
+    """Instalación usando AppImage como último recurso."""
+    print_info("Instalando Pritunl Client desde AppImage...")
+    
     try:
-        # URL del paquete más reciente de pritunl-client-electron
-        package_url = "https://repo.pritunl.com/stable/pacman/pritunl-client-electron-1.3.4392.66-1-x86_64.pkg.tar.zst"
-        temp_pkg = f"/tmp/pritunl-client-electron_{os.getpid()}.pkg.tar.zst"
+        # Crear directorio para AppImage
+        appimage_dir = Path.home() / ".local" / "bin"
+        appimage_dir.mkdir(parents=True, exist_ok=True)
         
-        print_info("Descargando paquete directamente...")
-        # Descargar el paquete
-        response = requests.get(package_url, timeout=120)
+        # URL del AppImage
+        appimage_url = "https://github.com/pritunl/pritunl-client-electron/releases/download/1.3.4392.66/pritunl-client-electron-1.3.4392.66-x86_64.AppImage"
+        appimage_path = appimage_dir / "pritunl-client.AppImage"
+        
+        print_info("Descargando AppImage...")
+        response = requests.get(appimage_url, timeout=180)
         response.raise_for_status()
         
-        with open(temp_pkg, 'wb') as f:
+        with open(appimage_path, 'wb') as f:
             f.write(response.content)
         
-        print_info("Instalando paquete descargado...")
-        # Crear configuración temporal para instalar sin verificación
-        temp_conf = "/tmp/pacman_install.conf"
-        with open(temp_conf, 'w') as f:
-            f.write("[options]\n")
-            f.write("SigLevel = Never\n")
-            f.write("LocalFileSigLevel = Never\n")
+        # Hacer ejecutable
+        appimage_path.chmod(0o755)
         
-        try:
-            # Instalar el paquete descargado sin verificación
-            run_command(["sudo", "pacman", "-U", "--noconfirm", "--config", temp_conf, temp_pkg], status_message="Instalando paquete descargado")
-        finally:
-            # Limpiar archivo de configuración temporal
-            os.unlink(temp_conf)
+        # Crear script wrapper
+        wrapper_path = appimage_dir / "pritunl"
+        with open(wrapper_path, 'w') as f:
+            f.write(f"#!/bin/bash\n{appimage_path} \"$@\"\n")
+        wrapper_path.chmod(0o755)
         
-        # Limpiar archivo temporal
-        os.unlink(temp_pkg)
-        
-        print_success("Cliente Pritunl instalado (Arch Linux - descarga directa).")
+        print_success("Cliente Pritunl instalado (Arch Linux - AppImage).")
+        print_info(f"Ejecutable disponible en: {wrapper_path}")
         return True
         
     except Exception as e:
-        print_error(f"Instalación directa falló: {e}")
+        print_error(f"Instalación desde AppImage falló: {e}")
         return False
 
 def _install_macos(gpg_key):
