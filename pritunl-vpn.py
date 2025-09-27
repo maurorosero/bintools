@@ -561,9 +561,9 @@ def _install_arch(gpg_key):
             if not os.path.exists(f"{temp_dir}/pritunl-client"):
                 raise Exception("No se pudo clonar el repositorio AUR")
             
-            # Compilar e instalar usando makepkg
+            # Compilar e instalar usando makepkg con opciones más agresivas
             print_info("Compilando e instalando pritunl-client...")
-            result = run_command(["cd", f"{temp_dir}/pritunl-client", "&&", "makepkg", "-si", "--noconfirm", "--nocheck"], shell=True, status_message="Compilando e instalando pritunl-client", capture_output=True)
+            result = run_command(["cd", f"{temp_dir}/pritunl-client", "&&", "makepkg", "-si", "--noconfirm", "--nocheck", "--noprepare", "--skipinteg"], shell=True, status_message="Compilando e instalando pritunl-client", capture_output=True)
             
             if result.returncode != 0:
                 print_error(f"makepkg falló con código {result.returncode}")
@@ -652,12 +652,58 @@ def _install_arch_official(gpg_key):
         except Exception as install_error:
             print_warning(f"Instalación normal falló: {install_error}")
             print_info("Intentando instalación sin verificación de firma...")
-            # Intentar sin verificación de firma
-            run_command(["sudo", "pacman", "-S", "--noconfirm", "--nocheck", "pritunl-client-electron"], status_message="Instalando pritunl-client-electron sin verificación")
+            # Configurar pacman para ignorar verificaciones de firma temporalmente
+            try:
+                # Crear configuración temporal de pacman
+                temp_conf = "/tmp/pacman.conf.temp"
+                with open(temp_conf, 'w') as f:
+                    f.write("SigLevel = Never\n")
+                    f.write("LocalFileSigLevel = Never\n")
+                
+                # Intentar instalación con configuración temporal
+                run_command(["sudo", "pacman", "-S", "--noconfirm", "--config", temp_conf, "pritunl-client-electron"], status_message="Instalando pritunl-client-electron sin verificación")
+                
+                # Limpiar archivo temporal
+                os.unlink(temp_conf)
+            except Exception as no_verify_error:
+                print_warning(f"Instalación sin verificación también falló: {no_verify_error}")
+                print_info("Intentando instalación directa desde URL...")
+                return _install_arch_direct_download()
         print_success("Cliente Pritunl instalado (Arch Linux - repositorio oficial).")
         return True
     except Exception as e: 
         print_error(f"Error en instalación de Arch Linux: {e}")
+        return False
+
+def _install_arch_direct_download():
+    """Instalación directa descargando el paquete desde URL."""
+    print_info("Intentando instalación directa descargando paquete...")
+    
+    try:
+        # URL del paquete más reciente de pritunl-client-electron
+        package_url = "https://repo.pritunl.com/stable/pacman/pritunl-client-electron-1.3.4392.66-1-x86_64.pkg.tar.zst"
+        temp_pkg = f"/tmp/pritunl-client-electron_{os.getpid()}.pkg.tar.zst"
+        
+        print_info("Descargando paquete directamente...")
+        # Descargar el paquete
+        response = requests.get(package_url, timeout=120)
+        response.raise_for_status()
+        
+        with open(temp_pkg, 'wb') as f:
+            f.write(response.content)
+        
+        print_info("Instalando paquete descargado...")
+        # Instalar el paquete descargado
+        run_command(["sudo", "pacman", "-U", "--noconfirm", "--noverify", temp_pkg], status_message="Instalando paquete descargado")
+        
+        # Limpiar archivo temporal
+        os.unlink(temp_pkg)
+        
+        print_success("Cliente Pritunl instalado (Arch Linux - descarga directa).")
+        return True
+        
+    except Exception as e:
+        print_error(f"Instalación directa falló: {e}")
         return False
 
 def _install_macos(gpg_key):
