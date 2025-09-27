@@ -554,22 +554,50 @@ def _install_arch(gpg_key):
         run_command(["mkdir", "-p", temp_dir], status_message="Creando directorio temporal")
         
         try:
-            # Clonar el paquete AUR
-            run_command(["git", "clone", "https://aur.archlinux.org/pritunl-client.git", f"{temp_dir}/pritunl-client"], status_message="Clonando pritunl-client desde AUR")
+            # Clonar el paquete AUR como usuario normal (sin sudo)
+            print_info("Clonando repositorio AUR...")
+            clone_result = run_command(["git", "clone", "https://aur.archlinux.org/pritunl-client.git", f"{temp_dir}/pritunl-client"], status_message="Clonando pritunl-client desde AUR", sudo=False, capture_output=True)
+            
+            if clone_result.returncode != 0:
+                raise Exception(f"No se pudo clonar el repositorio AUR: {clone_result.stderr}")
             
             # Verificar que el directorio se clonó correctamente
             if not os.path.exists(f"{temp_dir}/pritunl-client"):
                 raise Exception("No se pudo clonar el repositorio AUR")
             
-            # Compilar e instalar usando makepkg con opciones más agresivas
-            print_info("Compilando e instalando pritunl-client...")
-            result = run_command(["cd", f"{temp_dir}/pritunl-client", "&&", "makepkg", "-si", "--noconfirm", "--nocheck", "--noprepare", "--skipinteg"], shell=True, status_message="Compilando e instalando pritunl-client", capture_output=True)
+            # Cambiar permisos del directorio para el usuario actual
+            run_command(["sudo", "chown", "-R", f"{os.getenv('USER')}:{os.getenv('USER')}", f"{temp_dir}/pritunl-client"], status_message="Configurando permisos del directorio", check=False)
             
-            if result.returncode != 0:
-                print_error(f"makepkg falló con código {result.returncode}")
-                print_error(f"Salida: {result.stdout}")
-                print_error(f"Error: {result.stderr}")
-                raise Exception(f"makepkg falló: {result.stderr}")
+            # Compilar usando makepkg como usuario normal
+            print_info("Compilando pritunl-client...")
+            build_result = run_command(["cd", f"{temp_dir}/pritunl-client", "&&", "makepkg", "-s", "--noconfirm", "--nocheck", "--noprepare", "--skipinteg"], shell=True, status_message="Compilando pritunl-client", sudo=False, capture_output=True)
+            
+            if build_result.returncode != 0:
+                print_error(f"makepkg falló con código {build_result.returncode}")
+                print_error(f"Salida: {build_result.stdout}")
+                print_error(f"Error: {build_result.stderr}")
+                raise Exception(f"makepkg falló: {build_result.stderr}")
+            
+            # Buscar el archivo .pkg.tar.zst generado
+            pkg_files = []
+            for file in os.listdir(f"{temp_dir}/pritunl-client"):
+                if file.endswith('.pkg.tar.zst'):
+                    pkg_files.append(file)
+            
+            if not pkg_files:
+                raise Exception("No se generó el paquete .pkg.tar.zst")
+            
+            pkg_file = pkg_files[0]
+            pkg_path = f"{temp_dir}/pritunl-client/{pkg_file}"
+            
+            # Instalar el paquete compilado
+            print_info("Instalando paquete compilado...")
+            install_result = run_command(["sudo", "pacman", "-U", "--noconfirm", pkg_path], status_message="Instalando paquete compilado", capture_output=True)
+            
+            if install_result.returncode != 0:
+                print_error(f"Instalación del paquete falló con código {install_result.returncode}")
+                print_error(f"Error: {install_result.stderr}")
+                raise Exception(f"Instalación falló: {install_result.stderr}")
             
             # Verificar que realmente se instaló
             print_info("Verificando instalación...")
@@ -654,9 +682,10 @@ def _install_arch_official(gpg_key):
             print_info("Intentando instalación sin verificación de firma...")
             # Configurar pacman para ignorar verificaciones de firma temporalmente
             try:
-                # Crear configuración temporal de pacman
+                # Crear configuración temporal de pacman con formato correcto
                 temp_conf = "/tmp/pacman.conf.temp"
                 with open(temp_conf, 'w') as f:
+                    f.write("[options]\n")
                     f.write("SigLevel = Never\n")
                     f.write("LocalFileSigLevel = Never\n")
                 
@@ -693,8 +722,19 @@ def _install_arch_direct_download():
             f.write(response.content)
         
         print_info("Instalando paquete descargado...")
-        # Instalar el paquete descargado
-        run_command(["sudo", "pacman", "-U", "--noconfirm", "--noverify", temp_pkg], status_message="Instalando paquete descargado")
+        # Crear configuración temporal para instalar sin verificación
+        temp_conf = "/tmp/pacman_install.conf"
+        with open(temp_conf, 'w') as f:
+            f.write("[options]\n")
+            f.write("SigLevel = Never\n")
+            f.write("LocalFileSigLevel = Never\n")
+        
+        try:
+            # Instalar el paquete descargado sin verificación
+            run_command(["sudo", "pacman", "-U", "--noconfirm", "--config", temp_conf, temp_pkg], status_message="Instalando paquete descargado")
+        finally:
+            # Limpiar archivo de configuración temporal
+            os.unlink(temp_conf)
         
         # Limpiar archivo temporal
         os.unlink(temp_pkg)
