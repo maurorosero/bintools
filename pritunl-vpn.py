@@ -525,9 +525,27 @@ def _install_arch(gpg_key):
                 os.unlink(temp_key_file)
         
         run_command(["sudo", "pacman", "-Sy", "--noconfirm"], status_message="Sincronizando bases de datos (pacman -Sy)")
-        run_command(["sudo", "pacman", "-S", "--noconfirm", "pritunl-client-electron"], status_message="Instalando pritunl-client-electron (pacman -S)")
-        print_success("Cliente Pritunl instalado (Arch Linux).")
-        return True
+        
+        # Limpiar caché de pacman para evitar paquetes dañados
+        print_info("Limpiando caché de pacman para evitar paquetes dañados...")
+        run_command(["sudo", "pacman", "-Sc", "--noconfirm"], status_message="Limpiando caché de pacman", check=False)
+        
+        # Reintentar instalación después de limpiar caché
+        try:
+            run_command(["sudo", "pacman", "-S", "--noconfirm", "pritunl-client-electron"], status_message="Instalando pritunl-client-electron (pacman -S)")
+            print_success("Cliente Pritunl instalado (Arch Linux).")
+            return True
+        except Exception as install_error:
+            print_warning(f"Primera instalación falló: {install_error}")
+            print_info("Reintentando instalación con caché limpia...")
+            
+            # Limpiar específicamente el paquete problemático
+            run_command(["sudo", "pacman", "-Scc", "--noconfirm"], status_message="Limpiando completamente caché de pacman", check=False)
+            
+            # Reintentar instalación
+            run_command(["sudo", "pacman", "-S", "--noconfirm", "pritunl-client-electron"], status_message="Reinstalando pritunl-client-electron")
+            print_success("Cliente Pritunl instalado (Arch Linux).")
+            return True
     except Exception as e: 
         print_error(f"Error en instalación de Arch Linux: {e}")
         return False
