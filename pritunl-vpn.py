@@ -33,19 +33,28 @@ import requests # Añadido para descargas
 import ctypes # Añadido para la comprobación de administrador en Windows
 
 # --- Dependencias Externas (necesitan requirements.txt) ---
-try:
+# Verificar si se solicita ayuda antes de importar dependencias
+SHOW_HELP = any(arg in sys.argv for arg in ['--help', '-h', '--version'])
+
+if not SHOW_HELP:
+    try:
+        from rich.console import Console
+        from rich.logging import RichHandler
+        from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn
+        from rich.panel import Panel # Importar Panel
+        from rich.align import Align # Importar Align para centrar
+        import questionary
+    except ImportError:
+        print(
+            "ERROR: Faltan dependencias. Ejecuta: ./packages.sh --list base para instalar los prerrequisitos.",
+            file=sys.stderr
+        )
+        sys.exit(1)
+else:
+    # Para help/version, usar imports básicos
     from rich.console import Console
-    from rich.logging import RichHandler
-    from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn
-    from rich.panel import Panel # Importar Panel
-    from rich.align import Align # Importar Align para centrar
-    import questionary
-except ImportError:
-    print(
-        "ERROR: Faltan dependencias. Ejecuta: pip install -r requirements.txt",
-        file=sys.stderr
-    )
-    sys.exit(1)
+    from rich.panel import Panel
+    from rich.align import Align
 
 # --- Constantes y Configuración Global ---
 APP_NAME = "Instalador del Cliente Pritunl VPN "
@@ -77,6 +86,17 @@ def show_banner():
     )
     console.print(Align.center(panel))
     console.print() # Línea en blanco después del banner
+
+# --- Función para mostrar Banner Simple (para help) ---
+def show_banner_simple():
+    """Muestra un banner simple para cuando no hay dependencias completas."""
+    banner_content = (
+        f"{APP_NAME}\\n"
+        f"Versión: {APP_VERSION}\\n"
+        f"Por: {APP_AUTHOR}"
+    )
+    console.print(Align.center(banner_content))
+    console.print()
 
 # --- Configuración de Logging ---
 def setup_logging():
@@ -678,7 +698,12 @@ def uninstall_client_os(os_info):
 def main():
     # --- Limpiar pantalla y mostrar banner al inicio ---
     os.system('cls' if os.name == 'nt' else 'clear')
-    show_banner()
+    
+    # Usar banner apropiado según el contexto
+    if SHOW_HELP:
+        show_banner_simple()
+    else:
+        show_banner()
 
     parser = argparse.ArgumentParser(
         description=f"{APP_NAME} v{APP_VERSION}",
