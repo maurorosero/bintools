@@ -511,7 +511,14 @@ def _install_arch(gpg_key):
             
             # Importar la clave directamente desde el archivo
             run_command(["sudo", "pacman-key", "--add", temp_key_file], status_message="Importando clave GPG desde archivo")
-            run_command(["sudo", "pacman-key", "--lsign-key", fingerprint], status_message="Firmando clave GPG localmente")
+            
+            # Intentar firmar la clave localmente, pero continuar si falla
+            try:
+                run_command(["sudo", "pacman-key", "--lsign-key", fingerprint], status_message="Firmando clave GPG localmente")
+                print_info("Clave GPG firmada localmente")
+            except Exception as sign_error:
+                print_warning(f"No se pudo firmar la clave localmente: {sign_error}")
+                print_info("Continuando sin firma local (puede que la clave ya esté firmada)")
         finally:
             # Limpiar archivo temporal
             if os.path.exists(temp_key_file):
