@@ -72,19 +72,13 @@ PRITUNL_SIGN = "" # Clave GPG global
 
 # --- Función para mostrar Banner ---
 def show_banner():
-    """Muestra un banner estilizado usando Rich Panel."""
+    """Muestra un banner estilizado sin recuadros."""
     banner_content = (
         f"[bold cyan]{APP_NAME}[/bold cyan]\\n\\n"
         f"Versión: [yellow]{APP_VERSION}[/yellow]\\n"
         f"Por: [green]{APP_AUTHOR}[/green]"
     )
-    panel = Panel.fit(
-        banner_content,
-        title="Bienvenido",
-        border_style="blue",
-        padding=(1, 4) # Padding vertical y horizontal
-    )
-    console.print(Align.center(panel))
+    console.print(Align.center(banner_content))
     console.print() # Línea en blanco después del banner
 
 # --- Función para mostrar Banner Simple (para help) ---
