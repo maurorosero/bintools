@@ -503,8 +503,20 @@ def _install_arch(gpg_key):
              run_command(["sudo", "tee", "-a", str(pacman_conf)], input=repo_entry, status_message="Añadiendo repositorio Pritunl a pacman.conf")
         else: print_info("Repositorio [pritunl] ya existe.")
 
-        run_command(["sudo", "pacman-key", "--keyserver", "hkp://keyserver.ubuntu.com", "-r", fingerprint], status_message="Importando clave GPG")
-        run_command(["sudo", "pacman-key", "--lsign-key", fingerprint], status_message="Firmando clave GPG localmente")
+        # Crear archivo temporal con la clave GPG
+        temp_key_file = f"/tmp/pritunl_key_{os.getpid()}.asc"
+        try:
+            with open(temp_key_file, 'w') as f:
+                f.write(gpg_key)
+            
+            # Importar la clave directamente desde el archivo
+            run_command(["sudo", "pacman-key", "--add", temp_key_file], status_message="Importando clave GPG desde archivo")
+            run_command(["sudo", "pacman-key", "--lsign-key", fingerprint], status_message="Firmando clave GPG localmente")
+        finally:
+            # Limpiar archivo temporal
+            if os.path.exists(temp_key_file):
+                os.unlink(temp_key_file)
+        
         run_command(["sudo", "pacman", "-Sy", "--noconfirm"], status_message="Sincronizando bases de datos (pacman -Sy)")
         run_command(["sudo", "pacman", "-S", "--noconfirm", "pritunl-client-electron"], status_message="Instalando pritunl-client-electron (pacman -S)")
         print_success("Cliente Pritunl instalado (Arch Linux).")
