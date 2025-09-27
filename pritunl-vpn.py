@@ -220,14 +220,42 @@ def run_command(cmd_list, check=True, capture_output=False, text=True, sudo=Fals
         print_error(f"Error inesperado al ejecutar {' '.join(cmd_list)}: {e}")
         raise
 
+def download_pritunl_gpg_key():
+    """Descarga automáticamente la clave GPG de Pritunl."""
+    print_info("Descargando clave GPG de Pritunl...")
+    gpg_url = "https://raw.githubusercontent.com/pritunl/pgp/master/pritunl_repo_pub.asc"
+    
+    try:
+        response = requests.get(gpg_url, timeout=30)
+        response.raise_for_status()
+        return response.text.strip()
+    except requests.exceptions.RequestException as e:
+        print_error(f"Error al descargar la clave GPG de Pritunl: {e}")
+        return None
+
 def load_signature_key():
-    """Carga la clave GPG de firma desde el archivo de configuración."""
+    """Carga la clave GPG de firma desde el archivo de configuración o la descarga automáticamente."""
     global PRITUNL_SIGN
+    
+    # Crear directorio config si no existe
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    
     print_info(f"Buscando archivo de firma en: {SIGN_FILE}")
+    
+    # Si el archivo no existe, descargar la clave automáticamente
     if not SIGN_FILE.is_file():
-        print_error(f"Archivo de firma no encontrado en '{SIGN_FILE}'.")
-        print_error("Por favor, cree el archivo y pegue la clave GPG dentro.")
-        return False
+        print_info("Archivo de firma no encontrado. Descargando automáticamente...")
+        gpg_key = download_pritunl_gpg_key()
+        if not gpg_key:
+            return False
+        
+        try:
+            SIGN_FILE.write_text(gpg_key)
+            print_success(f"Clave GPG descargada y guardada en {SIGN_FILE}")
+        except Exception as e:
+            print_error(f"Error al guardar la clave GPG: {e}")
+            return False
+    
     try:
         content = SIGN_FILE.read_text().strip()
         if not content:
