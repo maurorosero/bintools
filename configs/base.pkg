@@ -48,7 +48,6 @@ ubuntu:apt:hexyl:Visor de archivos hexadecimal moderno y colorido
 ubuntu:apt:xxd:Herramienta para crear volcados hexadecimales
 ubuntu:apt:hexedit:Editor hexadecimal para archivos binarios
 ubuntu:apt:python3-rich:Librería para interfaces enriquecidas en terminal
-ubuntu:apt:python3-questionary:Librería para prompts interactivos en terminal
 ubuntu:apt:python3-requests:Librería HTTP para Python
 
 debian:apt:curl:Herramienta para transferir datos desde servidores
@@ -97,7 +96,6 @@ debian:apt:hexyl:Visor de archivos hexadecimal moderno y colorido
 debian:apt:xxd:Herramienta para crear volcados hexadecimales
 debian:apt:hexedit:Editor hexadecimal para archivos binarios
 debian:apt:python3-rich:Librería para interfaces enriquecidas en terminal
-debian:apt:python3-questionary:Librería para prompts interactivos en terminal
 debian:apt:python3-requests:Librería HTTP para Python
 
 # Fedora/CentOS
@@ -147,7 +145,6 @@ fedora:dnf:hexyl:Visor de archivos hexadecimal moderno y colorido
 fedora:dnf:xxd:Herramienta para crear volcados hexadecimales
 fedora:dnf:hexedit:Editor hexadecimal para archivos binarios
 fedora:dnf:python3-rich:Librería para interfaces enriquecidas en terminal
-fedora:dnf:python3-questionary:Librería para prompts interactivos en terminal
 fedora:dnf:python3-requests:Librería HTTP para Python
 
 centos:yum:curl:Herramienta para transferir datos desde servidores
@@ -196,7 +193,6 @@ centos:yum:hexyl:Visor de archivos hexadecimal moderno y colorido
 centos:yum:xxd:Herramienta para crear volcados hexadecimales
 centos:yum:hexedit:Editor hexadecimal para archivos binarios
 centos:yum:python3-rich:Librería para interfaces enriquecidas en terminal
-centos:yum:python3-questionary:Librería para prompts interactivos en terminal
 centos:yum:python3-requests:Librería HTTP para Python
 
 # Arch Linux
@@ -246,7 +242,6 @@ arch:pacman:hexyl:Visor de archivos hexadecimal moderno y colorido
 arch:pacman:xxd:Herramienta para crear volcados hexadecimales
 arch:pacman:hexedit:Editor hexadecimal para archivos binarios
 arch:pacman:python-rich:Librería para interfaces enriquecidas en terminal
-arch:yay:python-questionary:Librería para prompts interactivos en terminal
 arch:pacman:python-requests:Librería HTTP para Python
 
 # macOS
@@ -290,5 +285,4 @@ macos:brew:hexyl:Visor de archivos hexadecimal moderno y colorido
 macos:brew:xxd:Herramienta para crear volcados hexadecimales
 macos:brew:hexedit:Editor hexadecimal para archivos binarios
 macos:brew:python-rich:Librería para interfaces enriquecidas en terminal
-macos:brew:python-questionary:Librería para prompts interactivos en terminal
 macos:brew:python-requests:Librería HTTP para Python

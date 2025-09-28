@@ -43,10 +43,9 @@ if not SHOW_HELP:
         from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn
         from rich.panel import Panel # Importar Panel
         from rich.align import Align # Importar Align para centrar
-        import questionary
     except ImportError:
         print(
-            "ERROR: Faltan dependencias. Ejecuta: ./packages.sh --list base para instalar los prerrequisitos.",
+            "ERROR: Faltan dependencias. Ejecuta: packages.sh --list base para instalar los prerrequisitos.",
             file=sys.stderr
         )
         sys.exit(1)
