@@ -181,3 +181,6 @@ micursor-*/
 # System specific
 *.pid
 *.sock
+
+# Pritunl VPN client signature files
+config/pritunl-client.sign
