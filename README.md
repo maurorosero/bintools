@@ -41,8 +41,6 @@ bintools es un conjunto de scripts que automatizan tareas comunes del sistema op
 - **`repo-install.sh`**: Gestor de repositorios OS-específicos
 - **`bintools-manager.sh`**: Gestor principal de bintools
 - **`btfixperms.sh`**: Gestor de permisos para desarrollo
-### 🔐 Gestión de Secretos
-
 - **`mozilla-sops.sh`**: Instalador multiplataforma de Mozilla SOPS para gestión segura de secretos
 
 ### 📚 Documentación
@@ -280,7 +278,7 @@ Instala automáticamente herramientas esenciales según tu sistema operativo con
 
 ### 🔐 Gestión de Secretos
 
-### 🔐 Gestor de Tokens Git (`git-tokens.py`)
+### 🔑 Gestor de Tokens Git (`git-tokens.py`)
 
 Gestiona tokens de autenticación de servicios Git de forma segura usando el keyring del sistema.
 
@@ -321,6 +319,61 @@ Gestiona tokens de autenticación de servicios Git de forma segura usando el key
 ```
 
 Para información completa, ejemplos detallados y mejores prácticas, consulta la [documentación completa de gestión de secretos](docs/secrets.md).
+
+### 🛡️ Instalador Mozilla SOPS (`mozilla-sops.sh`)
+
+Instalador multiplataforma de Mozilla SOPS para gestión segura de secretos en archivos de configuración.
+
+**Pre-requisitos:**
+
+- Sistema operativo soportado (Ubuntu, Debian, Fedora, CentOS, Arch, macOS, Windows)
+- Herramientas de descarga (`curl` o `wget`)
+- Permisos sudo (en sistemas Unix)
+
+**¿Qué es SOPS?**
+
+- **SOPS** (Secrets OPerationS): Editor de archivos cifrados desarrollado por Mozilla
+- **Encripta** solo valores sensibles, manteniendo la estructura del archivo
+- **Soporta** múltiples formatos: YAML, JSON, ENV, INI
+- **Integra** con Git sin exponer secretos
+- **Compatible** con múltiples sistemas de cifrado (Age, PGP, AWS KMS, etc.)
+
+**¿Qué sistemas operativos soporta?**
+
+- **Linux**: Ubuntu, Debian, Fedora, CentOS, Arch Linux
+- **macOS**: Intel y Apple Silicon
+- **Windows**: Git Bash, WSL
+
+**Ejemplo de uso:**
+
+```bash
+# Instalar SOPS
+./mozilla-sops.sh
+
+# Verificar instalación
+sops --version
+
+# Crear archivo de secretos
+cat > secrets.yaml << EOF
+database:
+  host: "mi-servidor.com"
+  password: "mi-password-secreto"
+  api_key: "sk-1234567890abcdef"
+EOF
+
+# Encriptar archivo
+sops --encrypt --in-place secrets.yaml
+```
+
+**Funcionalidades del instalador:**
+
+- ✅ **Detección automática** del sistema operativo
+- ✅ **Múltiples métodos** de instalación (repositorios, snap, descarga directa)
+- ✅ **Verificación de actualizaciones** disponibles
+- ✅ **Verificación de requisitos** previos
+- ✅ **Arquitecturas soportadas** (x86_64, ARM64, ARM)
+
+Para información completa sobre configuración, uso y mejores prácticas, consulta la [documentación completa de SOPS](docs/sops.md).
 
 ### 🌐 Acceso Remoto Seguro
 
