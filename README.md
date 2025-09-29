@@ -41,6 +41,7 @@ bintools es un conjunto de scripts que automatizan tareas comunes del sistema op
 - **`repo-install.sh`**: Gestor de repositorios OS-específicos
 - **`bintools-manager.sh`**: Gestor principal de bintools
 - **`btfixperms.sh`**: Gestor de permisos para desarrollo
+- **`pritunl-vpn.py`**: Instalador multiplataforma del cliente VPN de Pritunl
 
 ### 📚 Documentación
 
@@ -48,6 +49,7 @@ bintools es un conjunto de scripts que automatizan tareas comunes del sistema op
 - **`docs/bw.md`**: Documentación completa de Bitwarden CLI
 - **`docs/bw-send.md`**: Guía completa de bw-send.sh (envío seguro extendido)
 - **`docs/odoodevs.md`**: Documentación completa de odoodevs
+- **`docs/pritunl-vpn.md`**: Guía completa del instalador de cliente VPN de Pritunl
 - **`docs/cursor-sync-guide.md`**: Guía para sincronizar contexto de Cursor con Nextcloud
 - **`docs/RELEASE.md`**: Guía de releases para desarrolladores
 
