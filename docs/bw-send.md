@@ -251,14 +251,14 @@ echo 'export BW_SEND_DEFAULT_MAX_ACCESS=5' >> ~/.bashrc
 
 ```bash
 # Crear aliases para uso frecuente
-alias bwsend='./bw-send.sh'
-alias bwsend-telegram='./bw-send.sh --telegram'
-alias bwsend-email='./bw-send.sh --email'
+alias bwsend='bw-send.sh'
+alias bwsend-telegram='bw-send.sh --telegram'
+alias bwsend-email='bw-send.sh --email'
 
 # Agregar a ~/.bashrc
-echo 'alias bwsend="./bw-send.sh"' >> ~/.bashrc
-echo 'alias bwsend-telegram="./bw-send.sh --telegram"' >> ~/.bashrc
-echo 'alias bwsend-email="./bw-send.sh --email"' >> ~/.bashrc
+echo 'alias bwsend="bw-send.sh"' >> ~/.bashrc
+echo 'alias bwsend-telegram="bw-send.sh --telegram"' >> ~/.bashrc
+echo 'alias bwsend-email="bw-send.sh --email"' >> ~/.bashrc
 ```
 
 ## Integración con Herramientas

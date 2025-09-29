@@ -40,7 +40,7 @@ except ImportError:
     print("OPCIONES DE INSTALACIÓN:")
     print("")
     print("1. Usar pymanager.py (recomendado - gestión profesional):")
-    print("   ./pymanager.py install keyring")
+    print("   pymanager.py install keyring")
     print("")
     print("2. Usar pipx (instalación aislada):")
     print("   pipx install keyring")
