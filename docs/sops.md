@@ -108,6 +108,9 @@ sops --version
 Age es más simple y seguro que PGP:
 
 ```bash
+# Crear directorio para las claves
+mkdir -p ~/.config/sops/age
+
 # Generar par de claves
 age-keygen -o ~/.config/sops/age/keys.txt
 
@@ -122,14 +125,19 @@ cat ~/.config/sops/age/keys.txt
 AGE-SECRET-KEY-1ABC123DEF456GHI789JKL012MNO345PQR678STU901VWX234YZ
 ```
 
-### 📝 **Paso 2: Crear Archivo de Configuración**
+### 📝 **Paso 2: Verificar Archivo de Configuración**
 
-Crea `~/.config/sops/age/keys.txt` y guarda la clave privada:
+El comando `age-keygen` ya creó el archivo de claves. Verifica que todo esté correcto:
 
 ```bash
-mkdir -p ~/.config/sops/age
-cp ~/.config/sops/age/keys.txt ~/.config/sops/age/keys.txt
+# Verificar que el archivo existe
+ls -la ~/.config/sops/age/keys.txt
+
+# Ver el contenido completo (incluye clave privada y pública)
+cat ~/.config/sops/age/keys.txt
 ```
+
+**⚠️ Importante:** Este archivo contiene tu **clave privada**. Manténlo seguro y nunca lo compartas públicamente.
 
 ### 🔧 **Paso 3: Configurar SOPS**
 
