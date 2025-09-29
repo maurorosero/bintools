@@ -41,7 +41,9 @@ bintools es un conjunto de scripts que automatizan tareas comunes del sistema op
 - **`repo-install.sh`**: Gestor de repositorios OS-específicos
 - **`bintools-manager.sh`**: Gestor principal de bintools
 - **`btfixperms.sh`**: Gestor de permisos para desarrollo
-- **`mozilla-sops.sh`**: Instalador multiplataforma de Mozilla SOPS
+### 🔐 Gestión de Secretos
+
+- **`mozilla-sops.sh`**: Instalador multiplataforma de Mozilla SOPS para gestión segura de secretos
 
 ### 📚 Documentación
 
