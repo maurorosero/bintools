@@ -38,29 +38,31 @@ En el contexto de desarrollo y empresas:
 ### Versiones de Pritunl
 
 #### **Pritunl Community Edition (Gratuita)**
+
 - **🔓 Código abierto**: Completamente gratuito y open source
-- **👥 Usuarios limitados**: Hasta 2 usuarios simultáneos
+- **👥 Usuarios ilimitados**: Sin limitaciones en el número de usuarios simultáneos
 - **🌐 Funcionalidades básicas**: Todas las características esenciales de VPN
 - **📊 Monitoreo básico**: Dashboard con estadísticas fundamentales
 - **🔧 API REST**: Acceso completo a la API para automatización
 - **📱 Clientes nativos**: Soporte para todas las plataformas
 
 #### **Pritunl Enterprise Edition (De pago)**
+
 - **👥 Usuarios ilimitados**: Sin límite de usuarios simultáneos
-- **🔐 Características avanzadas**: 
+- **🔐 Características avanzadas**:
   - Integración con LDAP/Active Directory
   - Autenticación de dos factores (2FA)
   - Single Sign-On (SSO)
   - Certificados personalizados
-- **📊 Monitoreo avanzado**: 
+- **📊 Monitoreo avanzado**:
   - Logs detallados y auditoría
   - Métricas avanzadas de rendimiento
   - Alertas y notificaciones
-- **🛡️ Seguridad empresarial**: 
+- **🛡️ Seguridad empresarial**:
   - Políticas de seguridad avanzadas
   - Cumplimiento normativo
   - Soporte técnico prioritario
-- **☁️ Escalabilidad**: 
+- **☁️ Escalabilidad**:
   - Clustering y alta disponibilidad
   - Balanceadores de carga
   - Distribución geográfica
@@ -70,7 +72,7 @@ En el contexto de desarrollo y empresas:
 | Característica | Community Edition | Enterprise Edition |
 |---|---|---|
 | **Precio** | ✅ Gratuito | 💰 De pago |
-| **Usuarios simultáneos** | ⚠️ 2 usuarios | ✅ Ilimitado |
+| **Usuarios simultáneos** | ✅ Ilimitado | ✅ Ilimitado |
 | **API REST** | ✅ Completa | ✅ Completa |
 | **Web UI** | ✅ Moderna | ✅ Avanzada |
 | **LDAP/AD** | ❌ No | ✅ Sí |
@@ -83,14 +85,16 @@ En el contexto de desarrollo y empresas:
 #### **¿Cuándo usar cada versión?**
 
 ##### **Community Edition - Ideal para:**
+
 - **🏠 Uso personal**: Desarrollo individual o proyectos pequeños
 - **🧪 Testing y desarrollo**: Pruebas de concepto y prototipos
 - **💰 Presupuesto limitado**: Organizaciones sin recursos para licencias
 - **🔓 Código abierto**: Equipos que prefieren soluciones open source
-- **👨‍💻 Equipos pequeños**: Hasta 2 usuarios simultáneos
+- **👥 Equipos de cualquier tamaño**: Sin limitaciones de usuarios simultáneos
 
 ##### **Enterprise Edition - Necesario para:**
-- **🏢 Organizaciones grandes**: Más de 2 usuarios simultáneos
+
+- **🏢 Organizaciones grandes**: Que requieren características empresariales avanzadas
 - **🔐 Seguridad empresarial**: Cumplimiento normativo y auditorías
 - **👥 Integración corporativa**: LDAP, Active Directory, SSO
 - **📊 Monitoreo avanzado**: Logs detallados y métricas de rendimiento
@@ -99,16 +103,18 @@ En el contexto de desarrollo y empresas:
 
 #### **Consideraciones Importantes**
 
-##### **Limitación de 2 usuarios en Community Edition**
-- ⚠️ **Crítico**: Solo 2 conexiones simultáneas permitidas
-- 🔄 **Solución temporal**: Los usuarios deben desconectarse para que otros se conecten
-- 💰 **Upgrade necesario**: Para equipos de más de 2 personas se requiere Enterprise
-- 🧪 **Testing**: Ideal para pruebas y desarrollo, no para producción
+##### **Rendimiento y escalabilidad**
+
+- ⚡ **Rendimiento**: Depende de los recursos del servidor (CPU, RAM, ancho de banda)
+- 🌐 **Red**: La capacidad de conexiones simultáneas está limitada por la infraestructura
+- 📊 **Monitoreo**: Community Edition incluye monitoreo básico, Enterprise ofrece métricas avanzadas
+- 🧪 **Testing**: Community Edition es perfecta para producción con recursos adecuados
 
 ##### **Migración de Community a Enterprise**
+
 - ✅ **Datos preservados**: Configuraciones y usuarios se mantienen
 - 🔄 **Proceso simple**: Actualización sin pérdida de datos
-- 📈 **Escalabilidad**: Acceso inmediato a todas las características Enterprise
+- 📈 **Características avanzadas**: Acceso a LDAP, clustering, auditoría avanzada
 - 💳 **Licenciamiento**: Modelo de suscripción mensual/anual
 
 ### Características Principales
