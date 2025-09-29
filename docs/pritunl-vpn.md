@@ -35,6 +35,82 @@ En el contexto de desarrollo y empresas:
 ### Descripción
 **Pritunl** es una plataforma VPN de código abierto y gratuita que proporciona una alternativa moderna y segura a las soluciones VPN tradicionales. Está diseñada para ser fácil de usar tanto para administradores como para usuarios finales.
 
+### Versiones de Pritunl
+
+#### **Pritunl Community Edition (Gratuita)**
+- **🔓 Código abierto**: Completamente gratuito y open source
+- **👥 Usuarios limitados**: Hasta 2 usuarios simultáneos
+- **🌐 Funcionalidades básicas**: Todas las características esenciales de VPN
+- **📊 Monitoreo básico**: Dashboard con estadísticas fundamentales
+- **🔧 API REST**: Acceso completo a la API para automatización
+- **📱 Clientes nativos**: Soporte para todas las plataformas
+
+#### **Pritunl Enterprise Edition (De pago)**
+- **👥 Usuarios ilimitados**: Sin límite de usuarios simultáneos
+- **🔐 Características avanzadas**: 
+  - Integración con LDAP/Active Directory
+  - Autenticación de dos factores (2FA)
+  - Single Sign-On (SSO)
+  - Certificados personalizados
+- **📊 Monitoreo avanzado**: 
+  - Logs detallados y auditoría
+  - Métricas avanzadas de rendimiento
+  - Alertas y notificaciones
+- **🛡️ Seguridad empresarial**: 
+  - Políticas de seguridad avanzadas
+  - Cumplimiento normativo
+  - Soporte técnico prioritario
+- **☁️ Escalabilidad**: 
+  - Clustering y alta disponibilidad
+  - Balanceadores de carga
+  - Distribución geográfica
+
+#### **Diferencias Clave**
+
+| Característica | Community Edition | Enterprise Edition |
+|---|---|---|
+| **Precio** | ✅ Gratuito | 💰 De pago |
+| **Usuarios simultáneos** | ⚠️ 2 usuarios | ✅ Ilimitado |
+| **API REST** | ✅ Completa | ✅ Completa |
+| **Web UI** | ✅ Moderna | ✅ Avanzada |
+| **LDAP/AD** | ❌ No | ✅ Sí |
+| **2FA/SSO** | ❌ No | ✅ Sí |
+| **Clustering** | ❌ No | ✅ Sí |
+| **Soporte técnico** | ❌ Comunidad | ✅ Prioritario |
+| **Certificados personalizados** | ❌ No | ✅ Sí |
+| **Auditoría avanzada** | ❌ Básica | ✅ Completa |
+
+#### **¿Cuándo usar cada versión?**
+
+##### **Community Edition - Ideal para:**
+- **🏠 Uso personal**: Desarrollo individual o proyectos pequeños
+- **🧪 Testing y desarrollo**: Pruebas de concepto y prototipos
+- **💰 Presupuesto limitado**: Organizaciones sin recursos para licencias
+- **🔓 Código abierto**: Equipos que prefieren soluciones open source
+- **👨‍💻 Equipos pequeños**: Hasta 2 usuarios simultáneos
+
+##### **Enterprise Edition - Necesario para:**
+- **🏢 Organizaciones grandes**: Más de 2 usuarios simultáneos
+- **🔐 Seguridad empresarial**: Cumplimiento normativo y auditorías
+- **👥 Integración corporativa**: LDAP, Active Directory, SSO
+- **📊 Monitoreo avanzado**: Logs detallados y métricas de rendimiento
+- **☁️ Alta disponibilidad**: Clustering y distribución geográfica
+- **🛡️ Políticas estrictas**: Control granular de acceso y seguridad
+
+#### **Consideraciones Importantes**
+
+##### **Limitación de 2 usuarios en Community Edition**
+- ⚠️ **Crítico**: Solo 2 conexiones simultáneas permitidas
+- 🔄 **Solución temporal**: Los usuarios deben desconectarse para que otros se conecten
+- 💰 **Upgrade necesario**: Para equipos de más de 2 personas se requiere Enterprise
+- 🧪 **Testing**: Ideal para pruebas y desarrollo, no para producción
+
+##### **Migración de Community a Enterprise**
+- ✅ **Datos preservados**: Configuraciones y usuarios se mantienen
+- 🔄 **Proceso simple**: Actualización sin pérdida de datos
+- 📈 **Escalabilidad**: Acceso inmediato a todas las características Enterprise
+- 💳 **Licenciamiento**: Modelo de suscripción mensual/anual
+
 ### Características Principales
 
 - **🌐 Web UI moderna**: Interfaz web intuitiva y responsiva
@@ -42,7 +118,7 @@ En el contexto de desarrollo y empresas:
 - **👥 Gestión centralizada**: Administración de usuarios y organizaciones
 - **📱 Multiplataforma**: Soporte para Windows, macOS, Linux, iOS, Android
 - **⚡ Alto rendimiento**: Optimizado para conexiones rápidas y estables
-- **🔄 Escalabilidad**: Soporte para miles de usuarios simultáneos
+- **🔄 Escalabilidad**: Soporte para miles de usuarios simultáneos (Enterprise)
 - **📊 Monitoreo**: Dashboard con estadísticas y logs en tiempo real
 
 ### ¿Qué necesitamos tener?
