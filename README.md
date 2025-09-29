@@ -41,7 +41,6 @@ bintools es un conjunto de scripts que automatizan tareas comunes del sistema op
 - **`repo-install.sh`**: Gestor de repositorios OS-específicos
 - **`bintools-manager.sh`**: Gestor principal de bintools
 - **`btfixperms.sh`**: Gestor de permisos para desarrollo
-- **`pritunl-vpn.py`**: Instalador multiplataforma del cliente VPN de Pritunl
 
 ### 📚 Documentación
 
@@ -318,6 +317,62 @@ Gestiona tokens de autenticación de servicios Git de forma segura usando el key
 ```
 
 Para información completa, ejemplos detallados y mejores prácticas, consulta la [documentación completa de gestión de secretos](docs/secrets.md).
+
+### 🌐 Acceso Remoto Seguro
+
+#### `pritunl-vpn.py` - Instalador de Cliente VPN de Pritunl
+
+Instalador multiplataforma del cliente VPN de Pritunl para conexiones seguras y gestión de acceso remoto.
+
+**¿Qué es Pritunl?**
+
+Pritunl es una plataforma VPN de código abierto que proporciona una alternativa moderna y segura a las soluciones VPN tradicionales. Está diseñada para ser fácil de usar tanto para administradores como para usuarios finales.
+
+**¿Para qué sirve?**
+
+- 🌐 **Conexión segura**: Encriptación AES-256 y protocolos seguros
+- 🏢 **Acceso remoto**: Conexión segura a redes corporativas desde cualquier lugar
+- 🔐 **Gestión centralizada**: Administración de usuarios y organizaciones
+- 📱 **Multiplataforma**: Soporte para Windows, macOS, Linux, iOS, Android
+- ⚡ **Alto rendimiento**: Optimizado para conexiones rápidas y estables
+
+**Pre-requisitos:**
+
+- Python 3.6+ instalado en el sistema
+- Herramientas base del sistema (`packages.sh --list base`)
+- Servidor Pritunl configurado y accesible
+
+**¿Qué hace?**
+
+- 🔧 **Instalación automática**: Detecta el sistema operativo y instala el cliente apropiado
+- 🖥️ **Multiplataforma**: Soporte para Ubuntu, Debian, Fedora, CentOS, Arch Linux, macOS, Windows
+- ✅ **Verificación**: Confirma la instalación y configuración correcta
+- 🗑️ **Desinstalación**: Remueve completamente el cliente y configuraciones
+- 🔄 **Gestión**: Instala, desinstala y verifica el estado del cliente
+
+**Uso básico:**
+
+```bash
+# Mostrar ayuda
+python3 pritunl-vpn.py --help
+
+# Instalar cliente VPN
+python3 pritunl-vpn.py --install
+
+# Desinstalar cliente VPN
+python3 pritunl-vpn.py --remove
+
+# Verificar versión
+python3 pritunl-vpn.py --version
+```
+
+**Sistemas soportados:**
+
+- **Linux**: Ubuntu/Debian (apt), Fedora/CentOS (dnf/yum), Arch Linux (AUR/AppImage)
+- **macOS**: Homebrew, MacPorts, PKG directo
+- **Windows**: Chocolatey, Scoop, MSI directo
+
+Para información completa sobre VPN, configuración del servidor, ejemplos de uso y solución de problemas, consulta la [documentación completa de pritunl-vpn.py](docs/pritunl-vpn.md).
 
 ### 🔐 Scripts de Bitwarden CLI
 
