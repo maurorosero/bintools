@@ -163,7 +163,7 @@ Instala automáticamente herramientas esenciales según tu sistema operativo con
 - Reinicia servicios de audio automáticamente
 - Funciona con múltiples monitores y tarjetas de audio
 
-**Uso**: `./fix_hdmi_audio.sh`
+**Uso**: `fix_hdmi_audio.sh`
 
 #### `videoset.sh` - Configurador de Pantalla
 
@@ -181,7 +181,7 @@ Instala automáticamente herramientas esenciales según tu sistema operativo con
 - Configura la resolución óptima automáticamente
 - Soporte para múltiples monitores
 
-**Uso**: `./videoset.sh --auto`
+**Uso**: `videoset.sh --auto`
 
 #### `nxcloud-backup.sh` - Gestor Completo de Nextcloud
 
@@ -206,22 +206,22 @@ Instala automáticamente herramientas esenciales según tu sistema operativo con
 
 ```bash
 # Crear backup de configuración
-./nxcloud-backup.sh --backup
+nxcloud-backup.sh --backup
 
 # Listar todos los backups disponibles  
-./nxcloud-backup.sh --list
+nxcloud-backup.sh --list
 
 # Restaurar backup específico (mantiene autenticación)
-./nxcloud-backup.sh --restore backup_name
+nxcloud-backup.sh --restore backup_name
 
 # Configurar sincronización de carpeta segura
-./nxcloud-backup.sh --secure
+nxcloud-backup.sh --secure
 
 # Limpiar entradas duplicadas de configuración
-./nxcloud-backup.sh --clean
+nxcloud-backup.sh --clean
 
 # Limpiar archivos de sincronización no deseados (.nextcloudsync.log, .sync_*.db*)
-./nxcloud-backup.sh --clean-sync
+nxcloud-backup.sh --clean-sync
 ```
 
 #### `hexroute` - Convertidor de Rutas de Red
@@ -240,7 +240,7 @@ Instala automáticamente herramientas esenciales según tu sistema operativo con
 - Soporte para múltiples gateways
 - Formato compatible con routers empresariales
 
-**Uso**: `./hexroute 172.16.0.0/16 gw 192.168.1.1`
+**Uso**: `hexroute 172.16.0.0/16 gw 192.168.1.1`
 
 #### `fix-locale.sh` - Corrección de Locales
 
@@ -264,16 +264,16 @@ Instala automáticamente herramientas esenciales según tu sistema operativo con
 
 ```bash
 # Verificar configuración actual
-./fix-locale.sh --check
+fix-locale.sh --check
 
 # Corregir configuración
-./fix-locale.sh --fix
+fix-locale.sh --fix
 
 # Ejecutar todas las correcciones
-./fix-locale.sh --all
+fix-locale.sh --all
 
 # Uso remoto
-./fix-locale.sh --remote user@server --fix
+fix-locale.sh --remote user@server --fix
 ```
 
 ### 🔐 Gestión de Secretos
@@ -309,13 +309,13 @@ Gestiona tokens de autenticación de servicios Git de forma segura usando el key
 
 ```bash
 # Ver ayuda completa
-./git-tokens.py --help
+git-tokens.py --help
 
 # Guardar token
-./git-tokens.py set github-dev-api --token ghp_xxxxx
+git-tokens.py set github-dev-api --token ghp_xxxxx
 
 # Recuperar token
-./git-tokens.py get github-dev-api
+git-tokens.py get github-dev-api
 ```
 
 Para información completa, ejemplos detallados y mejores prácticas, consulta la [documentación completa de gestión de secretos](docs/secrets.md).
@@ -348,7 +348,7 @@ Instalador multiplataforma de Mozilla SOPS para gestión segura de secretos en a
 
 ```bash
 # Instalar SOPS
-./mozilla-sops.sh
+mozilla-sops.sh
 
 # Verificar instalación
 sops --version
@@ -451,7 +451,7 @@ Bitwarden es un gestor de contraseñas de código abierto y gratuito que permite
 
 ```bash
 # Instalar Bitwarden CLI automáticamente
-./packages.sh --list bwdn
+packages.sh --list bwdn
 
 # Esto instalará:
 # - Bitwarden Desktop (cliente oficial)
@@ -484,13 +484,13 @@ Wrapper que extiende la funcionalidad de `bw send` para permitir el envío segur
 
 ```bash
 # Ver ayuda completa
-./bw-send.sh --help
+bw-send.sh --help
 
 # Enviar texto simple
-./bw-send.sh --text "Información confidencial"
+bw-send.sh --text "Información confidencial"
 
 # Enviar archivo
-./bw-send.sh --file documento.pdf
+bw-send.sh --file documento.pdf
 ```
 
 Para información completa sobre todas las opciones, canales de envío y ejemplos detallados, consulta la [documentación completa de bw-send](docs/bw-send.md) y la [guía de gestión de secretos](docs/secrets.md).
@@ -511,13 +511,13 @@ Gestiona tokens de GitHub con Bitwarden, incluyendo obtención, almacenamiento y
 
 ```bash
 # Mostrar opciones disponibles
-./bw-ghpersonal.sh
+bw-ghpersonal.sh
 
 # Obtener token desde Bitwarden y guardarlo
-./bw-ghpersonal.sh --get
+bw-ghpersonal.sh --get
 
 # Autenticar GitHub CLI con token guardado
-./bw-ghpersonal.sh --login
+bw-ghpersonal.sh --login
 ```
 
 **¿Cómo funciona?**
@@ -568,16 +568,16 @@ Para mayor información, consulta la [documentación completa de odoodevs](docs/
 
 ```bash
 # Instalación para desarrolladores
-./odevs-install.sh --type devs
+odevs-install.sh --type devs
 
 # Instalación última versión
-./odevs-install.sh --type latest
+odevs-install.sh --type latest
 
 # Instalación versión específica
-./odevs-install.sh --type version --version v1.0.0
+odevs-install.sh --type version --version v1.0.0
 
 # Con workspace personalizado
-./odevs-install.sh --type devs --workspace mi-odoo
+odevs-install.sh --type devs --workspace mi-odoo
 ```
 
 Para información completa, consulta la [documentación detallada](docs/odoodevs.md).
