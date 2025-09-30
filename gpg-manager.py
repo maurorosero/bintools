@@ -16,6 +16,7 @@ import shutil
 import hashlib
 import getpass
 import time
+import yaml
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, List, Dict, Any
@@ -111,6 +112,54 @@ class GPGManager:
         """Verificar que GPG esté disponible"""
         result = self.run_command(["gpg", "--version"])
         return result.returncode == 0
+
+    def check_git_available(self) -> bool:
+        """Verificar que Git esté disponible"""
+        result = self.run_command(["git", "--version"])
+        return result.returncode == 0
+
+    def check_tool_available(self, tool: str) -> bool:
+        """Verificar que una herramienta esté disponible"""
+        result = self.run_command(["which", tool])
+        return result.returncode == 0
+
+    def check_prerequisites_for_operation(self, operation: str) -> bool:
+        """Verificar prerequisitos para una operación específica"""
+        self.log_info(f"🔍 Verificando prerequisitos para: {operation}")
+        
+        missing_tools = []
+        
+        # Prerequisitos básicos (siempre necesarios)
+        if not self.check_gpg_available():
+            missing_tools.append("gpg")
+        
+        # Prerequisitos específicos por operación
+        if operation in ["git-config", "configure_git"]:
+            if not self.check_git_available():
+                missing_tools.append("git")
+                
+        elif operation in ["backup", "create_backup"]:
+            required_tools = ["tar", "sha256sum"]
+            for tool in required_tools:
+                if not self.check_tool_available(tool):
+                    missing_tools.append(tool)
+                    
+        elif operation in ["restore", "verify"]:
+            required_tools = ["tar"]
+            for tool in required_tools:
+                if not self.check_tool_available(tool):
+                    missing_tools.append(tool)
+        
+        # Mostrar resultados
+        if missing_tools:
+            self.log_error(f"❌ Prerequisitos faltantes para {operation}:")
+            for tool in missing_tools:
+                self.log_error(f"   - {tool}")
+            self.log_info("💡 Instale las herramientas faltantes y vuelva a intentar")
+            return False
+        else:
+            self.log_success(f"✅ Todos los prerequisitos para {operation} están disponibles")
+            return True
         
     def get_user_key_info(self) -> Dict[str, str]:
         """Obtener información del usuario para la llave"""
@@ -366,6 +415,10 @@ Passphrase: """ + user_info['passphrase'] + """
         
     def generate_master_key_and_subkeys(self):
         """Generar llave maestra y subclaves"""
+        # Verificar prerequisitos
+        if not self.check_prerequisites_for_operation("gen-key"):
+            return False
+            
         self.log_info("🔑 Generando llave maestra y subclaves para desarrollo...")
         
         # Verificar que GPG esté inicializado
@@ -493,6 +546,10 @@ Passphrase: """ + user_info['passphrase'] + """
         
     def initialize_gpg(self):
         """Inicializar configuración GPG"""
+        # Verificar prerequisitos
+        if not self.check_prerequisites_for_operation("init"):
+            return False
+            
         self.log_info("🚀 Inicializando configuración GPG...")
         
         # Verificar si ya existe
@@ -687,9 +744,13 @@ scdaemon-program /usr/lib/gnupg/scdaemon
         
     def create_portable_gpg_backup(self):
         """Crear backup portable de GPG"""
+        # Verificar prerequisitos
+        if not self.check_prerequisites_for_operation("backup"):
+            return False
+            
         self.log_info("🌐 Creando backup portable de configuración GPG...")
         
-        # Verificar pre-requisitos
+        # Verificar pre-requisitos específicos de backup
         self.check_backup_prerequisites()
         
         # Crear directorio de backup
@@ -809,6 +870,10 @@ scdaemon-program /usr/lib/gnupg/scdaemon
                 
     def restore_portable_gpg(self, backup_file: str):
         """Restaurar backup portable"""
+        # Verificar prerequisitos
+        if not self.check_prerequisites_for_operation("restore"):
+            return False
+            
         if not backup_file:
             self.log_error("Falta especificar archivo de backup")
             sys.exit(1)
@@ -848,6 +913,10 @@ scdaemon-program /usr/lib/gnupg/scdaemon
                 
     def verify_backup_integrity(self, backup_file: str):
         """Verificar integridad del backup"""
+        # Verificar prerequisitos
+        if not self.check_prerequisites_for_operation("verify"):
+            return False
+            
         if not backup_file:
             self.log_error("Falta especificar archivo de backup")
             sys.exit(1)
@@ -967,130 +1036,432 @@ scdaemon-program /usr/lib/gnupg/scdaemon
                 
         print()
         
-    def configure_git_for_gpg(self):
-        """Configurar Git para usar GPG con la subclave de firma"""
-        self.log_info("🔧 Configurando Git para GPG...")
-        
-        # Buscar la subclave de firma (S) en las claves públicas
-        result = self.run_command(["gpg", "--list-keys", "--keyid-format", "LONG"])
-        if result.returncode != 0:
-            self.log_error("No se pudieron listar las claves")
-            return False
-            
-        signing_key = None
-        lines = result.stdout.split('\n')
-        
-        for line in lines:
-            if line.startswith('sub') and '[S]' in line:
-                # Extraer el ID de la subclave de firma
-                parts = line.split()
-                for part in parts:
-                    if '/' in part and 'sub' in line:
-                        signing_key = part.split('/')[1]
-                        break
-                if signing_key:
-                    break
-        
-        if not signing_key:
-            self.log_error("No se encontró subclave de firma (S)")
-            self.log_info("Asegúrese de tener una subclave con capacidad de firma")
-            return False
-            
-        self.log_success(f"Subclave de firma encontrada: {signing_key}")
-        
-        # Obtener información del usuario de la llave
-        user_name = None
-        user_email = None
-        
-        # Buscar información del usuario en las claves públicas
-        pub_result = self.run_command(["gpg", "--list-keys", "--keyid-format", "LONG"])
-        if pub_result.returncode == 0:
-            pub_lines = pub_result.stdout.split('\n')
-            for line in pub_lines:
-                if line.startswith('uid'):
-                    # Formato: uid [ultimate] Nombre <email>
-                    if '<' in line and '>' in line:
-                        # Extraer nombre y email
-                        parts = line.split('<')
-                        if len(parts) >= 2:
-                            name_part = parts[0].strip()
-                            email_part = parts[1].split('>')[0].strip()
-                            
-                            # Limpiar el nombre (remover [ultimate], etc.)
-                            name_clean = name_part.split(']')[-1].strip() if ']' in name_part else name_part
-                            
-                            user_name = name_clean
-                            user_email = email_part
-                            break
-        
-        # Configurar Git
-        git_configs = [
-            ("user.signingkey", signing_key),
-            ("commit.gpgsign", "true"),
-            ("gpg.program", "gpg"),
-            ("tag.gpgSign", "true")
-        ]
-        
-        # Agregar nombre y email si se encontraron
-        if user_name:
-            git_configs.append(("user.name", user_name))
-        if user_email:
-            git_configs.append(("user.email", user_email))
-        
-        for key, value in git_configs:
-            result = self.run_command(["git", "config", "--global", key, value])
-            if result.returncode == 0:
-                self.log_success(f"✅ Git configurado: {key} = {value}")
-            else:
-                self.log_warning(f"⚠️  Error configurando: {key}")
-                
-        # Configurar GPG para automatización
-        self.configure_gpg_for_automation()
-        
-        # Configurar GPG_TTY para Git (solo si hay TTY disponible)
+    def get_latest_valid_signing_key(self) -> str:
+        """Obtiene la llave de firma más reciente y válida"""
         try:
-            tty_result = os.popen('tty').read().strip()
-            if tty_result and 'not a tty' not in tty_result:
-                os.environ['GPG_TTY'] = tty_result
-                self.log_success(f"✅ GPG_TTY configurado: {tty_result}")
-            else:
-                self.log_warning("⚠️  No hay TTY disponible - GPG puede requerir configuración manual")
-                self.log_info("💡 Para scripts: export GPG_TTY=$(tty)")
-        except Exception as e:
-            self.log_warning(f"⚠️  Error configurando GPG_TTY: {e}")
-        
-        # Verificar configuración
-        self.log_info("🔍 Verificando configuración...")
-        result = self.run_command(["git", "config", "--global", "--get", "user.signingkey"])
-        if result.returncode == 0 and result.stdout.strip() == signing_key:
-            self.log_success("✅ Git configurado correctamente para GPG")
+            # Listar todas las llaves públicas
+            result = self.run_command(['gpg', '--list-keys', '--with-colons'])
             
-            print("\n" + "="*50)
-            print("🎉 CONFIGURACIÓN GIT-GPG COMPLETADA")
-            print("="*50)
-            print(f"🔑 Subclave de firma: {signing_key}")
-            if user_name:
-                print(f"👤 Nombre: {user_name}")
-            if user_email:
-                print(f"📧 Email: {user_email}")
-            print("📝 Commits firmados: Activado")
-            print("🏷️  Tags firmados: Activado")
-            print("🔧 GPG program: gpg")
-            print()
-            print("💡 Próximos pasos:")
-            print("1. Probar firma: git commit --allow-empty -m 'Test GPG signature'")
-            print("2. Verificar: git log --show-signature")
-            print("3. Configurar GitHub: Agregar clave pública en Settings > SSH and GPG keys")
-            print()
-            print("⚠️  Nota sobre entornos sin TTY (Cursor, scripts):")
-            print("   - GPG puede requerir configuración manual de GPG_TTY")
-            print("   - En terminal interactivo: export GPG_TTY=$(tty)")
-            print("   - Para scripts: configurar pinentry-mode loopback")
-            print("="*50)
+            valid_keys = []
+            for line in result.stdout.split('\n'):
+                if line.startswith('pub:'):
+                    # Parsear información de la llave
+                    parts = line.split(':')
+                    key_id = parts[4]
+                    created = parts[5]
+                    expires = parts[6]
+                    usage = parts[11]
+                    validity = parts[1]
+                    
+                    # Verificar que es válida (estrategia 2)
+                    if (validity in ['u', 'f', 'm'] and  # No revocada
+                        'S' in usage and  # Tiene capacidad de firma
+                        (expires == '' or int(expires) > int(time.time()))):  # No expirada
+                        valid_keys.append((key_id, created))
+            
+            # Ordenar por fecha de creación (más reciente primero - estrategia 1)
+            valid_keys.sort(key=lambda x: x[1], reverse=True)
+            
+            if valid_keys:
+                return valid_keys[0][0]
+            else:
+                return None
+                
+        except Exception as e:
+            self.log_error(f"Error obteniendo llave de firma: {e}")
+            return None
+
+    def verify_signing_key(self, key_id: str) -> bool:
+        """Verifica que una llave es válida para firma"""
+        try:
+            result = self.run_command(['gpg', '--list-keys', '--with-colons', key_id])
+            
+            for line in result.stdout.split('\n'):
+                if line.startswith('pub:'):
+                    parts = line.split(':')
+                    validity = parts[1]
+                    usage = parts[11]
+                    expires = parts[6]
+                    
+                    # Verificar que es válida
+                    if (validity in ['u', 'f', 'm'] and  # No revocada
+                        'S' in usage and  # Tiene capacidad de firma
+                        (expires == '' or int(expires) > int(time.time()))):  # No expirada
+                        return True
+            
+            return False
+            
+        except Exception as e:
+            self.log_error(f"Error verificando llave: {e}")
+            return False
+
+    def disable_git_gpg(self):
+        """Deshabilita el uso de GPG en Git"""
+        try:
+            self.log_info("🔧 Deshabilitando GPG en Git...")
+            
+            # Deshabilitar firma de commits
+            self.run_command(['git', 'config', '--global', '--unset', 'commit.gpgsign'])
+            
+            # Deshabilitar firma de tags
+            self.run_command(['git', 'config', '--global', '--unset', 'tag.gpgSign'])
+            
+            # Remover configuración de llave de firma
+            self.run_command(['git', 'config', '--global', '--unset', 'user.signingkey'])
+            
+            # Remover configuración de programa GPG
+            self.run_command(['git', 'config', '--global', '--unset', 'gpg.program'])
+            
+            self.log_success("✅ GPG deshabilitado en Git")
+            self.log_info("💡 Para habilitar nuevamente: gpg-manager.py --git-config")
+            
+        except Exception as e:
+            self.log_error(f"Error deshabilitando GPG: {e}")
+
+    def get_user_info_from_key(self, key_id: str) -> dict:
+        """Obtiene información del usuario desde una llave GPG"""
+        try:
+            result = self.run_command(['gpg', '--list-keys', '--with-colons', key_id])
+            
+            user_info = {'name': None, 'email': None}
+            
+            for line in result.stdout.split('\n'):
+                if line.startswith('uid:'):
+                    parts = line.split(':')
+                    uid = parts[9]
+                    
+                    # Parsear UID (formato: "Nombre <email>")
+                    if '<' in uid and '>' in uid:
+                        name_part = uid.split('<')[0].strip()
+                        email_part = uid.split('<')[1].split('>')[0].strip()
+                        
+                        if name_part:
+                            user_info['name'] = name_part
+                        if email_part:
+                            user_info['email'] = email_part
+                    else:
+                        # Solo nombre sin email
+                        user_info['name'] = uid.strip()
+            
+            return user_info
+            
+        except Exception as e:
+            self.log_error(f"Error obteniendo información del usuario: {e}")
+            return {'name': None, 'email': None}
+
+    def _configure_git_with_key(self, signing_key: str):
+        """Configura Git con una llave específica"""
+        try:
+            # Obtener información del usuario desde la llave
+            user_info = self.get_user_info_from_key(signing_key)
+            
+            # Configurar nombre y email
+            if user_info['name']:
+                self.run_command(['git', 'config', '--global', 'user.name', user_info['name']])
+                self.log_success(f"✅ Git configurado: user.name = {user_info['name']}")
+            
+            if user_info['email']:
+                self.run_command(['git', 'config', '--global', 'user.email', user_info['email']])
+                self.log_success(f"✅ Git configurado: user.email = {user_info['email']}")
+            
+            # Configurar llave de firma
+            self.run_command(['git', 'config', '--global', 'user.signingkey', signing_key])
+            self.log_success(f"✅ Git configurado: user.signingkey = {signing_key}")
+            
+            # Habilitar firma de commits
+            self.run_command(['git', 'config', '--global', 'commit.gpgsign', 'true'])
+            self.log_success("✅ Git configurado: commit.gpgsign = true")
+            
+            # Habilitar firma de tags
+            self.run_command(['git', 'config', '--global', 'tag.gpgSign', 'true'])
+            self.log_success("✅ Git configurado: tag.gpgSign = true")
+            
+            # Configurar programa GPG
+            self.run_command(['git', 'config', '--global', 'gpg.program', 'gpg'])
+            self.log_success("✅ Git configurado: gpg.program = gpg")
+            
+            # Configurar GPG_TTY si está disponible
+            try:
+                tty_result = os.popen('tty').read().strip()
+                if tty_result and 'not a tty' not in tty_result:
+                    os.environ['GPG_TTY'] = tty_result
+                    self.log_success(f"✅ GPG_TTY configurado: {tty_result}")
+                else:
+                    self.log_warning("⚠️  No se pudo configurar GPG_TTY (entorno sin TTY)")
+            except Exception as e:
+                self.log_warning(f"⚠️  Error configurando GPG_TTY: {e}")
+            
+        except Exception as e:
+            self.log_error(f"Error configurando Git: {e}")
+            raise
+
+    def configure_git_for_gpg(self, key_id: str = None):
+        """Configura Git para GPG con selección inteligente de llave"""
+        try:
+            # Verificar prerequisitos
+            if not self.check_prerequisites_for_operation("git-config"):
+                return False
+                
+            self.log_info("🔧 Configurando Git para GPG...")
+            
+            # 1. Determinar qué llave usar
+            if key_id:
+                # Usar llave específica proporcionada
+                signing_key = key_id
+                self.log_info(f"Usando llave específica: {signing_key}")
+            else:
+                # Selección automática (estrategia 1 + 2)
+                signing_key = self.get_latest_valid_signing_key()
+                if not signing_key:
+                    self.log_error("No se encontraron llaves de firma válidas")
+                    self.log_warning("⚠️ Deshabilitando uso de GPG en Git")
+                    self.disable_git_gpg()
+                    return False
+                self.log_info(f"Usando llave automática: {signing_key}")
+            
+            # 2. Verificar que la llave existe y es válida
+            if not self.verify_signing_key(signing_key):
+                self.log_error(f"Llave {signing_key} no es válida para firma")
+                self.log_warning("⚠️ Deshabilitando uso de GPG en Git")
+                self.disable_git_gpg()
+                return False
+            
+            # 3. Configurar Git
+            self._configure_git_with_key(signing_key)
+            
+            # 4. Verificar configuración
+            self.log_info("🔍 Verificando configuración...")
+            result = self.run_command(["git", "config", "--global", "--get", "user.signingkey"])
+            if result.returncode == 0 and result.stdout.strip() == signing_key:
+                self.log_success("✅ Git configurado correctamente para GPG")
+                
+                # Obtener información del usuario para mostrar
+                user_info = self.get_user_info_from_key(signing_key)
+                
+                print("\n" + "="*50)
+                print("🎉 CONFIGURACIÓN GIT-GPG COMPLETADA")
+                print("="*50)
+                print(f"🔑 Subclave de firma: {signing_key}")
+                if user_info['name']:
+                    print(f"👤 Nombre: {user_info['name']}")
+                if user_info['email']:
+                    print(f"📧 Email: {user_info['email']}")
+                print("📝 Commits firmados: Activado")
+                print("🏷️  Tags firmados: Activado")
+                print("🔧 GPG program: gpg")
+                print()
+                print("💡 Próximos pasos:")
+                print("1. Probar firma: git commit --allow-empty -m 'Test GPG signature'")
+                print("2. Verificar: git log --show-signature")
+                print("3. Configurar GitHub: Agregar clave pública en Settings > SSH and GPG keys")
+                print()
+                print("⚠️  Nota sobre entornos sin TTY (Cursor, scripts):")
+                print("   - GPG puede requerir configuración manual de GPG_TTY")
+                print("   - En terminal interactivo: export GPG_TTY=$(tty)")
+                print("   - Para scripts: configurar pinentry-mode loopback")
+                print("="*50)
+                
+                return True
+            else:
+                self.log_error("❌ Error en la configuración de Git")
+                self.log_warning("⚠️ Deshabilitando uso de GPG en Git")
+                self.disable_git_gpg()
+                return False
+            
+        except Exception as e:
+            self.log_error(f"Error configurando Git: {e}")
+            self.log_warning("⚠️ Deshabilitando uso de GPG en Git")
+            self.disable_git_gpg()
+            return False
+
+    def load_keyserver_config(self) -> Dict[str, Any]:
+        """Cargar configuración de keyservers desde YAML"""
+        try:
+            config_file = Path("configs/gpg-keyservers.yml")
+            if not config_file.exists():
+                self.log_error("Archivo de configuración de keyservers no encontrado")
+                return {}
+            
+            with open(config_file, 'r') as f:
+                config = yaml.safe_load(f)
+            
+            return config.get('keyservers', {})
+            
+        except Exception as e:
+            self.log_error(f"Error cargando configuración de keyservers: {e}")
+            return {}
+
+    def validate_keyserver_list(self, servers_list: str) -> bool:
+        """Validar que la lista de keyservers existe"""
+        try:
+            config = self.load_keyserver_config()
+            
+            if not config:
+                return False
+            
+            if servers_list not in config:
+                available_lists = list(config.keys())
+                self.log_error(f"❌ Lista de servers '{servers_list}' no encontrada")
+                self.log_info(f"💡 Listas disponibles: {', '.join(available_lists)}")
+                return False
             
             return True
-        else:
-            self.log_error("❌ Error en la configuración de Git")
+            
+        except Exception as e:
+            self.log_error(f"Error validando lista de servers: {e}")
+            return False
+
+    def get_keyserver_list(self, servers_list: str = None) -> List[Dict[str, str]]:
+        """Obtener lista de keyservers para publicar"""
+        try:
+            # Usar lista por defecto si no se especifica
+            if not servers_list:
+                servers_list = "recommended"
+            
+            # Validar que la lista existe
+            if not self.validate_keyserver_list(servers_list):
+                return []
+            
+            # Cargar configuración
+            config = self.load_keyserver_config()
+            if not config:
+                return []
+            
+            # Obtener lista de keyservers
+            keyservers = config.get(servers_list, [])
+            
+            # Ordenar por prioridad
+            keyservers.sort(key=lambda x: x.get('priority', 999))
+            
+            return keyservers
+            
+        except Exception as e:
+            self.log_error(f"Error obteniendo lista de keyservers: {e}")
+            return []
+
+    def publish_to_keyserver(self, key_id: str, keyserver: Dict[str, str]) -> bool:
+        """Publicar llave en un keyserver específico"""
+        try:
+            name = keyserver.get('name', 'Unknown')
+            url = keyserver.get('url', '')
+            
+            if not url:
+                self.log_warning(f"⚠️ URL no válida para keyserver: {name}")
+                return False
+            
+            # Publicar en keyserver
+            result = self.run_command([
+                'gpg', '--keyserver', url, '--send-keys', key_id
+            ])
+            
+            if result.returncode == 0:
+                self.log_success(f"✅ Publicado en {name}")
+                return True
+            else:
+                self.log_warning(f"⚠️ Error en {name}: {result.stderr.strip()}")
+                return False
+                
+        except Exception as e:
+            self.log_warning(f"⚠️ Error publicando en {keyserver.get('name', 'Unknown')}: {e}")
+            return False
+
+    def verify_key_publication(self, key_id: str, keyserver: Dict[str, str]) -> bool:
+        """Verificar que la llave se publicó correctamente"""
+        try:
+            name = keyserver.get('name', 'Unknown')
+            url = keyserver.get('url', '')
+            
+            if not url:
+                return False
+            
+            # Buscar la llave en el keyserver
+            result = self.run_command([
+                'gpg', '--keyserver', url, '--search-keys', key_id
+            ])
+            
+            if result.returncode == 0 and key_id in result.stdout:
+                self.log_success(f"✅ Verificado en {name}")
+                return True
+            else:
+                self.log_warning(f"⚠️ No verificado en {name}")
+                return False
+                
+        except Exception as e:
+            self.log_warning(f"⚠️ Error verificando en {keyserver.get('name', 'Unknown')}: {e}")
+            return False
+
+    def publish_key_to_keyserver(self, servers_list: str = None):
+        """Publicar llave pública en keyservers"""
+        try:
+            # Verificar prerequisitos
+            if not self.check_prerequisites_for_operation("publish"):
+                return False
+            
+            # Determinar qué llave publicar
+            signing_key = self.get_latest_valid_signing_key()
+            if not signing_key:
+                self.log_error("No se encontraron llaves de firma válidas")
+                return False
+            
+            self.log_info(f"Usando llave: {signing_key}")
+            
+            # Obtener lista de keyservers
+            keyservers = self.get_keyserver_list(servers_list)
+            if not keyservers:
+                return False
+            
+            # Usar lista por defecto si no se especifica
+            if not servers_list:
+                servers_list = "recommended"
+            
+            self.log_info(f"📤 Publicando llave en keyservers de lista '{servers_list}'...")
+            
+            # Publicar en cada keyserver
+            successful = 0
+            failed = 0
+            failed_servers = []
+            
+            for i, keyserver in enumerate(keyservers, 1):
+                name = keyserver.get('name', 'Unknown')
+                url = keyserver.get('url', '')
+                
+                self.log_info(f"🌐 Keyserver {i}/{len(keyservers)}: {name} ({url})")
+                
+                if self.publish_to_keyserver(signing_key, keyserver):
+                    successful += 1
+                else:
+                    failed += 1
+                    failed_servers.append(name)
+            
+            # Mostrar resumen
+            print()
+            if successful > 0:
+                self.log_success(f"✅ Publicación completada en lista '{servers_list}': {successful}/{len(keyservers)} keyservers exitosos")
+            else:
+                self.log_error(f"❌ Publicación completada en lista '{servers_list}': 0/{len(keyservers)} keyservers exitosos")
+            
+            if failed > 0:
+                self.log_warning(f"⚠️ {failed} keyserver(s) fallaron: {', '.join(failed_servers)}")
+            
+            # Verificar publicación en keyservers exitosos
+            if successful > 0:
+                self.log_info("🔍 Verificando publicación...")
+                verified = 0
+                
+                for keyserver in keyservers:
+                    if keyserver.get('name') not in failed_servers:
+                        if self.verify_key_publication(signing_key, keyserver):
+                            verified += 1
+                
+                if verified > 0:
+                    self.log_success(f"✅ Verificación completada: {verified}/{successful} keyservers verificados")
+                else:
+                    self.log_warning("⚠️ No se pudo verificar la publicación en ningún keyserver")
+            
+            return successful > 0
+            
+        except Exception as e:
+            self.log_error(f"Error publicando llave: {e}")
             return False
 
     def show_help(self):
@@ -1107,17 +1478,25 @@ scdaemon-program /usr/lib/gnupg/scdaemon
         print("  gpg-manager.py --init                            Inicializar configuración GPG")
         print("  gpg-manager.py --gen-key                         Generar llave maestra y subclaves")
         print("  gpg-manager.py --git-config                      Configurar Git para GPG")
+        print("  gpg-manager.py --publish                         Publicar llave pública en keyserver")
         print("  gpg-manager.py --backup                           Crear backup portable")
         print("  gpg-manager.py --restore <archivo-backup>        Restaurar backup")
         print("  gpg-manager.py --verify <archivo-backup>         Verificar integridad")
         print("  gpg-manager.py --list                            Listar backups disponibles")
         print("  gpg-manager.py --help                            Mostrar esta ayuda")
         print()
+        print("Prerequisitos:")
+        print("  - gpg: Herramienta GPG (siempre requerida)")
+        print("  - git: Para --git-config")
+        print("  - tar: Para --backup, --restore, --verify")
+        print("  - sha256sum: Para --backup")
+        print()
         
         print("Ejemplos:")
         print("  gpg-manager.py --init")
         print("  gpg-manager.py --gen-key")
         print("  gpg-manager.py --git-config")
+        print("  gpg-manager.py --publish")
         print("  gpg-manager.py --backup")
         print("  gpg-manager.py --restore gpg-20241214_143022.tar.gz")
         print("  gpg-manager.py --verify ~/backups/gpg-backup.tar.gz")
@@ -1135,6 +1514,7 @@ Ejemplos:
   gpg-manager.py --init
   gpg-manager.py --gen-key
   gpg-manager.py --git-config
+  gpg-manager.py --publish
   gpg-manager.py --backup
   gpg-manager.py --restore gpg-20241214_143022.tar.gz
   gpg-manager.py --verify ~/backups/gpg-backup.tar.gz
@@ -1148,6 +1528,10 @@ Ejemplos:
                        help="Generar llave maestra y subclaves")
     parser.add_argument("--git-config", action="store_true",
                        help="Configurar Git para GPG")
+    parser.add_argument("--publish", action="store_true",
+                       help="Publicar llave pública en keyserver")
+    parser.add_argument("--servers", metavar="LISTA",
+                       help="Lista específica de keyservers (recommended, ubuntu, mit)")
     parser.add_argument("--backup", "-b", action="store_true",
                        help="Crear backup portable")
     parser.add_argument("--restore", "-r", metavar="ARCHIVO",
@@ -1174,6 +1558,8 @@ Ejemplos:
             gpg_manager.generate_master_key_and_subkeys()
         elif args.git_config:
             gpg_manager.configure_git_for_gpg()
+        elif args.publish:
+            gpg_manager.publish_key_to_keyserver(args.servers)
         elif args.backup:
             gpg_manager.create_portable_gpg_backup()
         elif args.restore:

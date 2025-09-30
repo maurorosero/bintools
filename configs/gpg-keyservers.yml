@@ -1,0 +1,29 @@
+keyservers:
+  recommended:
+    - name: "OpenPGP.org"
+      url: "hkps://keys.openpgp.org"
+      description: "Keyserver moderno y confiable"
+      priority: 1
+    
+    - name: "MIT"
+      url: "hkp://pgp.mit.edu"
+      description: "Keyserver del MIT"
+      priority: 2
+    
+    - name: "Ubuntu"
+      url: "hkp://keyserver.ubuntu.com"
+      description: "Keyserver de Ubuntu"
+      priority: 3
+
+  ubuntu:
+    - name: "Ubuntu"
+      url: "hkp://keyserver.ubuntu.com"
+      description: "Keyserver de Ubuntu"
+      priority: 1
+
+  mit:
+    - name: "MIT"
+      url: "hkp://pgp.mit.edu"
+      description: "Keyserver del MIT"
+      priority: 1
+
