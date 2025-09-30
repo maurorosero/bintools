@@ -1618,14 +1618,14 @@ scdaemon-program /usr/lib/gnupg/scdaemon
             # Buscar con ID corto primero
             master_key_file = secure_gpg_dir / f"master-key-{key_id}.asc"
             
-            # Si no existe, buscar con fingerprint completo
-            if not master_key_file.exists():
+            # Si no existe o está vacío, buscar con fingerprint completo
+            if not master_key_file.exists() or master_key_file.stat().st_size == 0:
                 fingerprint = self.get_key_fingerprint(key_id)
                 if fingerprint:
                     master_key_file = secure_gpg_dir / f"master-key-{fingerprint}.asc"
             
-            if not master_key_file.exists():
-                self.log_error(f"❌ Archivo de clave maestra no encontrado")
+            if not master_key_file.exists() or master_key_file.stat().st_size == 0:
+                self.log_error(f"❌ Archivo de clave maestra no encontrado o vacío")
                 self.log_info(f"   Buscado: master-key-{key_id}.asc")
                 if fingerprint:
                     self.log_info(f"   Buscado: master-key-{fingerprint}.asc")
@@ -1665,10 +1665,8 @@ scdaemon-program /usr/lib/gnupg/scdaemon
             
             subkeys_result = self.run_command([
                 "gpg", "--armor", "--export-secret-subkeys", 
-                "--pinentry-mode", "loopback",
-                "--passphrase-fd", "0",
                 key_id
-            ], input_data=passphrase)
+            ])
             
             if subkeys_result.returncode == 0:
                 # Guardar las subclaves
@@ -1718,19 +1716,10 @@ scdaemon-program /usr/lib/gnupg/scdaemon
             self.log_error(f"Error eliminando clave maestra: {e}")
             return False
 
-    def remove_master_key_only(self, key_id: str) -> bool:
+    def remove_master_key_only(self, key_id: str, passphrase: str = None) -> bool:
         """Eliminar solo la clave maestra, preservando subclaves (wrapper para gen-revoke)"""
-        # Solicitar passphrase de las subclaves
-        try:
-            passphrase = getpass.getpass("Contraseña de las subclaves: ")
-            if not passphrase:
-                self.log_error("❌ La contraseña es requerida para exportar subclaves")
-                return False
-        except (EOFError, KeyboardInterrupt):
-            self.log_error("❌ Entrada de contraseña cancelada")
-            return False
-        
-        return self.remove_master_key_from_keyring(key_id, passphrase)
+        # GPG manejará la contraseña automáticamente
+        return self.remove_master_key_from_keyring(key_id, "")
 
 
     def generate_emergency_revocation(self, key_id: str = None) -> bool:
@@ -1779,16 +1768,9 @@ scdaemon-program /usr/lib/gnupg/scdaemon
                 self.log_success("✅ Clave maestra importada temporalmente")
                 master_key_was_imported = True
             
-            # 2. Solicitar contraseña de forma segura
-            self.log_info("🔐 Solicitando contraseña de la clave maestra...")
-            try:
-                passphrase = getpass.getpass("Contraseña de la clave maestra: ")
-                if not passphrase:
-                    self.log_error("❌ La contraseña es requerida")
-                    return False
-            except (EOFError, KeyboardInterrupt):
-                self.log_error("❌ Entrada de contraseña cancelada")
-                return False
+            # 2. GPG manejará la contraseña automáticamente
+            self.log_info("🔐 GPG solicitará la contraseña automáticamente...")
+            passphrase = ""  # Dejar que GPG maneje la contraseña
             
             # 3. Generar certificado con gpg --gen-revoke
             self.log_info("📝 Generando certificado de revocación...")
@@ -1808,9 +1790,7 @@ scdaemon-program /usr/lib/gnupg/scdaemon
             input_data = "1\n\ny\n"
             
             result = self.run_command([
-                'gpg', '--pinentry-mode', 'loopback',
-                '--passphrase', passphrase,
-                '--output', str(revocation_file),
+                'gpg', '--output', str(revocation_file),
                 '--gen-revoke', master_key_id
             ], input_data=input_data)
             
