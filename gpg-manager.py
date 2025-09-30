@@ -1392,20 +1392,24 @@ scdaemon-program /usr/lib/gnupg/scdaemon
             if not url:
                 return False
             
-            # Obtener información de la llave para buscar por email
-            key_info = self.get_user_info_from_key(key_id)
-            if not key_info.get('email'):
-                self.log_warning(f"⚠️ No se pudo obtener email de la llave para verificación en {name}")
-                return False
-            
-            # Buscar la llave por email en el keyserver
+            # Usar --recv-keys que es más confiable y funciona con ambos keyservers
+            # Este método no tiene problemas con /dev/tty
             result = self.run_command([
-                'gpg', '--batch', '--keyserver', url, '--search-keys', key_info['email']
-            ], input_data='q\n')  # Enviar 'q' para salir del prompt
+                'gpg', '--batch', '--no-tty', '--keyserver', url, '--recv-keys', key_id
+            ])
             
-            if result.returncode == 0 and key_id in result.stdout:
-                self.log_success(f"✅ Verificado en {name}")
-                return True
+            if result.returncode == 0:
+                # Verificar que la respuesta indica que la llave existe
+                if 'sin cambios' in result.stdout or 'unchanged' in result.stdout:
+                    self.log_success(f"✅ Verificado en {name}")
+                    return True
+                elif 'importada' in result.stdout or 'imported' in result.stdout:
+                    self.log_success(f"✅ Verificado en {name} (nueva importación)")
+                    return True
+                else:
+                    # Si no hay mensaje claro, pero el comando fue exitoso, asumir que está disponible
+                    self.log_success(f"✅ Verificado en {name}")
+                    return True
             else:
                 self.log_warning(f"⚠️ No verificado en {name}")
                 return False
