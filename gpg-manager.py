@@ -1639,17 +1639,20 @@ scdaemon-program /usr/lib/gnupg/scdaemon
             # - Razón de revocación (1 = clave comprometida)
             # - Descripción (vacío)
             # - Confirmación (y)
-            input_data = f"{passphrase}\n1\n\ny\n"
+            input_data = "1\n\ny\n"
+            
+            env = os.environ.copy()
+            env["GNUPG_PASSPHRASE"] = passphrase
             
             result = self.run_command([
                 'gpg', '--batch', '--yes',
                 '--pinentry-mode', 'loopback',
-                '--passphrase-fd', '0',
+                '--passphrase', passphrase,
                 '--command-fd', '0',
                 '--status-fd', '2',
                 '--output', str(revocation_file),
                 '--gen-revoke', master_key_id
-            ], input_data=input_data)
+            ], input_data=input_data, env=env)
             
             # 4. Validar que el certificado se generó correctamente
             if result.returncode != 0:
