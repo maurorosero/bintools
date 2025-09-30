@@ -4,7 +4,7 @@ GPG Backup Manager v1.0.0
 Gestor especializado de backups portables de GPG
 Prioridad: BACKUP y RESTORE para uso cross-platform
 
-Uso: gpg-manager.py [--init|--gen-key|--backup|--restore|--verify|--list|--revoke-key|--help]
+Uso: gpg-manager.py [--init|--gen-key|--backup|--restore|--verify|--list|--gen-revoke|--help]
 """
 
 import os
@@ -1742,7 +1742,7 @@ scdaemon-program /usr/lib/gnupg/scdaemon
         print("  gpg-manager.py --git-config                      Configurar Git para GPG")
         print("  gpg-manager.py --publish                         Publicar llave pública en keyserver")
         print("  gpg-manager.py --confirm-publish                 Verificar publicación en keyservers")
-        print("  gpg-manager.py --revoke-key                      Generar certificado de revocación de emergencia")
+        print("  gpg-manager.py --gen-revoke                      Generar certificado de revocación de emergencia")
         print("  gpg-manager.py --backup                           Crear backup portable")
         print("  gpg-manager.py --restore <archivo-backup>        Restaurar backup")
         print("  gpg-manager.py --verify <archivo-backup>         Verificar integridad")
@@ -1763,8 +1763,8 @@ scdaemon-program /usr/lib/gnupg/scdaemon
         print("  gpg-manager.py --publish")
         print("  gpg-manager.py --confirm-publish")
         print("  gpg-manager.py --confirm-publish --servers ubuntu")
-        print("  gpg-manager.py --revoke-key")
-        print("  gpg-manager.py --revoke-key --key-id <KEY_ID>")
+        print("  gpg-manager.py --gen-revoke")
+        print("  gpg-manager.py --gen-revoke --key-id <KEY_ID>")
         print("  gpg-manager.py --backup")
         print("  gpg-manager.py --restore gpg-20241214_143022.tar.gz")
         print("  gpg-manager.py --verify ~/backups/gpg-backup.tar.gz")
@@ -1785,8 +1785,8 @@ Ejemplos:
   gpg-manager.py --publish
   gpg-manager.py --confirm-publish
   gpg-manager.py --confirm-publish --servers ubuntu
-  gpg-manager.py --revoke-key
-  gpg-manager.py --revoke-key --key-id <KEY_ID>
+  gpg-manager.py --gen-revoke
+  gpg-manager.py --gen-revoke --key-id <KEY_ID>
   gpg-manager.py --backup
   gpg-manager.py --restore gpg-20241214_143022.tar.gz
   gpg-manager.py --verify ~/backups/gpg-backup.tar.gz
@@ -1804,7 +1804,7 @@ Ejemplos:
                        help="Publicar llave pública en keyserver")
     parser.add_argument("--confirm-publish", action="store_true",
                        help="Verificar publicación de llave en keyservers")
-    parser.add_argument("--revoke-key", action="store_true",
+    parser.add_argument("--gen-revoke", action="store_true",
                        help="Generar certificado de revocación de emergencia")
     parser.add_argument("--servers", metavar="LISTA",
                        help="Lista específica de keyservers (recommended, ubuntu, mit)")
@@ -1840,7 +1840,7 @@ Ejemplos:
             gpg_manager.publish_key_to_keyserver(args.servers)
         elif args.confirm_publish:
             gpg_manager.confirm_key_publication(args.servers, args.key_id)
-        elif args.revoke_key:
+        elif args.gen_revoke:
             gpg_manager.generate_emergency_revocation(args.key_id)
         elif args.backup:
             gpg_manager.create_portable_gpg_backup()

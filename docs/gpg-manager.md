@@ -68,7 +68,7 @@ Si no tienes GPG instalado, puedes usar `packages.sh`:
 | `--gen-key` | Generar llave maestra y subclaves | `./gpg-manager.py --gen-key` |
 | `--export-master` | Exportar llave maestra para almacenamiento offline | `./gpg-manager.py --export-master` |
 | `--git-config` | Configurar Git para GPG | `./gpg-manager.py --git-config` |
-| `--revoke-key` | Generar certificado de revocación de emergencia | `./gpg-manager.py --revoke-key` |
+| `--gen-revoke` | Generar certificado de revocación de emergencia | `./gpg-manager.py --gen-revoke` |
 | `--backup` | Crear backup portable | `./gpg-manager.py --backup` |
 | `--restore` | Restaurar backup | `./gpg-manager.py --restore archivo.tar.gz` |
 | `--verify` | Verificar integridad de backup | `./gpg-manager.py --verify archivo.tar.gz` |
@@ -223,7 +223,7 @@ Las subclaves permanecen en el keyring local:
 
 #### Estrategia de Recuperación Directa
 
-El comando `--revoke-key` implementa una estrategia de recuperación directa que permite generar un certificado de revocación de emergencia en cualquier momento:
+El comando `--gen-revoke` implementa una estrategia de recuperación directa que permite generar un certificado de revocación de emergencia en cualquier momento:
 
 **Características:**
 - **Verificación de disponibilidad**: Valida que la clave maestra esté en el keyring
@@ -406,13 +406,13 @@ gpg --edit-key TU_LLAVE_MAESTRA
 
 ```bash
 # Generar certificado de revocación de emergencia
-./gpg-manager.py --revoke-key
+./gpg-manager.py --gen-revoke
 
 # Especificar clave maestra específica
-./gpg-manager.py --revoke-key --key-id <KEY_ID>
+./gpg-manager.py --gen-revoke --key-id <KEY_ID>
 ```
 
-**¿Qué hace `--revoke-key`?**
+**¿Qué hace `--gen-revoke`?**
 
 1. **Verifica disponibilidad de clave maestra**: 
    - Verifica que la clave maestra esté disponible en el keyring
@@ -440,7 +440,7 @@ gpg --edit-key TU_LLAVE_MAESTRA
 
 ```bash
 # 1. Generar certificado de revocación de emergencia
-./gpg-manager.py --revoke-key
+./gpg-manager.py --gen-revoke
 
 # 2. Guardar certificado en lugar seguro
 # (El certificado se genera en ~/secure/gpg/)
