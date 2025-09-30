@@ -1374,9 +1374,15 @@ scdaemon-program /usr/lib/gnupg/scdaemon
             if not url:
                 return False
             
-            # Buscar la llave en el keyserver usando --batch para evitar prompts interactivos
+            # Obtener información de la llave para buscar por email
+            key_info = self.get_user_info_from_key(key_id)
+            if not key_info.get('email'):
+                self.log_warning(f"⚠️ No se pudo obtener email de la llave para verificación en {name}")
+                return False
+            
+            # Buscar la llave por email en el keyserver
             result = self.run_command([
-                'gpg', '--batch', '--keyserver', url, '--search-keys', key_id
+                'gpg', '--batch', '--keyserver', url, '--search-keys', key_info['email']
             ], input_data='q\n')  # Enviar 'q' para salir del prompt
             
             if result.returncode == 0 and key_id in result.stdout:
