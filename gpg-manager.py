@@ -482,45 +482,9 @@ Passphrase: """ + user_info['passphrase'] + """
             # Exportar solo las subclaves secretas y eliminar la llave maestra
             self.log_info("🗑️  Exportando subclaves y eliminando llave maestra del keyring local...")
             
-            # Exportar solo las subclaves secretas
-            subkeys_file = secure_gpg_dir / f"subkeys-{master_key_id}.asc"
-            subkeys_result = self.run_command([
-                "gpg", "--armor", "--export-secret-subkeys", 
-                "--pinentry-mode", "loopback",
-                "--passphrase-fd", "0",
-                master_key_id
-            ], input_data=passphrase)
-            
-            if subkeys_result.returncode == 0:
-                # Guardar las subclaves
-                with open(subkeys_file, 'w') as f:
-                    f.write(subkeys_result.stdout)
-                self.log_success(f"✅ Subclaves exportadas: {subkeys_file.name}")
-                
-                # Eliminar la clave maestra secreta (esto mantiene las subclaves)
-                delete_result = self.run_command([
-                    "gpg", "--delete-secret-key", "--batch", "--yes",
-                    master_key_id
-                ])
-                
-                if delete_result.returncode == 0:
-                    self.log_success("✅ Llave maestra eliminada del keyring local")
-                    
-                    # Importar las subclaves de vuelta
-                    import_result = self.run_command([
-                        "gpg", "--import", str(subkeys_file)
-                    ])
-                    
-                    if import_result.returncode == 0:
-                        self.log_success("✅ Subclaves importadas de vuelta al keyring")
-                    else:
-                        self.log_error("Error importando subclaves")
-                        return False
-                else:
-                    self.log_error("Error eliminando llave maestra")
-                    return False
-            else:
-                self.log_error("Error exportando subclaves")
+            # Usar la función reutilizable para eliminar la clave maestra
+            if not self.remove_master_key_from_keyring(master_key_id, passphrase):
+                self.log_error("Error eliminando llave maestra del keyring")
                 return False
                 
             print("\n" + "="*60)
@@ -1689,52 +1653,85 @@ scdaemon-program /usr/lib/gnupg/scdaemon
             self.log_error(f"Error importando clave maestra: {e}")
             return False
     
-    def remove_master_key_only(self, key_id: str) -> bool:
-        """Eliminar solo la clave maestra, preservando subclaves"""
+    def remove_master_key_from_keyring(self, key_id: str, passphrase: str = "") -> bool:
+        """Eliminar solo la clave maestra del keyring, preservando subclaves (función reutilizable)"""
         try:
-            # Exportar subclaves antes de eliminar la clave maestra
-            subkeys_file = Path.home() / "secure" / "gpg" / f"temp-subkeys-{key_id}.asc"
+            secure_gpg_dir = Path.home() / "secure" / "gpg"
+            secure_gpg_dir.mkdir(parents=True, exist_ok=True)
             
+            # Exportar solo las subclaves secretas
+            subkeys_file = secure_gpg_dir / f"temp-subkeys-{key_id}.asc"
             self.log_info("💾 Exportando subclaves temporalmente...")
-            result = self.run_command([
-                'gpg', '--export-secret-subkeys', key_id,
-                '--output', str(subkeys_file)
-            ])
             
-            if result.returncode != 0:
-                self.log_error("❌ Error exportando subclaves")
-                return False
+            subkeys_result = self.run_command([
+                "gpg", "--armor", "--export-secret-subkeys", 
+                "--pinentry-mode", "loopback",
+                "--passphrase-fd", "0",
+                key_id
+            ], input_data=passphrase)
             
-            # Eliminar toda la clave (maestra + subclaves)
-            self.log_info("🗑️  Eliminando clave completa...")
-            result = self.run_command(['gpg', '--delete-secret-keys', key_id])
-            
-            if result.returncode != 0:
-                self.log_error("❌ Error eliminando clave")
-                return False
-            
-            # Reimportar solo las subclaves
-            self.log_info("🔄 Reimportando subclaves...")
-            result = self.run_command(['gpg', '--import', str(subkeys_file)])
-            
-            if result.returncode != 0:
-                self.log_error("❌ Error reimportando subclaves")
-                return False
-            
-            # Limpiar archivo temporal
-            subkeys_file.unlink()
-            
-            # Verificar que solo las subclaves están disponibles
-            if not self.verify_master_key_secret_available(key_id):
-                self.log_success("✅ Clave maestra eliminada, subclaves preservadas")
-                return True
+            if subkeys_result.returncode == 0:
+                # Guardar las subclaves
+                with open(subkeys_file, 'w') as f:
+                    f.write(subkeys_result.stdout)
+                self.log_success(f"✅ Subclaves exportadas: {subkeys_file.name}")
+                
+                # Eliminar la clave maestra secreta (esto mantiene las subclaves)
+                self.log_info("🗑️  Eliminando clave maestra...")
+                # Obtener el fingerprint completo para el modo batch
+                fingerprint = self.get_key_fingerprint(key_id)
+                if not fingerprint:
+                    self.log_error("❌ No se pudo obtener el fingerprint de la clave")
+                    return False
+                
+                delete_result = self.run_command([
+                    "gpg", "--delete-secret-key", "--batch", "--yes",
+                    fingerprint
+                ])
+                
+                if delete_result.returncode == 0:
+                    self.log_success("✅ Clave maestra eliminada del keyring local")
+                    
+                    # Importar las subclaves de vuelta
+                    self.log_info("🔄 Reimportando subclaves...")
+                    import_result = self.run_command([
+                        "gpg", "--import", str(subkeys_file)
+                    ])
+                    
+                    if import_result.returncode == 0:
+                        self.log_success("✅ Subclaves importadas de vuelta al keyring")
+                        
+                        # Limpiar archivo temporal
+                        subkeys_file.unlink()
+                        return True
+                    else:
+                        self.log_error("❌ Error importando subclaves")
+                        return False
+                else:
+                    self.log_error("❌ Error eliminando clave maestra")
+                    return False
             else:
-                self.log_error("❌ La clave maestra sigue disponible")
+                self.log_error("❌ Error exportando subclaves")
                 return False
                 
         except Exception as e:
             self.log_error(f"Error eliminando clave maestra: {e}")
             return False
+
+    def remove_master_key_only(self, key_id: str) -> bool:
+        """Eliminar solo la clave maestra, preservando subclaves (wrapper para gen-revoke)"""
+        # Solicitar passphrase de las subclaves
+        try:
+            passphrase = getpass.getpass("Contraseña de las subclaves: ")
+            if not passphrase:
+                self.log_error("❌ La contraseña es requerida para exportar subclaves")
+                return False
+        except (EOFError, KeyboardInterrupt):
+            self.log_error("❌ Entrada de contraseña cancelada")
+            return False
+        
+        return self.remove_master_key_from_keyring(key_id, passphrase)
+
 
     def generate_emergency_revocation(self, key_id: str = None) -> bool:
         """Generar certificado de revocación de emergencia"""
@@ -1766,6 +1763,7 @@ scdaemon-program /usr/lib/gnupg/scdaemon
                 return True
             
             # 3. Verificar que la clave maestra está realmente disponible (no solo subclaves)
+            master_key_was_imported = False
             if not self.verify_master_key_secret_available(master_key_id):
                 self.log_warning("⚠️  Clave maestra no disponible, intentando importar desde backup...")
                 
@@ -1779,6 +1777,7 @@ scdaemon-program /usr/lib/gnupg/scdaemon
                     return False
                 
                 self.log_success("✅ Clave maestra importada temporalmente")
+                master_key_was_imported = True
             
             # 2. Solicitar contraseña de forma segura
             self.log_info("🔐 Solicitando contraseña de la clave maestra...")
@@ -1858,14 +1857,12 @@ scdaemon-program /usr/lib/gnupg/scdaemon
                 revocation_file.unlink()
                 return False
             
-            # 6. Si importamos la clave maestra temporalmente, eliminarla de nuevo
-            if not self.verify_master_key_secret_available(master_key_id):
-                # La clave maestra no estaba disponible originalmente, eliminarla de nuevo
-                self.log_info("🗑️  Eliminando clave maestra del keyring (manteniendo subclaves)...")
-                if self.remove_master_key_only(master_key_id):
-                    self.log_success("✅ Clave maestra eliminada, subclaves preservadas")
-                else:
-                    self.log_warning("⚠️  No se pudo eliminar la clave maestra")
+            # 6. Eliminar la clave maestra del keyring (manteniendo subclaves)
+            self.log_info("🗑️  Eliminando clave maestra del keyring (manteniendo subclaves)...")
+            if self.remove_master_key_only(master_key_id):
+                self.log_success("✅ Clave maestra eliminada, subclaves preservadas")
+            else:
+                self.log_warning("⚠️  No se pudo eliminar la clave maestra")
             
             # 7. Operaciones exitosas
             self.log_success(f"✅ Certificado de revocación generado exitosamente")
