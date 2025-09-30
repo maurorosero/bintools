@@ -1673,9 +1673,20 @@ scdaemon-program /usr/lib/gnupg/scdaemon
                 revocation_file.unlink()
                 return False
             
-            if 'REVOCATION CERTIFICATE' not in content:
-                self.log_warning("⚠️ El certificado podría no ser un certificado de revocación válido")
-            
+            # Validar que el certificado contiene una firma de revocación usando gpg --list-packets
+            try:
+                packet_result = subprocess.run(
+                    ['gpg', '--list-packets', str(revocation_file)],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True
+                )
+                packets_output = packet_result.stdout
+                # Buscar "signature packet" con type 2 (revocation signature)
+                if 'signature packet: 2' not in packets_output:
+                    self.log_warning("⚠️ El certificado podría no contener una firma de revocación válida (signature packet: 2 no encontrado)")
+            except Exception as e:
+                self.log_warning(f"⚠️ No se pudo validar la estructura del certificado de revocación: {e}")
             # Verificar tamaño mínimo
             file_size = revocation_file.stat().st_size
             if file_size < 100:
