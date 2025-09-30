@@ -1517,7 +1517,7 @@ scdaemon-program /usr/lib/gnupg/scdaemon
     def verify_master_key_available(self, key_id: str = None) -> Optional[str]:
         """Verificar que la clave maestra está disponible en el keyring"""
         try:
-            self.log_info("🔍 Verificando disponibilidad de clave maestra...")
+            self.log_info("🔍 Verificando clave maestra...")
             
             # Listar claves secretas
             result = self.run_command(['gpg', '--list-secret-keys', '--with-colons'])
@@ -1631,7 +1631,7 @@ scdaemon-program /usr/lib/gnupg/scdaemon
                     self.log_info(f"   Buscado: master-key-{fingerprint}.asc")
                 return False
             
-            self.log_info(f"📁 Importando clave maestra desde: {master_key_file}")
+            self.log_info(f"📁 Importando desde: {master_key_file.name}")
             
             # Importar clave maestra
             result = self.run_command(['gpg', '--import', str(master_key_file)])
@@ -1661,7 +1661,7 @@ scdaemon-program /usr/lib/gnupg/scdaemon
             
             # Exportar solo las subclaves secretas
             subkeys_file = secure_gpg_dir / f"temp-subkeys-{key_id}.asc"
-            self.log_info("💾 Exportando subclaves temporalmente...")
+            self.log_info("💾 Exportando subclaves...")
             
             subkeys_result = self.run_command([
                 "gpg", "--armor", "--export-secret-subkeys", 
@@ -1725,55 +1725,40 @@ scdaemon-program /usr/lib/gnupg/scdaemon
     def generate_emergency_revocation(self, key_id: str = None) -> bool:
         """Generar certificado de revocación de emergencia"""
         try:
-            self.log_info("🚨 Iniciando generación de certificado de revocación de emergencia...")
+            self.log_info("🚨 Generando certificado de revocación de emergencia...")
             
-            # 1. Verificar disponibilidad de clave maestra
+            # Verificar disponibilidad de clave maestra
             master_key_id = self.verify_master_key_available(key_id)
             if not master_key_id:
                 return False
             
-            # 2. Verificar si ya existe un certificado de revocación
+            # Verificar si ya existe un certificado de revocación
             secure_gpg_dir = Path.home() / "secure" / "gpg"
-            
-            # Buscar certificado con ID corto
             existing_cert = secure_gpg_dir / f"revocation-cert-{master_key_id}.asc"
             
-            # Si no existe, buscar con fingerprint completo
             if not existing_cert.exists():
-                # Obtener fingerprint completo
                 fingerprint = self.get_key_fingerprint(master_key_id)
                 if fingerprint:
                     existing_cert = secure_gpg_dir / f"revocation-cert-{fingerprint}.asc"
             
             if existing_cert.exists():
-                self.log_success(f"✅ Certificado de revocación ya existe: {existing_cert.name}")
-                self.log_info(f"📁 Ubicación: {existing_cert}")
-                self.log_info("💡 No es necesario generar uno nuevo")
+                self.log_success(f"✅ Certificado ya existe: {existing_cert.name}")
                 return True
             
-            # 3. Verificar que la clave maestra está realmente disponible (no solo subclaves)
+            # Verificar disponibilidad de clave maestra secreta
             master_key_was_imported = False
             if not self.verify_master_key_secret_available(master_key_id):
-                self.log_warning("⚠️  Clave maestra no disponible, intentando importar desde backup...")
+                self.log_info("📁 Importando desde backup...")
                 
-                # Intentar importar clave maestra desde ~/secure/gpg/
                 if not self.import_master_key_from_backup(master_key_id):
-                    self.log_error("❌ No se pudo importar clave maestra desde backup")
-                    self.log_info("💡 Opciones disponibles:")
-                    self.log_info("   1. Verificar que existe master-key-{}.asc en ~/secure/gpg/".format(master_key_id))
-                    self.log_info("   2. Usar certificado de revocación existente")
-                    self.log_info("   3. Generar nuevas claves")
+                    self.log_error("❌ No se pudo importar desde backup")
+                    self.log_info("💡 Verifique que existe master-key-{}.asc en ~/secure/gpg/".format(master_key_id))
                     return False
                 
-                self.log_success("✅ Clave maestra importada temporalmente")
                 master_key_was_imported = True
             
-            # 2. GPG manejará la contraseña automáticamente
-            self.log_info("🔐 GPG solicitará la contraseña automáticamente...")
-            passphrase = ""  # Dejar que GPG maneje la contraseña
-            
-            # 3. Generar certificado con gpg --gen-revoke
-            self.log_info("📝 Generando certificado de revocación...")
+            # Generar certificado de revocación
+            self.log_info("📝 Generando certificado...")
             
             # Crear directorio de salida
             secure_gpg_dir = Path.home() / "secure" / "gpg"
@@ -1783,18 +1768,13 @@ scdaemon-program /usr/lib/gnupg/scdaemon
             revocation_file = secure_gpg_dir / f"emergency-revocation-{master_key_id}-{timestamp}.asc"
             
             # Generar certificado de revocación
-            # Usar input para responder a las preguntas de GPG:
-            # - Razón de revocación (1 = clave comprometida)
-            # - Descripción (vacío)
-            # - Confirmación (y)
-            input_data = "1\n\ny\n"
+            input_data = "1\n\ny\n"  # Razón: comprometida, confirmación: sí
             
             result = self.run_command([
                 'gpg', '--output', str(revocation_file),
                 '--gen-revoke', master_key_id
             ], input_data=input_data)
             
-            # 4. Validar que el certificado se generó correctamente
             if result.returncode != 0:
                 self.log_error("❌ Error generando certificado de revocación")
                 self.log_error(result.stderr)
@@ -1804,50 +1784,35 @@ scdaemon-program /usr/lib/gnupg/scdaemon
                 self.log_error("❌ El certificado de revocación no se generó")
                 return False
             
-            # 5. Validar integridad del certificado
-            self.log_info("🔍 Validando integridad del certificado...")
+            # Validar integridad del certificado
+            self.log_info("🔍 Validando...")
             
-            # Verificar que el archivo contiene un certificado válido
             with open(revocation_file, 'r') as f:
                 content = f.read()
                 
             if '-----BEGIN PGP PUBLIC KEY BLOCK-----' not in content:
-                self.log_error("❌ El certificado generado no tiene formato válido")
+                self.log_error("❌ Certificado con formato inválido")
                 revocation_file.unlink()
                 return False
             
-            # Validar que el certificado contiene una firma de revocación usando gpg --list-packets
-            try:
-                packet_result = subprocess.run(
-                    ['gpg', '--list-packets', str(revocation_file)],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True
-                )
-                packets_output = packet_result.stdout
-                # Buscar "signature packet" con type 2 (revocation signature)
-                if 'signature packet: 2' not in packets_output:
-                    self.log_warning("⚠️ El certificado podría no contener una firma de revocación válida (signature packet: 2 no encontrado)")
-            except Exception as e:
-                self.log_warning(f"⚠️ No se pudo validar la estructura del certificado de revocación: {e}")
             # Verificar tamaño mínimo
             file_size = revocation_file.stat().st_size
             if file_size < 100:
-                self.log_error("❌ El certificado es demasiado pequeño, podría estar corrupto")
+                self.log_error("❌ Certificado demasiado pequeño")
                 revocation_file.unlink()
                 return False
             
-            # 6. Eliminar la clave maestra del keyring (manteniendo subclaves)
-            self.log_info("🗑️  Eliminando clave maestra del keyring (manteniendo subclaves)...")
+            # Eliminar clave maestra del keyring (manteniendo subclaves)
+            self.log_info("🗑️  Eliminando clave maestra...")
             if self.remove_master_key_only(master_key_id):
-                self.log_success("✅ Clave maestra eliminada, subclaves preservadas")
+                self.log_success("✅ Clave maestra eliminada")
             else:
                 self.log_warning("⚠️  No se pudo eliminar la clave maestra")
             
-            # 7. Operaciones exitosas
-            self.log_success(f"✅ Certificado de revocación generado exitosamente")
-            self.log_info(f"📁 Ubicación: {revocation_file}")
-            self.log_info(f"📊 Tamaño: {file_size} bytes")
+            # Operación exitosa
+            self.log_success(f"✅ Certificado generado: {revocation_file.name}")
+            self.log_info(f"📁 {revocation_file}")
+            self.log_info(f"📊 {file_size} bytes")
             
             print("\n" + "="*60)
             print("🚨 CERTIFICADO DE REVOCACIÓN DE EMERGENCIA GENERADO")
