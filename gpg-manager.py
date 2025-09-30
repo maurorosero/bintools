@@ -1071,6 +1071,24 @@ scdaemon-program /usr/lib/gnupg/scdaemon
             self.log_error(f"Error obteniendo llave de firma: {e}")
             return None
 
+    def get_single_key_if_only_one(self) -> Optional[str]:
+        """Devuelve el único key id si solo hay una llave pública en el keyring."""
+        try:
+            result = self.run_command(['gpg', '--list-keys', '--with-colons'])
+            key_ids = []
+            for line in result.stdout.split('\n'):
+                if line.startswith('pub:'):
+                    parts = line.split(':')
+                    key_id = parts[4]
+                    if key_id:
+                        key_ids.append(key_id)
+            if len(key_ids) == 1:
+                return key_ids[0]
+            return None
+        except Exception as e:
+            self.log_error(f"Error detectando única llave pública: {e}")
+            return None
+
     def verify_signing_key(self, key_id: str) -> bool:
         """Verifica que una llave es válida para firma"""
         try:
@@ -1474,7 +1492,10 @@ scdaemon-program /usr/lib/gnupg/scdaemon
                 signing_key = key_id
                 self.log_info(f"Verificando llave específica: {signing_key}")
             else:
-                signing_key = self.get_latest_valid_signing_key()
+                # Si solo existe una llave pública, usarla automáticamente
+                signing_key = self.get_single_key_if_only_one()
+                if not signing_key:
+                    signing_key = self.get_latest_valid_signing_key()
                 if not signing_key:
                     self.log_error("No se encontraron llaves de firma válidas")
                     return False
