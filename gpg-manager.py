@@ -1374,10 +1374,10 @@ scdaemon-program /usr/lib/gnupg/scdaemon
             if not url:
                 return False
             
-            # Buscar la llave en el keyserver
+            # Buscar la llave en el keyserver usando --batch para evitar prompts interactivos
             result = self.run_command([
-                'gpg', '--keyserver', url, '--search-keys', key_id
-            ])
+                'gpg', '--batch', '--keyserver', url, '--search-keys', key_id
+            ], input_data='q\n')  # Enviar 'q' para salir del prompt
             
             if result.returncode == 0 and key_id in result.stdout:
                 self.log_success(f"✅ Verificado en {name}")
