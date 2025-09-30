@@ -311,6 +311,15 @@ gpg-manager.py --gen-key
 # Configurar Git para GPG
 gpg-manager.py --git-config
 
+# Publicar clave pública (lista 'recommended')
+gpg-manager.py --publish
+
+# Verificar publicación (desacoplado)
+gpg-manager.py --confirm-publish
+
+# Verificar con lista específica de keyservers
+gpg-manager.py --confirm-publish --servers ubuntu
+
 # Crear backup portable
 gpg-manager.py --backup
 

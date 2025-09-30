@@ -346,6 +346,27 @@ gpg --send-keys TU_LLAVE_MAESTRA
 gpg --search-keys tu@email.com
 ```
 
+#### Publicación y verificación con gpg-manager.py
+
+```bash
+# Publicar usando la lista por defecto (recommended)
+./gpg-manager.py --publish
+
+# Verificar publicación (desacoplado)
+./gpg-manager.py --confirm-publish
+
+# Seleccionar lista específica de servidores
+./gpg-manager.py --confirm-publish --servers ubuntu
+
+# Verificar una llave específica (si tienes varias)
+./gpg-manager.py --confirm-publish --key-id 0xABCDEF1234567890
+```
+
+Notas:
+- **recommended** actualmente incluye `hkps://keys.openpgp.org` y `hkp://keyserver.ubuntu.com`.
+- El servidor del MIT fue removido de la lista recommended por inestabilidad; sigue disponible vía lista `mit` si se requiere.
+- La verificación puede tardar 5–15 minutos debido a sincronización entre keyservers.
+
 ## 🔄 Mantenimiento
 
 ### Renovación de Subclaves
