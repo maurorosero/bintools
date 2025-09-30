@@ -216,23 +216,37 @@ Passphrase: """ + user_info['passphrase'] + """
             os.unlink(config_file)
             
     def configure_gpg_for_automation(self):
-        """Configurar GPG para automatización con pinentry-mode loopback"""
+        """Configurar GPG para automatización con pinentry-mode loopback solo si no hay entorno gráfico"""
         gpg_conf = self.gpg_home / "gpg.conf"
         gpg_agent_conf = self.gpg_home / "gpg-agent.conf"
         
-        # Configurar gpg.conf
-        with open(gpg_conf, 'a') as f:
-            f.write("\n# Configuración para automatización\n")
-            f.write("use-agent\n")
-            f.write("pinentry-mode loopback\n")
+        # Verificar si ya hay configuración de pinentry gráfico
+        has_graphical_pinentry = False
+        if gpg_agent_conf.exists():
+            with open(gpg_agent_conf, 'r') as f:
+                content = f.read()
+                if 'pinentry-program' in content:
+                    has_graphical_pinentry = True
         
-        # Configurar gpg-agent.conf
-        with open(gpg_agent_conf, 'a') as f:
-            f.write("\n# Configuración para automatización\n")
-            f.write("allow-loopback-pinentry\n")
-        
-        # Recargar gpg-agent
-        self.run_command(["gpg-connect-agent", "reloadagent", "/bye"])
+        # Solo configurar loopback si no hay pinentry gráfico
+        if not has_graphical_pinentry:
+            self.log_info("📟 Configurando pinentry loopback para automatización")
+            
+            # Configurar gpg.conf
+            with open(gpg_conf, 'a') as f:
+                f.write("\n# Configuración para automatización\n")
+                f.write("use-agent\n")
+                f.write("pinentry-mode loopback\n")
+            
+            # Configurar gpg-agent.conf
+            with open(gpg_agent_conf, 'a') as f:
+                f.write("\n# Configuración para automatización\n")
+                f.write("allow-loopback-pinentry\n")
+            
+            # Recargar gpg-agent
+            self.run_command(["gpg-connect-agent", "reloadagent", "/bye"])
+        else:
+            self.log_info("🖥️  Pinentry gráfico detectado - manteniendo configuración existente")
     
     def generate_subkeys(self, master_key_id: str, passphrase: str):
         """Generar subclaves usando --quick-add-key"""
