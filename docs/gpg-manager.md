@@ -68,6 +68,7 @@ Si no tienes GPG instalado, puedes usar `packages.sh`:
 | `--gen-key` | Generar llave maestra y subclaves | `./gpg-manager.py --gen-key` |
 | `--export-master` | Exportar llave maestra para almacenamiento offline | `./gpg-manager.py --export-master` |
 | `--git-config` | Configurar Git para GPG | `./gpg-manager.py --git-config` |
+| `--revoke-key` | Generar certificado de revocación de emergencia | `./gpg-manager.py --revoke-key` |
 | `--backup` | Crear backup portable | `./gpg-manager.py --backup` |
 | `--restore` | Restaurar backup | `./gpg-manager.py --restore archivo.tar.gz` |
 | `--verify` | Verificar integridad de backup | `./gpg-manager.py --verify archivo.tar.gz` |
@@ -219,6 +220,23 @@ Las subclaves permanecen en el keyring local:
 - Se guarda en `~/secure/gpg/revocation-cert-*.asc`
 - Se usa solo si la llave es comprometida
 - Permite revocar la llave maestra y todas las subclaves
+
+#### Estrategia de Recuperación Directa
+
+El comando `--revoke-key` implementa una estrategia de recuperación directa que permite generar un certificado de revocación de emergencia en cualquier momento:
+
+**Características:**
+- **Verificación de disponibilidad**: Valida que la clave maestra esté en el keyring
+- **Solicitud segura de contraseña**: Usa `getpass` para proteger la contraseña
+- **Generación automática**: Usa `gpg --gen-revoke` con parámetros optimizados
+- **Validación de integridad**: Verifica que el certificado generado sea válido
+- **Logging completo**: Registra todas las operaciones para auditoría
+
+**Cuándo usar:**
+- Antes de eliminar la clave maestra del keyring (uso preventivo)
+- Cuando la clave maestra aún está disponible pero se necesita un certificado adicional
+- Para tener un certificado de revocación con timestamp específico
+- Como backup adicional al certificado generado automáticamente
 
 ## 🖥️ Configuración de Entorno
 
@@ -383,6 +401,64 @@ gpg --edit-key TU_LLAVE_MAESTRA
 ```
 
 ### Revocación de Claves
+
+#### Generar Certificado de Revocación de Emergencia
+
+```bash
+# Generar certificado de revocación de emergencia
+./gpg-manager.py --revoke-key
+
+# Especificar clave maestra específica
+./gpg-manager.py --revoke-key --key-id <KEY_ID>
+```
+
+**¿Qué hace `--revoke-key`?**
+
+1. **Verifica disponibilidad de clave maestra**: 
+   - Verifica que la clave maestra esté disponible en el keyring
+   - Si hay múltiples claves, solicita especificar con `--key-id`
+
+2. **Solicita contraseña de forma segura**:
+   - Usa `getpass` para solicitar contraseña sin mostrarla
+   - Valida que la contraseña no esté vacía
+
+3. **Genera certificado con `gpg --gen-revoke`**:
+   - Usa pinentry-mode loopback para automatización
+   - Configura razón de revocación (clave comprometida)
+   - Genera certificado en `~/secure/gpg/emergency-revocation-*.asc`
+
+4. **Valida integridad del certificado**:
+   - Verifica formato PGP válido
+   - Verifica que sea un certificado de revocación
+   - Verifica tamaño mínimo del archivo
+
+5. **Proporciona instrucciones de uso**:
+   - Indica dónde se guardó el certificado
+   - Muestra comandos para importar y publicar revocación
+
+**Flujo de uso:**
+
+```bash
+# 1. Generar certificado de revocación de emergencia
+./gpg-manager.py --revoke-key
+
+# 2. Guardar certificado en lugar seguro
+# (El certificado se genera en ~/secure/gpg/)
+
+# 3. Si la clave es comprometida, importar certificado
+gpg --import ~/secure/gpg/emergency-revocation-*.asc
+
+# 4. Publicar revocación en keyservers
+gpg --send-keys TU_LLAVE_MAESTRA
+```
+
+**⚠️ IMPORTANTE:**
+- Solo usar el certificado si la clave fue comprometida
+- Una vez importado, la clave quedará revocada permanentemente
+- Guardar el certificado en un lugar seguro y separado de las claves
+- Considerar generar el certificado preventivamente
+
+#### Usar Certificado de Revocación Existente
 
 ```bash
 # Usar certificado de revocación
