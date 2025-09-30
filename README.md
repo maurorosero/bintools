@@ -33,6 +33,7 @@ bintools es un conjunto de scripts que automatizan tareas comunes del sistema op
 - **`nxcloud-backup.sh`**: Gestor completo de backups y configuración de Nextcloud
 - **`hexroute`**: Convierte rutas de red a formato hexadecimal para configuración DHCP
 - **`git-tokens.py`**: Gestor seguro de tokens de autenticación para servicios Git
+- **`gpg-manager.py`**: Gestor completo de claves GPG con estrategia offline y configuración automática
 - **`bw-send.sh`**: Envío seguro extendido con múltiples canales de distribución
 - **`bw-ghpersonal.sh`**: Gestión completa de tokens GitHub con Bitwarden y autenticación CLI
 - **`odevs-install.sh`**: Instalador automático de odoodevs con múltiples opciones
@@ -47,6 +48,7 @@ bintools es un conjunto de scripts que automatizan tareas comunes del sistema op
 
 - **`docs/secrets.md`**: Guía completa de gestión segura de secretos
 - **`docs/sops.md`**: Guía completa de gestión de secretos con Mozilla SOPS
+- **`docs/gpg-manager.md`**: Guía completa de gestión de claves GPG con estrategia offline
 - **`docs/bw.md`**: Documentación completa de Bitwarden CLI
 - **`docs/bw-send.md`**: Guía completa de bw-send.sh (envío seguro extendido)
 - **`docs/odoodevs.md`**: Documentación completa de odoodevs
@@ -277,6 +279,52 @@ fix-locale.sh --remote user@server --fix
 ```
 
 ### 🔐 Gestión de Secretos
+
+### 🔑 Gestor de Claves GPG (`gpg-manager.py`)
+
+Gestor completo de claves GPG con estrategia offline y configuración automática para desarrolladores.
+
+**Pre-requisitos:**
+
+- Python 3.6+ instalado en el sistema
+- GPG 2.1+ instalado y configurado
+- Herramientas base del sistema (`packages.sh --list base`)
+
+**¿Qué puede hacer?**
+
+- **🔑 Gestión de claves**: Creación de llaves maestras y subclaves con configuración automática
+- **🔐 Estrategia offline**: Exportación y eliminación segura de llaves maestras del keyring local
+- **📦 Backup y restore**: Sistema completo de backup portable con verificación de integridad
+- **🖥️ Detección automática**: Configuración automática de pinentry gráfico o terminal según el entorno
+- **🐍 Automatización**: Generación automática de subclaves sin intervención manual
+- **🔧 Integración Git**: Configuración automática de Git para firmar commits con GPG
+
+**Funcionalidades principales:**
+
+```bash
+# Inicializar configuración GPG
+gpg-manager.py --init
+
+# Generar llave maestra y subclaves
+gpg-manager.py --gen-key
+
+# Configurar Git para GPG
+gpg-manager.py --git-config
+
+# Crear backup portable
+gpg-manager.py --backup
+
+# Restaurar backup
+gpg-manager.py --restore archivo.tar.gz
+
+# Verificar integridad
+gpg-manager.py --verify archivo.tar.gz
+
+# Listar backups disponibles
+gpg-manager.py --list
+```
+
+**📖 Documentación completa**: Para información detallada sobre gestión de claves, estrategia offline, configuración de Git y solución de problemas, consulta la [guía completa de gpg-manager.py](docs/gpg-manager.md).
 
 ### 🔑 Gestor de Tokens Git (`git-tokens.py`)
 
