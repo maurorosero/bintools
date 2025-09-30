@@ -5,15 +5,10 @@ keyservers:
       description: "Keyserver moderno y confiable"
       priority: 1
     
-    - name: "MIT"
-      url: "hkp://pgp.mit.edu"
-      description: "Keyserver del MIT"
-      priority: 2
-    
     - name: "Ubuntu"
       url: "hkp://keyserver.ubuntu.com"
       description: "Keyserver de Ubuntu"
-      priority: 3
+      priority: 2
 
   ubuntu:
     - name: "Ubuntu"
