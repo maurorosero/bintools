@@ -1449,25 +1449,80 @@ scdaemon-program /usr/lib/gnupg/scdaemon
             if failed > 0:
                 self.log_warning(f"⚠️ {failed} keyserver(s) fallaron: {', '.join(failed_servers)}")
             
-            # Verificar publicación en keyservers exitosos
+            # Informar sobre verificación manual
             if successful > 0:
-                self.log_info("🔍 Verificando publicación...")
-                verified = 0
-                
-                for keyserver in keyservers:
-                    if keyserver.get('name') not in failed_servers:
-                        if self.verify_key_publication(signing_key, keyserver):
-                            verified += 1
-                
-                if verified > 0:
-                    self.log_success(f"✅ Verificación completada: {verified}/{successful} keyservers verificados")
-                else:
-                    self.log_warning("⚠️ No se pudo verificar la publicación en ningún keyserver")
+                print()
+                self.log_info("💡 Para verificar la publicación, use:")
+                self.log_info(f"   gpg-manager.py --confirm-publish --servers {servers_list}")
+                self.log_info("   (Espere 5-15 minutos para sincronización de keyservers)")
             
             return successful > 0
             
         except Exception as e:
             self.log_error(f"Error publicando llave: {e}")
+            return False
+
+    def confirm_key_publication(self, servers_list: str = None, key_id: str = None):
+        """Verificar publicación de llave en keyservers"""
+        try:
+            # Verificar prerequisitos
+            if not self.check_prerequisites_for_operation("publish"):
+                return False
+            
+            # Determinar qué llave verificar
+            if key_id:
+                signing_key = key_id
+                self.log_info(f"Verificando llave específica: {signing_key}")
+            else:
+                signing_key = self.get_latest_valid_signing_key()
+                if not signing_key:
+                    self.log_error("No se encontraron llaves de firma válidas")
+                    return False
+                self.log_info(f"Verificando llave automática: {signing_key}")
+            
+            # Obtener lista de keyservers
+            keyservers = self.get_keyserver_list(servers_list)
+            if not keyservers:
+                return False
+            
+            # Usar lista por defecto si no se especifica
+            if not servers_list:
+                servers_list = "recommended"
+            
+            self.log_info(f"🔍 Verificando publicación en keyservers de lista '{servers_list}'...")
+            
+            # Verificar en cada keyserver
+            verified = 0
+            failed = 0
+            failed_servers = []
+            
+            for i, keyserver in enumerate(keyservers, 1):
+                name = keyserver.get('name', 'Unknown')
+                url = keyserver.get('url', '')
+                
+                self.log_info(f"🌐 Keyserver {i}/{len(keyservers)}: {name} ({url})")
+                
+                if self.verify_key_publication(signing_key, keyserver):
+                    verified += 1
+                else:
+                    failed += 1
+                    failed_servers.append(name)
+            
+            # Mostrar resumen
+            print()
+            if verified > 0:
+                self.log_success(f"✅ Verificación completada en lista '{servers_list}': {verified}/{len(keyservers)} keyservers verificados")
+            else:
+                self.log_warning(f"⚠️ Verificación completada en lista '{servers_list}': 0/{len(keyservers)} keyservers verificados")
+            
+            if failed > 0:
+                self.log_warning(f"⚠️ {failed} keyserver(s) no verificados: {', '.join(failed_servers)}")
+                self.log_info("💡 Los keyservers pueden tardar 5-15 minutos en sincronizar")
+            
+            return verified > 0
+            
+        except Exception as e:
+            self.log_error(f"Error verificando publicación: {e}")
             return False
 
     def show_help(self):
@@ -1485,6 +1540,7 @@ scdaemon-program /usr/lib/gnupg/scdaemon
         print("  gpg-manager.py --gen-key                         Generar llave maestra y subclaves")
         print("  gpg-manager.py --git-config                      Configurar Git para GPG")
         print("  gpg-manager.py --publish                         Publicar llave pública en keyserver")
+        print("  gpg-manager.py --confirm-publish                 Verificar publicación en keyservers")
         print("  gpg-manager.py --backup                           Crear backup portable")
         print("  gpg-manager.py --restore <archivo-backup>        Restaurar backup")
         print("  gpg-manager.py --verify <archivo-backup>         Verificar integridad")
@@ -1503,6 +1559,8 @@ scdaemon-program /usr/lib/gnupg/scdaemon
         print("  gpg-manager.py --gen-key")
         print("  gpg-manager.py --git-config")
         print("  gpg-manager.py --publish")
+        print("  gpg-manager.py --confirm-publish")
+        print("  gpg-manager.py --confirm-publish --servers ubuntu")
         print("  gpg-manager.py --backup")
         print("  gpg-manager.py --restore gpg-20241214_143022.tar.gz")
         print("  gpg-manager.py --verify ~/backups/gpg-backup.tar.gz")
@@ -1521,6 +1579,8 @@ Ejemplos:
   gpg-manager.py --gen-key
   gpg-manager.py --git-config
   gpg-manager.py --publish
+  gpg-manager.py --confirm-publish
+  gpg-manager.py --confirm-publish --servers ubuntu
   gpg-manager.py --backup
   gpg-manager.py --restore gpg-20241214_143022.tar.gz
   gpg-manager.py --verify ~/backups/gpg-backup.tar.gz
@@ -1536,8 +1596,12 @@ Ejemplos:
                        help="Configurar Git para GPG")
     parser.add_argument("--publish", action="store_true",
                        help="Publicar llave pública en keyserver")
+    parser.add_argument("--confirm-publish", action="store_true",
+                       help="Verificar publicación de llave en keyservers")
     parser.add_argument("--servers", metavar="LISTA",
                        help="Lista específica de keyservers (recommended, ubuntu, mit)")
+    parser.add_argument("--key-id", metavar="KEY_ID",
+                       help="ID específico de llave para publicar/verificar")
     parser.add_argument("--backup", "-b", action="store_true",
                        help="Crear backup portable")
     parser.add_argument("--restore", "-r", metavar="ARCHIVO",
@@ -1566,6 +1630,8 @@ Ejemplos:
             gpg_manager.configure_git_for_gpg()
         elif args.publish:
             gpg_manager.publish_key_to_keyserver(args.servers)
+        elif args.confirm_publish:
+            gpg_manager.confirm_key_publication(args.servers, args.key_id)
         elif args.backup:
             gpg_manager.create_portable_gpg_backup()
         elif args.restore:
