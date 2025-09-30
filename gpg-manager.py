@@ -4,7 +4,7 @@ GPG Backup Manager v1.0.0
 Gestor especializado de backups portables de GPG
 Prioridad: BACKUP y RESTORE para uso cross-platform
 
-Uso: gpg-manager.py [--init|--gen-key|--backup|--restore|--verify|--list|--help]
+Uso: gpg-manager.py [--init|--gen-key|--backup|--restore|--verify|--list|--revoke-key|--help]
 """
 
 import os
@@ -1550,6 +1550,182 @@ scdaemon-program /usr/lib/gnupg/scdaemon
             self.log_error(f"Error verificando publicación: {e}")
             return False
 
+    def verify_master_key_available(self, key_id: str = None) -> Optional[str]:
+        """Verificar que la clave maestra está disponible en el keyring"""
+        try:
+            self.log_info("🔍 Verificando disponibilidad de clave maestra...")
+            
+            # Listar claves secretas
+            result = self.run_command(['gpg', '--list-secret-keys', '--with-colons'])
+            
+            if result.returncode != 0:
+                self.log_error("No se pudieron listar las claves secretas")
+                return None
+            
+            master_keys = []
+            for line in result.stdout.split('\n'):
+                if line.startswith('sec:'):
+                    parts = line.split(':')
+                    key_id_found = parts[4]
+                    usage = parts[11]
+                    
+                    # Verificar que es una clave maestra (tiene capacidad de certificación)
+                    if 'C' in usage or 'c' in usage:
+                        master_keys.append(key_id_found)
+            
+            if not master_keys:
+                self.log_error("❌ No se encontró clave maestra en el keyring")
+                self.log_info("💡 La clave maestra es necesaria para generar certificados de revocación")
+                return None
+            
+            # Si se especificó un key_id, verificar que existe
+            if key_id:
+                if key_id in master_keys:
+                    self.log_success(f"✅ Clave maestra encontrada: {key_id}")
+                    return key_id
+                else:
+                    self.log_error(f"❌ Clave maestra {key_id} no encontrada")
+                    return None
+            
+            # Si solo hay una clave maestra, usarla
+            if len(master_keys) == 1:
+                self.log_success(f"✅ Clave maestra encontrada: {master_keys[0]}")
+                return master_keys[0]
+            
+            # Si hay múltiples claves, solicitar al usuario que especifique
+            self.log_warning("⚠️  Múltiples claves maestras encontradas:")
+            for mk in master_keys:
+                self.log_info(f"   - {mk}")
+            self.log_info("💡 Especifique la clave con --key-id <KEY_ID>")
+            return None
+            
+        except Exception as e:
+            self.log_error(f"Error verificando clave maestra: {e}")
+            return None
+
+    def generate_emergency_revocation(self, key_id: str = None) -> bool:
+        """Generar certificado de revocación de emergencia"""
+        try:
+            self.log_info("🚨 Iniciando generación de certificado de revocación de emergencia...")
+            
+            # 1. Verificar disponibilidad de clave maestra
+            master_key_id = self.verify_master_key_available(key_id)
+            if not master_key_id:
+                return False
+            
+            # 2. Solicitar contraseña de forma segura
+            self.log_info("🔐 Solicitando contraseña de la clave maestra...")
+            try:
+                passphrase = getpass.getpass("Contraseña de la clave maestra: ")
+                if not passphrase:
+                    self.log_error("❌ La contraseña es requerida")
+                    return False
+            except (EOFError, KeyboardInterrupt):
+                self.log_error("❌ Entrada de contraseña cancelada")
+                return False
+            
+            # 3. Generar certificado con gpg --gen-revoke
+            self.log_info("📝 Generando certificado de revocación...")
+            
+            # Crear directorio de salida
+            secure_gpg_dir = Path.home() / "secure" / "gpg"
+            secure_gpg_dir.mkdir(parents=True, exist_ok=True)
+            
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            revocation_file = secure_gpg_dir / f"emergency-revocation-{master_key_id}-{timestamp}.asc"
+            
+            # Generar certificado de revocación
+            # Usar input para responder a las preguntas de GPG:
+            # - Razón de revocación (1 = clave comprometida)
+            # - Descripción (vacío)
+            # - Confirmación (y)
+            input_data = "1\n\ny\n"
+            
+            env = os.environ.copy()
+            env["GNUPG_PASSPHRASE"] = passphrase
+            
+            result = self.run_command([
+                'gpg', '--batch', '--yes',
+                '--pinentry-mode', 'loopback',
+                '--passphrase', passphrase,
+                '--command-fd', '0',
+                '--status-fd', '2',
+                '--output', str(revocation_file),
+                '--gen-revoke', master_key_id
+            ], input_data=input_data, env=env)
+            
+            # 4. Validar que el certificado se generó correctamente
+            if result.returncode != 0:
+                self.log_error("❌ Error generando certificado de revocación")
+                self.log_error(result.stderr)
+                return False
+            
+            if not revocation_file.exists():
+                self.log_error("❌ El certificado de revocación no se generó")
+                return False
+            
+            # 5. Validar integridad del certificado
+            self.log_info("🔍 Validando integridad del certificado...")
+            
+            # Verificar que el archivo contiene un certificado válido
+            with open(revocation_file, 'r') as f:
+                content = f.read()
+                
+            if '-----BEGIN PGP PUBLIC KEY BLOCK-----' not in content:
+                self.log_error("❌ El certificado generado no tiene formato válido")
+                revocation_file.unlink()
+                return False
+            
+            # Validar que el certificado contiene una firma de revocación usando gpg --list-packets
+            try:
+                packet_result = subprocess.run(
+                    ['gpg', '--list-packets', str(revocation_file)],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True
+                )
+                packets_output = packet_result.stdout
+                # Buscar "signature packet" con type 2 (revocation signature)
+                if 'signature packet: 2' not in packets_output:
+                    self.log_warning("⚠️ El certificado podría no contener una firma de revocación válida (signature packet: 2 no encontrado)")
+            except Exception as e:
+                self.log_warning(f"⚠️ No se pudo validar la estructura del certificado de revocación: {e}")
+            # Verificar tamaño mínimo
+            file_size = revocation_file.stat().st_size
+            if file_size < 100:
+                self.log_error("❌ El certificado es demasiado pequeño, podría estar corrupto")
+                revocation_file.unlink()
+                return False
+            
+            # 6. Operaciones exitosas
+            self.log_success(f"✅ Certificado de revocación generado exitosamente")
+            self.log_info(f"📁 Ubicación: {revocation_file}")
+            self.log_info(f"📊 Tamaño: {file_size} bytes")
+            
+            print("\n" + "="*60)
+            print("🚨 CERTIFICADO DE REVOCACIÓN DE EMERGENCIA GENERADO")
+            print("="*60)
+            print(f"🔑 Clave maestra: {master_key_id}")
+            print(f"📄 Certificado: {revocation_file.name}")
+            print(f"📁 Ubicación: {revocation_file}")
+            print()
+            print("⚠️  IMPORTANTE:")
+            print("1. Guarde este certificado en un lugar seguro")
+            print("2. Use solo si la clave fue comprometida")
+            print("3. Una vez importado, la clave quedará revocada permanentemente")
+            print()
+            print("💡 Para revocar la clave:")
+            print(f"   gpg --import {revocation_file}")
+            print(f"   gpg --send-keys {master_key_id}")
+            print("="*60)
+            
+            return True
+            
+        except Exception as e:
+            self.log_error(f"❌ Error generando certificado de revocación: {e}")
+            logger.exception("Error detallado:")
+            return False
+
     def show_help(self):
         """Mostrar ayuda"""
         print("\n" + "="*50)
@@ -1566,6 +1742,7 @@ scdaemon-program /usr/lib/gnupg/scdaemon
         print("  gpg-manager.py --git-config                      Configurar Git para GPG")
         print("  gpg-manager.py --publish                         Publicar llave pública en keyserver")
         print("  gpg-manager.py --confirm-publish                 Verificar publicación en keyservers")
+        print("  gpg-manager.py --revoke-key                      Generar certificado de revocación de emergencia")
         print("  gpg-manager.py --backup                           Crear backup portable")
         print("  gpg-manager.py --restore <archivo-backup>        Restaurar backup")
         print("  gpg-manager.py --verify <archivo-backup>         Verificar integridad")
@@ -1586,6 +1763,8 @@ scdaemon-program /usr/lib/gnupg/scdaemon
         print("  gpg-manager.py --publish")
         print("  gpg-manager.py --confirm-publish")
         print("  gpg-manager.py --confirm-publish --servers ubuntu")
+        print("  gpg-manager.py --revoke-key")
+        print("  gpg-manager.py --revoke-key --key-id <KEY_ID>")
         print("  gpg-manager.py --backup")
         print("  gpg-manager.py --restore gpg-20241214_143022.tar.gz")
         print("  gpg-manager.py --verify ~/backups/gpg-backup.tar.gz")
@@ -1606,6 +1785,8 @@ Ejemplos:
   gpg-manager.py --publish
   gpg-manager.py --confirm-publish
   gpg-manager.py --confirm-publish --servers ubuntu
+  gpg-manager.py --revoke-key
+  gpg-manager.py --revoke-key --key-id <KEY_ID>
   gpg-manager.py --backup
   gpg-manager.py --restore gpg-20241214_143022.tar.gz
   gpg-manager.py --verify ~/backups/gpg-backup.tar.gz
@@ -1623,10 +1804,12 @@ Ejemplos:
                        help="Publicar llave pública en keyserver")
     parser.add_argument("--confirm-publish", action="store_true",
                        help="Verificar publicación de llave en keyservers")
+    parser.add_argument("--revoke-key", action="store_true",
+                       help="Generar certificado de revocación de emergencia")
     parser.add_argument("--servers", metavar="LISTA",
                        help="Lista específica de keyservers (recommended, ubuntu, mit)")
     parser.add_argument("--key-id", metavar="KEY_ID",
-                       help="ID específico de llave para publicar/verificar")
+                       help="ID específico de llave para publicar/verificar/revocar")
     parser.add_argument("--backup", "-b", action="store_true",
                        help="Crear backup portable")
     parser.add_argument("--restore", "-r", metavar="ARCHIVO",
@@ -1657,6 +1840,8 @@ Ejemplos:
             gpg_manager.publish_key_to_keyserver(args.servers)
         elif args.confirm_publish:
             gpg_manager.confirm_key_publication(args.servers, args.key_id)
+        elif args.revoke_key:
+            gpg_manager.generate_emergency_revocation(args.key_id)
         elif args.backup:
             gpg_manager.create_portable_gpg_backup()
         elif args.restore:
