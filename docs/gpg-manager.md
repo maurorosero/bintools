@@ -226,7 +226,10 @@ Las subclaves permanecen en el keyring local:
 El comando `--gen-revoke` implementa una estrategia de recuperación directa que permite generar un certificado de revocación de emergencia en cualquier momento:
 
 **Características:**
-- **Verificación de disponibilidad**: Valida que la clave maestra esté en el keyring
+- **Verificación de certificado existente**: Busca certificados existentes antes de generar uno nuevo
+- **Búsqueda inteligente**: Busca por ID corto y fingerprint completo
+- **Importación automática**: Importa clave maestra desde backup si no está disponible
+- **Eliminación selectiva**: Elimina solo la clave maestra, preservando subclaves
 - **Solicitud segura de contraseña**: Usa `getpass` para proteger la contraseña
 - **Generación automática**: Usa `gpg --gen-revoke` con parámetros optimizados
 - **Validación de integridad**: Verifica que el certificado generado sea válido
@@ -234,6 +237,8 @@ El comando `--gen-revoke` implementa una estrategia de recuperación directa que
 
 **Cuándo usar:**
 - Antes de eliminar la clave maestra del keyring (uso preventivo)
+- Cuando se necesita generar un certificado de revocación de emergencia
+- Cuando la clave maestra está offline pero se tiene backup
 - Cuando la clave maestra aún está disponible pero se necesita un certificado adicional
 - Para tener un certificado de revocación con timestamp específico
 - Como backup adicional al certificado generado automáticamente
@@ -414,25 +419,41 @@ gpg --edit-key TU_LLAVE_MAESTRA
 
 **¿Qué hace `--gen-revoke`?**
 
-1. **Verifica disponibilidad de clave maestra**: 
+1. **Verifica disponibilidad de clave maestra**:
    - Verifica que la clave maestra esté disponible en el keyring
    - Si hay múltiples claves, solicita especificar con `--key-id`
 
-2. **Solicita contraseña de forma segura**:
+2. **Verifica certificado existente**:
+   - Busca certificado existente por ID corto (`revocation-cert-{KEY_ID}.asc`)
+   - Si no existe, busca por fingerprint completo (`revocation-cert-{FINGERPRINT}.asc`)
+   - Si existe, muestra mensaje informativo y termina
+
+3. **Importación automática de clave maestra** (si es necesario):
+   - Si la clave maestra no está disponible, intenta importar desde backup
+   - Busca archivo `master-key-{KEY_ID}.asc` o `master-key-{FINGERPRINT}.asc`
+   - Importa temporalmente para generar el certificado
+
+4. **Solicita contraseña de forma segura**:
    - Usa `getpass` para solicitar contraseña sin mostrarla
    - Valida que la contraseña no esté vacía
 
-3. **Genera certificado con `gpg --gen-revoke`**:
+5. **Genera certificado con `gpg --gen-revoke`**:
    - Usa pinentry-mode loopback para automatización
    - Configura razón de revocación (clave comprometida)
    - Genera certificado en `~/secure/gpg/emergency-revocation-*.asc`
 
-4. **Valida integridad del certificado**:
+6. **Eliminación selectiva de clave maestra** (si se importó temporalmente):
+   - Exporta subclaves temporalmente
+   - Elimina toda la clave (maestra + subclaves)
+   - Reimporta solo las subclaves
+   - Preserva funcionalidad diaria
+
+7. **Valida integridad del certificado**:
    - Verifica formato PGP válido
    - Verifica que sea un certificado de revocación
    - Verifica tamaño mínimo del archivo
 
-5. **Proporciona instrucciones de uso**:
+8. **Proporciona instrucciones de uso**:
    - Indica dónde se guardó el certificado
    - Muestra comandos para importar y publicar revocación
 
@@ -452,10 +473,40 @@ gpg --import ~/secure/gpg/emergency-revocation-*.asc
 gpg --send-keys TU_LLAVE_MAESTRA
 ```
 
+**Casos de uso:**
+
+1. **Certificado ya existe**:
+
+   ```bash
+   ./gpg-manager.py --gen-revoke
+   # ✅ Certificado de revocación ya existe: revocation-cert-*.asc
+   # 💡 No es necesario generar uno nuevo
+   ```
+
+2. **Clave maestra disponible**:
+
+   ```bash
+   ./gpg-manager.py --gen-revoke
+   # 🔐 Solicitando contraseña de la clave maestra...
+   # 📝 Generando certificado de revocación...
+   # ✅ Certificado de revocación generado exitosamente
+   ```
+
+3. **Clave maestra offline**:
+
+   ```bash
+   ./gpg-manager.py --gen-revoke
+   # ⚠️  Clave maestra no disponible, intentando importar desde backup...
+   # ✅ Clave maestra importada temporalmente
+   # 🗑️  Eliminando clave maestra del keyring (manteniendo subclaves)...
+   # ✅ Clave maestra eliminada, subclaves preservadas
+   ```
+
 **⚠️ IMPORTANTE:**
 - Solo usar el certificado si la clave fue comprometida
 - Una vez importado, la clave quedará revocada permanentemente
 - Guardar el certificado en un lugar seguro y separado de las claves
+- El proceso preserva las subclaves para uso diario
 - Considerar generar el certificado preventivamente
 
 #### Usar Certificado de Revocación Existente
