@@ -374,11 +374,108 @@ Passphrase: """ + user_info['passphrase'] + """
         # Mostrar información de las claves generadas
         self.show_generated_keys_info(master_key_id)
         
+        # Exportar llave maestra para almacenamiento offline
+        self.log_info("🔐 Exportando llave maestra para almacenamiento offline...")
+        self.export_master_key_offline(master_key_id, user_info['passphrase'])
+        
         # Crear backup automático
         self.log_info("💾 Creando backup automático de subclaves...")
         self.create_portable_gpg_backup()
         
         self.log_success("✅ Llave maestra y subclaves generadas exitosamente")
+        
+    def export_master_key_offline(self, master_key_id: str, passphrase: str):
+        """Exportar llave maestra para almacenamiento offline cifrado"""
+        secure_gpg_dir = Path.home() / "secure" / "gpg"
+        secure_gpg_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Archivos de exportación
+        master_key_file = secure_gpg_dir / f"master-key-{master_key_id}.asc"
+        
+        try:
+            # Exportar llave maestra (solo certificación)
+            result = self.run_command([
+                "gpg", "--armor", "--export-secret-keys", 
+                "--pinentry-mode", "loopback",
+                "--passphrase-fd", "0",
+                master_key_id
+            ], input_data=passphrase)
+            
+            if result.returncode != 0:
+                self.log_error(f"Error exportando llave maestra: {result.stderr}")
+                return False
+                
+            # Guardar llave maestra
+            with open(master_key_file, 'w') as f:
+                f.write(result.stdout)
+            
+            self.log_success(f"✅ Llave maestra exportada: {master_key_file.name}")
+            
+            
+            # Exportar solo las subclaves secretas y eliminar la llave maestra
+            self.log_info("🗑️  Exportando subclaves y eliminando llave maestra del keyring local...")
+            
+            # Exportar solo las subclaves secretas
+            subkeys_file = secure_gpg_dir / f"subkeys-{master_key_id}.asc"
+            subkeys_result = self.run_command([
+                "gpg", "--armor", "--export-secret-subkeys", 
+                "--pinentry-mode", "loopback",
+                "--passphrase-fd", "0",
+                master_key_id
+            ], input_data=passphrase)
+            
+            if subkeys_result.returncode == 0:
+                # Guardar las subclaves
+                with open(subkeys_file, 'w') as f:
+                    f.write(subkeys_result.stdout)
+                self.log_success(f"✅ Subclaves exportadas: {subkeys_file.name}")
+                
+                # Eliminar la clave maestra secreta (esto mantiene las subclaves)
+                delete_result = self.run_command([
+                    "gpg", "--delete-secret-key", "--batch", "--yes",
+                    master_key_id
+                ])
+                
+                if delete_result.returncode == 0:
+                    self.log_success("✅ Llave maestra eliminada del keyring local")
+                    
+                    # Importar las subclaves de vuelta
+                    import_result = self.run_command([
+                        "gpg", "--import", str(subkeys_file)
+                    ])
+                    
+                    if import_result.returncode == 0:
+                        self.log_success("✅ Subclaves importadas de vuelta al keyring")
+                    else:
+                        self.log_error("Error importando subclaves")
+                        return False
+                else:
+                    self.log_error("Error eliminando llave maestra")
+                    return False
+            else:
+                self.log_error("Error exportando subclaves")
+                return False
+                
+            print("\n" + "="*60)
+            print("🔐 LLAVE MAESTRA EXPORTADA PARA ALMACENAMIENTO OFFLINE")
+            print("="*60)
+            print(f"🔑 ID de llave maestra: {master_key_id}")
+            print(f"📁 Ubicación: {secure_gpg_dir}")
+            print(f"📄 Archivo: {master_key_file.name}")
+            print(f"📄 Subclaves: {subkeys_file.name}")
+            print()
+            print("⚠️  IMPORTANTE:")
+            print("1. Guarde la llave maestra en un lugar seguro (USB, papel)")
+            print("2. NO la mantenga en el sistema de archivos local")
+            print("3. Use solo para revocar subclaves o crear nuevas")
+            print("4. Las subclaves siguen funcionando normalmente")
+            print("="*60)
+            
+            return True
+                
+        except Exception as e:
+            self.log_error(f"Error en exportación offline: {e}")
+            return False
         
     def initialize_gpg(self):
         """Inicializar configuración GPG"""
@@ -415,7 +512,20 @@ Passphrase: """ + user_info['passphrase'] + """
         # Crear archivo de configuración básico
         self.log_info("⚙️  Creando configuración básica...")
         gpg_conf = self.gpg_home / "gpg.conf"
-        gpg_conf.write_text("""# Configuración básica de GPG
+        
+        # Detectar si hay entorno gráfico disponible
+        has_display = os.environ.get('DISPLAY') is not None
+        has_wayland = os.environ.get('WAYLAND_DISPLAY') is not None
+        has_graphical = has_display or has_wayland
+        
+        if has_graphical:
+            self.log_info("🖥️  Entorno gráfico detectado - configurando pinentry gráfico")
+            pinentry_config = ""
+        else:
+            self.log_info("📟 Solo terminal detectado - configurando pinentry loopback")
+            pinentry_config = "pinentry-mode loopback\n"
+        
+        gpg_conf.write_text(f"""# Configuración básica de GPG
 # Generada automáticamente por gpg-manager.py --init
 
 # Configuración de claves
@@ -431,8 +541,7 @@ compress-algo 1
 
 # Configuración de agent
 use-agent
-pinentry-mode loopback
-
+{pinentry_config}
 # Configuración de salida
 armor
 emit-version
@@ -452,11 +561,30 @@ verify-options show-uid-validity
         # Crear configuración del agente
         self.log_info("🤖 Configurando agente GPG...")
         gpg_agent_conf = self.gpg_home / "gpg-agent.conf"
-        gpg_agent_conf.write_text("""# Configuración del agente GPG
+        
+        # Configurar pinentry según el entorno
+        if has_graphical:
+            # Detectar el mejor pinentry gráfico disponible
+            pinentry_programs = [
+                "/usr/bin/pinentry-gnome3",
+                "/usr/bin/pinentry-gtk-2", 
+                "/usr/bin/pinentry-gtk",
+                "/usr/bin/pinentry-qt",
+                "/usr/bin/pinentry"
+            ]
+            
+            pinentry_program = "/usr/bin/pinentry"
+            for program in pinentry_programs:
+                if shutil.which(program):
+                    pinentry_program = program
+                    break
+            
+            self.log_info(f"🖥️  Usando pinentry gráfico: {pinentry_program}")
+            agent_config = f"""# Configuración del agente GPG
 # Generada automáticamente por gpg-manager.py --init
 
 # Configuración de pinentry
-pinentry-program /usr/bin/pinentry-gtk-2
+pinentry-program {pinentry_program}
 
 # Configuración de caché
 default-cache-ttl 600
@@ -467,7 +595,27 @@ enable-ssh-support
 
 # Configuración de scdaemon
 scdaemon-program /usr/lib/gnupg/scdaemon
-""")
+"""
+        else:
+            self.log_info("📟 Configurando pinentry loopback para terminal")
+            agent_config = """# Configuración del agente GPG
+# Generada automáticamente por gpg-manager.py --init
+
+# Configuración de pinentry para terminal
+allow-loopback-pinentry
+
+# Configuración de caché
+default-cache-ttl 600
+max-cache-ttl 7200
+
+# Configuración de SSH
+enable-ssh-support
+
+# Configuración de scdaemon
+scdaemon-program /usr/lib/gnupg/scdaemon
+"""
+        
+        gpg_agent_conf.write_text(agent_config)
         
         # Establecer permisos en archivos de configuración
         os.chmod(gpg_conf, 0o600)
@@ -805,6 +953,132 @@ scdaemon-program /usr/lib/gnupg/scdaemon
                 
         print()
         
+    def configure_git_for_gpg(self):
+        """Configurar Git para usar GPG con la subclave de firma"""
+        self.log_info("🔧 Configurando Git para GPG...")
+        
+        # Buscar la subclave de firma (S) en las claves públicas
+        result = self.run_command(["gpg", "--list-keys", "--keyid-format", "LONG"])
+        if result.returncode != 0:
+            self.log_error("No se pudieron listar las claves")
+            return False
+            
+        signing_key = None
+        lines = result.stdout.split('\n')
+        
+        for line in lines:
+            if line.startswith('sub') and '[S]' in line:
+                # Extraer el ID de la subclave de firma
+                parts = line.split()
+                for part in parts:
+                    if '/' in part and 'sub' in line:
+                        signing_key = part.split('/')[1]
+                        break
+                if signing_key:
+                    break
+        
+        if not signing_key:
+            self.log_error("No se encontró subclave de firma (S)")
+            self.log_info("Asegúrese de tener una subclave con capacidad de firma")
+            return False
+            
+        self.log_success(f"Subclave de firma encontrada: {signing_key}")
+        
+        # Obtener información del usuario de la llave
+        user_name = None
+        user_email = None
+        
+        # Buscar información del usuario en las claves públicas
+        pub_result = self.run_command(["gpg", "--list-keys", "--keyid-format", "LONG"])
+        if pub_result.returncode == 0:
+            pub_lines = pub_result.stdout.split('\n')
+            for line in pub_lines:
+                if line.startswith('uid'):
+                    # Formato: uid [ultimate] Nombre <email>
+                    if '<' in line and '>' in line:
+                        # Extraer nombre y email
+                        parts = line.split('<')
+                        if len(parts) >= 2:
+                            name_part = parts[0].strip()
+                            email_part = parts[1].split('>')[0].strip()
+                            
+                            # Limpiar el nombre (remover [ultimate], etc.)
+                            name_clean = name_part.split(']')[-1].strip() if ']' in name_part else name_part
+                            
+                            user_name = name_clean
+                            user_email = email_part
+                            break
+        
+        # Configurar Git
+        git_configs = [
+            ("user.signingkey", signing_key),
+            ("commit.gpgsign", "true"),
+            ("gpg.program", "gpg"),
+            ("tag.gpgSign", "true")
+        ]
+        
+        # Agregar nombre y email si se encontraron
+        if user_name:
+            git_configs.append(("user.name", user_name))
+        if user_email:
+            git_configs.append(("user.email", user_email))
+        
+        for key, value in git_configs:
+            result = self.run_command(["git", "config", "--global", key, value])
+            if result.returncode == 0:
+                self.log_success(f"✅ Git configurado: {key} = {value}")
+            else:
+                self.log_warning(f"⚠️  Error configurando: {key}")
+                
+        # Configurar GPG para automatización
+        self.configure_gpg_for_automation()
+        
+        # Configurar GPG_TTY para Git (solo si hay TTY disponible)
+        try:
+            tty_result = os.popen('tty').read().strip()
+            if tty_result and 'not a tty' not in tty_result:
+                os.environ['GPG_TTY'] = tty_result
+                self.log_success(f"✅ GPG_TTY configurado: {tty_result}")
+            else:
+                self.log_warning("⚠️  No hay TTY disponible - GPG puede requerir configuración manual")
+                self.log_info("💡 Para scripts: export GPG_TTY=$(tty)")
+        except Exception as e:
+            self.log_warning(f"⚠️  Error configurando GPG_TTY: {e}")
+        
+        # Verificar configuración
+        self.log_info("🔍 Verificando configuración...")
+        result = self.run_command(["git", "config", "--global", "--get", "user.signingkey"])
+        if result.returncode == 0 and result.stdout.strip() == signing_key:
+            self.log_success("✅ Git configurado correctamente para GPG")
+            
+            print("\n" + "="*50)
+            print("🎉 CONFIGURACIÓN GIT-GPG COMPLETADA")
+            print("="*50)
+            print(f"🔑 Subclave de firma: {signing_key}")
+            if user_name:
+                print(f"👤 Nombre: {user_name}")
+            if user_email:
+                print(f"📧 Email: {user_email}")
+            print("📝 Commits firmados: Activado")
+            print("🏷️  Tags firmados: Activado")
+            print("🔧 GPG program: gpg")
+            print()
+            print("💡 Próximos pasos:")
+            print("1. Probar firma: git commit --allow-empty -m 'Test GPG signature'")
+            print("2. Verificar: git log --show-signature")
+            print("3. Configurar GitHub: Agregar clave pública en Settings > SSH and GPG keys")
+            print()
+            print("⚠️  Nota sobre entornos sin TTY (Cursor, scripts):")
+            print("   - GPG puede requerir configuración manual de GPG_TTY")
+            print("   - En terminal interactivo: export GPG_TTY=$(tty)")
+            print("   - Para scripts: configurar pinentry-mode loopback")
+            print("="*50)
+            
+            return True
+        else:
+            self.log_error("❌ Error en la configuración de Git")
+            return False
+
     def show_help(self):
         """Mostrar ayuda"""
         print("\n" + "="*50)
@@ -818,6 +1092,7 @@ scdaemon-program /usr/lib/gnupg/scdaemon
         print("Uso:")
         print("  gpg-manager.py --init                            Inicializar configuración GPG")
         print("  gpg-manager.py --gen-key                         Generar llave maestra y subclaves")
+        print("  gpg-manager.py --git-config                      Configurar Git para GPG")
         print("  gpg-manager.py --backup                           Crear backup portable")
         print("  gpg-manager.py --restore <archivo-backup>        Restaurar backup")
         print("  gpg-manager.py --verify <archivo-backup>         Verificar integridad")
@@ -828,6 +1103,7 @@ scdaemon-program /usr/lib/gnupg/scdaemon
         print("Ejemplos:")
         print("  gpg-manager.py --init")
         print("  gpg-manager.py --gen-key")
+        print("  gpg-manager.py --git-config")
         print("  gpg-manager.py --backup")
         print("  gpg-manager.py --restore gpg-20241214_143022.tar.gz")
         print("  gpg-manager.py --verify ~/backups/gpg-backup.tar.gz")
@@ -844,6 +1120,7 @@ def main():
 Ejemplos:
   gpg-manager.py --init
   gpg-manager.py --gen-key
+  gpg-manager.py --git-config
   gpg-manager.py --backup
   gpg-manager.py --restore gpg-20241214_143022.tar.gz
   gpg-manager.py --verify ~/backups/gpg-backup.tar.gz
@@ -855,6 +1132,8 @@ Ejemplos:
                        help="Inicializar configuración GPG")
     parser.add_argument("--gen-key", "-g", action="store_true",
                        help="Generar llave maestra y subclaves")
+    parser.add_argument("--git-config", action="store_true",
+                       help="Configurar Git para GPG")
     parser.add_argument("--backup", "-b", action="store_true",
                        help="Crear backup portable")
     parser.add_argument("--restore", "-r", metavar="ARCHIVO",
@@ -879,6 +1158,8 @@ Ejemplos:
             gpg_manager.initialize_gpg()
         elif args.gen_key:
             gpg_manager.generate_master_key_and_subkeys()
+        elif args.git_config:
+            gpg_manager.configure_git_for_gpg()
         elif args.backup:
             gpg_manager.create_portable_gpg_backup()
         elif args.restore:
