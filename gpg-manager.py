@@ -1602,6 +1602,139 @@ scdaemon-program /usr/lib/gnupg/scdaemon
         except Exception as e:
             self.log_error(f"Error verificando clave maestra: {e}")
             return None
+    
+    def verify_master_key_secret_available(self, key_id: str) -> bool:
+        """Verificar que la clave maestra secreta está disponible (no solo subclaves)"""
+        try:
+            # Listar claves secretas con formato detallado
+            result = self.run_command(['gpg', '--list-secret-keys', key_id])
+            
+            if result.returncode != 0:
+                return False
+            
+            # Buscar línea que empiece con 'sec' (no 'sec#')
+            for line in result.stdout.split('\n'):
+                if line.startswith('sec '):
+                    return True
+                elif line.startswith('sec#'):
+                    return False
+            
+            return False
+            
+        except Exception as e:
+            self.log_error(f"Error verificando clave maestra secreta: {e}")
+            return False
+    
+    def get_key_fingerprint(self, key_id: str) -> Optional[str]:
+        """Obtener fingerprint completo de una clave"""
+        try:
+            result = self.run_command(['gpg', '--fingerprint', '--with-colons', key_id])
+            
+            if result.returncode != 0:
+                return None
+            
+            for line in result.stdout.split('\n'):
+                if line.startswith('fpr:'):
+                    parts = line.split(':')
+                    if len(parts) > 9:
+                        return parts[9]  # El fingerprint está en la posición 9
+            
+            return None
+            
+        except Exception as e:
+            self.log_error(f"Error obteniendo fingerprint: {e}")
+            return None
+    
+    def import_master_key_from_backup(self, key_id: str) -> bool:
+        """Importar clave maestra desde backup en ~/secure/gpg/"""
+        try:
+            # Buscar archivo de clave maestra
+            secure_gpg_dir = Path.home() / "secure" / "gpg"
+            
+            # Buscar con ID corto primero
+            master_key_file = secure_gpg_dir / f"master-key-{key_id}.asc"
+            
+            # Si no existe, buscar con fingerprint completo
+            if not master_key_file.exists():
+                fingerprint = self.get_key_fingerprint(key_id)
+                if fingerprint:
+                    master_key_file = secure_gpg_dir / f"master-key-{fingerprint}.asc"
+            
+            if not master_key_file.exists():
+                self.log_error(f"❌ Archivo de clave maestra no encontrado")
+                self.log_info(f"   Buscado: master-key-{key_id}.asc")
+                if fingerprint:
+                    self.log_info(f"   Buscado: master-key-{fingerprint}.asc")
+                return False
+            
+            self.log_info(f"📁 Importando clave maestra desde: {master_key_file}")
+            
+            # Importar clave maestra
+            result = self.run_command(['gpg', '--import', str(master_key_file)])
+            
+            if result.returncode != 0:
+                self.log_error("❌ Error importando clave maestra")
+                self.log_error(result.stderr)
+                return False
+            
+            # Verificar que la clave maestra está ahora disponible
+            if self.verify_master_key_secret_available(key_id):
+                self.log_success("✅ Clave maestra importada exitosamente")
+                return True
+            else:
+                self.log_error("❌ Clave maestra importada pero no disponible")
+                return False
+                
+        except Exception as e:
+            self.log_error(f"Error importando clave maestra: {e}")
+            return False
+    
+    def remove_master_key_only(self, key_id: str) -> bool:
+        """Eliminar solo la clave maestra, preservando subclaves"""
+        try:
+            # Exportar subclaves antes de eliminar la clave maestra
+            subkeys_file = Path.home() / "secure" / "gpg" / f"temp-subkeys-{key_id}.asc"
+            
+            self.log_info("💾 Exportando subclaves temporalmente...")
+            result = self.run_command([
+                'gpg', '--export-secret-subkeys', key_id,
+                '--output', str(subkeys_file)
+            ])
+            
+            if result.returncode != 0:
+                self.log_error("❌ Error exportando subclaves")
+                return False
+            
+            # Eliminar toda la clave (maestra + subclaves)
+            self.log_info("🗑️  Eliminando clave completa...")
+            result = self.run_command(['gpg', '--delete-secret-keys', key_id])
+            
+            if result.returncode != 0:
+                self.log_error("❌ Error eliminando clave")
+                return False
+            
+            # Reimportar solo las subclaves
+            self.log_info("🔄 Reimportando subclaves...")
+            result = self.run_command(['gpg', '--import', str(subkeys_file)])
+            
+            if result.returncode != 0:
+                self.log_error("❌ Error reimportando subclaves")
+                return False
+            
+            # Limpiar archivo temporal
+            subkeys_file.unlink()
+            
+            # Verificar que solo las subclaves están disponibles
+            if not self.verify_master_key_secret_available(key_id):
+                self.log_success("✅ Clave maestra eliminada, subclaves preservadas")
+                return True
+            else:
+                self.log_error("❌ La clave maestra sigue disponible")
+                return False
+                
+        except Exception as e:
+            self.log_error(f"Error eliminando clave maestra: {e}")
+            return False
 
     def generate_emergency_revocation(self, key_id: str = None) -> bool:
         """Generar certificado de revocación de emergencia"""
@@ -1612,6 +1745,40 @@ scdaemon-program /usr/lib/gnupg/scdaemon
             master_key_id = self.verify_master_key_available(key_id)
             if not master_key_id:
                 return False
+            
+            # 2. Verificar si ya existe un certificado de revocación
+            secure_gpg_dir = Path.home() / "secure" / "gpg"
+            
+            # Buscar certificado con ID corto
+            existing_cert = secure_gpg_dir / f"revocation-cert-{master_key_id}.asc"
+            
+            # Si no existe, buscar con fingerprint completo
+            if not existing_cert.exists():
+                # Obtener fingerprint completo
+                fingerprint = self.get_key_fingerprint(master_key_id)
+                if fingerprint:
+                    existing_cert = secure_gpg_dir / f"revocation-cert-{fingerprint}.asc"
+            
+            if existing_cert.exists():
+                self.log_success(f"✅ Certificado de revocación ya existe: {existing_cert.name}")
+                self.log_info(f"📁 Ubicación: {existing_cert}")
+                self.log_info("💡 No es necesario generar uno nuevo")
+                return True
+            
+            # 3. Verificar que la clave maestra está realmente disponible (no solo subclaves)
+            if not self.verify_master_key_secret_available(master_key_id):
+                self.log_warning("⚠️  Clave maestra no disponible, intentando importar desde backup...")
+                
+                # Intentar importar clave maestra desde ~/secure/gpg/
+                if not self.import_master_key_from_backup(master_key_id):
+                    self.log_error("❌ No se pudo importar clave maestra desde backup")
+                    self.log_info("💡 Opciones disponibles:")
+                    self.log_info("   1. Verificar que existe master-key-{}.asc en ~/secure/gpg/".format(master_key_id))
+                    self.log_info("   2. Usar certificado de revocación existente")
+                    self.log_info("   3. Generar nuevas claves")
+                    return False
+                
+                self.log_success("✅ Clave maestra importada temporalmente")
             
             # 2. Solicitar contraseña de forma segura
             self.log_info("🔐 Solicitando contraseña de la clave maestra...")
@@ -1641,18 +1808,12 @@ scdaemon-program /usr/lib/gnupg/scdaemon
             # - Confirmación (y)
             input_data = "1\n\ny\n"
             
-            env = os.environ.copy()
-            env["GNUPG_PASSPHRASE"] = passphrase
-            
             result = self.run_command([
-                'gpg', '--batch', '--yes',
-                '--pinentry-mode', 'loopback',
+                'gpg', '--pinentry-mode', 'loopback',
                 '--passphrase', passphrase,
-                '--command-fd', '0',
-                '--status-fd', '2',
                 '--output', str(revocation_file),
                 '--gen-revoke', master_key_id
-            ], input_data=input_data, env=env)
+            ], input_data=input_data)
             
             # 4. Validar que el certificado se generó correctamente
             if result.returncode != 0:
@@ -1697,7 +1858,16 @@ scdaemon-program /usr/lib/gnupg/scdaemon
                 revocation_file.unlink()
                 return False
             
-            # 6. Operaciones exitosas
+            # 6. Si importamos la clave maestra temporalmente, eliminarla de nuevo
+            if not self.verify_master_key_secret_available(master_key_id):
+                # La clave maestra no estaba disponible originalmente, eliminarla de nuevo
+                self.log_info("🗑️  Eliminando clave maestra del keyring (manteniendo subclaves)...")
+                if self.remove_master_key_only(master_key_id):
+                    self.log_success("✅ Clave maestra eliminada, subclaves preservadas")
+                else:
+                    self.log_warning("⚠️  No se pudo eliminar la clave maestra")
+            
+            # 7. Operaciones exitosas
             self.log_success(f"✅ Certificado de revocación generado exitosamente")
             self.log_info(f"📁 Ubicación: {revocation_file}")
             self.log_info(f"📊 Tamaño: {file_size} bytes")
