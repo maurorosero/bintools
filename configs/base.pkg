@@ -49,6 +49,7 @@ ubuntu:apt:xxd:Herramienta para crear volcados hexadecimales
 ubuntu:apt:hexedit:Editor hexadecimal para archivos binarios
 ubuntu:apt:python3-rich:Librería para interfaces enriquecidas en terminal
 ubuntu:apt:python3-requests:Librería HTTP para Python
+ubuntu:apt:python3-yaml:Librería YAML para Python
 ubuntu:snap:expect:Herramienta para automatización de scripts interactivos
 
 debian:apt:curl:Herramienta para transferir datos desde servidores
@@ -98,6 +99,7 @@ debian:apt:xxd:Herramienta para crear volcados hexadecimales
 debian:apt:hexedit:Editor hexadecimal para archivos binarios
 debian:apt:python3-rich:Librería para interfaces enriquecidas en terminal
 debian:apt:python3-requests:Librería HTTP para Python
+debian:apt:python3-yaml:Librería YAML para Python
 debian:apt:expect:Herramienta para automatización de scripts interactivos
 
 # Fedora/CentOS
@@ -148,6 +150,7 @@ fedora:dnf:xxd:Herramienta para crear volcados hexadecimales
 fedora:dnf:hexedit:Editor hexadecimal para archivos binarios
 fedora:dnf:python3-rich:Librería para interfaces enriquecidas en terminal
 fedora:dnf:python3-requests:Librería HTTP para Python
+fedora:dnf:python3-PyYAML:Librería YAML para Python
 fedora:dnf:expect:Herramienta para automatización de scripts interactivos
 
 centos:yum:curl:Herramienta para transferir datos desde servidores
@@ -197,6 +200,7 @@ centos:yum:xxd:Herramienta para crear volcados hexadecimales
 centos:yum:hexedit:Editor hexadecimal para archivos binarios
 centos:yum:python3-rich:Librería para interfaces enriquecidas en terminal
 centos:yum:python3-requests:Librería HTTP para Python
+centos:yum:python3-PyYAML:Librería YAML para Python
 centos:yum:expect:Herramienta para automatización de scripts interactivos
 
 # Arch Linux
@@ -247,6 +251,7 @@ arch:pacman:xxd:Herramienta para crear volcados hexadecimales
 arch:pacman:hexedit:Editor hexadecimal para archivos binarios
 arch:pacman:python-rich:Librería para interfaces enriquecidas en terminal
 arch:pacman:python-requests:Librería HTTP para Python
+arch:pacman:python-yaml:Librería YAML para Python
 arch:pacman:expect:Herramienta para automatización de scripts interactivos
 
 # macOS
@@ -291,4 +296,5 @@ macos:brew:xxd:Herramienta para crear volcados hexadecimales
 macos:brew:hexedit:Editor hexadecimal para archivos binarios
 macos:brew:python-rich:Librería para interfaces enriquecidas en terminal
 macos:brew:python-requests:Librería HTTP para Python
+macos:brew:python-yaml:Librería YAML para Python
 macos:brew:expect:Herramienta para automatización de scripts interactivos

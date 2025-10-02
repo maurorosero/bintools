@@ -1,3 +1,4 @@
 rich>=13.0.0
 questionary>=1.10.0
 requests>=2.25.0
+PyYAML>=6.0.0

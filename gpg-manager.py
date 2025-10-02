@@ -1838,6 +1838,119 @@ scdaemon-program /usr/lib/gnupg/scdaemon
             logger.exception("Error detallado:")
             return False
 
+    def check_sops_installed(self) -> bool:
+        """Verificar si SOPS está instalado"""
+        try:
+            result = self.run_command(["sops", "--version"])
+            return result.returncode == 0
+        except Exception:
+            return False
+
+    def get_gpg_key_fingerprint(self) -> Optional[str]:
+        """Obtener fingerprint de la primera clave GPG disponible"""
+        try:
+            result = self.run_command(['gpg', '--list-secret-keys', '--with-colons'])
+            
+            if result.returncode != 0:
+                return None
+            
+            for line in result.stdout.split('\n'):
+                if line.startswith('fpr:'):
+                    parts = line.split(':')
+                    if len(parts) > 9:
+                        return parts[9]  # El fingerprint está en la posición 9
+            
+            return None
+            
+        except Exception as e:
+            self.log_error(f"Error obteniendo fingerprint GPG: {e}")
+            return None
+
+    def configure_sops(self):
+        """Configurar archivo de configuración de SOPS"""
+        try:
+            # Verificar si SOPS está instalado
+            if not self.check_sops_installed():
+                self.log_error("SOPS no está instalado. Instálalo con: ./mozilla-sops.sh --install")
+                return False
+            
+            self.log_info("🔧 Configurando SOPS...")
+            
+            # Obtener fingerprint de clave GPG
+            gpg_fingerprint = self.get_gpg_key_fingerprint()
+            if not gpg_fingerprint:
+                self.log_error("No se encontró ninguna clave GPG. Genera una clave primero con: gpg-manager.py --gen-key")
+                return False
+            
+            self.log_success(f"✅ Clave GPG encontrada: {gpg_fingerprint}")
+            
+            # Crear directorio de configuración SOPS
+            sops_config_dir = Path.home() / ".config" / "sops"
+            sops_config_dir.mkdir(parents=True, exist_ok=True)
+            
+            sops_config_file = sops_config_dir / "sops.yaml"
+            
+            # Verificar si el archivo ya existe
+            if sops_config_file.exists():
+                self.log_warning(f"El archivo de configuración SOPS ya existe: {sops_config_file}")
+                
+                try:
+                    response = input("¿Desea sobrescribir la configuración existente? [y/N]: ")
+                    if response.lower() != 'y':
+                        self.log_info("Configuración cancelada")
+                        return False
+                except (EOFError, KeyboardInterrupt):
+                    self.log_info("Configuración cancelada")
+                    return False
+            
+            # Crear configuración SOPS con formato correcto
+            sops_config_content = f"""keys:
+- &gpg_key {gpg_fingerprint}
+creation_rules:
+- pgp: *gpg_key
+"""
+            
+            # Escribir archivo de configuración
+            with open(sops_config_file, 'w') as f:
+                f.write(sops_config_content)
+            
+            # Establecer permisos seguros
+            os.chmod(sops_config_file, 0o600)
+            
+            self.log_success(f"✅ Configuración SOPS creada: {sops_config_file}")
+            self.log_info(f"🔑 Clave GPG configurada: {gpg_fingerprint}")
+            
+            # Verificar configuración
+            self.log_info("🔍 Verificando configuración...")
+            result = self.run_command(["sops", "--version"])
+            if result.returncode == 0:
+                self.log_success("✅ SOPS configurado correctamente")
+                
+                print("\n" + "="*50)
+                print("🎉 CONFIGURACIÓN SOPS COMPLETADA")
+                print("="*50)
+                print(f"📁 Archivo: {sops_config_file}")
+                print(f"🔑 Clave GPG: {gpg_fingerprint}")
+                print()
+                print("💡 Ahora puedes usar SOPS para encriptar archivos:")
+                print("   sops --encrypt file.yml")
+                print("   sops file.yml  # Editar archivo encriptado")
+                print("   sops --decrypt file.yml  # Desencriptar")
+                print()
+                print("🔧 Compatible con:")
+                print("   - mail-config.py")
+                print("   - Otros scripts que usen SOPS")
+                print("="*50)
+                
+                return True
+            else:
+                self.log_error("❌ Error verificando configuración SOPS")
+                return False
+                
+        except Exception as e:
+            self.log_error(f"Error configurando SOPS: {e}")
+            return False
+
     def show_help(self):
         """Mostrar ayuda"""
         print("\n" + "="*50)
@@ -1852,6 +1965,7 @@ scdaemon-program /usr/lib/gnupg/scdaemon
         print("  gpg-manager.py --init                            Inicializar configuración GPG")
         print("  gpg-manager.py --gen-key                         Generar llave maestra y subclaves")
         print("  gpg-manager.py --git-config                      Configurar Git para GPG")
+        print("  gpg-manager.py --sops-config                     Configurar SOPS con clave GPG")
         print("  gpg-manager.py --publish                         Publicar llave pública en keyserver")
         print("  gpg-manager.py --confirm-publish                 Verificar publicación en keyservers")
         print("  gpg-manager.py --gen-revoke                      Generar certificado de revocación de emergencia")
@@ -1864,6 +1978,7 @@ scdaemon-program /usr/lib/gnupg/scdaemon
         print("Prerequisitos:")
         print("  - gpg: Herramienta GPG (siempre requerida)")
         print("  - git: Para --git-config")
+        print("  - sops: Para --sops-config (instalar con ./mozilla-sops.sh --install)")
         print("  - tar: Para --backup, --restore, --verify")
         print("  - sha256sum: Para --backup")
         print()
@@ -1872,6 +1987,7 @@ scdaemon-program /usr/lib/gnupg/scdaemon
         print("  gpg-manager.py --init")
         print("  gpg-manager.py --gen-key")
         print("  gpg-manager.py --git-config")
+        print("  gpg-manager.py --sops-config")
         print("  gpg-manager.py --publish")
         print("  gpg-manager.py --confirm-publish")
         print("  gpg-manager.py --confirm-publish --servers ubuntu")
@@ -1912,6 +2028,8 @@ Ejemplos:
                        help="Generar llave maestra y subclaves")
     parser.add_argument("--git-config", action="store_true",
                        help="Configurar Git para GPG")
+    parser.add_argument("--sops-config", action="store_true",
+                       help="Configurar SOPS con clave GPG")
     parser.add_argument("--publish", action="store_true",
                        help="Publicar llave pública en keyserver")
     parser.add_argument("--confirm-publish", action="store_true",
@@ -1948,6 +2066,8 @@ Ejemplos:
             gpg_manager.generate_master_key_and_subkeys()
         elif args.git_config:
             gpg_manager.configure_git_for_gpg()
+        elif args.sops_config:
+            gpg_manager.configure_sops()
         elif args.publish:
             gpg_manager.publish_key_to_keyserver(args.servers)
         elif args.confirm_publish:
