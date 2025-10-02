@@ -208,17 +208,31 @@ create_text_send() {
     local result
     local exit_code
     
-    # Ejecutar comando directamente sin eval
-    $cmd
+    # Ejecutar comando y capturar código de salida
+    # Permitir que el prompt de contraseña se muestre en stderr
+    result=$(eval "$cmd" 2>&1)
     exit_code=$?
     
-    # Mostrar información después del warning
-    log "INFO" "⚠️  El warning de encriptación es normal - Bitwarden está procesando el send"
-    log "INFO" "📋 Verificando resultado del comando..."
-    
-    # Evaluar el status después de la ejecución
+    # Verificar si el comando falló
     if [[ $exit_code -ne 0 ]]; then
-        log "ERROR" "Error al crear send con Bitwarden (código: $exit_code)"
+        log "ERROR" "Error al crear send con Bitwarden"
+        log "ERROR" "Código de salida: $exit_code"
+        log "ERROR" "Salida: $result"
+        
+        # Analizar errores específicos
+        if echo "$result" | grep -q "Master password is required"; then
+            log "ERROR" "Contraseña maestra requerida"
+            log "INFO" "Ejecuta: bw unlock"
+        elif echo "$result" | grep -q "Not authenticated"; then
+            log "ERROR" "No estás autenticado en Bitwarden"
+            log "INFO" "Ejecuta: bw login"
+        elif echo "$result" | grep -q "encryptString called with null value"; then
+            log "WARNING" "Advertencia de encriptación (puede ignorarse)"
+            # Continuar si solo es una advertencia
+        else
+            log "ERROR" "Error desconocido de Bitwarden"
+        fi
+        
         return 1
     fi
     
@@ -304,17 +318,31 @@ create_file_send() {
     local result
     local exit_code
     
-    # Ejecutar comando directamente sin eval
-    $cmd
+    # Ejecutar comando y capturar código de salida
+    # Permitir que el prompt de contraseña se muestre en stderr
+    result=$(eval "$cmd" 2>&1)
     exit_code=$?
     
-    # Mostrar información después del warning
-    log "INFO" "⚠️  El warning de encriptación es normal - Bitwarden está procesando el send"
-    log "INFO" "📋 Verificando resultado del comando..."
-    
-    # Evaluar el status después de la ejecución
+    # Verificar si el comando falló
     if [[ $exit_code -ne 0 ]]; then
-        log "ERROR" "Error al crear send con Bitwarden (código: $exit_code)"
+        log "ERROR" "Error al crear send con Bitwarden"
+        log "ERROR" "Código de salida: $exit_code"
+        log "ERROR" "Salida: $result"
+        
+        # Analizar errores específicos
+        if echo "$result" | grep -q "Master password is required"; then
+            log "ERROR" "Contraseña maestra requerida"
+            log "INFO" "Ejecuta: bw unlock"
+        elif echo "$result" | grep -q "Not authenticated"; then
+            log "ERROR" "No estás autenticado en Bitwarden"
+            log "INFO" "Ejecuta: bw login"
+        elif echo "$result" | grep -q "encryptString called with null value"; then
+            log "WARNING" "Advertencia de encriptación (puede ignorarse)"
+            # Continuar si solo es una advertencia
+        else
+            log "ERROR" "Error desconocido de Bitwarden"
+        fi
+        
         return 1
     fi
     
