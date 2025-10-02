@@ -198,7 +198,7 @@ create_text_send() {
     fi
     
     # Agregar el texto al final
-    cmd="$cmd \"$text\""
+    cmd="$cmd $text"
     
     log "INFO" "Creando send con texto..."
     log "INFO" "Comando: $cmd"
@@ -294,7 +294,7 @@ create_file_send() {
     fi
     
     # Agregar el archivo al final
-    cmd="$cmd \"$file\""
+    cmd="$cmd $file"
     
     log "INFO" "Creando send con archivo: $file"
     log "INFO" "Comando: $cmd"
