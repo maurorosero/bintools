@@ -165,10 +165,6 @@ check_bw_auth() {
         exit 1
     fi
     
-    if echo "$status" | grep -q '"status":"locked"'; then
-        log "INFO" "Bitwarden CLI está bloqueado, se desbloqueará automáticamente cuando sea necesario"
-    fi
-    
     log "INFO" "Bitwarden CLI está configurado correctamente"
     log "INFO" "Se te pedirá la contraseña maestra cuando sea necesario"
 }
