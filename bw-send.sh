@@ -25,6 +25,7 @@ NOTES=""
 FILES=()
 TEXT=""
 BW_SESSION=""
+EMAIL_RECIPIENTS=""
 
 # Función para mostrar ayuda
 show_help() {
@@ -41,7 +42,7 @@ OPCIONES:
     -n, --notes NOTES      Notas adicionales
     --console              Mostrar URL en consola (default)
     --telegram             Enviar por Telegram (no implementado)
-    --email                Enviar por email (no implementado)
+    --email EMAIL          Enviar por email a destinatario(s) (separados por comas)
     -h, --help             Mostrar esta ayuda y salir
     -v, --version          Mostrar versión y salir
 
@@ -60,6 +61,12 @@ EJEMPLOS:
 
     # Enviar archivo con máximo de accesos
     $SCRIPT_NAME config.json --max-access 5 --expiration 1d
+
+    # Enviar por email
+    $SCRIPT_NAME --text "Información confidencial" --email user@example.com
+
+    # Enviar archivo por email a múltiples destinatarios
+    $SCRIPT_NAME documento.pdf --email user1@example.com,user2@example.com
 
 NOTAS:
     - Si no se especifica --text, se asume que los argumentos son archivos
@@ -98,13 +105,49 @@ log() {
     esac
 }
 
-# Función para verificar si bw está instalado
-check_bw_installed() {
-    if ! command -v bw >/dev/null 2>&1; then
-        log "ERROR" "Bitwarden CLI (bw) no está instalado"
-        log "INFO" "Instálalo con: sudo snap install bw"
+# Función para verificar dependencias
+check_dependencies() {
+    local missing_deps=()
+    
+    # Verificar Python
+    if ! command -v python3 &> /dev/null; then
+        missing_deps+=("python3")
+    fi
+    
+    # Verificar SOPS
+    if ! command -v sops &> /dev/null; then
+        missing_deps+=("sops")
+    fi
+    
+    # Verificar Bitwarden CLI
+    if ! command -v bw &> /dev/null; then
+        missing_deps+=("bw")
+    fi
+    
+    # Mostrar dependencias faltantes con instrucciones específicas
+    if [[ ${#missing_deps[@]} -gt 0 ]]; then
+        log "ERROR" "Dependencias faltantes: ${missing_deps[*]}"
+        
+        for dep in "${missing_deps[@]}"; do
+            case $dep in
+                "python3")
+                    log "INFO" "Instala con: packages.sh --list base"
+                    ;;
+                "sops")
+                    log "INFO" "Instala SOPS con: mozilla-sops.sh --install"
+                    ;;
+                "bw")
+                    log "INFO" "Instala Bitwarden CLI con: packages.sh --list bwdn"
+                    ;;
+            esac
+        done
         exit 1
     fi
+}
+
+# Función para verificar si bw está instalado (mantener compatibilidad)
+check_bw_installed() {
+    check_dependencies
 }
 
 # Función para verificar y configurar la sesión
@@ -263,11 +306,220 @@ send_telegram() {
     process_send_result "$1"
 }
 
-# Función para enviar por email (no implementado)
+# Función para verificar configuración SMTP
+check_smtp_config() {
+    if [[ ! -f ~/secure/sops/mail/mail-config.yml ]]; then
+        log "ERROR" "Configuración SMTP no encontrada: ~/secure/sops/mail/mail-config.yml"
+        log "INFO" "Ejecuta: mail-config.py --interactive"
+        exit 1
+    fi
+}
+
+# Función para cargar configuración SMTP
+load_smtp_config() {
+    local config_file="$HOME/secure/sops/mail/mail-config.yml"
+    
+    # Desencriptar configuración con SOPS
+    local config
+    config=$(sops --decrypt "$config_file" 2>/dev/null)
+    
+    if [[ $? -ne 0 ]]; then
+        log "ERROR" "Error al desencriptar configuración SMTP"
+        log "INFO" "Verifica que SOPS esté configurado correctamente"
+        exit 1
+    fi
+    
+    # Extraer configuración SMTP usando Python
+    python3 -c "
+import yaml
+import sys
+import json
+
+try:
+    config = yaml.safe_load('''$config''')
+    smtp = config['smtp']
+    
+    result = {
+        'host': smtp['host'],
+        'port': smtp['port'],
+        'security': smtp['security'],
+        'username': smtp['username'],
+        'password': smtp['password'],
+        'from_name': smtp['from']['name'],
+        'from_email': smtp['from']['email']
+    }
+    
+    print(json.dumps(result))
+except Exception as e:
+    print(f'Error: {e}', file=sys.stderr)
+    sys.exit(1)
+"
+}
+
+# Función para enviar por email
 send_email() {
-    log "WARNING" "Envío por email no implementado aún"
-    log "INFO" "Mostrando URL en consola..."
-    process_send_result "$1"
+    local result="$1"
+    local recipients="$2"
+    
+    # Verificar configuración SMTP
+    check_smtp_config
+    
+    # Cargar configuración
+    local smtp_config
+    smtp_config=$(load_smtp_config)
+    
+    if [[ $? -ne 0 ]]; then
+        log "ERROR" "Error al cargar configuración SMTP"
+        exit 1
+    fi
+    
+    # Extraer URL del resultado
+    local url
+    url=$(echo "$result" | grep -o '"accessUrl":"[^"]*"' | sed 's/"accessUrl":"\([^"]*\)"/\1/')
+    
+    if [[ -z "$url" ]]; then
+        log "ERROR" "No se pudo extraer la URL del send"
+        return 1
+    fi
+    
+    # Crear directorio de logs si no existe
+    mkdir -p ~/.logs
+    
+    # Enviar email usando Python
+    python3 -c "
+import smtplib
+import json
+import sys
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from datetime import datetime
+import os
+
+try:
+    # Cargar configuración
+    smtp_config = json.loads('''$smtp_config''')
+    url = '''$url'''
+    recipients = '''$recipients'''.split(',')
+    
+    # Leer plantilla de email
+    template_file = os.path.expanduser('~/secure/mail/email.bw.template')
+    
+    if os.path.exists(template_file):
+        with open(template_file, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+    else:
+        # Plantilla por defecto (anti-spam)
+        html_content = '''
+<!DOCTYPE html>
+<html lang=\"es\">
+<head>
+    <meta charset=\"utf-8\">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <title>Archivo Compartido</title>
+    <style>
+        body { font-family: Arial, Helvetica, sans-serif; line-height: 1.6; color: #333333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff; }
+        .container { background: #ffffff; border: 1px solid #dddddd; border-radius: 8px; overflow: hidden; }
+        .header { background: #175ddc; color: #ffffff; padding: 25px 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 24px; font-weight: normal; }
+        .header p { margin: 8px 0 0 0; font-size: 14px; opacity: 0.9; }
+        .content { padding: 30px 25px; }
+        .greeting { font-size: 16px; margin-bottom: 15px; color: #333333; }
+        .description { font-size: 14px; margin-bottom: 25px; color: #666666; }
+        .button-container { text-align: center; margin: 25px 0; }
+        .button { display: inline-block; background: #175ddc; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: normal; font-size: 14px; }
+        .info-section { background: #f8f9fa; border: 1px solid #e9ecef; padding: 15px; border-radius: 4px; margin: 20px 0; }
+        .info-section h3 { margin: 0 0 10px 0; color: #495057; font-size: 14px; font-weight: normal; }
+        .info-section ul { margin: 0; padding-left: 20px; color: #495057; font-size: 13px; }
+        .info-section li { margin-bottom: 3px; }
+        .details { background: #e3f2fd; border: 1px solid #bbdefb; padding: 15px; border-radius: 4px; margin: 20px 0; }
+        .details h4 { margin: 0 0 8px 0; color: #1976d2; font-size: 13px; font-weight: normal; }
+        .details p { margin: 0; color: #1976d2; font-size: 13px; }
+        .footer { background: #f8f9fa; padding: 20px 25px; text-align: center; color: #6c757d; font-size: 12px; border-top: 1px solid #e9ecef; }
+        .footer p { margin: 0; }
+        .divider { height: 1px; background: #e9ecef; margin: 20px 0; }
+        .contact-info { font-size: 12px; color: #6c757d; margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <div class=\"container\">
+        <div class=\"header\">
+            <h1>Archivo Compartido</h1>
+            <p>Has recibido un archivo compartido de forma segura</p>
+        </div>
+        <div class=\"content\">
+            <div class=\"greeting\">Estimado/a destinatario,</div>
+            <div class=\"description\">Se ha compartido un archivo contigo de forma segura. Este archivo está protegido y solo tú puedes acceder a él mediante el enlace proporcionado.</div>
+            <div class=\"button-container\">
+                <a href=\"{{LINK}}\" class=\"button\">Acceder al Archivo</a>
+            </div>
+            <div class=\"info-section\">
+                <h3>Información importante sobre este archivo:</h3>
+                <ul>
+                    <li>Este enlace tiene una fecha de expiración automática</li>
+                    <li>No compartas este enlace con otras personas</li>
+                    <li>El archivo está protegido con encriptación</li>
+                    <li>Accede desde un dispositivo confiable</li>
+                </ul>
+            </div>
+            <div class=\"details\">
+                <h4>Detalles del envío</h4>
+                <p>Fecha de envío: {{DATE}} | Método: Bitwarden Send</p>
+            </div>
+            <div class=\"divider\"></div>
+            <div class=\"contact-info\">Si no esperabas recibir este archivo o tienes problemas para acceder, contacta al remitente para obtener asistencia.</div>
+        </div>
+        <div class=\"footer\">
+            <p>Este mensaje fue enviado de forma segura usando Bitwarden Send</p>
+        </div>
+    </div>
+</body>
+</html>
+        '''
+    
+    # Reemplazar variables en la plantilla
+    html_content = html_content.replace('{{LINK}}', url)
+    html_content = html_content.replace('{{DATE}}', datetime.now().strftime('%d/%m/%Y %H:%M'))
+    
+    # Crear mensaje
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = 'Archivo Compartido - ' + datetime.now().strftime('%d/%m/%Y')
+    msg['From'] = f\"{smtp_config['from_name']} <{smtp_config['from_email']}>\"
+    msg['To'] = ', '.join(recipients)
+    msg['Reply-To'] = smtp_config['from_email']
+    msg['X-Mailer'] = 'Bitwarden Send'
+    msg['X-Priority'] = '3'
+    
+    # Agregar contenido HTML
+    html_part = MIMEText(html_content, 'html', 'utf-8')
+    msg.attach(html_part)
+    
+    # Enviar email
+    if smtp_config['security'] == 'ssl':
+        server = smtplib.SMTP_SSL(smtp_config['host'], smtp_config['port'])
+    else:
+        server = smtplib.SMTP(smtp_config['host'], smtp_config['port'])
+        if smtp_config['security'] == 'tls':
+            server.starttls()
+    
+    server.login(smtp_config['username'], smtp_config['password'])
+    server.send_message(msg)
+    server.quit()
+    
+    print('SUCCESS')
+    
+except Exception as e:
+    print(f'ERROR: {e}', file=sys.stderr)
+    sys.exit(1)
+" 2>> ~/.logs/bw-send.log
+    
+    if [[ $? -eq 0 ]]; then
+        log "SUCCESS" "Email enviado exitosamente a: $recipients"
+        log "INFO" "Logs guardados en: ~/.logs/bw-send.log"
+    else
+        log "ERROR" "Error al enviar email"
+        log "INFO" "Revisa los logs en: ~/.logs/bw-send.log"
+        exit 1
+    fi
 }
 
 # Función principal
@@ -322,7 +574,8 @@ main() {
                 ;;
             --email)
                 SEND_METHOD="email"
-                shift
+                EMAIL_RECIPIENTS="$2"
+                shift 2
                 ;;
             -h|--help)
                 show_help
@@ -392,7 +645,11 @@ main() {
             send_telegram "$result"
             ;;
         "email")
-            send_email "$result"
+            if [[ -z "$EMAIL_RECIPIENTS" ]]; then
+                log "ERROR" "Debes especificar destinatarios con --email"
+                exit 1
+            fi
+            send_email "$result" "$EMAIL_RECIPIENTS"
             ;;
         *)
             log "ERROR" "Método de envío no válido: $SEND_METHOD"
