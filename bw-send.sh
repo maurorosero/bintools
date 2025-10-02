@@ -212,6 +212,10 @@ create_text_send() {
     eval "$cmd"
     exit_code=$?
     
+    # Mostrar información después del warning
+    log "INFO" "⚠️  El warning de encriptación es normal - Bitwarden está procesando el send"
+    log "INFO" "📋 Verificando resultado del comando..."
+    
     # Evaluar el status después de la ejecución
     if [[ $exit_code -ne 0 ]]; then
         log "ERROR" "Error al crear send con Bitwarden (código: $exit_code)"
@@ -303,6 +307,10 @@ create_file_send() {
     # Ejecutar comando directamente sin capturar nada
     eval "$cmd"
     exit_code=$?
+    
+    # Mostrar información después del warning
+    log "INFO" "⚠️  El warning de encriptación es normal - Bitwarden está procesando el send"
+    log "INFO" "📋 Verificando resultado del comando..."
     
     # Evaluar el status después de la ejecución
     if [[ $exit_code -ne 0 ]]; then
