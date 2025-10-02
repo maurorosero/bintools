@@ -210,8 +210,7 @@ create_text_send() {
     
     # Ejecutar comando y capturar código de salida
     # Permitir que el prompt de contraseña se muestre en stderr
-    # Filtrar warnings de encriptación que no podemos controlar
-    result=$(eval "$cmd" 2> >(grep -v "encryptString called with null value" | tee /dev/stderr))
+    result=$(eval "$cmd" 2> >(tee /dev/stderr))
     exit_code=$?
     
     # Verificar si el comando falló
@@ -294,8 +293,7 @@ create_file_send() {
     
     # Ejecutar comando y capturar código de salida
     # Permitir que el prompt de contraseña se muestre en stderr
-    # Filtrar warnings de encriptación que no podemos controlar
-    result=$(eval "$cmd" 2> >(grep -v "encryptString called with null value" | tee /dev/stderr))
+    result=$(eval "$cmd" 2> >(tee /dev/stderr))
     exit_code=$?
     
     # Verificar si el comando falló
