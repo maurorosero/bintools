@@ -208,15 +208,19 @@ create_text_send() {
     local result
     local exit_code
     
-    # Ejecutar comando y capturar código de salida
-    # Usar expect para manejar entrada interactiva
-    result=$(expect -c "
-        spawn $cmd
-        expect \"Master password:\"
-        send \"gandalf\$ADM640902MR\$\r\"
-        expect eof
-    " 2>/dev/null | tail -n +2)
+    # Ejecutar comando directamente sin capturar nada
+    eval "$cmd"
     exit_code=$?
+    
+    # Evaluar el status después de la ejecución
+    if [[ $exit_code -ne 0 ]]; then
+        log "ERROR" "Error al crear send con Bitwarden (código: $exit_code)"
+        return 1
+    fi
+    
+    # Si llegamos aquí, el comando fue exitoso
+    log "SUCCESS" "Send creado exitosamente"
+    return 0
     
     # Verificar si el comando falló
     if [[ $exit_code -ne 0 ]]; then
@@ -296,15 +300,19 @@ create_file_send() {
     local result
     local exit_code
     
-    # Ejecutar comando y capturar código de salida
-    # Usar expect para manejar entrada interactiva
-    result=$(expect -c "
-        spawn $cmd
-        expect \"Master password:\"
-        send \"gandalf\$ADM640902MR\$\r\"
-        expect eof
-    " 2>/dev/null | tail -n +2)
+    # Ejecutar comando directamente sin capturar nada
+    eval "$cmd"
     exit_code=$?
+    
+    # Evaluar el status después de la ejecución
+    if [[ $exit_code -ne 0 ]]; then
+        log "ERROR" "Error al crear send con Bitwarden (código: $exit_code)"
+        return 1
+    fi
+    
+    # Si llegamos aquí, el comando fue exitoso
+    log "SUCCESS" "Send creado exitosamente"
+    return 0
     
     # Verificar si el comando falló
     if [[ $exit_code -ne 0 ]]; then
