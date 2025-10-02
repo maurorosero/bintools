@@ -187,87 +187,22 @@ create_text_send() {
     fi
     cmd="$cmd -a $MAX_ACCESS_COUNT"
     
-    # Solo agregar --password si tiene valor válido (no vacío, no null)
-    if [[ -n "${PASSWORD:-}" && "$PASSWORD" != "null" && "$PASSWORD" != "" ]]; then
+    if [[ -n "$PASSWORD" ]]; then
         cmd="$cmd --password \"$PASSWORD\""
     fi
     
-    # Solo agregar --notes si tiene valor válido (no vacío, no null)
-    if [[ -n "${NOTES:-}" && "$NOTES" != "null" && "$NOTES" != "" ]]; then
+    if [[ -n "$NOTES" ]]; then
         cmd="$cmd --notes \"$NOTES\""
     fi
     
     # Agregar el texto al final
-    cmd="$cmd $text"
+    cmd="$cmd \"$text\""
     
     log "INFO" "Creando send con texto..."
     log "INFO" "Comando: $cmd"
     
-    # No limpiar variables aquí para evitar interferir con el comando
-    
     local result
-    local exit_code
-    
-    # Ejecutar comando y capturar código de salida
-    # Permitir que el prompt de contraseña se muestre en stderr
-    result=$(eval "$cmd" 2>&1)
-    exit_code=$?
-    
-    # Verificar si el comando falló
-    if [[ $exit_code -ne 0 ]]; then
-        log "ERROR" "Error al crear send con Bitwarden"
-        log "ERROR" "Código de salida: $exit_code"
-        log "ERROR" "Salida: $result"
-        
-        # Analizar errores específicos
-        if echo "$result" | grep -q "Master password is required"; then
-            log "ERROR" "Contraseña maestra requerida"
-            log "INFO" "Ejecuta: bw unlock"
-        elif echo "$result" | grep -q "Not authenticated"; then
-            log "ERROR" "No estás autenticado en Bitwarden"
-            log "INFO" "Ejecuta: bw login"
-        elif echo "$result" | grep -q "encryptString called with null value"; then
-            log "WARNING" "Advertencia de encriptación (puede ignorarse)"
-            # Continuar si solo es una advertencia
-        else
-            log "ERROR" "Error desconocido de Bitwarden"
-        fi
-        
-        return 1
-    fi
-    
-    # Si llegamos aquí, el comando fue exitoso
-    log "SUCCESS" "Send creado exitosamente"
-    return 0
-    
-    # Verificar si el comando falló
-    if [[ $exit_code -ne 0 ]]; then
-        log "ERROR" "Error al crear send con Bitwarden"
-        log "ERROR" "Código de salida: $exit_code"
-        log "ERROR" "Salida: $result"
-        
-        # Analizar errores específicos
-        if echo "$result" | grep -q "Master password is required"; then
-            log "ERROR" "Contraseña maestra requerida"
-            log "INFO" "Ejecuta: bw unlock"
-        elif echo "$result" | grep -q "Not authenticated"; then
-            log "ERROR" "No estás autenticado en Bitwarden"
-            log "INFO" "Ejecuta: bw login"
-        elif echo "$result" | grep -q "encryptString called with null value"; then
-            log "WARNING" "Advertencia de encriptación (puede ignorarse)"
-            # Continuar si solo es una advertencia
-        else
-            log "ERROR" "Error desconocido de Bitwarden"
-            return 1
-        fi
-    fi
-    
-    # Verificar si el resultado contiene JSON válido
-    if ! echo "$result" | grep -q '"accessUrl"'; then
-        log "ERROR" "No se pudo crear el send correctamente"
-        log "ERROR" "Resultado: $result"
-        return 1
-    fi
+    result=$(eval "$cmd")
     
     log "DEBUG" "Resultado del comando: $result"
     echo "$result"
@@ -297,87 +232,22 @@ create_file_send() {
     fi
     cmd="$cmd -a $MAX_ACCESS_COUNT"
     
-    # Solo agregar --password si tiene valor válido (no vacío, no null)
-    if [[ -n "${PASSWORD:-}" && "$PASSWORD" != "null" && "$PASSWORD" != "" ]]; then
+    if [[ -n "$PASSWORD" ]]; then
         cmd="$cmd --password \"$PASSWORD\""
     fi
     
-    # Solo agregar --notes si tiene valor válido (no vacío, no null)
-    if [[ -n "${NOTES:-}" && "$NOTES" != "null" && "$NOTES" != "" ]]; then
+    if [[ -n "$NOTES" ]]; then
         cmd="$cmd --notes \"$NOTES\""
     fi
     
     # Agregar el archivo al final
-    cmd="$cmd $file"
+    cmd="$cmd \"$file\""
     
     log "INFO" "Creando send con archivo: $file"
     log "INFO" "Comando: $cmd"
     
-    # No limpiar variables aquí para evitar interferir con el comando
-    
     local result
-    local exit_code
-    
-    # Ejecutar comando y capturar código de salida
-    # Permitir que el prompt de contraseña se muestre en stderr
-    result=$(eval "$cmd" 2>&1)
-    exit_code=$?
-    
-    # Verificar si el comando falló
-    if [[ $exit_code -ne 0 ]]; then
-        log "ERROR" "Error al crear send con Bitwarden"
-        log "ERROR" "Código de salida: $exit_code"
-        log "ERROR" "Salida: $result"
-        
-        # Analizar errores específicos
-        if echo "$result" | grep -q "Master password is required"; then
-            log "ERROR" "Contraseña maestra requerida"
-            log "INFO" "Ejecuta: bw unlock"
-        elif echo "$result" | grep -q "Not authenticated"; then
-            log "ERROR" "No estás autenticado en Bitwarden"
-            log "INFO" "Ejecuta: bw login"
-        elif echo "$result" | grep -q "encryptString called with null value"; then
-            log "WARNING" "Advertencia de encriptación (puede ignorarse)"
-            # Continuar si solo es una advertencia
-        else
-            log "ERROR" "Error desconocido de Bitwarden"
-        fi
-        
-        return 1
-    fi
-    
-    # Si llegamos aquí, el comando fue exitoso
-    log "SUCCESS" "Send creado exitosamente"
-    return 0
-    
-    # Verificar si el comando falló
-    if [[ $exit_code -ne 0 ]]; then
-        log "ERROR" "Error al crear send con Bitwarden"
-        log "ERROR" "Código de salida: $exit_code"
-        log "ERROR" "Salida: $result"
-        
-        # Analizar errores específicos
-        if echo "$result" | grep -q "Master password is required"; then
-            log "ERROR" "Contraseña maestra requerida"
-            log "INFO" "Ejecuta: bw unlock"
-        elif echo "$result" | grep -q "Not authenticated"; then
-            log "ERROR" "No estás autenticado en Bitwarden"
-            log "INFO" "Ejecuta: bw login"
-        elif echo "$result" | grep -q "encryptString called with null value"; then
-            log "WARNING" "Advertencia de encriptación (puede ignorarse)"
-            # Continuar si solo es una advertencia
-        else
-            log "ERROR" "Error desconocido de Bitwarden"
-            return 1
-        fi
-    fi
-    
-    # Verificar si el resultado contiene JSON válido
-    if ! echo "$result" | grep -q '"accessUrl"'; then
-        log "ERROR" "No se pudo crear el send correctamente"
-        log "ERROR" "Resultado: $result"
-        return 1
-    fi
+    result=$(eval "$cmd")
     
     echo "$result"
 }
@@ -766,19 +636,11 @@ main() {
     if [[ -n "$TEXT" ]]; then
         # Enviar texto
         result=$(create_text_send "$TEXT")
-        if [[ $? -ne 0 ]]; then
-            log "ERROR" "Error al crear send de texto"
-            exit 1
-        fi
     else
         # Enviar archivo(s)
         if [[ ${#FILES[@]} -eq 1 ]]; then
             # Un solo archivo
             result=$(create_file_send "${FILES[0]}")
-            if [[ $? -ne 0 ]]; then
-                log "ERROR" "Error al crear send de archivo"
-                exit 1
-            fi
         else
             # Múltiples archivos - crear send para cada uno
             log "INFO" "Creando sends para ${#FILES[@]} archivo(s)..."
@@ -786,10 +648,6 @@ main() {
                 echo
                 log "INFO" "Procesando: $file"
                 result=$(create_file_send "$file")
-                if [[ $? -ne 0 ]]; then
-                    log "ERROR" "Error al crear send para archivo: $file"
-                    continue
-                fi
                 send_console "$result"
             done
             exit 0
@@ -810,10 +668,6 @@ main() {
                 exit 1
             fi
             send_email "$result" "$EMAIL_RECIPIENTS"
-            if [[ $? -ne 0 ]]; then
-                log "ERROR" "Error al enviar email"
-                exit 1
-            fi
             ;;
         *)
             log "ERROR" "Método de envío no válido: $SEND_METHOD"
