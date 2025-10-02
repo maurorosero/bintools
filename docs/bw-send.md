@@ -29,6 +29,10 @@
 
 # O instalar manualmente
 sudo snap install bw
+
+# Para envío por email, instalar dependencias
+./packages.sh --list base  # Python3 y PyYAML
+./mozilla-sops.sh --install  # SOPS para configuración encriptada
 ```
 
 ### Configuración Inicial
@@ -100,8 +104,8 @@ chmod +x bw-send.sh
 |--------|-------------|---------|
 | `--notes` | Notas descriptivas | `--notes "Para proyecto X"` |
 | `--console` | Salida por consola (por defecto) | `--console` |
-| `--quiet` | Modo silencioso | `--quiet` |
-| `--verbose` | Modo detallado | `--verbose` |
+| `--email` | Enviar por email | `--email usuario@ejemplo.com` |
+| `--telegram` | Enviar por Telegram | `--telegram @usuario` |
 
 ## Canales de Envío
 
@@ -144,26 +148,29 @@ echo 'TELEGRAM_CHAT_ID="tu-chat-id"' >> ~/.bw-send.conf
 ./bw-send.sh --text "Información confidencial" --email usuario@ejemplo.com
 
 # Con archivo adjunto
-./bw-send.sh --file documento.pdf --email usuario@ejemplo.com --subject "Documento importante"
+./bw-send.sh --file documento.pdf --email usuario@ejemplo.com
+
+# Múltiples destinatarios
+./bw-send.sh --text "Información confidencial" --email usuario1@ejemplo.com,usuario2@ejemplo.com
 ```
 
 **Configuración de Email:**
 
-```bash
-# Configurar SMTP
-export EMAIL_SMTP_SERVER="smtp.gmail.com"
-export EMAIL_SMTP_PORT="587"
-export EMAIL_USERNAME="tu-email@gmail.com"
-export EMAIL_PASSWORD="tu-contraseña-app"
+El envío por email requiere configuración SMTP usando `mail-config.py`:
 
-# O usar archivo de configuración
-cat > ~/.bw-send.conf << EOF
-EMAIL_SMTP_SERVER="smtp.gmail.com"
-EMAIL_SMTP_PORT="587"
-EMAIL_USERNAME="tu-email@gmail.com"
-EMAIL_PASSWORD="tu-contraseña-app"
-EOF
+```bash
+# Configurar SMTP con mail-config.py
+./mail-config.py --interactive
+
+# O configuración automática
+./mail-config.py --provider gmail --username tu-email@gmail.com
 ```
+
+**Requisitos para Email:**
+
+- `mail-config.py` configurado con SMTP
+- Archivo de configuración en `~/secure/sops/mail/mail-config.yml`
+- Plantilla de email en `~/secure/mail/email.bw.template` (opcional)
 
 ### 4. WhatsApp (En Desarrollo)
 
@@ -471,6 +478,8 @@ Para contribuir al desarrollo de `bw-send.sh`:
 - `bw-ghpersonal.sh` - Obtención automática de tokens GitHub
 - `git-tokens.py` - Gestión de tokens Git
 - `packages.sh --list bwdn` - Instalación de Bitwarden
+- `mail-config.py` - Configuración SMTP para envío por email
+- `bw-mailer.py` - Script auxiliar para envío de emails
 
 ### Comunidad
 

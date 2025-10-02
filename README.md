@@ -34,7 +34,7 @@ bintools es un conjunto de scripts que automatizan tareas comunes del sistema op
 - **`hexroute`**: Convierte rutas de red a formato hexadecimal para configuración DHCP
 - **`git-tokens.py`**: Gestor seguro de tokens de autenticación para servicios Git
 - **`gpg-manager.py`**: Gestor completo de claves GPG con estrategia offline y configuración automática
-- **`bw-send.sh`**: Envío seguro extendido con múltiples canales de distribución
+- **`bw-send.sh`**: Envío seguro extendido con múltiples canales de distribución (consola, email)
 - **`bw-ghpersonal.sh`**: Gestión completa de tokens GitHub con Bitwarden y autenticación CLI
 - **`odevs-install.sh`**: Instalador automático de odoodevs con múltiples opciones
 - **`micursor.py`**: Gestor de Cursor IDE con configuración automática
