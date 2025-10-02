@@ -43,11 +43,13 @@ bintools es un conjunto de scripts que automatizan tareas comunes del sistema op
 - **`bintools-manager.sh`**: Gestor principal de bintools
 - **`btfixperms.sh`**: Gestor de permisos para desarrollo
 - **`mozilla-sops.sh`**: Instalador multiplataforma de Mozilla SOPS para gestión segura de secretos
+- **`mail-config.py`**: Configurador SMTP interactivo con encriptación SOPS para múltiples proveedores
 
 ### 📚 Documentación
 
 - **`docs/secrets.md`**: Guía completa de gestión segura de secretos
 - **`docs/sops.md`**: Guía completa de gestión de secretos con Mozilla SOPS
+- **`docs/mail-config.md`**: Guía completa del configurador SMTP con SOPS
 - **`docs/gpg-manager.md`**: Guía completa de gestión de claves GPG con estrategia offline
 - **`docs/bw.md`**: Documentación completa de Bitwarden CLI
 - **`docs/bw-send.md`**: Guía completa de bw-send.sh (envío seguro extendido)
@@ -431,6 +433,97 @@ sops --encrypt --in-place secrets.yaml
 - ✅ **Arquitecturas soportadas** (x86_64, ARM64, ARM)
 
 Para información completa sobre configuración, uso y mejores prácticas, consulta la [documentación completa de SOPS](docs/sops.md).
+
+### 📧 Configurador SMTP (`mail-config.py`)
+
+Configurador interactivo de SMTP con encriptación SOPS para múltiples proveedores de correo electrónico.
+
+**Pre-requisitos:**
+
+- Python 3.6+ instalado en el sistema
+- SOPS instalado y configurado (`mozilla-sops.sh`)
+- Claves GPG configuradas (`gpg-manager.py --sops-config`)
+- Herramientas base del sistema (`packages.sh --list base`)
+
+**¿Qué proveedores soporta?**
+
+- **Gmail**: Configuración automática para Google Gmail
+- **Outlook**: Configuración para Microsoft Outlook/Hotmail
+- **Yahoo**: Configuración para Yahoo Mail
+- **Office 365**: Configuración para Microsoft Office 365
+- **Personalizado**: Configuración para cualquier servidor SMTP
+
+**¿Qué hace?**
+
+- 🔐 **Encriptación segura**: Credenciales encriptadas con SOPS + GPG
+- 🎯 **Configuración interactiva**: Guía paso a paso para configurar SMTP
+- ✅ **Prueba de conexión**: Verificación automática de configuración SMTP
+- 📤 **Múltiples formatos**: Genera salidas en JSON, YAML, ENV, Terraform
+- 🔧 **Compatibilidad universal**: Compatible con Ansible, Kubernetes, Docker, Terraform
+- 🛡️ **Manejo de errores**: Diagnósticos específicos y soluciones automáticas
+
+**Funcionalidades principales:**
+
+```bash
+# Configuración interactiva
+mail-config.py --interactive
+
+# Configuración automática
+mail-config.py --provider gmail --username user@gmail.com --password pass
+
+# Probar configuración existente
+mail-config.py --test
+
+# Probar con destinatario específico
+mail-config.py --test --test-recipient test@example.com
+
+# Generar salida en diferentes formatos
+mail-config.py --output-format json --output-file config.json
+mail-config.py --output-format terraform --terraform-provider aws --output-dir ./terraform
+
+# Mostrar configuración actual
+mail-config.py --show-config
+
+# Listar proveedores disponibles
+mail-config.py --list-providers
+```
+
+**Estructura de configuración generada:**
+
+```yaml
+# ~/secure/sops/mail/mail-config.yml
+---
+smtp:
+  host: "smtp.gmail.com"
+  port: 587
+  security: "tls"
+  username: "user@gmail.com"
+  password: ENC[AES256_GCM,data:...,type:str]  # Encriptado con SOPS
+  from:
+    name: "Tu Nombre"
+    email: "user@gmail.com"
+  timeout: 30
+  retries: 3
+
+metadata:
+  created_at: "2025-01-20T10:30:00Z"
+  updated_at: "2025-01-20T10:30:00Z"
+  version: "1.0.0"
+  tool: "mail-config.py"
+```
+
+**Formatos de salida soportados:**
+
+- **JSON**: Para integración con APIs y aplicaciones web
+- **YAML**: Para configuración de Kubernetes y Ansible
+- **ENV**: Para variables de entorno en Docker y scripts
+- **Terraform**: Para infraestructura como código (AWS, Azure, GCP, Kubernetes)
+
+**Logs y organización:**
+
+- **Logs**: `~/.logs/sops/mail-config.log`
+- **Configuración**: `~/secure/sops/mail/mail-config.yml`
+- **Backups**: `~/secure/sops/mail/backups/`
 
 ### 🌐 Acceso Remoto Seguro
 
