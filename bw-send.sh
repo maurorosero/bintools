@@ -7,8 +7,6 @@
 
 set -euo pipefail
 
-echo "DEBUG: Script iniciado"
-
 # Colores para output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -202,7 +200,6 @@ create_text_send() {
     cmd="$cmd \"$text\""
     
     log "INFO" "Creando send con texto..."
-    log "INFO" "Comando: $cmd"
     
     # Ejecutar comando: stderr va a la terminal (para el prompt), stdout se captura
     local result
@@ -256,7 +253,6 @@ create_file_send() {
     cmd="$cmd \"$file\""
     
     log "INFO" "Creando send con archivo: $file"
-    log "INFO" "Comando: $cmd"
     
     # Ejecutar comando: stderr va a la terminal, stdout se captura
     local result
@@ -356,22 +352,18 @@ load_smtp_config() {
 import yaml
 import sys
 import json
+from datetime import datetime
+
+# El conversor de JSON no sabe cómo manejar objetos 'datetime' por defecto.
+# Esta función le enseña a convertirlos a un string en formato ISO.
+def date_converter(o):
+    if isinstance(o, datetime):
+        return o.isoformat()
 
 try:
     config = yaml.safe_load('''$config''')
-    smtp = config['smtp']
-    
-    result = {
-        'host': smtp['host'],
-        'port': smtp['port'],
-        'security': smtp['security'],
-        'username': smtp['username'],
-        'password': smtp['password'],
-        'from_name': smtp['from']['name'],
-        'from_email': smtp['from']['email']
-    }
-    
-    print(json.dumps(result))
+    # Usamos el 'default=date_converter' para manejar las fechas.
+    print(json.dumps(config, default=date_converter))
 except Exception as e:
     print(f'Error: {e}', file=sys.stderr)
     sys.exit(1)
@@ -385,9 +377,9 @@ send_email() {
 
     # Extraer URL y fecha de expiración del resultado JSON
     local url
-    url=$(echo "$result_json" | grep -o '"accessUrl":"[^"]*"' | sed 's/"accessUrl":"\([^"]*\)"/\1/')
+    url=$(echo "$result_json" | grep -o '"accessUrl":"[^"]*"' | sed 's/"accessUrl":"\([^"]*\)"/\1/' || true)
     local expiration_date
-    expiration_date=$(echo "$result_json" | grep -o '"expirationDate":"[^"]*"' | sed 's/"expirationDate":"\([^"]*\)"/\1/')
+    expiration_date=$(echo "$result_json" | grep -o '"expirationDate":"[^"]*"' | sed 's/"expirationDate":"\([^"]*\)"/\1/' || true)
 
     if [[ -z "$url" ]]; then
         log "ERROR" "No se pudo extraer la URL del send para el email"
@@ -408,12 +400,20 @@ send_email() {
         return 1
     fi
 
+    log "DEBUG" "--- INICIO DEBUG EMAIL ---"
+    log "DEBUG" "Configuración SMTP (JSON):"
+    log "DEBUG" "$smtp_config"
+    log "DEBUG" "URL: $url"
+    log "DEBUG" "Destinatarios: $recipients"
+    log "DEBUG" "Texto de expiración: $expiration_text"
+    log "DEBUG" "--- FIN DEBUG EMAIL ---"
+
     # Llamar al script de Python para enviar el email
     log "INFO" "Delegando envío de email al script 'bw-mailer.py'..."
     if ./bw-mailer.py --config "$smtp_config" --url "$url" --recipients "$recipients" --expires "$expiration_text"; then
-        log "SUCCESS" "El script de envío de email terminó exitosamente."
+        log "SUCCESS" "Email enviado exitosamente."
     else
-        log "ERROR" "El script 'bw-mailer.py' falló. Revisa los mensajes de error de arriba."
+        log "ERROR" "El script 'bw-mailer.py' falló. Revisa los logs para más detalles."
         return 1
     fi
 }
@@ -421,7 +421,6 @@ send_email() {
 
 # Función principal
 main() {
-    log "DEBUG" "Iniciando función main..."
     # Parsear argumentos primero para verificar si es --help o --version
     local temp_args=("$@")
     for arg in "${temp_args[@]}"; do
@@ -437,7 +436,7 @@ main() {
     done
     
     # Verificar dependencias solo si no es ayuda/versión
-    check_bw_installed
+    check_dependencies
     
     # Parsear argumentos
     while [[ $# -gt 0 ]]; do
@@ -495,13 +494,6 @@ main() {
         esac
     done
     
-    # Debug: mostrar variables después del parseo
-    log "DEBUG" "Después del parseo:"
-    log "DEBUG" "TEXT: '$TEXT'"
-    log "DEBUG" "FILES: ${FILES[@]}"
-    log "DEBUG" "SEND_METHOD: '$SEND_METHOD'"
-    log "DEBUG" "EMAIL_RECIPIENTS: '$EMAIL_RECIPIENTS'"
-    
     # Establecer expiración por defecto si no se especificó
     if [[ -z "$EXPIRATION" ]]; then
         EXPIRATION="$DEFAULT_EXPIRATION"
@@ -516,11 +508,6 @@ main() {
         show_help
         exit 1
     fi
-    
-    # Debug: mostrar variables
-    log "DEBUG" "TEXT: '$TEXT'"
-    log "DEBUG" "FILES: ${FILES[@]}"
-    log "DEBUG" "Cantidad de archivos: ${#FILES[@]}"
     
     # Crear send
     if [[ -n "$TEXT" ]]; then
@@ -549,7 +536,7 @@ main() {
 
     # Extraer URL del resultado capturado
     local url
-    url=$(echo "$BW_SEND_RESULT" | grep -o '"accessUrl":"[^"]*"' | sed 's/"accessUrl":"\([^"]*\)"/\1/')
+    url=$(echo "$BW_SEND_RESULT" | grep -o '"accessUrl":"[^"]*"' | sed 's/"accessUrl":"\([^"]*\)"/\1/' || true)
 
     if [[ -z "$url" ]]; then
         log "ERROR" "No se pudo extraer la URL del send. Mostrando resultado completo:"
@@ -558,14 +545,6 @@ main() {
     fi
 
     log "SUCCESS" "Send creado exitosamente"
-    log "INFO" "URL: $url"
-
-    # Limpiar logs de depuración
-    # --- INICIO DEBUG ---
-    # log "INFO" "[DEBUG] Verificando método de envío..."
-    # log "INFO" "[DEBUG] Valor de SEND_METHOD: '$SEND_METHOD'"
-    # log "INFO" "[DEBUG] Valor de EMAIL_RECIPIENTS: '$EMAIL_RECIPIENTS'"
-    # --- FIN DEBUG ---
 
     # Enviar según el método especificado
     if [[ "$SEND_METHOD" == "email" ]]; then
@@ -575,8 +554,8 @@ main() {
         fi
         send_email "$BW_SEND_RESULT" "$EMAIL_RECIPIENTS"
     else
-        # Para el método 'console', la URL ya se mostró arriba
-        :
+        # Para el método 'console', mostrar la URL
+        log "INFO" "URL: $url"
     fi
 }
 

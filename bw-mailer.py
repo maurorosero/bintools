@@ -43,9 +43,8 @@ def send_email(smtp_config_str, url, recipients_str, expiration_text):
     <style>
         body { font-family: Arial, Helvetica, sans-serif; line-height: 1.6; color: #333333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f4f4; }
         .container { background: #ffffff; border: 1px solid #dddddd; border-radius: 8px; overflow: hidden; }
-        .header { background: #007bff; color: #ffffff; padding: 20px; text-align: center; }
-        .content { padding: 30px 25px; }
-        .button { display: inline-block; background: #007bff; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 4px; }
+        .header { background: #28a745; color: #ffffff; padding: 20px; text-align: center; }
+        .content { padding: 30px 25px; text-align: center; }
         .footer { padding: 20px 25px; text-align: center; color: #6c757d; font-size: 12px; }
     </style>
 </head>
@@ -54,7 +53,9 @@ def send_email(smtp_config_str, url, recipients_str, expiration_text):
         <div class="header"><h1>Archivo Compartido</h1></div>
         <div class="content">
             <p>Se ha compartido un archivo contigo de forma segura.</p>
-            <p><a href="{{LINK}}" class="button">Acceder al Archivo</a></p>
+            <p style="margin: 30px 0;">
+                <a href="{{LINK}}" style="display: inline-block; background-color: #28a745; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Acceder al Archivo</a>
+            </p>
             <p><strong>{{EXPIRES}}</strong></p>
             <p><small>Si no esperabas este archivo, por favor ignora este mensaje.</small></p>
         </div>
@@ -100,7 +101,6 @@ def send_email(smtp_config_str, url, recipients_str, expiration_text):
         server.send_message(msg)
         server.quit()
 
-        print("SUCCESS: Email enviado exitosamente.")
         return 0
 
     except Exception as e:
