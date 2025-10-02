@@ -396,8 +396,9 @@ send_email() {
     # Crear directorio de logs si no existe
     mkdir -p ~/.logs
     
-    # Enviar email usando Python
-    python3 -c "
+    # Crear archivo temporal para el script Python
+    local python_script=$(mktemp)
+    cat > "$python_script" << 'EOF'
 import smtplib
 import json
 import sys
@@ -408,10 +409,10 @@ import os
 
 try:
     # Cargar configuración
-    smtp_config = json.loads('''$smtp_config''')
-    url = '''$url'''
-    recipients = '''$recipients'''.split(',')
-    expiration_text = '''$expiration_text'''
+    smtp_config = json.loads(sys.argv[1])
+    url = sys.argv[2]
+    recipients = sys.argv[3].split(',')
+    expiration_text = sys.argv[4]
     
     # Leer plantilla de email
     template_file = os.path.expanduser('~/secure/mail/email.bw.template')
@@ -421,12 +422,11 @@ try:
             html_content = f.read()
     else:
         # Plantilla por defecto (anti-spam)
-        html_content = '''
-<!DOCTYPE html>
-<html lang=\"es\">
+        html_content = '''<!DOCTYPE html>
+<html lang="es">
 <head>
-    <meta charset=\"utf-8\">
-    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Archivo Compartido</title>
     <style>
         body { font-family: Arial, Helvetica, sans-serif; line-height: 1.6; color: #333333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff; }
@@ -453,18 +453,18 @@ try:
     </style>
 </head>
 <body>
-    <div class=\"container\">
-        <div class=\"header\">
+    <div class="container">
+        <div class="header">
             <h1>Archivo Compartido</h1>
             <p>Has recibido un archivo compartido de forma segura</p>
         </div>
-        <div class=\"content\">
-            <div class=\"greeting\">Estimado/a destinatario,</div>
-            <div class=\"description\">Se ha compartido un archivo contigo de forma segura. Este archivo está protegido y solo tú puedes acceder a él mediante el enlace proporcionado.</div>
-            <div class=\"button-container\">
-                <a href=\"{{LINK}}\" class=\"button\">Acceder al Archivo</a>
+        <div class="content">
+            <div class="greeting">Estimado/a destinatario,</div>
+            <div class="description">Se ha compartido un archivo contigo de forma segura. Este archivo está protegido y solo tú puedes acceder a él mediante el enlace proporcionado.</div>
+            <div class="button-container">
+                <a href="{{LINK}}" class="button">Acceder al Archivo</a>
             </div>
-            <div class=\"info-section\">
+            <div class="info-section">
                 <h3>Información importante sobre este archivo:</h3>
                 <ul>
                     <li>{{EXPIRES}}</li>
@@ -473,20 +473,19 @@ try:
                     <li>Accede desde un dispositivo confiable</li>
                 </ul>
             </div>
-            <div class=\"details\">
+            <div class="details">
                 <h4>Detalles del envío</h4>
                 <p>Fecha de envío: {{DATE}} | Método: Bitwarden Send</p>
             </div>
-            <div class=\"divider\"></div>
-            <div class=\"contact-info\">Si no esperabas recibir este archivo o tienes problemas para acceder, contacta al remitente para obtener asistencia.</div>
+            <div class="divider"></div>
+            <div class="contact-info">Si no esperabas recibir este archivo o tienes problemas para acceder, contacta al remitente para obtener asistencia.</div>
         </div>
-        <div class=\"footer\">
+        <div class="footer">
             <p>Este mensaje fue enviado de forma segura usando Bitwarden Send</p>
         </div>
     </div>
 </body>
-</html>
-        '''
+</html>'''
     
     # Reemplazar variables en la plantilla
     html_content = html_content.replace('{{LINK}}', url)
@@ -500,43 +499,54 @@ try:
     
     # Crear mensaje
     msg = MIMEMultipart('alternative')
-    msg['Subject'] = 'Archivo Compartido - ' + datetime.now().strftime('%d/%m/%Y')
-    msg['From'] = f\"{smtp_config['from_name']} <{smtp_config['from_email']}>\"
+    msg['Subject'] = 'Archivo Compartido - Acceso Seguro'
+    msg['From'] = f"{smtp_config['smtp']['from']['name']} <{smtp_config['smtp']['from']['email']}>"
     msg['To'] = ', '.join(recipients)
-    msg['Reply-To'] = smtp_config['from_email']
-    msg['X-Mailer'] = 'Bitwarden Send'
-    msg['X-Priority'] = '3'
     
     # Agregar contenido HTML
     html_part = MIMEText(html_content, 'html', 'utf-8')
     msg.attach(html_part)
     
-    # Enviar email
-    if smtp_config['security'] == 'ssl':
-        server = smtplib.SMTP_SSL(smtp_config['host'], smtp_config['port'])
+    # Conectar y enviar
+    if smtp_config['smtp']['security'] == 'tls':
+        server = smtplib.SMTP(smtp_config['smtp']['host'], smtp_config['smtp']['port'])
+        server.starttls()
+    elif smtp_config['smtp']['security'] == 'ssl':
+        server = smtplib.SMTP_SSL(smtp_config['smtp']['host'], smtp_config['smtp']['port'])
     else:
-        server = smtplib.SMTP(smtp_config['host'], smtp_config['port'])
-        if smtp_config['security'] == 'tls':
-            server.starttls()
+        server = smtplib.SMTP(smtp_config['smtp']['host'], smtp_config['smtp']['port'])
     
-    server.login(smtp_config['username'], smtp_config['password'])
+    server.login(smtp_config['smtp']['username'], smtp_config['smtp']['password'])
     server.send_message(msg)
     server.quit()
     
     print('SUCCESS')
     
 except Exception as e:
-    print(f'ERROR: {e}', file=sys.stderr)
+    print(f'ERROR: {str(e)}')
     sys.exit(1)
-" 2>> ~/.logs/bw-send.log
+EOF
+
+    # Ejecutar script Python
+    local python_result
+    python_result=$(python3 "$python_script" "$smtp_config" "$url" "$recipients" "$expiration_text" 2>&1)
+    local python_exit_code=$?
     
-    if [[ $? -eq 0 ]]; then
+    # Limpiar archivo temporal
+    rm -f "$python_script"
+    
+    # Verificar resultado
+    if [[ $python_exit_code -ne 0 ]]; then
+        log "ERROR" "Error al enviar email: $python_result"
+        return 1
+    fi
+    
+    if echo "$python_result" | grep -q "SUCCESS"; then
         log "SUCCESS" "Email enviado exitosamente a: $recipients"
-        log "INFO" "Logs guardados en: ~/.logs/bw-send.log"
+        return 0
     else
-        log "ERROR" "Error al enviar email"
-        log "INFO" "Revisa los logs en: ~/.logs/bw-send.log"
-        exit 1
+        log "ERROR" "Error al enviar email: $python_result"
+        return 1
     fi
 }
 
