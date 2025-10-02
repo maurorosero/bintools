@@ -694,7 +694,7 @@ bw-ghpersonal.sh --login
 
 ### 🚀 Herramientas de Desarrollo
 
-#### `odevs-install.sh` - Instalador de OdooDevs
+#### 🟣 `odevs-install.sh` - Instalador de OdooDevs
 
 Instalador automático de odoodevs, un entorno de desarrollo profesional para Odoo con herramientas, configuraciones y scripts optimizados. Incluye setup completo con Docker, herramientas de debugging y configuraciones predefinidas.
 
