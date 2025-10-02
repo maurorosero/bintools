@@ -7,6 +7,8 @@
 
 set -euo pipefail
 
+echo "DEBUG: Script iniciado"
+
 # Colores para output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -107,6 +109,7 @@ log() {
 
 # Función para verificar dependencias
 check_dependencies() {
+    log "DEBUG" "Verificando dependencias..."
     local missing_deps=()
     
     # Verificar Python
@@ -201,31 +204,19 @@ create_text_send() {
     log "INFO" "Creando send con texto..."
     log "INFO" "Comando: $cmd"
     
-    # Ejecutar comando y capturar salida con pipe
+    # Ejecutar comando: stderr va a la terminal (para el prompt), stdout se captura
     local result
-    result=$(eval "$cmd" | tee /dev/stderr)
+    result=$(eval "$cmd" 2>/dev/tty)
     local exit_code=$?
     
     if [[ $exit_code -ne 0 ]]; then
         log "ERROR" "Error al crear send con Bitwarden (código: $exit_code)"
+        log "ERROR" "Salida: $result"
         return 1
     fi
     
-    # Extraer URL del resultado JSON
-    local url
-    url=$(echo "$result" | grep -o '"accessUrl":"[^"]*"' | sed 's/"accessUrl":"\([^"]*\)"/\1/')
-    
-    if [[ -n "$url" ]]; then
-        log "SUCCESS" "Send creado exitosamente"
-        log "INFO" "URL: $url"
-        # Guardar URL en variable global para uso posterior
-        export BW_SEND_URL="$url"
-        export BW_SEND_RESULT="$result"
-    else
-        log "WARNING" "Send creado pero no se pudo extraer URL"
-        export BW_SEND_RESULT="$result"
-    fi
-    
+    # Guardar el resultado en una variable global para que main() pueda usarlo
+    export BW_SEND_RESULT="$result"
     return 0
 }
 
@@ -267,10 +258,20 @@ create_file_send() {
     log "INFO" "Creando send con archivo: $file"
     log "INFO" "Comando: $cmd"
     
+    # Ejecutar comando: stderr va a la terminal, stdout se captura
     local result
-    result=$(eval "$cmd")
+    result=$(eval "$cmd" 2>/dev/tty)
+    local exit_code=$?
     
-    echo "$result"
+    if [[ $exit_code -ne 0 ]]; then
+        log "ERROR" "Error al crear send con Bitwarden (código: $exit_code)"
+        log "ERROR" "Salida: $result"
+        return 1
+    fi
+    
+    # Guardar el resultado en una variable global
+    export BW_SEND_RESULT="$result"
+    return 0
 }
 
 # Función para procesar el resultado del send
@@ -573,6 +574,7 @@ EOF
 
 # Función principal
 main() {
+    log "DEBUG" "Iniciando función main..."
     # Parsear argumentos primero para verificar si es --help o --version
     local temp_args=("$@")
     for arg in "${temp_args[@]}"; do
@@ -675,27 +677,21 @@ main() {
     
     # Crear send
     if [[ -n "$TEXT" ]]; then
-        # Enviar texto
         if ! create_text_send "$TEXT"; then
-            log "ERROR" "Error al crear send con texto"
             exit 1
         fi
     else
-        # Enviar archivo(s)
+        # (lógica para archivos no cambia)
         if [[ ${#FILES[@]} -eq 1 ]]; then
-            # Un solo archivo
             if ! create_file_send "${FILES[0]}"; then
-                log "ERROR" "Error al crear send con archivo"
                 exit 1
             fi
         else
-            # Múltiples archivos - crear send para cada uno
-            log "INFO" "Creando sends para ${#FILES[@]} archivo(s)..."
+            # (bucle para múltiples archivos no cambia)
             for file in "${FILES[@]}"; do
-                echo
-                log "INFO" "Procesando: $file"
                 if create_file_send "$file"; then
                     log "SUCCESS" "Send creado para: $file"
+                    echo "$BW_SEND_RESULT"
                 else
                     log "ERROR" "Error al crear send para: $file"
                 fi
@@ -703,30 +699,30 @@ main() {
             exit 0
         fi
     fi
-    
-    # Debug: mostrar método de envío
-    log "DEBUG" "Método de envío: $SEND_METHOD"
-    log "DEBUG" "Destinatarios: $EMAIL_RECIPIENTS"
-    
-    # Para envío por email, necesitamos obtener la URL del send
+
+    # Extraer URL del resultado capturado
+    local url
+    url=$(echo "$BW_SEND_RESULT" | grep -o '"accessUrl":"[^"]*"' | sed 's/"accessUrl":"\([^"]*\)"/\1/')
+
+    if [[ -z "$url" ]]; then
+        log "ERROR" "No se pudo extraer la URL del send. Mostrando resultado completo:"
+        echo "$BW_SEND_RESULT"
+        exit 1
+    fi
+
+    log "SUCCESS" "Send creado exitosamente"
+    log "INFO" "URL: $url"
+
+    # Enviar según el método especificado
     if [[ "$SEND_METHOD" == "email" ]]; then
         if [[ -z "$EMAIL_RECIPIENTS" ]]; then
             log "ERROR" "Debes especificar destinatarios con --email"
             exit 1
         fi
-        
-        # Usar la URL capturada del send creado
-        if [[ -n "$BW_SEND_URL" ]]; then
-            # Crear resultado simulado para compatibilidad
-            local result="{\"accessUrl\":\"$BW_SEND_URL\"}"
-            send_email "$result" "$EMAIL_RECIPIENTS"
-        else
-            log "ERROR" "No se pudo obtener la URL del send"
-            exit 1
-        fi
+        send_email "$BW_SEND_RESULT" "$EMAIL_RECIPIENTS"
     else
-        log "INFO" "Send creado exitosamente"
-        log "INFO" "Usa 'bw send list' para ver los sends disponibles"
+        # Para el método 'console', la URL ya se mostró arriba
+        :
     fi
 }
 
