@@ -165,6 +165,10 @@ check_bw_auth() {
         exit 1
     fi
     
+    if echo "$status" | grep -q '"status":"locked"'; then
+        log "INFO" "Bitwarden CLI está bloqueado, se desbloqueará automáticamente cuando sea necesario"
+    fi
+    
     log "INFO" "Bitwarden CLI está configurado correctamente"
     log "INFO" "Se te pedirá la contraseña maestra cuando sea necesario"
 }
@@ -205,7 +209,40 @@ create_text_send() {
     unset PASSWORD NOTES
     
     local result
-    result=$(eval "$cmd")
+    local exit_code
+    
+    # Ejecutar comando y capturar código de salida
+    result=$(eval "$cmd" 2>&1)
+    exit_code=$?
+    
+    # Verificar si el comando falló
+    if [[ $exit_code -ne 0 ]]; then
+        log "ERROR" "Error al crear send con Bitwarden"
+        log "ERROR" "Código de salida: $exit_code"
+        log "ERROR" "Salida: $result"
+        
+        # Analizar errores específicos
+        if echo "$result" | grep -q "Master password is required"; then
+            log "ERROR" "Contraseña maestra requerida"
+            log "INFO" "Ejecuta: bw unlock"
+        elif echo "$result" | grep -q "Not authenticated"; then
+            log "ERROR" "No estás autenticado en Bitwarden"
+            log "INFO" "Ejecuta: bw login"
+        elif echo "$result" | grep -q "encryptString called with null value"; then
+            log "WARNING" "Advertencia de encriptación (puede ignorarse)"
+            # Continuar si solo es una advertencia
+        else
+            log "ERROR" "Error desconocido de Bitwarden"
+            return 1
+        fi
+    fi
+    
+    # Verificar si el resultado contiene JSON válido
+    if ! echo "$result" | grep -q '"accessUrl"'; then
+        log "ERROR" "No se pudo crear el send correctamente"
+        log "ERROR" "Resultado: $result"
+        return 1
+    fi
     
     log "DEBUG" "Resultado del comando: $result"
     echo "$result"
@@ -253,7 +290,40 @@ create_file_send() {
     unset PASSWORD NOTES
     
     local result
-    result=$(eval "$cmd")
+    local exit_code
+    
+    # Ejecutar comando y capturar código de salida
+    result=$(eval "$cmd" 2>&1)
+    exit_code=$?
+    
+    # Verificar si el comando falló
+    if [[ $exit_code -ne 0 ]]; then
+        log "ERROR" "Error al crear send con Bitwarden"
+        log "ERROR" "Código de salida: $exit_code"
+        log "ERROR" "Salida: $result"
+        
+        # Analizar errores específicos
+        if echo "$result" | grep -q "Master password is required"; then
+            log "ERROR" "Contraseña maestra requerida"
+            log "INFO" "Ejecuta: bw unlock"
+        elif echo "$result" | grep -q "Not authenticated"; then
+            log "ERROR" "No estás autenticado en Bitwarden"
+            log "INFO" "Ejecuta: bw login"
+        elif echo "$result" | grep -q "encryptString called with null value"; then
+            log "WARNING" "Advertencia de encriptación (puede ignorarse)"
+            # Continuar si solo es una advertencia
+        else
+            log "ERROR" "Error desconocido de Bitwarden"
+            return 1
+        fi
+    fi
+    
+    # Verificar si el resultado contiene JSON válido
+    if ! echo "$result" | grep -q '"accessUrl"'; then
+        log "ERROR" "No se pudo crear el send correctamente"
+        log "ERROR" "Resultado: $result"
+        return 1
+    fi
     
     echo "$result"
 }
@@ -642,11 +712,19 @@ main() {
     if [[ -n "$TEXT" ]]; then
         # Enviar texto
         result=$(create_text_send "$TEXT")
+        if [[ $? -ne 0 ]]; then
+            log "ERROR" "Error al crear send de texto"
+            exit 1
+        fi
     else
         # Enviar archivo(s)
         if [[ ${#FILES[@]} -eq 1 ]]; then
             # Un solo archivo
             result=$(create_file_send "${FILES[0]}")
+            if [[ $? -ne 0 ]]; then
+                log "ERROR" "Error al crear send de archivo"
+                exit 1
+            fi
         else
             # Múltiples archivos - crear send para cada uno
             log "INFO" "Creando sends para ${#FILES[@]} archivo(s)..."
@@ -654,6 +732,10 @@ main() {
                 echo
                 log "INFO" "Procesando: $file"
                 result=$(create_file_send "$file")
+                if [[ $? -ne 0 ]]; then
+                    log "ERROR" "Error al crear send para archivo: $file"
+                    continue
+                fi
                 send_console "$result"
             done
             exit 0
@@ -674,6 +756,10 @@ main() {
                 exit 1
             fi
             send_email "$result" "$EMAIL_RECIPIENTS"
+            if [[ $? -ne 0 ]]; then
+                log "ERROR" "Error al enviar email"
+                exit 1
+            fi
             ;;
         *)
             log "ERROR" "Método de envío no válido: $SEND_METHOD"
