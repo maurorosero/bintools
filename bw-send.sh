@@ -209,8 +209,8 @@ create_text_send() {
     local exit_code
     
     # Ejecutar comando y capturar código de salida
-    # Permitir que el prompt de contraseña se muestre en stderr
-    result=$(eval "$cmd" 2>&1)
+    # El prompt de contraseña va a stderr, capturar solo stdout
+    result=$(eval "$cmd" 2>/dev/null)
     exit_code=$?
     
     # Verificar si el comando falló
@@ -292,8 +292,8 @@ create_file_send() {
     local exit_code
     
     # Ejecutar comando y capturar código de salida
-    # Permitir que el prompt de contraseña se muestre en stderr
-    result=$(eval "$cmd" 2>&1)
+    # El prompt de contraseña va a stderr, capturar solo stdout
+    result=$(eval "$cmd" 2>/dev/null)
     exit_code=$?
     
     # Verificar si el comando falló
