@@ -208,8 +208,8 @@ create_text_send() {
     local result
     local exit_code
     
-    # Ejecutar comando directamente sin capturar nada
-    eval "$cmd"
+    # Ejecutar comando directamente sin eval
+    $cmd
     exit_code=$?
     
     # Mostrar información después del warning
@@ -304,8 +304,8 @@ create_file_send() {
     local result
     local exit_code
     
-    # Ejecutar comando directamente sin capturar nada
-    eval "$cmd"
+    # Ejecutar comando directamente sin eval
+    $cmd
     exit_code=$?
     
     # Mostrar información después del warning
