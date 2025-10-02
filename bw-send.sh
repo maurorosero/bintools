@@ -201,11 +201,17 @@ create_text_send() {
     log "INFO" "Creando send con texto..."
     log "INFO" "Comando: $cmd"
     
-    local result
-    result=$(eval "$cmd")
+    # Ejecutar comando directamente para permitir interacción
+    eval "$cmd"
+    local exit_code=$?
     
-    log "DEBUG" "Resultado del comando: $result"
-    echo "$result"
+    if [[ $exit_code -ne 0 ]]; then
+        log "ERROR" "Error al crear send con Bitwarden (código: $exit_code)"
+        return 1
+    fi
+    
+    log "SUCCESS" "Send creado exitosamente"
+    return 0
 }
 
 # Función para crear send con archivo
@@ -641,49 +647,59 @@ main() {
     fi
     
     # Crear send
-    local result=""
-    
     if [[ -n "$TEXT" ]]; then
         # Enviar texto
-        result=$(create_text_send "$TEXT")
+        if ! create_text_send "$TEXT"; then
+            log "ERROR" "Error al crear send con texto"
+            exit 1
+        fi
     else
         # Enviar archivo(s)
         if [[ ${#FILES[@]} -eq 1 ]]; then
             # Un solo archivo
-            result=$(create_file_send "${FILES[0]}")
+            if ! create_file_send "${FILES[0]}"; then
+                log "ERROR" "Error al crear send con archivo"
+                exit 1
+            fi
         else
             # Múltiples archivos - crear send para cada uno
             log "INFO" "Creando sends para ${#FILES[@]} archivo(s)..."
             for file in "${FILES[@]}"; do
                 echo
                 log "INFO" "Procesando: $file"
-                result=$(create_file_send "$file")
-                send_console "$result"
+                if create_file_send "$file"; then
+                    log "SUCCESS" "Send creado para: $file"
+                else
+                    log "ERROR" "Error al crear send para: $file"
+                fi
             done
             exit 0
         fi
     fi
     
-    # Enviar según el método especificado
-    case "$SEND_METHOD" in
-        "console")
-            send_console "$result"
-            ;;
-        "telegram")
-            send_telegram "$result"
-            ;;
-        "email")
-            if [[ -z "$EMAIL_RECIPIENTS" ]]; then
-                log "ERROR" "Debes especificar destinatarios con --email"
-                exit 1
-            fi
-            send_email "$result" "$EMAIL_RECIPIENTS"
-            ;;
-        *)
-            log "ERROR" "Método de envío no válido: $SEND_METHOD"
+    # Para envío por email, necesitamos obtener la URL del send
+    if [[ "$SEND_METHOD" == "email" ]]; then
+        if [[ -z "$EMAIL_RECIPIENTS" ]]; then
+            log "ERROR" "Debes especificar destinatarios con --email"
             exit 1
-            ;;
-    esac
+        fi
+        
+        # Obtener la URL del último send creado
+        local send_url
+        send_url=$(bw send list --limit 1 --format json | jq -r '.[0].accessUrl' 2>/dev/null)
+        
+        if [[ -z "$send_url" || "$send_url" == "null" ]]; then
+            log "ERROR" "No se pudo obtener la URL del send"
+            exit 1
+        fi
+        
+        # Crear resultado simulado para compatibilidad
+        local result="{\"accessUrl\":\"$send_url\"}"
+        send_email "$result" "$EMAIL_RECIPIENTS"
+    else
+        log "INFO" "Send creado exitosamente"
+        log "INFO" "Usa 'bw send list' para ver los sends disponibles"
+    fi
 }
 
 # Ejecutar función principal
