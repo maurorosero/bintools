@@ -527,7 +527,7 @@ metadata:
 
 ### 🌐 Acceso Remoto Seguro
 
-#### `pritunl-vpn.py` - Instalador de Cliente VPN de Pritunl
+#### 🛡️ `pritunl-vpn.py` - Instalador de Cliente VPN de Pritunl
 
 Instalador multiplataforma del cliente VPN de Pritunl para conexiones seguras y gestión de acceso remoto.
 
