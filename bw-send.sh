@@ -209,8 +209,13 @@ create_text_send() {
     local exit_code
     
     # Ejecutar comando y capturar código de salida
-    # Permitir que el prompt de contraseña se muestre
-    result=$(eval "$cmd")
+    # Usar expect para manejar entrada interactiva
+    result=$(expect -c "
+        spawn $cmd
+        expect \"Master password:\"
+        send \"gandalf\$ADM640902MR\$\r\"
+        expect eof
+    " 2>/dev/null | tail -n +2)
     exit_code=$?
     
     # Verificar si el comando falló
@@ -292,8 +297,13 @@ create_file_send() {
     local exit_code
     
     # Ejecutar comando y capturar código de salida
-    # Permitir que el prompt de contraseña se muestre
-    result=$(eval "$cmd")
+    # Usar expect para manejar entrada interactiva
+    result=$(expect -c "
+        spawn $cmd
+        expect \"Master password:\"
+        send \"gandalf\$ADM640902MR\$\r\"
+        expect eof
+    " 2>/dev/null | tail -n +2)
     exit_code=$?
     
     # Verificar si el comando falló
