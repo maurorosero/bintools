@@ -382,6 +382,17 @@ send_email() {
         return 1
     fi
     
+    # Extraer fecha de expiración
+    local expiration_date
+    expiration_date=$(echo "$result" | grep -o '"expirationDate":"[^"]*"' | sed 's/"expirationDate":"\([^"]*\)"/\1/')
+    
+    # Formatear fecha de expiración si existe
+    local expiration_text=""
+    if [[ -n "$expiration_date" ]]; then
+        # Convertir fecha ISO a formato legible
+        expiration_text=$(date -d "$expiration_date" "+%d/%m/%Y a las %H:%M" 2>/dev/null || echo "$expiration_date")
+    fi
+    
     # Crear directorio de logs si no existe
     mkdir -p ~/.logs
     
@@ -400,6 +411,7 @@ try:
     smtp_config = json.loads('''$smtp_config''')
     url = '''$url'''
     recipients = '''$recipients'''.split(',')
+    expiration_text = '''$expiration_text'''
     
     # Leer plantilla de email
     template_file = os.path.expanduser('~/secure/mail/email.bw.template')
@@ -455,7 +467,7 @@ try:
             <div class=\"info-section\">
                 <h3>Información importante sobre este archivo:</h3>
                 <ul>
-                    <li>Este enlace tiene una fecha de expiración automática</li>
+                    <li>{{EXPIRES}}</li>
                     <li>No compartas este enlace con otras personas</li>
                     <li>El archivo está protegido con encriptación</li>
                     <li>Accede desde un dispositivo confiable</li>
@@ -479,6 +491,12 @@ try:
     # Reemplazar variables en la plantilla
     html_content = html_content.replace('{{LINK}}', url)
     html_content = html_content.replace('{{DATE}}', datetime.now().strftime('%d/%m/%Y %H:%M'))
+    
+    # Reemplazar fecha de expiración si existe
+    if expiration_text:
+        html_content = html_content.replace('{{EXPIRES}}', f'El enlace expirará el {expiration_text}')
+    else:
+        html_content = html_content.replace('{{EXPIRES}}', '')
     
     # Crear mensaje
     msg = MIMEMultipart('alternative')
