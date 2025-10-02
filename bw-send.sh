@@ -187,13 +187,13 @@ create_text_send() {
     fi
     cmd="$cmd -a $MAX_ACCESS_COUNT"
     
-    # Solo agregar --password si tiene valor válido
-    if [[ -n "$PASSWORD" && "$PASSWORD" != "null" && "$PASSWORD" != "" ]]; then
+    # Solo agregar --password si tiene valor válido (no vacío, no null)
+    if [[ -n "${PASSWORD:-}" && "$PASSWORD" != "null" && "$PASSWORD" != "" ]]; then
         cmd="$cmd --password \"$PASSWORD\""
     fi
     
-    # Solo agregar --notes si tiene valor válido
-    if [[ -n "$NOTES" && "$NOTES" != "null" && "$NOTES" != "" ]]; then
+    # Solo agregar --notes si tiene valor válido (no vacío, no null)
+    if [[ -n "${NOTES:-}" && "$NOTES" != "null" && "$NOTES" != "" ]]; then
         cmd="$cmd --notes \"$NOTES\""
     fi
     
@@ -270,13 +270,13 @@ create_file_send() {
     fi
     cmd="$cmd -a $MAX_ACCESS_COUNT"
     
-    # Solo agregar --password si tiene valor válido
-    if [[ -n "$PASSWORD" && "$PASSWORD" != "null" && "$PASSWORD" != "" ]]; then
+    # Solo agregar --password si tiene valor válido (no vacío, no null)
+    if [[ -n "${PASSWORD:-}" && "$PASSWORD" != "null" && "$PASSWORD" != "" ]]; then
         cmd="$cmd --password \"$PASSWORD\""
     fi
     
-    # Solo agregar --notes si tiene valor válido
-    if [[ -n "$NOTES" && "$NOTES" != "null" && "$NOTES" != "" ]]; then
+    # Solo agregar --notes si tiene valor válido (no vacío, no null)
+    if [[ -n "${NOTES:-}" && "$NOTES" != "null" && "$NOTES" != "" ]]; then
         cmd="$cmd --notes \"$NOTES\""
     fi
     
