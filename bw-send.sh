@@ -201,8 +201,9 @@ create_text_send() {
     log "INFO" "Creando send con texto..."
     log "INFO" "Comando: $cmd"
     
-    # Ejecutar comando directamente para permitir interacción
-    eval "$cmd"
+    # Ejecutar comando y capturar salida con pipe
+    local result
+    result=$(eval "$cmd" | tee /dev/stderr)
     local exit_code=$?
     
     if [[ $exit_code -ne 0 ]]; then
@@ -210,7 +211,21 @@ create_text_send() {
         return 1
     fi
     
-    log "SUCCESS" "Send creado exitosamente"
+    # Extraer URL del resultado JSON
+    local url
+    url=$(echo "$result" | grep -o '"accessUrl":"[^"]*"' | sed 's/"accessUrl":"\([^"]*\)"/\1/')
+    
+    if [[ -n "$url" ]]; then
+        log "SUCCESS" "Send creado exitosamente"
+        log "INFO" "URL: $url"
+        # Guardar URL en variable global para uso posterior
+        export BW_SEND_URL="$url"
+        export BW_SEND_RESULT="$result"
+    else
+        log "WARNING" "Send creado pero no se pudo extraer URL"
+        export BW_SEND_RESULT="$result"
+    fi
+    
     return 0
 }
 
@@ -631,6 +646,13 @@ main() {
         esac
     done
     
+    # Debug: mostrar variables después del parseo
+    log "DEBUG" "Después del parseo:"
+    log "DEBUG" "TEXT: '$TEXT'"
+    log "DEBUG" "FILES: ${FILES[@]}"
+    log "DEBUG" "SEND_METHOD: '$SEND_METHOD'"
+    log "DEBUG" "EMAIL_RECIPIENTS: '$EMAIL_RECIPIENTS'"
+    
     # Establecer expiración por defecto si no se especificó
     if [[ -z "$EXPIRATION" ]]; then
         EXPIRATION="$DEFAULT_EXPIRATION"
@@ -645,6 +667,11 @@ main() {
         show_help
         exit 1
     fi
+    
+    # Debug: mostrar variables
+    log "DEBUG" "TEXT: '$TEXT'"
+    log "DEBUG" "FILES: ${FILES[@]}"
+    log "DEBUG" "Cantidad de archivos: ${#FILES[@]}"
     
     # Crear send
     if [[ -n "$TEXT" ]]; then
@@ -677,6 +704,10 @@ main() {
         fi
     fi
     
+    # Debug: mostrar método de envío
+    log "DEBUG" "Método de envío: $SEND_METHOD"
+    log "DEBUG" "Destinatarios: $EMAIL_RECIPIENTS"
+    
     # Para envío por email, necesitamos obtener la URL del send
     if [[ "$SEND_METHOD" == "email" ]]; then
         if [[ -z "$EMAIL_RECIPIENTS" ]]; then
@@ -684,18 +715,15 @@ main() {
             exit 1
         fi
         
-        # Obtener la URL del último send creado
-        local send_url
-        send_url=$(bw send list --limit 1 --format json | jq -r '.[0].accessUrl' 2>/dev/null)
-        
-        if [[ -z "$send_url" || "$send_url" == "null" ]]; then
+        # Usar la URL capturada del send creado
+        if [[ -n "$BW_SEND_URL" ]]; then
+            # Crear resultado simulado para compatibilidad
+            local result="{\"accessUrl\":\"$BW_SEND_URL\"}"
+            send_email "$result" "$EMAIL_RECIPIENTS"
+        else
             log "ERROR" "No se pudo obtener la URL del send"
             exit 1
         fi
-        
-        # Crear resultado simulado para compatibilidad
-        local result="{\"accessUrl\":\"$send_url\"}"
-        send_email "$result" "$EMAIL_RECIPIENTS"
     else
         log "INFO" "Send creado exitosamente"
         log "INFO" "Usa 'bw send list' para ver los sends disponibles"
