@@ -208,7 +208,8 @@ create_text_send() {
     local exit_code
     
     # Ejecutar comando y capturar código de salida
-    result=$(eval "$cmd" 2>&1)
+    # Permitir que el prompt de contraseña se muestre en stderr
+    result=$(eval "$cmd" 2> >(tee /dev/stderr))
     exit_code=$?
     
     # Verificar si el comando falló
@@ -289,7 +290,8 @@ create_file_send() {
     local exit_code
     
     # Ejecutar comando y capturar código de salida
-    result=$(eval "$cmd" 2>&1)
+    # Permitir que el prompt de contraseña se muestre en stderr
+    result=$(eval "$cmd" 2> >(tee /dev/stderr))
     exit_code=$?
     
     # Verificar si el comando falló
